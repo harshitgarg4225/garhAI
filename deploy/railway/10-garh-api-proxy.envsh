@@ -1,0 +1,23 @@
+# Sourced by the stock nginx entrypoint before template substitution
+# (files ending in .envsh under /docker-entrypoint.d are sourced, not run).
+#
+# Supplies the two values api-proxy.conf.template needs, with defaults that
+# keep the image bootable outside Railway:
+#
+#   GARH_API_ORIGIN    where /api/* is proxied. On Railway set it to
+#                      http://<api service>.railway.internal:8000; the
+#                      localhost default keeps a bare `docker run` alive
+#                      (the proxy 502s, the static site still serves).
+#   GARH_DNS_RESOLVER  nameserver for nginx's runtime re-resolution. Derived
+#                      from the container's own /etc/resolv.conf, which is
+#                      what resolves *.railway.internal on Railway and
+#                      service names under compose. IPv6 nameservers get the
+#                      brackets nginx requires.
+
+export GARH_API_ORIGIN="${GARH_API_ORIGIN:-http://localhost:8000}"
+
+if [ -z "${GARH_DNS_RESOLVER:-}" ]; then
+  GARH_DNS_RESOLVER="$(awk '/^nameserver/ { ns = ($2 ~ /:/) ? "[" $2 "]" : $2; printf "%s ", ns } END {}' /etc/resolv.conf)"
+  GARH_DNS_RESOLVER="${GARH_DNS_RESOLVER% }"
+fi
+export GARH_DNS_RESOLVER="${GARH_DNS_RESOLVER:-127.0.0.11}"

@@ -1,0 +1,37 @@
+# Garh AI — same-origin /api reverse proxy (the `prod-railway` web stage).
+#
+# docs/deployment.md: web and API are served from ONE origin so the §13
+# refresh cookie stays SameSite=Lax and the CSP keeps `connect-src 'self'`.
+# On Railway that "layer in front" is nginx itself: the prod-railway stage
+# swaps the stock config's explicit `return 404` in `location /api/` for an
+# include of this file, so these directives run INSIDE that location and
+# forward /api/* to the API service over the private network, unmodified —
+# the API already serves under the /api/v1 prefix, so there is no path
+# rewrite to get wrong.
+#
+# This is a TEMPLATE: the stock nginx entrypoint substitutes the two
+# ${GARH_*} values from the environment at container start
+# (10-garh-api-proxy.envsh supplies defaults, so the image boots anywhere).
+# Everything else with a dollar sign is an nginx runtime variable and is
+# left alone — the entrypoint only substitutes names that exist in the
+# environment.
+#
+# The variable-plus-resolver form is deliberate: a static proxy_pass
+# resolves its hostname ONCE at config load, so a redeploy of the API (new
+# private IP) would leave the web container proxying at a corpse until it
+# restarted. With `set $...; proxy_pass $...;` nginx re-resolves through
+# the resolver, honouring `valid=10s`.
+
+resolver ${GARH_DNS_RESOLVER} valid=10s;
+
+set $garh_api_origin ${GARH_API_ORIGIN};
+proxy_pass $garh_api_origin;
+proxy_http_version 1.1;
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+# SSE job/event streams (§18): a buffered stream is a frozen stream, and
+# the default 60s read timeout would sever a quiet solver watch.
+proxy_buffering off;
+proxy_read_timeout 3600s;
+proxy_send_timeout 3600s;
