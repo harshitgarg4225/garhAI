@@ -1,0 +1,103 @@
+{
+  "$comment": "Named model states for the copilot eval corpus: a base fixture from garh_model.testing (same fixed ids as packages/model/src/testing.ts and the seeded demo project) plus extra ops folded on top. DERIVED from _tools/generate.py.",
+  "states": {
+    "empty": {
+      "base": "empty",
+      "ops": []
+    },
+    "two-room": {
+      "base": "two-room-plan-with-openings",
+      "ops": []
+    },
+    "two-room-g1": {
+      "base": "two-room-plan-with-openings",
+      "ops": [
+        {
+          "type": "storey.add",
+          "payload": {
+            "id": "storey_01J000000000000000000000FF",
+            "index": 1,
+            "name": "First Floor",
+            "heightMm": 3000
+          }
+        }
+      ]
+    },
+    "kitchen-dining": {
+      "base": "two-room-plan-with-openings",
+      "ops": [
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_01J000000000000000000000W2",
+            "wallId": "wall_01J000000000000000000000WE",
+            "kind": "window",
+            "widthMm": 1200,
+            "heightMm": 1200,
+            "sillMm": 900,
+            "offsetMm": 1400,
+            "swing": "in-left"
+          }
+        },
+        {
+          "type": "room.assign",
+          "payload": {
+            "roomId": "room_3STWE7A7RW1W36KN6PTGH7ANAS",
+            "type": "kitchen",
+            "name": "Kitchen"
+          }
+        },
+        {
+          "type": "room.assign",
+          "payload": {
+            "roomId": "room_66G2VB6DPW6JB5SWS7BRCH4SPN",
+            "type": "dining",
+            "name": "Dining"
+          }
+        }
+      ]
+    },
+    "living-dining": {
+      "base": "two-room-plan-with-openings",
+      "ops": [
+        {
+          "type": "room.assign",
+          "payload": {
+            "roomId": "room_3STWE7A7RW1W36KN6PTGH7ANAS",
+            "type": "living",
+            "name": "Living Room"
+          }
+        },
+        {
+          "type": "room.assign",
+          "payload": {
+            "roomId": "room_66G2VB6DPW6JB5SWS7BRCH4SPN",
+            "type": "dining",
+            "name": "Dining"
+          }
+        }
+      ]
+    },
+    "bed-bath": {
+      "base": "two-room-plan-with-openings",
+      "ops": [
+        {
+          "type": "room.assign",
+          "payload": {
+            "roomId": "room_3STWE7A7RW1W36KN6PTGH7ANAS",
+            "type": "bedroom",
+            "name": "Bedroom 2"
+          }
+        },
+        {
+          "type": "room.assign",
+          "payload": {
+            "roomId": "room_66G2VB6DPW6JB5SWS7BRCH4SPN",
+            "type": "bath",
+            "name": "Bathroom"
+          }
+        }
+      ]
+    }
+  }
+}

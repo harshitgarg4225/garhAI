@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://garh.ai/schema/project-doc.schema.json",
+  "title": "ProjectDoc — the document the op log folds to",
+  "$comment": "CROSS-LANGUAGE CONTRACT between packages/model/src/model.ts and apps/api/garh_model/model.py. `fold(model, op)` takes and returns this shape and `stateHash` hashes exactly this. It wraps HouseModel (§3) with the three things ops 1-5 and 32 mutate but which the DB keeps in their own tables (plots, briefs, annotations). CANONICAL FORM (required for the hash to match across languages): every element array is sorted by id ascending (byte compare); storeys[] and levels.fflPerStoreyMm[] keep their semantic order; object keys are serialised sorted by Unicode code point; every number is an integer. See fold.ts's header for the full canonicalJson rules.",
+  "type": "object",
+  "required": ["schemaVersion", "plot", "brief", "house", "annotations"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "plot": { "$ref": "#/$defs/PlotDoc" },
+    "brief": { "$ref": "#/$defs/BriefDoc" },
+    "house": { "$ref": "house-model.schema.json" },
+    "annotations": { "type": "array", "items": { "$ref": "#/$defs/Annotation" } }
+  },
+
+  "$defs": {
+    "Road": {
+      "type": "object",
+      "required": ["edgeIndex", "widthMm", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "edgeIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "$comment": "Index of the boundary edge boundary[i] -> boundary[i+1]."
+        },
+        "widthMm": {
+          "oneOf": [{ "$ref": "common.schema.json#/$defs/PositiveIntMm" }, { "type": "null" }]
+        },
+        "name": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    },
+    "RegProfile": {
+      "type": "object",
+      "required": ["cityPack", "overrides"],
+      "additionalProperties": false,
+      "properties": {
+        "cityPack": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "$comment": "Rule pack id: 'blr' | 'ncr' | 'hyd' | ... (packs live in rulepacks/)."
+        },
+        "overrides": { "$ref": "common.schema.json#/$defs/JsonObject" }
+      }
+    },
+    "PlotDoc": {
+      "type": "object",
+      "required": ["boundary", "northDeg", "roads", "regProfile", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "boundary": {
+          "$ref": "common.schema.json#/$defs/PolygonOrEmpty",
+          "$comment": "CCW, plot-local mm, origin at the SW corner. Empty until the boundary is set."
+        },
+        "northDeg": { "$ref": "common.schema.json#/$defs/Bearing" },
+        "roads": { "type": "array", "items": { "$ref": "#/$defs/Road" } },
+        "regProfile": { "$ref": "#/$defs/RegProfile" },
+        "source": { "type": "string", "$comment": "'manual' | 'dxf' | 'seed'." }
+      }
+    },
+    "BriefDoc": {
+      "type": "object",
+      "required": ["data", "vastuMode", "completeness"],
+      "additionalProperties": false,
+      "properties": {
+        "data": { "$ref": "common.schema.json#/$defs/JsonObject" },
+        "vastuMode": { "$ref": "common.schema.json#/$defs/VastuMode" },
+        "completeness": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "Annotation": {
+      "type": "object",
+      "required": ["id", "sheetId", "anchorElementId", "anchorKind", "payload", "orphaned"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/AnnotationId" },
+        "sheetId": { "$ref": "common.schema.json#/$defs/SheetId" },
+        "anchorElementId": {
+          "oneOf": [{ "$ref": "common.schema.json#/$defs/ElementId" }, { "type": "null" }]
+        },
+        "anchorKind": { "$ref": "common.schema.json#/$defs/AnnotationAnchorKind" },
+        "payload": { "$ref": "common.schema.json#/$defs/JsonObject" },
+        "orphaned": {
+          "type": "boolean",
+          "$comment": "True after a solver re-run destroyed the anchor; drives the Review Tray (§7)."
+        }
+      }
+    }
+  }
+}

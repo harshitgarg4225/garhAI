@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta
+      name="description"
+      content="Garh AI — plot and brief in, compliant floor plans, 3D, renders and a municipal drawing set out."
+    />
+    <!-- Nothing about a design is fit for a search index. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <title>Garh AI</title>
+
+    <!--
+      §13: NO INLINE SCRIPTS. The only script on this page is the module entry
+      below, so a production CSP can ship `script-src 'self'` with no nonce and
+      no 'unsafe-inline'. The response headers (CSP, HSTS, frame-ancestors) are
+      set by the serving layer, not by a <meta http-equiv> tag here — a meta CSP
+      would also apply to the dev server, where @vitejs/plugin-react must inject
+      its React-Refresh preamble inline.
+
+      The document ships an EMPTY #root on purpose. First paint is the app's
+      skeleton (src/routes.tsx), which knows what is loading; a hand-written
+      HTML splash cannot, and would flash a second, different-looking loading
+      state before the real one (§15 "skeletons everywhere, never blank").
+    -->
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <noscript>
+      <p lang="en">
+        Garh AI needs JavaScript to draw plans. Please enable it, or open this page in a
+        different browser.
+      </p>
+    </noscript>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "@garh/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Playwright end-to-end tests (playbook §16): smoke on every PR, full happy path nightly",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:canvas": "playwright test --grep @canvas",
+    "test:happy-path": "playwright test --grep @happy-path",
+    "test:perf": "playwright test --grep @perf",
+    "test:copilot": "playwright test --grep @copilot",
+    "test:renders": "playwright test --grep @renders",
+    "fixtures:check": "python3 fixtures/generate.py --check",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report ../playwright-report",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf ../playwright-report ../test-results .cache"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.0",
+    "@types/node": "20.16.11",
+    "typescript": "5.6.2"
+  }
+}

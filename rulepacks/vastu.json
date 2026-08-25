@@ -1,0 +1,537 @@
+{
+  "$schema": "./schema/rulepack.schema.json",
+  "schemaVersion": 1,
+  "pack": "vastu",
+  "idPrefix": "vastu",
+  "version": "2026.07",
+  "title": "Vastu Shastra - directional advisory pack (seed)",
+  "authority": "Traditional practice (no statutory authority)",
+  "jurisdiction": {
+    "country": "IN",
+    "scope": "advisory"
+  },
+  "extends": null,
+  "citations_base": "Vastu Shastra - common North/South Indian practice",
+  "confidenceDefault": "seed",
+  "review": {
+    "status": "unreviewed",
+    "reviewers": [],
+    "lastReviewedAt": null,
+    "nextReviewDue": null,
+    "notes": "SEED PACK. Vastu is a tradition, not a code: schools disagree, and regional practice differs. The weights here are Garh AI defaults chosen so the nine rules sum to 100, NOT a consensus. A Vastu consultant on the advisory board must review the rule set, the fallbacks and the weights; regional schools are expected to ship later as separate installable packs."
+  },
+  "disclaimer": "Vastu guidance is advisory and traditional, not a building code and not a statutory requirement. Nothing here affects legal compliance. Weights and fallbacks are Garh AI seed defaults and different Vastu schools will disagree; treat the score as a conversation aid with the client, not a verdict.",
+  "notes": "Zones are the 3x3 grid over the plot oriented to TRUE north (see the `zone` definition in the schema for the exact derivation). The pack serves both brief modes from ONE rule set: `advisory` clamps every severity to warn and only scores, `strict` lets severities through and lets the solver enforce rules marked `hard`. `off` means the pack is never loaded. Rule weights sum to 100, which makes the weighted mean directly readable as the 0-100 score when every rule is applicable.",
+  "sources": [
+    {
+      "label": "Vastu placement conventions as summarised in the product brief (entrance N/NE/E, pooja NE, kitchen SE with NW fallback, master SW, toilets W/NW never NE, stairs S/SW/W, brahmasthan open, tank NE)",
+      "publisher": "Garh AI product spec",
+      "year": 2026,
+      "obtained": true
+    }
+  ],
+  "vocabulary": {
+    "openRoomTypes": [
+      "courtyard",
+      "corridor",
+      "lobby",
+      "living",
+      "living_dining",
+      "terrace",
+      "balcony"
+    ]
+  },
+  "scoring": {
+    "enabled": true,
+    "modeField": "vastuMode",
+    "scale": {
+      "min": 0,
+      "max": 100
+    },
+    "aggregate": "weighted-mean",
+    "rounding": "half-up",
+    "modes": {
+      "advisory": {
+        "enforce": false,
+        "severityCeiling": "warn",
+        "score": true
+      },
+      "strict": {
+        "enforce": true,
+        "severityCeiling": "fail",
+        "score": true
+      }
+    },
+    "groups": [
+      {
+        "id": "entry",
+        "label": "Entrance",
+        "description": "Which face the house is entered from."
+      },
+      {
+        "id": "sacred",
+        "label": "Sacred core",
+        "description": "Pooja room and the open centre (brahmasthan)."
+      },
+      {
+        "id": "fire",
+        "label": "Fire zone",
+        "description": "Kitchen and the agni corner."
+      },
+      {
+        "id": "sleep",
+        "label": "Sleeping",
+        "description": "Master bedroom placement."
+      },
+      {
+        "id": "water",
+        "label": "Water and waste",
+        "description": "Toilets and stored water."
+      },
+      {
+        "id": "circulation",
+        "label": "Circulation",
+        "description": "Staircase placement."
+      }
+    ]
+  },
+  "rules": [
+    {
+      "id": "vastu.entrance.edge",
+      "severity": "fail",
+      "title": "Main entrance - facing",
+      "message": "The main entrance faces {actual}. Vastu prefers an entrance on the {limit} side.",
+      "when": {
+        "vastuMode": {
+          "in": [
+            "advisory",
+            "strict"
+          ]
+        }
+      },
+      "check": {
+        "type": "zone_check",
+        "mode": "facing",
+        "target": {
+          "kind": "opening",
+          "roles": [
+            "main-entrance"
+          ]
+        },
+        "allow": [
+          "N",
+          "NE",
+          "E"
+        ]
+      },
+      "cite": "Entrance (dwara) placement",
+      "fix": "Move the main door to the north, north-east or east face, or accept the trade-off and note it for the client.",
+      "autofix": {
+        "opType": "solver.apply_option",
+        "strategy": "relocate-room-to-zone",
+        "computable": false
+      },
+      "confidence": "seed",
+      "weight": 18,
+      "group": "entry",
+      "hard": false,
+      "tags": [
+        "vastu",
+        "entrance"
+      ]
+    },
+    {
+      "id": "vastu.pooja.zone",
+      "severity": "warn",
+      "title": "Pooja room - zone",
+      "message": "The pooja room sits in {actual}. Vastu places it in the {limit} zone.",
+      "when": {
+        "vastuMode": {
+          "in": [
+            "advisory",
+            "strict"
+          ]
+        }
+      },
+      "check": {
+        "type": "zone_check",
+        "mode": "zone",
+        "target": {
+          "kind": "room",
+          "roomTypes": [
+            "pooja"
+          ]
+        },
+        "allow": [
+          "NE"
+        ],
+        "fallback": {
+          "allow": [
+            "N",
+            "E"
+          ],
+          "scoreRatio": {
+            "num": 1,
+            "den": 2
+          }
+        }
+      },
+      "cite": "Pooja (ishanya) placement",
+      "fix": "Move the pooja room to the north-east cell; north or east is a partial alternative.",
+      "autofix": {
+        "opType": "solver.apply_option",
+        "strategy": "relocate-room-to-zone",
+        "computable": false
+      },
+      "confidence": "seed",
+      "weight": 10,
+      "group": "sacred",
+      "tags": [
+        "vastu",
+        "pooja"
+      ]
+    },
+    {
+      "id": "vastu.kitchen.zone",
+      "severity": "warn",
+      "title": "Kitchen - zone",
+      "message": "The kitchen sits in {actual}. Vastu places the fire zone in {limit}.",
+      "when": {
+        "vastuMode": {
+          "in": [
+            "advisory",
+            "strict"
+          ]
+        }
+      },
+      "check": {
+        "type": "zone_check",
+        "mode": "zone",
+        "target": {
+          "kind": "room",
+          "roomTypes": [
+            "kitchen",
+            "kitchen_dining"
+          ]
+        },
+        "allow": [
+          "SE"
+        ],
+        "fallback": {
+          "allow": [
+            "NW"
+          ],
+          "scoreRatio": {
+            "num": 1,
+            "den": 2
+          }
+        }
+      },
+      "cite": "Agni (fire) zone - south-east",
+      "fix": "Move the kitchen to the south-east cell; north-west is the accepted alternative at half score.",
+      "autofix": {
+        "opType": "solver.apply_option",
+        "strategy": "relocate-room-to-zone",
+        "computable": false
+      },
+      "confidence": "seed",
+      "weight": 14,
+      "group": "fire",
+      "tags": [
+        "vastu",
+        "kitchen"
+      ]
+    },
+    {
+      "id": "vastu.master.zone",
+      "severity": "warn",
+      "title": "Master bedroom - zone",
+      "message": "The master bedroom sits in {actual}. Vastu places it in {limit}.",
+      "when": {
+        "vastuMode": {
+          "in": [
+            "advisory",
+            "strict"
+          ]
+        }
+      },
+      "check": {
+        "type": "zone_check",
+        "mode": "zone",
+        "target": {
+          "kind": "room",
+          "roomTypes": [
+            "master_bedroom"
+          ]
+        },
+        "allow": [
+          "SW"
+        ],
+        "fallback": {
+          "allow": [
+            "S",
+            "W"
+          ],
+          "scoreRatio": {
+            "num": 1,
+            "den": 2
+          }
+        }
+      },
+      "cite": "Master bedroom - south-west",
+      "fix": "Move the master bedroom to the south-west cell; south or west is a partial alternative.",
+      "autofix": {
+        "opType": "solver.apply_option",
+        "strategy": "relocate-room-to-zone",
+        "computable": false
+      },
+      "confidence": "seed",
+      "weight": 12,
+      "group": "sleep",
+      "tags": [
+        "vastu",
+        "bedroom"
+      ]
+    },
+    {
+      "id": "vastu.toilet.zone",
+      "severity": "warn",
+      "title": "Toilets - preferred zone",
+      "message": "A toilet sits in {actual}. Vastu places toilets in {limit}.",
+      "when": {
+        "vastuMode": {
+          "in": [
+            "advisory",
+            "strict"
+          ]
+        }
+      },
+      "check": {
+        "type": "zone_check",
+        "mode": "zone",
+        "target": {
+          "kind": "room",
+          "roomTypes": [
+            "bath",
+            "wc",
+            "bath_wc"
+          ]
+        },
+        "allow": [
+          "W",
+          "NW"
+        ],
+        "fallback": {
+          "allow": [
+            "S"
+          ],
+          "scoreRatio": {
+            "num": 1,
+            "den": 2
+          }
+        }
+      },
+      "cite": "Toilet placement",
+      "fix": "Move the toilet to the west or north-west cell; south is a partial alternative.",
+      "autofix": {
+        "opType": "solver.apply_option",
+        "strategy": "relocate-room-to-zone",
+        "computable": false
+      },
+      "confidence": "seed",
+      "weight": 10,
+      "group": "water",
+      "tags": [
+        "vastu",
+        "toilet"
+      ]
+    },
+    {
+      "id": "vastu.toilet.never_ne",
+      "severity": "fail",
+      "title": "Toilets - never north-east",
+      "message": "A toilet sits in the north-east. Vastu treats {limit} as the one placement to avoid entirely.",
+      "when": {
+        "vastuMode": {
+          "in": [
+            "advisory",
+            "strict"
+          ]
+        }
+      },
+      "check": {
+        "type": "zone_check",
+        "mode": "zone",
+        "target": {
+          "kind": "room",
+          "roomTypes": [
+            "bath",
+            "wc",
+            "bath_wc"
+          ]
+        },
+        "deny": [
+          "NE"
+        ]
+      },
+      "cite": "Ishanya - no wet area",
+      "fix": "Move the toilet out of the north-east cell; west or north-west is the preferred home for it.",
+      "autofix": {
+        "opType": "solver.apply_option",
+        "strategy": "relocate-room-to-zone",
+        "computable": false
+      },
+      "confidence": "seed",
+      "weight": 12,
+      "group": "water",
+      "hard": true,
+      "tags": [
+        "vastu",
+        "toilet",
+        "hard"
+      ],
+      "notes": "The only hard Vastu constraint. In strict mode the solver encodes it as a CP-SAT constraint; in advisory mode the mode ceiling clamps this result to warn."
+    },
+    {
+      "id": "vastu.stair.zone",
+      "severity": "warn",
+      "title": "Staircase - zone",
+      "message": "The staircase sits in {actual}. Vastu places stairs in {limit}.",
+      "when": {
+        "vastuMode": {
+          "in": [
+            "advisory",
+            "strict"
+          ]
+        }
+      },
+      "check": {
+        "type": "zone_check",
+        "mode": "zone",
+        "target": {
+          "kind": "stair"
+        },
+        "allow": [
+          "S",
+          "SW",
+          "W"
+        ]
+      },
+      "cite": "Staircase placement",
+      "fix": "Move the stair to the south, south-west or west cell - it is also the structurally repeatable position across floors.",
+      "autofix": {
+        "opType": "solver.apply_option",
+        "strategy": "relocate-room-to-zone",
+        "computable": false
+      },
+      "confidence": "seed",
+      "weight": 10,
+      "group": "circulation",
+      "tags": [
+        "vastu",
+        "stair"
+      ]
+    },
+    {
+      "id": "vastu.brahmasthan.open",
+      "severity": "warn",
+      "title": "Brahmasthan - keep the centre open",
+      "message": "An enclosed room covers {actual} of the centre cell. Vastu keeps the brahmasthan open - at most {limit}.",
+      "when": {
+        "vastuMode": {
+          "in": [
+            "advisory",
+            "strict"
+          ]
+        }
+      },
+      "check": {
+        "type": "custom",
+        "fn": "brahmasthan_open",
+        "scope": "project",
+        "args": {
+          "maxEnclosedRatio": {
+            "num": 1,
+            "den": 2
+          },
+          "openRoomTypes": [
+            "courtyard",
+            "corridor",
+            "lobby",
+            "living",
+            "living_dining",
+            "terrace",
+            "balcony"
+          ]
+        }
+      },
+      "cite": "Brahmasthan",
+      "fix": "Keep the centre of the plan open - a courtyard, double-height space, living area or circulation rather than an enclosed room.",
+      "autofix": {
+        "opType": "solver.apply_option",
+        "strategy": "open-brahmasthan",
+        "computable": false
+      },
+      "confidence": "seed",
+      "weight": 8,
+      "group": "sacred",
+      "tags": [
+        "vastu",
+        "brahmasthan"
+      ]
+    },
+    {
+      "id": "vastu.water_tank.zone",
+      "severity": "warn",
+      "title": "Water tank - zone",
+      "message": "The water tank sits in {actual}. Vastu places stored water in {limit}.",
+      "when": {
+        "vastuMode": {
+          "in": [
+            "advisory",
+            "strict"
+          ]
+        }
+      },
+      "check": {
+        "type": "zone_check",
+        "mode": "zone",
+        "target": {
+          "kind": "service",
+          "serviceKinds": [
+            "water_tank",
+            "oht",
+            "sump"
+          ]
+        },
+        "allow": [
+          "NE"
+        ],
+        "fallback": {
+          "allow": [
+            "N",
+            "E"
+          ],
+          "scoreRatio": {
+            "num": 1,
+            "den": 2
+          }
+        }
+      },
+      "cite": "Water storage - north-east",
+      "fix": "Move the tank to the north-east; north or east is a partial alternative.",
+      "autofix": {
+        "opType": "solver.apply_option",
+        "strategy": "relocate-room-to-zone",
+        "computable": false
+      },
+      "confidence": "seed",
+      "weight": 6,
+      "group": "water",
+      "tags": [
+        "vastu",
+        "services"
+      ]
+    }
+  ]
+}

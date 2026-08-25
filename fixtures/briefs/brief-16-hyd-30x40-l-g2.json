@@ -1,0 +1,238 @@
+{
+  "$comment": "Corpus envelope, not a ProjectDoc. The {data, vastuMode, completeness} subset of this object is a valid BriefDoc per packages/model/schema/project-doc.schema.json#/$defs/BriefDoc; `plot` maps onto PlotDoc (polygon->boundary, cityPack->regProfile.cityPack). See README.md.",
+  "id": "brief-16-hyd-30x40-l-g2",
+  "title": "Hyderabad — 30×40 ft L-shaped plot, G+2, 3BHK",
+  "match": [
+    "brief-16-hyd-30x40-l-g2"
+  ],
+  "stratum": {
+    "city": "hyd",
+    "shape": "L",
+    "floorsAboveGround": 2,
+    "plotAreaSqm": 99,
+    "plotAreaBand": "le120",
+    "bedrooms": 3,
+    "vastuMode": "off"
+  },
+  "plot": {
+    "cityPack": "hyd",
+    "unitsDisplay": "ft-in",
+    "northDeg": 0,
+    "polygon": [
+      {
+        "x": 0,
+        "y": 0
+      },
+      {
+        "x": 9144,
+        "y": 0
+      },
+      {
+        "x": 9144,
+        "y": 8128
+      },
+      {
+        "x": 6096,
+        "y": 8128
+      },
+      {
+        "x": 6096,
+        "y": 12192
+      },
+      {
+        "x": 0,
+        "y": 12192
+      }
+    ],
+    "areaMm2": 99096576,
+    "areaSqm": 99,
+    "widthMm": 9144,
+    "depthMm": 12192,
+    "cornerPlot": false,
+    "roads": [
+      {
+        "edgeIndex": 0,
+        "widthMm": 9000,
+        "name": "9 m road"
+      }
+    ]
+  },
+  "data": {
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "floorsAboveGround": 2,
+    "hasStilt": true,
+    "hasBasement": false,
+    "carParking": 1,
+    "twoWheelerParking": 1,
+    "poojaRoom": false,
+    "servantRoom": false,
+    "study": false,
+    "lift": false,
+    "vastuMode": "off",
+    "plotFacing": "south",
+    "budgetInr": 7000000,
+    "styleId": "modern-minimal",
+    "familySize": 6,
+    "rooms": [
+      {
+        "type": "foyer",
+        "count": 1,
+        "targetAreaMm2": 3000000,
+        "minWidthMm": 1500,
+        "storey": 0
+      },
+      {
+        "type": "living",
+        "count": 1,
+        "targetAreaMm2": 14000000,
+        "minWidthMm": 3000,
+        "storey": 0
+      },
+      {
+        "type": "dining",
+        "count": 1,
+        "targetAreaMm2": 9000000,
+        "minWidthMm": 2700,
+        "storey": 0
+      },
+      {
+        "type": "kitchen",
+        "count": 1,
+        "targetAreaMm2": 8000000,
+        "minWidthMm": 2400,
+        "storey": 0
+      },
+      {
+        "type": "utility",
+        "count": 1,
+        "targetAreaMm2": 3000000,
+        "minWidthMm": 1500,
+        "storey": 0
+      },
+      {
+        "type": "bedroom_master",
+        "count": 1,
+        "targetAreaMm2": 11000000,
+        "minWidthMm": 3300,
+        "storey": null
+      },
+      {
+        "type": "bedroom",
+        "count": 2,
+        "targetAreaMm2": 9000000,
+        "minWidthMm": 3000,
+        "storey": null
+      },
+      {
+        "type": "bath_wc",
+        "count": 2,
+        "targetAreaMm2": 3000000,
+        "minWidthMm": 1500,
+        "storey": null
+      },
+      {
+        "type": "wc",
+        "count": 1,
+        "targetAreaMm2": 2000000,
+        "minWidthMm": 1000,
+        "storey": 0
+      },
+      {
+        "type": "store",
+        "count": 1,
+        "targetAreaMm2": 3000000,
+        "minWidthMm": 1200,
+        "storey": null
+      },
+      {
+        "type": "staircase",
+        "count": 1,
+        "targetAreaMm2": 7000000,
+        "minWidthMm": 1800,
+        "storey": null
+      },
+      {
+        "type": "balcony",
+        "count": 1,
+        "targetAreaMm2": 4000000,
+        "minWidthMm": 1200,
+        "storey": null
+      },
+      {
+        "type": "porch",
+        "count": 1,
+        "targetAreaMm2": 10000000,
+        "minWidthMm": 2700,
+        "storey": 0
+      }
+    ],
+    "adjacency": [
+      {
+        "a": "kitchen",
+        "b": "dining",
+        "wish": "adjacent",
+        "weight": 80
+      },
+      {
+        "a": "living",
+        "b": "foyer",
+        "wish": "adjacent",
+        "weight": 60
+      },
+      {
+        "a": "bedroom_master",
+        "b": "living",
+        "wish": "apart",
+        "weight": 40
+      }
+    ]
+  },
+  "vastuMode": "off",
+  "assumptions": [
+    {
+      "field": "poojaRoom",
+      "value": false,
+      "reason": "Not mentioned in the brief. Left out; it can be added later without re-solving the whole plan."
+    },
+    {
+      "field": "vastuMode",
+      "value": "off",
+      "reason": "Vastu was not asked for, so no Vastu constraint is applied."
+    },
+    {
+      "field": "ceilingHeightMm",
+      "value": 3000,
+      "reason": "Not stated — 3.0 m floor-to-floor is the usual Indian residential default and clears the NBC 2.75 m habitable minimum.",
+      "cite": "NBC 2016 Part 3 §7.2 (minimum clear height 2.75 m)"
+    }
+  ],
+  "completeness": 60,
+  "warnings": [],
+  "expectations": {
+    "$comment": "Phase 3 gate (playbook §5.6 / services/solver/gates.py). These numbers are asserted against the engine constants by apps/api/tests/test_brief_corpus.py so the corpus cannot drift from the code.",
+    "minOptions": 3,
+    "maxSolveSeconds": 60,
+    "maxSolveSecondsCi": 120,
+    "hardRulesMustPass": true,
+    "minCompositeScore": 55,
+    "maxCirculationPercent": 18,
+    "minFurnitureFit": 100,
+    "requiredRoomTypes": [
+      "balcony",
+      "bath_wc",
+      "bedroom",
+      "bedroom_master",
+      "dining",
+      "foyer",
+      "kitchen",
+      "living",
+      "porch",
+      "staircase",
+      "store",
+      "utility",
+      "wc"
+    ]
+  },
+  "notes": "Golden corpus fixture. `match` is the fixture id and nothing else, so the mock brief parser can only hit it deliberately (see README)."
+}

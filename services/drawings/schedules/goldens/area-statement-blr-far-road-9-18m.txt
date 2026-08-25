@@ -1,0 +1,38 @@
+AREA STATEMENT
+==============
++------------------------+-------------------------------------+---------------------------+--------------------------------------------------------------+
+| DESCRIPTION            |                            PROVIDED |    PERMISSIBLE / REQUIRED | REMARKS                                                      |
++------------------------+-------------------------------------+---------------------------+--------------------------------------------------------------+
+| Plot area              | 300.00 m2 · 3,229.2 sq ft · 359 gaj |                         - | As per document                                              |
+| Ground coverage        |           168.75 m2 · 1,816.4 sq ft | 180.00 m2 · 1,937.5 sq ft | 56.3% achieved against 60.0% permissible                     |
++------------------------+-------------------------------------+---------------------------+--------------------------------------------------------------+
+| Ground floor built-up  |           168.75 m2 · 1,816.4 sq ft |                         - |                                                              |
+| First floor built-up   |           168.75 m2 · 1,816.4 sq ft |                         - |                                                              |
+| Second floor built-up  |           168.75 m2 · 1,816.4 sq ft |                         - |                                                              |
+| Third floor built-up   |           168.75 m2 · 1,816.4 sq ft |                         - |                                                              |
+| Total built-up         |           675.00 m2 · 7,265.6 sq ft |                         - |                                                              |
++------------------------+-------------------------------------+---------------------------+--------------------------------------------------------------+
+| Ground floor carpet    |              42.35 m2 · 455.9 sq ft |                         - | 25.1% of built-up                                            |
+| First floor carpet     |                                   - |                         - |                                                              |
+| Second floor carpet    |                                   - |                         - |                                                              |
+| Third floor carpet     |                                   - |                         - |                                                              |
+| Total carpet           |                                   - |                         - |                                                              |
++------------------------+-------------------------------------+---------------------------+--------------------------------------------------------------+
+| FAR-countable area     |           675.00 m2 · 7,265.6 sq ft | 675.00 m2 · 7,265.6 sq ft | FAR 2.25 achieved against 2.25 permissible                   |
+| Floor area ratio (FAR) |                                2.25 |                      2.25 | blr.far.road.9-18m                                           |
++------------------------+-------------------------------------+---------------------------+--------------------------------------------------------------+
+| Front setback (mm)     |                                3100 |                      3000 | blr.setback.front.plot.241-500, blr.setback.front.road.9-18m |
+| Side A setback (mm)    |                                1600 |                      1500 | blr.setback.side.plot.241-500                                |
+| Rear setback (mm)      |                                2100 |                      2000 | blr.setback.rear.plot.241-500                                |
+| Side B setback (mm)    |                                1600 |                      1500 | blr.setback.side.plot.241-500                                |
++------------------------+-------------------------------------+---------------------------+--------------------------------------------------------------+
+| Floors above ground    |                                   4 |                         4 | blr.floors.road.9-18m                                        |
+| Building height (mm)   |                               12600 |                     15000 | blr.height.road.9-18m                                        |
+| Car parking spaces     |                                   2 |                         2 | blr.parking.plot.gt240                                       |
++------------------------+-------------------------------------+---------------------------+--------------------------------------------------------------+
+Areas: m2 · sq ft (1 decimal). Lengths in mm. Plot area also in gaj (1 gaj = 1 sq yd = 9 sq ft).
+FAR, coverage and setback figures are the compliance engine's own results (one source, §7) — this sheet does not recompute them.
+Carpet area = enclosed room floor areas; balcony, terrace, porch, stilt, shaft, duct and void excluded.
+First floor has no rooms in the projection, so its carpet area is not stated.
+Second floor has no rooms in the projection, so its carpet area is not stated.
+Third floor has no rooms in the projection, so its carpet area is not stated.

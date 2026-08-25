@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Garh AI">
+  <!--
+    Garh AI favicon. Hand-drawn on the same 32-unit grid as the icon set in
+    packages/ui/src/icons.tsx, using --garh-brand (rgb(194 65 12)) as a literal
+    because an SVG served as a favicon gets no CSS custom properties.
+
+    The mark is a plan, not an elevation: an outer boundary with one internal
+    partition and a door gap — the smallest drawing that reads as "floor plan"
+    at 16px. `prefers-color-scheme` swaps the fill so it stays visible in both
+    browser-chrome themes.
+  -->
+  <style>
+    .bg { fill: #c2410c; }
+    .ink { fill: none; stroke: #ffffff; stroke-width: 2.4; stroke-linecap: square; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #ea580c; }
+      .ink { stroke: #18100c; }
+    }
+  </style>
+  <rect class="bg" width="32" height="32" rx="7" />
+  <!-- outer walls -->
+  <path class="ink" d="M7 7h18v18H7V13.5M7 10.5V7" />
+  <!-- internal partition with a door gap -->
+  <path class="ink" d="M17 7v6.5M17 17.5V25" />
+</svg>

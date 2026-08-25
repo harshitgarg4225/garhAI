@@ -1,0 +1,695 @@
+{
+  "$schema": "./schema/rulepack.schema.json",
+  "schemaVersion": 1,
+  "pack": "nbc-core",
+  "idPrefix": "nbc",
+  "version": "2026.07",
+  "title": "NBC 2016 core - dwelling requirements (seed)",
+  "authority": "Bureau of Indian Standards",
+  "jurisdiction": {
+    "country": "IN",
+    "scope": "national"
+  },
+  "extends": null,
+  "citations_base": "NBC 2016 (SP 7 : 2016)",
+  "confidenceDefault": "seed",
+  "review": {
+    "status": "unreviewed",
+    "reviewers": [],
+    "lastReviewedAt": null,
+    "nextReviewDue": null,
+    "notes": "SEED PACK. Values were drafted from secondary summaries of NBC 2016 Part 3 (Development Control Rules and General Building Requirements) and Part 4 (Fire and Life Safety). Every value and every clause reference must be checked against the purchased BIS volumes before any pack in this chain leaves 'seed'."
+  },
+  "disclaimer": "Advisory only, not an approval. These checks are a drafting aid; the architect of record remains responsible for compliance. Values marked 'seed' were drafted by the Garh AI team from secondary sources and have not been verified against the published National Building Code.",
+  "notes": "Root pack: dimensional requirements that every Indian city pack inherits. It contains NO setback, FAR, coverage, height or parking rules - those are municipal and live in the city packs. A nil requirement is encoded as NO rule; the absence of a rule means 'no minimum', never 'zero minimum'.",
+  "sources": [
+    {
+      "label": "SP 7 : 2016 National Building Code of India, Part 3 - Development Control Rules and General Building Requirements",
+      "publisher": "Bureau of Indian Standards",
+      "year": 2016,
+      "obtained": false
+    },
+    {
+      "label": "SP 7 : 2016 National Building Code of India, Part 4 - Fire and Life Safety",
+      "publisher": "Bureau of Indian Standards",
+      "year": 2016,
+      "obtained": false
+    }
+  ],
+  "vocabulary": {
+    "habitableRoomTypes": [
+      "living",
+      "dining",
+      "living_dining",
+      "bedroom",
+      "master_bedroom",
+      "guest_bedroom",
+      "servant_room",
+      "study"
+    ],
+    "wetRoomTypes": [
+      "kitchen",
+      "kitchen_dining",
+      "bath",
+      "wc",
+      "bath_wc",
+      "utility"
+    ],
+    "openRoomTypes": [
+      "courtyard",
+      "corridor",
+      "lobby",
+      "living",
+      "living_dining",
+      "terrace",
+      "balcony"
+    ],
+    "farExclusions": [
+      "stilt-parking",
+      "basement-parking",
+      "mumty",
+      "oht",
+      "stair-headroom",
+      "shaft"
+    ],
+    "coverageInclusions": [
+      "porch"
+    ]
+  },
+  "rules": [
+    {
+      "id": "nbc.room.habitable.area.min",
+      "severity": "fail",
+      "title": "Habitable room - minimum area",
+      "message": "{element} is {actual} - a habitable room needs at least {limit}.",
+      "when": {
+        "roomIsHabitable": {
+          "eq": true
+        }
+      },
+      "check": {
+        "type": "room_area_min",
+        "valueMm2": 9500000
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.2.1",
+      "fix": "Enlarge the room to at least 9.50 m2, or reclassify it as a store/utility.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "grow-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "habitable"
+      ],
+      "notes": "NBC states 9.5 m2 for a room in a dwelling with two or more habitable rooms; verify the single-room-tenement relaxation at review."
+    },
+    {
+      "id": "nbc.room.habitable.width.min",
+      "severity": "fail",
+      "title": "Habitable room - minimum width",
+      "message": "{element} is only {actual} wide - a habitable room needs at least {limit}.",
+      "when": {
+        "roomIsHabitable": {
+          "eq": true
+        }
+      },
+      "check": {
+        "type": "room_width_min",
+        "valueMm": 2400
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.2.1",
+      "fix": "Widen the room to at least 2.40 m in its shorter direction.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "widen-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "habitable"
+      ]
+    },
+    {
+      "id": "nbc.room.kitchen.area.min",
+      "severity": "fail",
+      "title": "Kitchen - minimum area",
+      "message": "{element} is {actual} - a separate kitchen needs at least {limit}.",
+      "when": {
+        "roomType": {
+          "eq": "kitchen"
+        }
+      },
+      "check": {
+        "type": "room_area_min",
+        "valueMm2": 5000000
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.4.1",
+      "fix": "Enlarge the kitchen to at least 5.00 m2.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "grow-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "kitchen"
+      ]
+    },
+    {
+      "id": "nbc.room.kitchen_dining.area.min",
+      "severity": "fail",
+      "title": "Kitchen with dining - minimum area",
+      "message": "{element} combines cooking and dining, so it needs at least {limit} - it is {actual}.",
+      "when": {
+        "roomType": {
+          "eq": "kitchen_dining"
+        }
+      },
+      "check": {
+        "type": "room_area_min",
+        "valueMm2": 7500000
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.4.1",
+      "fix": "Enlarge the kitchen-dining to at least 7.50 m2, or separate the dining area.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "grow-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "kitchen"
+      ]
+    },
+    {
+      "id": "nbc.room.kitchen.width.min",
+      "severity": "fail",
+      "title": "Kitchen - minimum width",
+      "message": "{element} is only {actual} wide - a kitchen needs at least {limit}.",
+      "when": {
+        "roomType": {
+          "in": [
+            "kitchen",
+            "kitchen_dining"
+          ]
+        }
+      },
+      "check": {
+        "type": "room_width_min",
+        "valueMm": 1800
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.4.1",
+      "fix": "Widen the kitchen to at least 1.80 m so a counter plus circulation fits.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "widen-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "kitchen"
+      ]
+    },
+    {
+      "id": "nbc.room.bath.area.min",
+      "severity": "fail",
+      "title": "Bathroom - minimum area",
+      "message": "{element} is {actual} - a bathroom needs at least {limit}.",
+      "when": {
+        "roomType": {
+          "eq": "bath"
+        }
+      },
+      "check": {
+        "type": "room_area_min",
+        "valueMm2": 1800000
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.5.1",
+      "fix": "Enlarge the bathroom to at least 1.80 m2.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "grow-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "wet"
+      ]
+    },
+    {
+      "id": "nbc.room.bath.width.min",
+      "severity": "fail",
+      "title": "Bathroom - minimum width",
+      "message": "{element} is only {actual} wide - a bathroom needs at least {limit}.",
+      "when": {
+        "roomType": {
+          "in": [
+            "bath",
+            "bath_wc"
+          ]
+        }
+      },
+      "check": {
+        "type": "room_width_min",
+        "valueMm": 1200
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.5.1",
+      "fix": "Widen the bathroom to at least 1.20 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "widen-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "wet"
+      ]
+    },
+    {
+      "id": "nbc.room.wc.area.min",
+      "severity": "fail",
+      "title": "Water closet - minimum area",
+      "message": "{element} is {actual} - a WC needs at least {limit}.",
+      "when": {
+        "roomType": {
+          "eq": "wc"
+        }
+      },
+      "check": {
+        "type": "room_area_min",
+        "valueMm2": 1100000
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.5.1",
+      "fix": "Enlarge the WC to at least 1.10 m2.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "grow-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "wet"
+      ]
+    },
+    {
+      "id": "nbc.room.wc.width.min",
+      "severity": "fail",
+      "title": "Water closet - minimum width",
+      "message": "{element} is only {actual} wide - a WC needs at least {limit}.",
+      "when": {
+        "roomType": {
+          "eq": "wc"
+        }
+      },
+      "check": {
+        "type": "room_width_min",
+        "valueMm": 900
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.5.1",
+      "fix": "Widen the WC to at least 0.90 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "widen-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "wet"
+      ],
+      "notes": "Not in the playbook seed list; added because a 1.10 m2 WC can otherwise be 0.5 m wide. Confirm the figure at review."
+    },
+    {
+      "id": "nbc.room.bath_wc.area.min",
+      "severity": "fail",
+      "title": "Combined bath and WC - minimum area",
+      "message": "{element} combines bath and WC, so it needs at least {limit} - it is {actual}.",
+      "when": {
+        "roomType": {
+          "eq": "bath_wc"
+        }
+      },
+      "check": {
+        "type": "room_area_min",
+        "valueMm2": 2800000
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.5.1",
+      "fix": "Enlarge the combined bath-WC to at least 2.80 m2.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "grow-room-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "room",
+        "wet"
+      ]
+    },
+    {
+      "id": "nbc.ceiling.habitable.min",
+      "severity": "fail",
+      "title": "Habitable room - minimum ceiling height",
+      "message": "{element} has {actual} clear height - habitable rooms need at least {limit}.",
+      "when": {
+        "roomIsHabitable": {
+          "eq": true
+        }
+      },
+      "check": {
+        "type": "ceiling_height_min",
+        "valueMm": 2750
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.2.2",
+      "fix": "Raise the floor-to-floor height so the clear height reaches 2.75 m.",
+      "autofix": {
+        "opType": "storey.set_height",
+        "strategy": "raise-storey-height"
+      },
+      "confidence": "seed",
+      "tags": [
+        "height"
+      ]
+    },
+    {
+      "id": "nbc.ceiling.kitchen.min",
+      "severity": "fail",
+      "title": "Kitchen - minimum ceiling height",
+      "message": "{element} has {actual} clear height - a kitchen needs at least {limit}.",
+      "when": {
+        "roomType": {
+          "in": [
+            "kitchen",
+            "kitchen_dining"
+          ]
+        }
+      },
+      "check": {
+        "type": "ceiling_height_min",
+        "valueMm": 2600
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.4.2",
+      "fix": "Raise the clear height over the kitchen to 2.60 m.",
+      "autofix": {
+        "opType": "storey.set_height",
+        "strategy": "raise-storey-height"
+      },
+      "confidence": "seed",
+      "tags": [
+        "height"
+      ]
+    },
+    {
+      "id": "nbc.ceiling.bath.min",
+      "severity": "fail",
+      "title": "Bath / WC - minimum ceiling height",
+      "message": "{element} has {actual} clear height - a bath or WC needs at least {limit}.",
+      "when": {
+        "roomType": {
+          "in": [
+            "bath",
+            "wc",
+            "bath_wc"
+          ]
+        }
+      },
+      "check": {
+        "type": "ceiling_height_min",
+        "valueMm": 2200
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.5.2",
+      "fix": "Raise the clear height over the wet area to 2.20 m (watch the dropped ceiling for plumbing).",
+      "autofix": {
+        "opType": "storey.set_height",
+        "strategy": "raise-storey-height"
+      },
+      "confidence": "seed",
+      "tags": [
+        "height"
+      ]
+    },
+    {
+      "id": "nbc.ventilation.habitable.min",
+      "severity": "fail",
+      "title": "Habitable room - light and ventilation",
+      "message": "{element} has {actual} of openable area - it needs at least {limit} (one tenth of its floor area).",
+      "when": {
+        "roomIsHabitable": {
+          "eq": true
+        }
+      },
+      "check": {
+        "type": "ventilation_ratio_min",
+        "ratio": {
+          "num": 1,
+          "den": 10
+        },
+        "countKinds": [
+          "window",
+          "ventilator"
+        ]
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.2.3",
+      "fix": "Add or widen windows until the openable area reaches one tenth of the floor area.",
+      "autofix": {
+        "opType": "opening.resize",
+        "strategy": "enlarge-openings-to-ratio"
+      },
+      "confidence": "seed",
+      "tags": [
+        "ventilation"
+      ]
+    },
+    {
+      "id": "nbc.ventilation.kitchen.min",
+      "severity": "fail",
+      "title": "Kitchen - light and ventilation",
+      "message": "{element} has {actual} of openable area - a kitchen needs at least {limit} (one tenth of its floor area).",
+      "when": {
+        "roomType": {
+          "in": [
+            "kitchen",
+            "kitchen_dining"
+          ]
+        }
+      },
+      "check": {
+        "type": "ventilation_ratio_min",
+        "ratio": {
+          "num": 1,
+          "den": 10
+        },
+        "countKinds": [
+          "window",
+          "ventilator"
+        ]
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.4.3",
+      "fix": "Add a window or ventilator over the counter until one tenth of the floor area is openable.",
+      "autofix": {
+        "opType": "opening.resize",
+        "strategy": "enlarge-openings-to-ratio"
+      },
+      "confidence": "seed",
+      "tags": [
+        "ventilation"
+      ]
+    },
+    {
+      "id": "nbc.ventilation.bath.min",
+      "severity": "fail",
+      "title": "Bath / WC - ventilation",
+      "message": "{element} has {actual} of openable area - a bath or WC needs at least {limit}.",
+      "when": {
+        "roomType": {
+          "in": [
+            "bath",
+            "wc",
+            "bath_wc"
+          ]
+        }
+      },
+      "check": {
+        "type": "ventilation_ratio_min",
+        "minAreaMm2": 300000,
+        "countKinds": [
+          "window",
+          "ventilator"
+        ]
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.5.3",
+      "fix": "Add a 0.30 m2 ventilator; an internal wet area needs one onto a shaft.",
+      "autofix": {
+        "opType": "opening.add",
+        "strategy": "enlarge-openings-to-ratio"
+      },
+      "confidence": "seed",
+      "tags": [
+        "ventilation"
+      ]
+    },
+    {
+      "id": "nbc.stair.riser.max",
+      "severity": "fail",
+      "title": "Stair - maximum riser",
+      "message": "{element} has {actual} risers - the limit for a dwelling is {limit}.",
+      "check": {
+        "type": "stair_riser_max",
+        "valueMm": 190
+      },
+      "cite": "Part 4, Cl. 4.4.3",
+      "fix": "Add a riser to the flight, or increase the flight length, so each riser is 190 mm or less.",
+      "autofix": {
+        "opType": "stair.edit",
+        "strategy": "adjust-stair-parameters"
+      },
+      "confidence": "seed",
+      "tags": [
+        "stair"
+      ]
+    },
+    {
+      "id": "nbc.stair.tread.min",
+      "severity": "fail",
+      "title": "Stair - minimum tread",
+      "message": "{element} has {actual} treads - a dwelling stair needs at least {limit}.",
+      "check": {
+        "type": "stair_tread_min",
+        "valueMm": 250
+      },
+      "cite": "Part 4, Cl. 4.4.3",
+      "fix": "Lengthen the flight so each tread is at least 250 mm.",
+      "autofix": {
+        "opType": "stair.edit",
+        "strategy": "adjust-stair-parameters"
+      },
+      "confidence": "seed",
+      "tags": [
+        "stair"
+      ]
+    },
+    {
+      "id": "nbc.stair.width.min",
+      "severity": "fail",
+      "title": "Stair - minimum width",
+      "message": "{element} is {actual} wide - a dwelling stair needs at least {limit}.",
+      "check": {
+        "type": "stair_width_min",
+        "valueMm": 900
+      },
+      "cite": "Part 4, Cl. 4.4.2",
+      "fix": "Widen the stair to at least 900 mm clear between handrails.",
+      "autofix": {
+        "opType": "stair.edit",
+        "strategy": "adjust-stair-parameters"
+      },
+      "confidence": "seed",
+      "tags": [
+        "stair"
+      ]
+    },
+    {
+      "id": "nbc.stair.headroom.min",
+      "severity": "fail",
+      "title": "Stair - minimum headroom",
+      "message": "{element} has {actual} of headroom - at least {limit} is needed above the nosing line.",
+      "check": {
+        "type": "headroom_min",
+        "valueMm": 2100
+      },
+      "cite": "Part 4, Cl. 4.4.5",
+      "fix": "Raise the landing slab or the storey height to clear 2.10 m above the nosing line.",
+      "autofix": {
+        "opType": "stair.edit",
+        "strategy": "adjust-stair-parameters"
+      },
+      "confidence": "seed",
+      "tags": [
+        "stair"
+      ]
+    },
+    {
+      "id": "nbc.door.main.width.min",
+      "severity": "fail",
+      "title": "Main entrance door - minimum width",
+      "message": "The main door is {actual} wide - it needs at least {limit}.",
+      "when": {
+        "openingKind": {
+          "eq": "door"
+        },
+        "openingRole": {
+          "eq": "main-entrance"
+        }
+      },
+      "check": {
+        "type": "opening_width_min",
+        "valueMm": 900
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.7.1",
+      "fix": "Widen the main entrance door to at least 900 mm.",
+      "autofix": {
+        "opType": "opening.resize",
+        "strategy": "resize-opening-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "door"
+      ]
+    },
+    {
+      "id": "nbc.door.internal.width.min",
+      "severity": "fail",
+      "title": "Internal door - minimum width",
+      "message": "{element} is {actual} wide - an internal door needs at least {limit}.",
+      "when": {
+        "openingKind": {
+          "eq": "door"
+        },
+        "openingRole": {
+          "eq": "internal"
+        }
+      },
+      "check": {
+        "type": "opening_width_min",
+        "valueMm": 800
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.7.1",
+      "fix": "Widen the door to at least 800 mm.",
+      "autofix": {
+        "opType": "opening.resize",
+        "strategy": "resize-opening-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "door"
+      ]
+    },
+    {
+      "id": "nbc.door.bath.width.min",
+      "severity": "fail",
+      "title": "Bath / WC door - minimum width",
+      "message": "{element} is {actual} wide - a bath or WC door needs at least {limit}.",
+      "when": {
+        "openingKind": {
+          "eq": "door"
+        },
+        "openingRole": {
+          "eq": "bath"
+        }
+      },
+      "check": {
+        "type": "opening_width_min",
+        "valueMm": 750
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.7.1",
+      "fix": "Widen the door to at least 750 mm.",
+      "autofix": {
+        "opType": "opening.resize",
+        "strategy": "resize-opening-to-limit"
+      },
+      "confidence": "seed",
+      "tags": [
+        "door"
+      ]
+    }
+  ]
+}

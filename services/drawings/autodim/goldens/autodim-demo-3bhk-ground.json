@@ -1,0 +1,4089 @@
+{
+  "config": {
+    "dimToJamb": false,
+    "scaleDenominator": 100
+  },
+  "fixture": "demo-3bhk-ground",
+  "obstacles": [
+    [
+      1879,
+      4679,
+      1800,
+      600,
+      "roomlabel:room_0VNE9MS9E4N4FDQP0STRH6RHW2"
+    ],
+    [
+      5196,
+      4679,
+      1800,
+      600,
+      "roomlabel:room_1SFPF8K3G2V60MVJT07A2V4BHT"
+    ],
+    [
+      1879,
+      7600,
+      1800,
+      600,
+      "roomlabel:room_6XBXJY8KPRJEP8DNMPS870AYZ7"
+    ],
+    [
+      5196,
+      7600,
+      1800,
+      600,
+      "roomlabel:room_7Z9RP4M62B4T8NXY8TETTC1QEV"
+    ],
+    [
+      1879,
+      9446,
+      1800,
+      600,
+      "roomlabel:room_5P104YH6PGRAD3NQ0V0CH7BMJR"
+    ],
+    [
+      4457,
+      9446,
+      1486,
+      600,
+      "roomlabel:room_37N5DC5PASCHXMKCA5BAJE0XZD"
+    ],
+    [
+      6257,
+      9446,
+      1478,
+      600,
+      "roomlabel:room_23D112DRB0E3J799P5GFMS9WER"
+    ]
+  ],
+  "result": {
+    "chains": [
+      {
+        "id": "dim.storey_01J000000000000000000000GF.S.L1",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 1,
+        "lineMm": 485,
+        "offsetMm": 2400,
+        "orientation": "horizontal",
+        "originMm": 1085,
+        "outward": -1,
+        "overallMm": 6980,
+        "referenceMm": 2885,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": null,
+            "label": "6980",
+            "lengthMm": 6980,
+            "startMm": 0
+          }
+        ],
+        "side": "S",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.S.L2",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 2,
+        "lineMm": 1085,
+        "offsetMm": 1800,
+        "orientation": "horizontal",
+        "originMm": 1085,
+        "outward": -1,
+        "overallMm": 6980,
+        "referenceMm": 2885,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": "wall_01J00000000000000000000PV1",
+            "label": "3215",
+            "lengthMm": 3215,
+            "startMm": 0
+          },
+          {
+            "anchorElementId": "wall_01J00000000000000000000PV1",
+            "label": "3765",
+            "lengthMm": 3765,
+            "startMm": 3215
+          }
+        ],
+        "side": "S",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.S.L3",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 3,
+        "lineMm": 1685,
+        "offsetMm": 1200,
+        "orientation": "horizontal",
+        "originMm": 1085,
+        "outward": -1,
+        "overallMm": 6980,
+        "referenceMm": 2885,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": "opening_01J000000000000000000000D1",
+            "label": "1615",
+            "lengthMm": 1615,
+            "startMm": 0
+          },
+          {
+            "anchorElementId": "opening_01J000000000000000000000W1",
+            "label": "3400",
+            "lengthMm": 3400,
+            "startMm": 1615
+          },
+          {
+            "anchorElementId": "opening_01J000000000000000000000W1",
+            "label": "1965",
+            "lengthMm": 1965,
+            "startMm": 5015
+          }
+        ],
+        "side": "S",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.E.L1",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 1,
+        "lineMm": 10465,
+        "offsetMm": 2400,
+        "orientation": "vertical",
+        "originMm": 2885,
+        "outward": 1,
+        "overallMm": 7880,
+        "referenceMm": 8065,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": null,
+            "label": "7880",
+            "lengthMm": 7880,
+            "startMm": 0
+          }
+        ],
+        "side": "E",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.E.L2",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 2,
+        "lineMm": 9865,
+        "offsetMm": 1800,
+        "orientation": "vertical",
+        "originMm": 2885,
+        "outward": 1,
+        "overallMm": 7880,
+        "referenceMm": 8065,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": "wall_01J00000000000000000000PH1",
+            "label": "4015",
+            "lengthMm": 4015,
+            "startMm": 0
+          },
+          {
+            "anchorElementId": "wall_01J00000000000000000000PH2",
+            "label": "2000",
+            "lengthMm": 2000,
+            "startMm": 4015
+          },
+          {
+            "anchorElementId": "wall_01J00000000000000000000PH2",
+            "label": "1865",
+            "lengthMm": 1865,
+            "startMm": 6015
+          }
+        ],
+        "side": "E",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.E.L3",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 3,
+        "lineMm": 9265,
+        "offsetMm": 1200,
+        "orientation": "vertical",
+        "originMm": 2885,
+        "outward": 1,
+        "overallMm": 7880,
+        "referenceMm": 8065,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": "opening_01J000000000000000000000W2",
+            "label": "2015",
+            "lengthMm": 2015,
+            "startMm": 0
+          },
+          {
+            "anchorElementId": "opening_01J000000000000000000000W3",
+            "label": "3000",
+            "lengthMm": 3000,
+            "startMm": 2015
+          },
+          {
+            "anchorElementId": "opening_01J000000000000000000000V1",
+            "label": "1800",
+            "lengthMm": 1800,
+            "startMm": 5015
+          },
+          {
+            "anchorElementId": "opening_01J000000000000000000000V1",
+            "label": "1065",
+            "lengthMm": 1065,
+            "startMm": 6815
+          }
+        ],
+        "side": "E",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.N.L1",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 1,
+        "lineMm": 13165,
+        "offsetMm": 2400,
+        "orientation": "horizontal",
+        "originMm": 1085,
+        "outward": 1,
+        "overallMm": 6980,
+        "referenceMm": 10765,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": null,
+            "label": "6980",
+            "lengthMm": 6980,
+            "startMm": 0
+          }
+        ],
+        "side": "N",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.N.L2",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 2,
+        "lineMm": 12565,
+        "offsetMm": 1800,
+        "orientation": "horizontal",
+        "originMm": 1085,
+        "outward": 1,
+        "overallMm": 6980,
+        "referenceMm": 10765,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": "wall_01J00000000000000000000PV1",
+            "label": "3215",
+            "lengthMm": 3215,
+            "startMm": 0
+          },
+          {
+            "anchorElementId": "wall_01J00000000000000000000PV2",
+            "label": "1800",
+            "lengthMm": 1800,
+            "startMm": 3215
+          },
+          {
+            "anchorElementId": "wall_01J00000000000000000000PV2",
+            "label": "1965",
+            "lengthMm": 1965,
+            "startMm": 5015
+          }
+        ],
+        "side": "N",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.N.L3",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 3,
+        "lineMm": 11965,
+        "offsetMm": 1200,
+        "orientation": "horizontal",
+        "originMm": 1085,
+        "outward": 1,
+        "overallMm": 6980,
+        "referenceMm": 10765,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": "opening_01J000000000000000000000W4",
+            "label": "1615",
+            "lengthMm": 1615,
+            "startMm": 0
+          },
+          {
+            "anchorElementId": "opening_01J000000000000000000000V2",
+            "label": "2500",
+            "lengthMm": 2500,
+            "startMm": 1615
+          },
+          {
+            "anchorElementId": "opening_01J000000000000000000000V2",
+            "label": "2865",
+            "lengthMm": 2865,
+            "startMm": 4115
+          }
+        ],
+        "side": "N",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.W.L1",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 1,
+        "lineMm": -1315,
+        "offsetMm": 2400,
+        "orientation": "vertical",
+        "originMm": 2885,
+        "outward": -1,
+        "overallMm": 7880,
+        "referenceMm": 1085,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": null,
+            "label": "7880",
+            "lengthMm": 7880,
+            "startMm": 0
+          }
+        ],
+        "side": "W",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.W.L2",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 2,
+        "lineMm": -715,
+        "offsetMm": 1800,
+        "orientation": "vertical",
+        "originMm": 2885,
+        "outward": -1,
+        "overallMm": 7880,
+        "referenceMm": 1085,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": "wall_01J00000000000000000000PH1",
+            "label": "4015",
+            "lengthMm": 4015,
+            "startMm": 0
+          },
+          {
+            "anchorElementId": "wall_01J00000000000000000000PH2",
+            "label": "2000",
+            "lengthMm": 2000,
+            "startMm": 4015
+          },
+          {
+            "anchorElementId": "wall_01J00000000000000000000PH2",
+            "label": "1865",
+            "lengthMm": 1865,
+            "startMm": 6015
+          }
+        ],
+        "side": "W",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.W.L3",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 3,
+        "lineMm": -115,
+        "offsetMm": 1200,
+        "orientation": "vertical",
+        "originMm": 2885,
+        "outward": -1,
+        "overallMm": 7880,
+        "referenceMm": 1085,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": "opening_01J000000000000000000000W5",
+            "label": "2115",
+            "lengthMm": 2115,
+            "startMm": 0
+          },
+          {
+            "anchorElementId": "opening_01J000000000000000000000W6",
+            "label": "2900",
+            "lengthMm": 2900,
+            "startMm": 2115
+          },
+          {
+            "anchorElementId": "opening_01J000000000000000000000W6",
+            "label": "2865",
+            "lengthMm": 2865,
+            "startMm": 5015
+          }
+        ],
+        "side": "W",
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 3515,
+        "offsetMm": 400,
+        "orientation": "horizontal",
+        "originMm": 1315,
+        "outward": 1,
+        "overallMm": 2928,
+        "referenceMm": 3115,
+        "roomId": "room_0VNE9MS9E4N4FDQP0STRH6RHW2",
+        "segments": [
+          {
+            "anchorElementId": "room_0VNE9MS9E4N4FDQP0STRH6RHW2",
+            "label": "2928",
+            "lengthMm": 2928,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 1715,
+        "offsetMm": 400,
+        "orientation": "vertical",
+        "originMm": 3115,
+        "outward": 1,
+        "overallMm": 3728,
+        "referenceMm": 1315,
+        "roomId": "room_0VNE9MS9E4N4FDQP0STRH6RHW2",
+        "segments": [
+          {
+            "anchorElementId": "room_0VNE9MS9E4N4FDQP0STRH6RHW2",
+            "label": "3728",
+            "lengthMm": 3728,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 3515,
+        "offsetMm": 400,
+        "orientation": "horizontal",
+        "originMm": 4357,
+        "outward": 1,
+        "overallMm": 3478,
+        "referenceMm": 3115,
+        "roomId": "room_1SFPF8K3G2V60MVJT07A2V4BHT",
+        "segments": [
+          {
+            "anchorElementId": "room_1SFPF8K3G2V60MVJT07A2V4BHT",
+            "label": "3478",
+            "lengthMm": 3478,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 1715,
+        "offsetMm": 400,
+        "orientation": "vertical",
+        "originMm": 6957,
+        "outward": 1,
+        "overallMm": 1886,
+        "referenceMm": 1315,
+        "roomId": "room_6XBXJY8KPRJEP8DNMPS870AYZ7",
+        "segments": [
+          {
+            "anchorElementId": "room_6XBXJY8KPRJEP8DNMPS870AYZ7",
+            "label": "1886",
+            "lengthMm": 1886,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.W",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 9357,
+        "offsetMm": 400,
+        "orientation": "horizontal",
+        "originMm": 1315,
+        "outward": 1,
+        "overallMm": 2928,
+        "referenceMm": 8957,
+        "roomId": "room_5P104YH6PGRAD3NQ0V0CH7BMJR",
+        "segments": [
+          {
+            "anchorElementId": "room_5P104YH6PGRAD3NQ0V0CH7BMJR",
+            "label": "2928",
+            "lengthMm": 2928,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 1715,
+        "offsetMm": 400,
+        "orientation": "vertical",
+        "originMm": 8957,
+        "outward": 1,
+        "overallMm": 1578,
+        "referenceMm": 1315,
+        "roomId": "room_5P104YH6PGRAD3NQ0V0CH7BMJR",
+        "segments": [
+          {
+            "anchorElementId": "room_5P104YH6PGRAD3NQ0V0CH7BMJR",
+            "label": "1578",
+            "lengthMm": 1578,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.W",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 9357,
+        "offsetMm": 400,
+        "orientation": "horizontal",
+        "originMm": 4357,
+        "outward": 1,
+        "overallMm": 1686,
+        "referenceMm": 8957,
+        "roomId": "room_37N5DC5PASCHXMKCA5BAJE0XZD",
+        "segments": [
+          {
+            "anchorElementId": "room_37N5DC5PASCHXMKCA5BAJE0XZD",
+            "label": "1686",
+            "lengthMm": 1686,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.W",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 9357,
+        "offsetMm": 400,
+        "orientation": "horizontal",
+        "originMm": 6157,
+        "outward": 1,
+        "overallMm": 1678,
+        "referenceMm": 8957,
+        "roomId": "room_23D112DRB0E3J799P5GFMS9WER",
+        "segments": [
+          {
+            "anchorElementId": "room_23D112DRB0E3J799P5GFMS9WER",
+            "label": "1678",
+            "lengthMm": 1678,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_01J000000000000000000000GF"
+      },
+      {
+        "id": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.D",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 6557,
+        "offsetMm": 400,
+        "orientation": "vertical",
+        "originMm": 8957,
+        "outward": 1,
+        "overallMm": 1578,
+        "referenceMm": 6157,
+        "roomId": "room_23D112DRB0E3J799P5GFMS9WER",
+        "segments": [
+          {
+            "anchorElementId": "room_23D112DRB0E3J799P5GFMS9WER",
+            "label": "1578",
+            "lengthMm": 1578,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_01J000000000000000000000GF"
+      }
+    ],
+    "labels": [
+      {
+        "anchor": [
+          10240,
+          6825
+        ],
+        "box": [
+          10065,
+          6425,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.E.L1",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.E.L1#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "7880"
+      },
+      {
+        "anchor": [
+          4575,
+          13390
+        ],
+        "box": [
+          4175,
+          13215,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.N.L1",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.N.L1#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "6980"
+      },
+      {
+        "anchor": [
+          4575,
+          710
+        ],
+        "box": [
+          4175,
+          535,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.S.L1",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.S.L1#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "6980"
+      },
+      {
+        "anchor": [
+          -1540,
+          6825
+        ],
+        "box": [
+          -1715,
+          6425,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.W.L1",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.W.L1#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "7880"
+      },
+      {
+        "anchor": [
+          9640,
+          4892
+        ],
+        "box": [
+          9465,
+          4492,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.E.L2#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "4015"
+      },
+      {
+        "anchor": [
+          9640,
+          7900
+        ],
+        "box": [
+          9465,
+          7500,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.E.L2#1",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 1,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2000"
+      },
+      {
+        "anchor": [
+          9640,
+          9832
+        ],
+        "box": [
+          9465,
+          9432,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.E.L2#2",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 2,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1865"
+      },
+      {
+        "anchor": [
+          2692,
+          12790
+        ],
+        "box": [
+          2292,
+          12615,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.N.L2#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3215"
+      },
+      {
+        "anchor": [
+          5200,
+          12790
+        ],
+        "box": [
+          4800,
+          12615,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.N.L2#1",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 1,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1800"
+      },
+      {
+        "anchor": [
+          7082,
+          12790
+        ],
+        "box": [
+          6682,
+          12615,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.N.L2#2",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 2,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1965"
+      },
+      {
+        "anchor": [
+          2692,
+          1310
+        ],
+        "box": [
+          2292,
+          1135,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.S.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.S.L2#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3215"
+      },
+      {
+        "anchor": [
+          6182,
+          1310
+        ],
+        "box": [
+          5782,
+          1135,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.S.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.S.L2#1",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 1,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3765"
+      },
+      {
+        "anchor": [
+          -940,
+          4892
+        ],
+        "box": [
+          -1115,
+          4492,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.W.L2#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "4015"
+      },
+      {
+        "anchor": [
+          -940,
+          7900
+        ],
+        "box": [
+          -1115,
+          7500,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.W.L2#1",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 1,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2000"
+      },
+      {
+        "anchor": [
+          -940,
+          9832
+        ],
+        "box": [
+          -1115,
+          9432,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.W.L2#2",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 2,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1865"
+      },
+      {
+        "anchor": [
+          9040,
+          3892
+        ],
+        "box": [
+          8865,
+          3492,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.E.L3#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2015"
+      },
+      {
+        "anchor": [
+          9040,
+          6400
+        ],
+        "box": [
+          8865,
+          6000,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.E.L3#1",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 1,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3000"
+      },
+      {
+        "anchor": [
+          9040,
+          8800
+        ],
+        "box": [
+          8865,
+          8400,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.E.L3#2",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 2,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1800"
+      },
+      {
+        "anchor": [
+          9040,
+          10232
+        ],
+        "box": [
+          8865,
+          9832,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.E.L3#3",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 3,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1065"
+      },
+      {
+        "anchor": [
+          1892,
+          12190
+        ],
+        "box": [
+          1492,
+          12015,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.N.L3#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1615"
+      },
+      {
+        "anchor": [
+          3950,
+          12190
+        ],
+        "box": [
+          3550,
+          12015,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.N.L3#1",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 1,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2500"
+      },
+      {
+        "anchor": [
+          6632,
+          12190
+        ],
+        "box": [
+          6232,
+          12015,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.N.L3#2",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 2,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2865"
+      },
+      {
+        "anchor": [
+          1892,
+          1910
+        ],
+        "box": [
+          1492,
+          1735,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.S.L3#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1615"
+      },
+      {
+        "anchor": [
+          4400,
+          1910
+        ],
+        "box": [
+          4000,
+          1735,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.S.L3#1",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 1,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3400"
+      },
+      {
+        "anchor": [
+          7082,
+          1910
+        ],
+        "box": [
+          6682,
+          1735,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.S.L3#2",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 2,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1965"
+      },
+      {
+        "anchor": [
+          -340,
+          3942
+        ],
+        "box": [
+          -515,
+          3542,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.W.L3#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2115"
+      },
+      {
+        "anchor": [
+          -340,
+          6450
+        ],
+        "box": [
+          -515,
+          6050,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.W.L3#1",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 1,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2900"
+      },
+      {
+        "anchor": [
+          -340,
+          9332
+        ],
+        "box": [
+          -515,
+          8932,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.W.L3#2",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 2,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2865"
+      },
+      {
+        "anchor": [
+          1490,
+          4979
+        ],
+        "box": [
+          1315,
+          4579,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3728"
+      },
+      {
+        "anchor": [
+          2779,
+          3740
+        ],
+        "box": [
+          2379,
+          3565,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2928"
+      },
+      {
+        "anchor": [
+          6096,
+          3740
+        ],
+        "box": [
+          5696,
+          3565,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3478"
+      },
+      {
+        "anchor": [
+          6332,
+          10496
+        ],
+        "box": [
+          6157,
+          10096,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.D",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.D#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 750,
+        "shrinkStep": 0,
+        "strategy": "shift",
+        "text": "1578"
+      },
+      {
+        "anchor": [
+          7121,
+          9132
+        ],
+        "box": [
+          6721,
+          8957,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.W",
+        "flipped": true,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.W#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 125,
+        "shrinkStep": 0,
+        "strategy": "shift",
+        "text": "1678"
+      },
+      {
+        "anchor": [
+          5200,
+          9132
+        ],
+        "box": [
+          4800,
+          8957,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.W",
+        "flipped": true,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.W#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "flip",
+        "text": "1686"
+      },
+      {
+        "anchor": [
+          1490,
+          9871
+        ],
+        "box": [
+          1315,
+          9471,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 125,
+        "shrinkStep": 0,
+        "strategy": "shift",
+        "text": "1578"
+      },
+      {
+        "anchor": [
+          2779,
+          9132
+        ],
+        "box": [
+          2379,
+          8957,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.W",
+        "flipped": true,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.W#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "flip",
+        "text": "2928"
+      },
+      {
+        "anchor": [
+          1490,
+          7900
+        ],
+        "box": [
+          1315,
+          7500,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1886"
+      }
+    ],
+    "notes": [
+      "5 inner chain(s) suppressed as duplicates across a shared wall"
+    ],
+    "primitives": [
+      {
+        "a": [
+          10465,
+          2885
+        ],
+        "b": [
+          10465,
+          10765
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          2885
+        ],
+        "b": [
+          10585,
+          2885
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          10415,
+          2835
+        ],
+        "b": [
+          10515,
+          2935
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          10765
+        ],
+        "b": [
+          10585,
+          10765
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          10415,
+          10715
+        ],
+        "b": [
+          10515,
+          10815
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          13165
+        ],
+        "b": [
+          8065,
+          13165
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          10865
+        ],
+        "b": [
+          1085,
+          13285
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          1035,
+          13115
+        ],
+        "b": [
+          1135,
+          13215
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          8065,
+          10865
+        ],
+        "b": [
+          8065,
+          13285
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          8015,
+          13115
+        ],
+        "b": [
+          8115,
+          13215
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          485
+        ],
+        "b": [
+          8065,
+          485
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          2785
+        ],
+        "b": [
+          1085,
+          365
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          1035,
+          435
+        ],
+        "b": [
+          1135,
+          535
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          8065,
+          2785
+        ],
+        "b": [
+          8065,
+          365
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          8015,
+          435
+        ],
+        "b": [
+          8115,
+          535
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -1315,
+          2885
+        ],
+        "b": [
+          -1315,
+          10765
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          2885
+        ],
+        "b": [
+          -1435,
+          2885
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -1365,
+          2835
+        ],
+        "b": [
+          -1265,
+          2935
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          10765
+        ],
+        "b": [
+          -1435,
+          10765
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -1365,
+          10715
+        ],
+        "b": [
+          -1265,
+          10815
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          9865,
+          2885
+        ],
+        "b": [
+          9865,
+          10765
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          2885
+        ],
+        "b": [
+          9985,
+          2885
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          9815,
+          2835
+        ],
+        "b": [
+          9915,
+          2935
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          6900
+        ],
+        "b": [
+          9985,
+          6900
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          9815,
+          6850
+        ],
+        "b": [
+          9915,
+          6950
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          8900
+        ],
+        "b": [
+          9985,
+          8900
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          9815,
+          8850
+        ],
+        "b": [
+          9915,
+          8950
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          10765
+        ],
+        "b": [
+          9985,
+          10765
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          9815,
+          10715
+        ],
+        "b": [
+          9915,
+          10815
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          12565
+        ],
+        "b": [
+          8065,
+          12565
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          10865
+        ],
+        "b": [
+          1085,
+          12685
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          1035,
+          12515
+        ],
+        "b": [
+          1135,
+          12615
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          4300,
+          10865
+        ],
+        "b": [
+          4300,
+          12685
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          4250,
+          12515
+        ],
+        "b": [
+          4350,
+          12615
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          6100,
+          10865
+        ],
+        "b": [
+          6100,
+          12685
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          6050,
+          12515
+        ],
+        "b": [
+          6150,
+          12615
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          8065,
+          10865
+        ],
+        "b": [
+          8065,
+          12685
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          8015,
+          12515
+        ],
+        "b": [
+          8115,
+          12615
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          1085
+        ],
+        "b": [
+          8065,
+          1085
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          2785
+        ],
+        "b": [
+          1085,
+          965
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          1035,
+          1035
+        ],
+        "b": [
+          1135,
+          1135
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          4300,
+          2785
+        ],
+        "b": [
+          4300,
+          965
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          4250,
+          1035
+        ],
+        "b": [
+          4350,
+          1135
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          8065,
+          2785
+        ],
+        "b": [
+          8065,
+          965
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          8015,
+          1035
+        ],
+        "b": [
+          8115,
+          1135
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          -715,
+          2885
+        ],
+        "b": [
+          -715,
+          10765
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          2885
+        ],
+        "b": [
+          -835,
+          2885
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          -765,
+          2835
+        ],
+        "b": [
+          -665,
+          2935
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          6900
+        ],
+        "b": [
+          -835,
+          6900
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          -765,
+          6850
+        ],
+        "b": [
+          -665,
+          6950
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          8900
+        ],
+        "b": [
+          -835,
+          8900
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          -765,
+          8850
+        ],
+        "b": [
+          -665,
+          8950
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          10765
+        ],
+        "b": [
+          -835,
+          10765
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          -765,
+          10715
+        ],
+        "b": [
+          -665,
+          10815
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2",
+        "t": "line"
+      },
+      {
+        "a": [
+          9265,
+          2885
+        ],
+        "b": [
+          9265,
+          10765
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          2885
+        ],
+        "b": [
+          9385,
+          2885
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          9215,
+          2835
+        ],
+        "b": [
+          9315,
+          2935
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          4900
+        ],
+        "b": [
+          9385,
+          4900
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          9215,
+          4850
+        ],
+        "b": [
+          9315,
+          4950
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          7900
+        ],
+        "b": [
+          9385,
+          7900
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          9215,
+          7850
+        ],
+        "b": [
+          9315,
+          7950
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          9700
+        ],
+        "b": [
+          9385,
+          9700
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          9215,
+          9650
+        ],
+        "b": [
+          9315,
+          9750
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          8165,
+          10765
+        ],
+        "b": [
+          9385,
+          10765
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          9215,
+          10715
+        ],
+        "b": [
+          9315,
+          10815
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          11965
+        ],
+        "b": [
+          8065,
+          11965
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          10865
+        ],
+        "b": [
+          1085,
+          12085
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          1035,
+          11915
+        ],
+        "b": [
+          1135,
+          12015
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          2700,
+          10865
+        ],
+        "b": [
+          2700,
+          12085
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          2650,
+          11915
+        ],
+        "b": [
+          2750,
+          12015
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          5200,
+          10865
+        ],
+        "b": [
+          5200,
+          12085
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          5150,
+          11915
+        ],
+        "b": [
+          5250,
+          12015
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          8065,
+          10865
+        ],
+        "b": [
+          8065,
+          12085
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          8015,
+          11915
+        ],
+        "b": [
+          8115,
+          12015
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          1685
+        ],
+        "b": [
+          8065,
+          1685
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          1085,
+          2785
+        ],
+        "b": [
+          1085,
+          1565
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          1035,
+          1635
+        ],
+        "b": [
+          1135,
+          1735
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          2700,
+          2785
+        ],
+        "b": [
+          2700,
+          1565
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          2650,
+          1635
+        ],
+        "b": [
+          2750,
+          1735
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          6100,
+          2785
+        ],
+        "b": [
+          6100,
+          1565
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          6050,
+          1635
+        ],
+        "b": [
+          6150,
+          1735
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          8065,
+          2785
+        ],
+        "b": [
+          8065,
+          1565
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          8015,
+          1635
+        ],
+        "b": [
+          8115,
+          1735
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          -115,
+          2885
+        ],
+        "b": [
+          -115,
+          10765
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          2885
+        ],
+        "b": [
+          -235,
+          2885
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          -165,
+          2835
+        ],
+        "b": [
+          -65,
+          2935
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          5000
+        ],
+        "b": [
+          -235,
+          5000
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          -165,
+          4950
+        ],
+        "b": [
+          -65,
+          5050
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          7900
+        ],
+        "b": [
+          -235,
+          7900
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          -165,
+          7850
+        ],
+        "b": [
+          -65,
+          7950
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          985,
+          10765
+        ],
+        "b": [
+          -235,
+          10765
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          -165,
+          10715
+        ],
+        "b": [
+          -65,
+          10815
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          1715,
+          3115
+        ],
+        "b": [
+          1715,
+          6843
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1415,
+          3115
+        ],
+        "b": [
+          1835,
+          3115
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1665,
+          3065
+        ],
+        "b": [
+          1765,
+          3165
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1415,
+          6843
+        ],
+        "b": [
+          1835,
+          6843
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1665,
+          6793
+        ],
+        "b": [
+          1765,
+          6893
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1315,
+          3515
+        ],
+        "b": [
+          4243,
+          3515
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          1315,
+          3215
+        ],
+        "b": [
+          1315,
+          3635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          1265,
+          3465
+        ],
+        "b": [
+          1365,
+          3565
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4243,
+          3215
+        ],
+        "b": [
+          4243,
+          3635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4193,
+          3465
+        ],
+        "b": [
+          4293,
+          3565
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4357,
+          3515
+        ],
+        "b": [
+          7835,
+          3515
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4357,
+          3215
+        ],
+        "b": [
+          4357,
+          3635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4307,
+          3465
+        ],
+        "b": [
+          4407,
+          3565
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          7835,
+          3215
+        ],
+        "b": [
+          7835,
+          3635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          7785,
+          3465
+        ],
+        "b": [
+          7885,
+          3565
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          6557,
+          8957
+        ],
+        "b": [
+          6557,
+          10535
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          6257,
+          8957
+        ],
+        "b": [
+          6677,
+          8957
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          6507,
+          8907
+        ],
+        "b": [
+          6607,
+          9007
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          6257,
+          10535
+        ],
+        "b": [
+          6677,
+          10535
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          6507,
+          10485
+        ],
+        "b": [
+          6607,
+          10585
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          6157,
+          9357
+        ],
+        "b": [
+          7835,
+          9357
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          6157,
+          9057
+        ],
+        "b": [
+          6157,
+          9477
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          6107,
+          9307
+        ],
+        "b": [
+          6207,
+          9407
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          7835,
+          9057
+        ],
+        "b": [
+          7835,
+          9477
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          7785,
+          9307
+        ],
+        "b": [
+          7885,
+          9407
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4357,
+          9357
+        ],
+        "b": [
+          6043,
+          9357
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4357,
+          9057
+        ],
+        "b": [
+          4357,
+          9477
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4307,
+          9307
+        ],
+        "b": [
+          4407,
+          9407
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          6043,
+          9057
+        ],
+        "b": [
+          6043,
+          9477
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          5993,
+          9307
+        ],
+        "b": [
+          6093,
+          9407
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          1715,
+          8957
+        ],
+        "b": [
+          1715,
+          10535
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1415,
+          8957
+        ],
+        "b": [
+          1835,
+          8957
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1665,
+          8907
+        ],
+        "b": [
+          1765,
+          9007
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1415,
+          10535
+        ],
+        "b": [
+          1835,
+          10535
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1665,
+          10485
+        ],
+        "b": [
+          1765,
+          10585
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1315,
+          9357
+        ],
+        "b": [
+          4243,
+          9357
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          1315,
+          9057
+        ],
+        "b": [
+          1315,
+          9477
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          1265,
+          9307
+        ],
+        "b": [
+          1365,
+          9407
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4243,
+          9057
+        ],
+        "b": [
+          4243,
+          9477
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          4193,
+          9307
+        ],
+        "b": [
+          4293,
+          9407
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          1715,
+          6957
+        ],
+        "b": [
+          1715,
+          8843
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1415,
+          6957
+        ],
+        "b": [
+          1835,
+          6957
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1665,
+          6907
+        ],
+        "b": [
+          1765,
+          7007
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1415,
+          8843
+        ],
+        "b": [
+          1835,
+          8843
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          1665,
+          8793
+        ],
+        "b": [
+          1765,
+          8893
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D",
+        "t": "line"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L1#0",
+        "p": [
+          10240,
+          6825
+        ],
+        "rot": 90,
+        "s": "7880",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2#0",
+        "p": [
+          9640,
+          4892
+        ],
+        "rot": 90,
+        "s": "4015",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2#1",
+        "p": [
+          9640,
+          7900
+        ],
+        "rot": 90,
+        "s": "2000",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L2#2",
+        "p": [
+          9640,
+          9832
+        ],
+        "rot": 90,
+        "s": "1865",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3#0",
+        "p": [
+          9040,
+          3892
+        ],
+        "rot": 90,
+        "s": "2015",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3#1",
+        "p": [
+          9040,
+          6400
+        ],
+        "rot": 90,
+        "s": "3000",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3#2",
+        "p": [
+          9040,
+          8800
+        ],
+        "rot": 90,
+        "s": "1800",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.E.L3#3",
+        "p": [
+          9040,
+          10232
+        ],
+        "rot": 90,
+        "s": "1065",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L1#0",
+        "p": [
+          4575,
+          13390
+        ],
+        "rot": 0,
+        "s": "6980",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2#0",
+        "p": [
+          2692,
+          12790
+        ],
+        "rot": 0,
+        "s": "3215",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2#1",
+        "p": [
+          5200,
+          12790
+        ],
+        "rot": 0,
+        "s": "1800",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L2#2",
+        "p": [
+          7082,
+          12790
+        ],
+        "rot": 0,
+        "s": "1965",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3#0",
+        "p": [
+          1892,
+          12190
+        ],
+        "rot": 0,
+        "s": "1615",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3#1",
+        "p": [
+          3950,
+          12190
+        ],
+        "rot": 0,
+        "s": "2500",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.N.L3#2",
+        "p": [
+          6632,
+          12190
+        ],
+        "rot": 0,
+        "s": "2865",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L1#0",
+        "p": [
+          4575,
+          710
+        ],
+        "rot": 0,
+        "s": "6980",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L2#0",
+        "p": [
+          2692,
+          1310
+        ],
+        "rot": 0,
+        "s": "3215",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L2#1",
+        "p": [
+          6182,
+          1310
+        ],
+        "rot": 0,
+        "s": "3765",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3#0",
+        "p": [
+          1892,
+          1910
+        ],
+        "rot": 0,
+        "s": "1615",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3#1",
+        "p": [
+          4400,
+          1910
+        ],
+        "rot": 0,
+        "s": "3400",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.S.L3#2",
+        "p": [
+          7082,
+          1910
+        ],
+        "rot": 0,
+        "s": "1965",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L1#0",
+        "p": [
+          -1540,
+          6825
+        ],
+        "rot": 90,
+        "s": "7880",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2#0",
+        "p": [
+          -940,
+          4892
+        ],
+        "rot": 90,
+        "s": "4015",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2#1",
+        "p": [
+          -940,
+          7900
+        ],
+        "rot": 90,
+        "s": "2000",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L2#2",
+        "p": [
+          -940,
+          9832
+        ],
+        "rot": 90,
+        "s": "1865",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3#0",
+        "p": [
+          -340,
+          3942
+        ],
+        "rot": 90,
+        "s": "2115",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3#1",
+        "p": [
+          -340,
+          6450
+        ],
+        "rot": 90,
+        "s": "2900",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.W.L3#2",
+        "p": [
+          -340,
+          9332
+        ],
+        "rot": 90,
+        "s": "2865",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D#0",
+        "p": [
+          1490,
+          4979
+        ],
+        "rot": 90,
+        "s": "3728",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W#0",
+        "p": [
+          2779,
+          3740
+        ],
+        "rot": 0,
+        "s": "2928",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W#0",
+        "p": [
+          6096,
+          3740
+        ],
+        "rot": 0,
+        "s": "3478",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.D#0",
+        "p": [
+          6332,
+          10496
+        ],
+        "rot": 90,
+        "s": "1578",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_23D112DRB0E3J799P5GFMS9WER.W#0",
+        "p": [
+          7121,
+          9132
+        ],
+        "rot": 0,
+        "s": "1678",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.W#0",
+        "p": [
+          5200,
+          9132
+        ],
+        "rot": 0,
+        "s": "1686",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D#0",
+        "p": [
+          1490,
+          9871
+        ],
+        "rot": 90,
+        "s": "1578",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.W#0",
+        "p": [
+          2779,
+          9132
+        ],
+        "rot": 0,
+        "s": "2928",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D#0",
+        "p": [
+          1490,
+          7900
+        ],
+        "rot": 90,
+        "s": "1886",
+        "t": "text",
+        "va": "middle"
+      }
+    ],
+    "skippedWalls": [],
+    "stats": {
+      "base": 32,
+      "byStrategy": {
+        "base": 32,
+        "flip": 2,
+        "leader": 0,
+        "shift": 3,
+        "shrink": 0
+      },
+      "flipped": 3,
+      "labels": 37,
+      "leaders": 0,
+      "shifted": 3,
+      "shrunk": 0
+    },
+    "storeyId": "storey_01J000000000000000000000GF",
+    "suppressedChains": [
+      {
+        "axis": "D",
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.D",
+        "duplicateOf": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.D",
+        "reason": "duplicate-across-shared-wall",
+        "roomId": "room_1SFPF8K3G2V60MVJT07A2V4BHT",
+        "valueMm": 3728
+      },
+      {
+        "axis": "W",
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.W",
+        "duplicateOf": "dim.storey_01J000000000000000000000GF.room.room_0VNE9MS9E4N4FDQP0STRH6RHW2.W",
+        "reason": "duplicate-across-shared-wall",
+        "roomId": "room_6XBXJY8KPRJEP8DNMPS870AYZ7",
+        "valueMm": 2928
+      },
+      {
+        "axis": "W",
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_7Z9RP4M62B4T8NXY8TETTC1QEV.W",
+        "duplicateOf": "dim.storey_01J000000000000000000000GF.room.room_1SFPF8K3G2V60MVJT07A2V4BHT.W",
+        "reason": "duplicate-across-shared-wall",
+        "roomId": "room_7Z9RP4M62B4T8NXY8TETTC1QEV",
+        "valueMm": 3478
+      },
+      {
+        "axis": "D",
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_7Z9RP4M62B4T8NXY8TETTC1QEV.D",
+        "duplicateOf": "dim.storey_01J000000000000000000000GF.room.room_6XBXJY8KPRJEP8DNMPS870AYZ7.D",
+        "reason": "duplicate-across-shared-wall",
+        "roomId": "room_7Z9RP4M62B4T8NXY8TETTC1QEV",
+        "valueMm": 1886
+      },
+      {
+        "axis": "D",
+        "chainId": "dim.storey_01J000000000000000000000GF.room.room_37N5DC5PASCHXMKCA5BAJE0XZD.D",
+        "duplicateOf": "dim.storey_01J000000000000000000000GF.room.room_5P104YH6PGRAD3NQ0V0CH7BMJR.D",
+        "reason": "duplicate-across-shared-wall",
+        "roomId": "room_37N5DC5PASCHXMKCA5BAJE0XZD",
+        "valueMm": 1578
+      }
+    ]
+  }
+}

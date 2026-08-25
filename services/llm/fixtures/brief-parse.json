@@ -1,0 +1,295 @@
+{
+  "$comment": "Mock brief-parse corpus (playbook §10). Every entry is validated against BRIEF_PARSE_SCHEMA at load time — see services/llm/mock.py. Keys are matched exactly, then normalised (lowercase, punctuation stripped), then by keyword overlap. Golden rule 4 is the thing these fixtures exercise: anything the brief did not state appears in `assumptions` with a reason, never silently.",
+  "defaultKey": "default",
+  "responses": {
+    "default": {
+      "brief": {
+        "storeys": 2,
+        "hasStilt": false,
+        "hasBasement": false,
+        "vastuMode": "advisory",
+        "parkingCount": 1,
+        "rooms": [
+          {
+            "type": "living_dining",
+            "count": 1
+          },
+          {
+            "type": "kitchen",
+            "count": 1
+          },
+          {
+            "type": "bedroom_master",
+            "count": 1
+          },
+          {
+            "type": "bedroom",
+            "count": 2
+          },
+          {
+            "type": "bath_wc",
+            "count": 2
+          },
+          {
+            "type": "wc",
+            "count": 1
+          },
+          {
+            "type": "utility",
+            "count": 1
+          }
+        ]
+      },
+      "assumptions": [
+        {
+          "field": "brief.storeys",
+          "value": 2,
+          "reason": "The brief did not say how many floors, so we assumed ground plus one — the most common form on a plot this size."
+        },
+        {
+          "field": "brief.rooms.bath_wc.count",
+          "value": 2,
+          "reason": "Bathroom count was not stated; we assumed one per two bedrooms."
+        },
+        {
+          "field": "brief.parkingCount",
+          "value": 1,
+          "reason": "Parking was not mentioned; one car space is the usual municipal expectation for a dwelling of this size."
+        },
+        {
+          "field": "brief.vastuMode",
+          "value": "advisory",
+          "reason": "Vastu was not mentioned, so we score it as guidance rather than enforcing it as a constraint."
+        }
+      ],
+      "unclear": [
+        "Is a separate pooja room needed, or is a niche in the living area acceptable?"
+      ],
+      "stated": []
+    },
+    "3bhk g+1 for a family of four with a pooja room and covered parking": {
+      "brief": {
+        "storeys": 2,
+        "hasStilt": false,
+        "hasBasement": false,
+        "familySize": 4,
+        "parkingCount": 1,
+        "vastuMode": "advisory",
+        "rooms": [
+          {
+            "type": "living_dining",
+            "count": 1
+          },
+          {
+            "type": "kitchen",
+            "count": 1
+          },
+          {
+            "type": "bedroom_master",
+            "count": 1
+          },
+          {
+            "type": "bedroom",
+            "count": 2
+          },
+          {
+            "type": "pooja",
+            "count": 1
+          },
+          {
+            "type": "bath_wc",
+            "count": 2
+          },
+          {
+            "type": "wc",
+            "count": 1
+          },
+          {
+            "type": "utility",
+            "count": 1
+          },
+          {
+            "type": "porch",
+            "count": 1
+          }
+        ],
+        "adjacencies": [
+          {
+            "a": "kitchen",
+            "b": "living_dining",
+            "strength": "required"
+          },
+          {
+            "a": "pooja",
+            "b": "kitchen",
+            "strength": "avoid"
+          }
+        ]
+      },
+      "assumptions": [
+        {
+          "field": "brief.rooms.bath_wc.count",
+          "value": 2,
+          "reason": "The brief asked for 3 bedrooms but no bathroom count; we assumed two full bathrooms plus a powder room."
+        },
+        {
+          "field": "brief.rooms.utility.count",
+          "value": 1,
+          "reason": "A utility area for washing was not requested but is standard alongside a kitchen of this size."
+        },
+        {
+          "field": "brief.storeys",
+          "value": 2,
+          "reason": "\"G+1\" means ground floor plus one upper floor."
+        },
+        {
+          "field": "brief.vastuMode",
+          "value": "advisory",
+          "reason": "A pooja room suggests Vastu matters, but the brief did not ask us to enforce it, so we score it as guidance."
+        }
+      ],
+      "unclear": [
+        "Should the parking be a stilt (under the building) or an open covered porch?"
+      ],
+      "stated": [
+        "brief.familySize",
+        "brief.rooms",
+        "brief.parkingCount"
+      ]
+    },
+    "2bhk single storey budget home for elderly parents ground floor only": {
+      "brief": {
+        "storeys": 1,
+        "hasStilt": false,
+        "hasBasement": false,
+        "familySize": 2,
+        "parkingCount": 1,
+        "vastuMode": "advisory",
+        "rooms": [
+          {
+            "type": "living_dining",
+            "count": 1
+          },
+          {
+            "type": "kitchen",
+            "count": 1
+          },
+          {
+            "type": "bedroom_master",
+            "count": 1
+          },
+          {
+            "type": "bedroom",
+            "count": 1
+          },
+          {
+            "type": "bath_wc",
+            "count": 2
+          },
+          {
+            "type": "utility",
+            "count": 1
+          }
+        ]
+      },
+      "assumptions": [
+        {
+          "field": "brief.rooms.bath_wc.count",
+          "value": 2,
+          "reason": "Bathroom count was not stated; for elderly occupants we assumed one attached to each bedroom to avoid night-time corridor trips."
+        },
+        {
+          "field": "brief.parkingCount",
+          "value": 1,
+          "reason": "Parking was not mentioned; one car space assumed."
+        }
+      ],
+      "unclear": [
+        "Is step-free access from the street to the front door required throughout?"
+      ],
+      "stated": [
+        "brief.storeys",
+        "brief.rooms",
+        "brief.familySize"
+      ]
+    },
+    "duplex g+2 with rental unit on ground floor strict vastu": {
+      "brief": {
+        "storeys": 3,
+        "hasStilt": false,
+        "hasBasement": false,
+        "vastuMode": "strict",
+        "parkingCount": 2,
+        "rooms": [
+          {
+            "type": "living_dining",
+            "count": 2
+          },
+          {
+            "type": "kitchen",
+            "count": 2
+          },
+          {
+            "type": "bedroom_master",
+            "count": 1
+          },
+          {
+            "type": "bedroom",
+            "count": 3
+          },
+          {
+            "type": "pooja",
+            "count": 1
+          },
+          {
+            "type": "bath_wc",
+            "count": 4
+          },
+          {
+            "type": "utility",
+            "count": 2
+          },
+          {
+            "type": "staircase",
+            "count": 1
+          }
+        ],
+        "notes": "Ground floor is a self-contained rental unit with its own kitchen and entrance."
+      },
+      "assumptions": [
+        {
+          "field": "brief.storeys",
+          "value": 3,
+          "reason": "\"G+2\" means ground floor plus two upper floors."
+        },
+        {
+          "field": "brief.parkingCount",
+          "value": 2,
+          "reason": "Two households were described, so we assumed one car space each."
+        },
+        {
+          "field": "brief.rooms.kitchen.count",
+          "value": 2,
+          "reason": "A separate rental unit needs its own kitchen."
+        }
+      ],
+      "unclear": [
+        "Should the rental unit have a separate electricity meter and water connection?",
+        "Is a shared staircase acceptable, or does the rental unit need its own?"
+      ],
+      "stated": [
+        "brief.storeys",
+        "brief.rooms",
+        "brief.vastuMode"
+      ]
+    },
+    "empty": {
+      "brief": {},
+      "assumptions": [],
+      "unclear": [
+        "Could you describe what the client needs — number of bedrooms, floors, and anything that matters to them?"
+      ],
+      "stated": []
+    }
+  }
+}

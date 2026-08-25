@@ -1,0 +1,42 @@
+# Normalise line endings: LF in the repo, LF in the working tree.
+# Golden files are byte-compared, so CRLF anywhere would break the suites.
+* text=auto eol=lf
+
+# ─── Golden / fixture formats (must stay byte-stable, LF, diffable) ───────────
+*.dxf   text eol=lf
+*.svg   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.py    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.sql   text eol=lf
+Makefile text eol=lf
+
+# ─── Binary (never diffed, never EOL-converted) ──────────────────────────────
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.glb   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.safetensors binary
+*.ckpt  binary
+
+# ─── Lockfiles: generated, huge, not worth reviewing line-by-line ────────────
+pnpm-lock.yaml -diff linguist-generated=true
+poetry.lock    -diff linguist-generated=true
+requirements*.txt linguist-generated=false
+
+# ─── Language stats: keep fixtures/goldens out of the repo language bar ──────
+fixtures/**  linguist-generated=true
+rulepacks/** linguist-language=JSON
+docs/**      linguist-documentation=true

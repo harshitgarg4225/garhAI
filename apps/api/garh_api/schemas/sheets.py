@@ -1,0 +1,288 @@
+"""Sheet, annotation and title-block schemas (§7, F7-A, decision D13).
+
+Split from ``schemas/jobs.py`` because these are not job shapes. A sheet set is a
+job's *output*; a title block, a revision row and an annotation are project data
+that outlive any job, and the Review Tray is a read surface over them.
+
+Three contracts are worth reading before changing anything here.
+
+**1. Annotations are written as ops, never through a route.** Golden rule 1 — "the
+op is the atom; UI never mutates state directly". Op 32 (``annotation.set``) is the
+only writer, and it goes through ``POST /projects/{id}/ops`` like every other
+change, so annotations get undo/redo, versions, provenance and the copilot for free.
+The ``annotations`` table is a *projection* of ``ProjectDoc.annotations`` maintained
+for two things a folded document cannot give cheaply: a foreign key to
+``sheets.id``, and "every orphan in this project" without folding. So there is an
+:class:`AnnotationOut` and a :class:`ReviewTrayOut` here, and deliberately no
+``AnnotationIn``.
+
+**2. ``orphaned`` is derived, not remembered.** An annotation is orphaned exactly
+when its ``anchorElementId`` is absent from the current folded document. That is the
+same id-matching rule §7 describes for a solver re-run, applied continuously, and it
+cannot go stale the way a stored flag can. It also means a manual delete of the
+anchor element routes the note to the tray too — which is more correct than the spec's
+minimum, and stated in the UI copy rather than left as a surprise.
+
+**3. No fuzzy re-anchoring. Ever, in MVP.** D13 says so, ``Annotation.reattach``
+takes an explicit ``anchorElementId``, and :class:`ReviewTrayOut.policy` carries the
+sentence the UI prints so the promise and the copy cannot drift apart.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import Field, StrictBool, StrictInt, StrictStr, field_validator
+
+from garh_api.schemas import CamelModel, ResponseModel
+
+# ---------------------------------------------------------------------------
+# Title block (§7 "Title block: firm logo/fields template; sheet numbering;
+# auto revision table")
+# ---------------------------------------------------------------------------
+
+#: Hard cap on stored revision rows. The printed table has room for a handful; an
+#: unbounded list would grow the firm settings blob without ever being read.
+MAX_REVISION_ROWS = 12
+
+
+class RevisionRow(CamelModel):
+    """One line of the auto revision table.
+
+    ``date`` is a free string in DD-MM-YYYY (§15's Indian format) rather than a
+    ``date``: it is printed verbatim on paper, submissions carry things like
+    "12-03-2026 (rev. at counter)", and reformatting an architect's own text on a
+    municipal drawing is not this API's business.
+    """
+
+    revision: StrictStr = Field(max_length=8, description="A, B, C… or R1, R2.")
+    date: StrictStr = Field(default="", max_length=24, description="DD-MM-YYYY.")
+    note: StrictStr = Field(default="", max_length=120, description="What changed.")
+
+
+class TitleBlockFields(CamelModel):
+    """The editable title-block template. Every field is printed; none is inferred.
+
+    ``sheetNumber``, ``drawingTitle`` and ``scaleLabel`` are deliberately absent: the
+    generator stamps those per sheet, and letting a user set them here would let the
+    printed number disagree with the persisted one.
+    """
+
+    firm_name: StrictStr = Field(default="", max_length=120)
+    project_name: StrictStr = Field(default="", max_length=120)
+    client_name: StrictStr = Field(default="", max_length=120)
+    revision: StrictStr = Field(default="A", max_length=8)
+    date: StrictStr = Field(default="", max_length=24)
+    drawn_by: StrictStr = Field(default="", max_length=64)
+    checked_by: StrictStr = Field(default="", max_length=64)
+    notes: StrictStr = Field(default="", max_length=240)
+    logo_url: Optional[StrictStr] = Field(default=None, max_length=512)
+
+    @field_validator("logo_url")
+    @classmethod
+    def _https_only(cls, value: Optional[str]) -> Optional[str]:
+        """A logo is fetched by the renderer and printed on a submission drawing.
+
+        Refusing ``javascript:``/``data:`` here is not theatre: the value travels into
+        an SVG the browser renders, and §13's sanitiser allowlist is the second line of
+        defence, not the first.
+        """
+        if not value:
+            return None
+        if not value.startswith(("http://", "https://")):
+            raise ValueError("logoUrl must be an http(s) URL.")
+        return value
+
+
+class DrawingPreferencesIn(CamelModel):
+    """``PUT /firm/drawing-preferences`` — the firm-wide drafting template.
+
+    Lives in ``firms.settings`` (whose column comment already names "title-block
+    fields, dimToJamb, default city pack") plus ``firms.logo_url``. No migration, and
+    the natural home: these are drafting-office conventions, not per-project data.
+    """
+
+    title_block: TitleBlockFields = Field(default_factory=TitleBlockFields)
+    #: §7 step 6: "openings dimensioned to centerline (config flag `dimToJamb` for
+    #: firm preference)". A firm-level setting because it is a house style, and one
+    #: architect switching it mid-project would make two sheets in the same set
+    #: dimension differently.
+    dim_to_jamb: StrictBool = False
+    sheet_number_prefix: StrictStr = Field(
+        default="A", max_length=4, description="A-01, A-02… Some corporations want 'AR'."
+    )
+    default_scale_denominator: StrictInt = Field(default=100, ge=1, le=2000)
+    default_sheet_size: StrictStr = Field(default="A2", max_length=8)
+    revisions: List[RevisionRow] = Field(default_factory=list, max_length=MAX_REVISION_ROWS)
+
+    @field_validator("sheet_number_prefix")
+    @classmethod
+    def _plain_prefix(cls, value: str) -> str:
+        cleaned = value.strip().upper()
+        if not cleaned or not cleaned.isalnum():
+            raise ValueError("sheetNumberPrefix must be one or more letters or digits.")
+        return cleaned
+
+
+class DrawingPreferencesOut(ResponseModel):
+    """What the title-block editor loads. ``source`` is why each value is what it is."""
+
+    title_block: TitleBlockFields
+    dim_to_jamb: StrictBool = False
+    sheet_number_prefix: StrictStr = "A"
+    default_scale_denominator: StrictInt = 100
+    default_sheet_size: StrictStr = "A2"
+    revisions: List[RevisionRow] = Field(default_factory=list)
+    #: ``firm`` when the firm has saved a template, ``defaults`` when it has not.
+    #: Shown as a chip, because golden rule 4 wants every default visible.
+    source: StrictStr = "defaults"
+    firm_logo_url: Optional[StrictStr] = None
+
+
+# ---------------------------------------------------------------------------
+# Annotations & the Review Tray (§7, D13)
+# ---------------------------------------------------------------------------
+class AnnotationOut(ResponseModel):
+    """One annotation, with enough context for the tray to be actionable.
+
+    ``sheetSlug``/``sheetNumber`` matter: an orphan is useless in a list that only
+    says "annotation 4c1f…". The architect needs to know it is the note on A-02A.
+    """
+
+    id: uuid.UUID
+    #: The op log's own annotation id (``annotation_01J…``). **This** is what the client
+    #: passes as op 32's ``id`` to re-attach or delete — the ``id`` above is the
+    #: projection row's UUID and is not addressable by an op.
+    model_annotation_id: Optional[StrictStr] = None
+    sheet_id: uuid.UUID
+    sheet_slug: Optional[StrictStr] = None
+    sheet_number: Optional[StrictStr] = None
+    sheet_kind: Optional[StrictStr] = None
+    anchor_element_id: Optional[StrictStr] = None
+    anchor_kind: StrictStr = "element"
+    #: Annotation content as authored by op 32: ``{text, leader, style}``.
+    payload: Dict[str, Any] = Field(default_factory=dict)
+    orphaned: StrictBool = False
+    #: Present only for orphans: the element ids still drawn on that sheet, which is
+    #: what the re-attach picker offers. The whole model would be unusable on a G+2.
+    reattach_candidates: List[StrictStr] = Field(default_factory=list)
+    created_at: Optional[datetime] = None
+
+    @classmethod
+    def of(
+        cls,
+        annotation: Any,
+        *,
+        sheet: Any = None,
+        reattach_candidates: Optional[List[str]] = None,
+    ) -> "AnnotationOut":
+        layout = dict(getattr(sheet, "layout", {}) or {}) if sheet is not None else {}
+        payload = dict(annotation.payload or {})
+        # The projection's bookkeeping key is lifted into its own field rather than
+        # leaked into the annotation's content — a UI that round-trips `payload` into
+        # op 32 must not carry it back in.
+        model_id = payload.pop("__modelId", None)
+        return cls(
+            id=annotation.id,
+            model_annotation_id=(str(model_id) if model_id else None),
+            sheet_id=annotation.sheet_id,
+            sheet_slug=layout.get("sheetId"),
+            sheet_number=getattr(sheet, "number", None),
+            sheet_kind=getattr(sheet, "kind", None),
+            anchor_element_id=annotation.anchor_element_id,
+            anchor_kind=annotation.anchor_kind,
+            payload=payload,
+            orphaned=bool(annotation.orphaned),
+            reattach_candidates=list(reattach_candidates or []),
+            created_at=getattr(annotation, "created_at", None),
+        )
+
+
+#: The sentence the Review Tray prints, kept next to the code that enforces it so a
+#: copy edit cannot quietly promise fuzzy matching (D13: "Fuzzy re-matching = later").
+NO_FUZZY_REANCHOR_POLICY = (
+    "Notes follow their element by id. When a new layout does not keep that id, the "
+    "note lands here — we never guess a nearby element. Re-attach it yourself, or "
+    "delete it."
+)
+
+
+class ReviewTrayOut(ResponseModel):
+    """``GET /projects/{id}/sheets/review-tray`` — the D13 surface, honestly scoped."""
+
+    project_id: uuid.UUID
+    design_version_id: Optional[uuid.UUID] = None
+    orphaned: List[AnnotationOut] = Field(default_factory=list)
+    #: Anchored annotations, so the tray can say "3 of 11 notes need attention".
+    attached_count: StrictInt = 0
+    policy: StrictStr = NO_FUZZY_REANCHOR_POLICY
+    #: True when the tray reconciled against a freshly folded model on this request.
+    #: False means the counts are as last written, and the UI says so rather than
+    #: implying it just checked.
+    reconciled: StrictBool = False
+
+
+# ---------------------------------------------------------------------------
+# Sheet content (the zoomable viewer)
+# ---------------------------------------------------------------------------
+class SheetContentOut(ResponseModel):
+    """The sanitised SVG of one sheet, inline.
+
+    Why the API hands over the bytes here when every *download* goes through a signed
+    URL (§11): the viewer needs the markup in the document to pan, zoom and hit-test
+    it, a sheet is tens of kilobytes, and an ``<img src>`` pointed at object storage
+    would need CORS on the bucket and would give up the §13 re-check. The sanitiser
+    runs again on the way out — this endpoint is the last place the SVG passes through
+    our code before a browser parses it.
+    """
+
+    sheet_id: uuid.UUID
+    slug: Optional[StrictStr] = None
+    number: Optional[StrictStr] = None
+    title: Optional[StrictStr] = None
+    kind: StrictStr
+    scale_denominator: Optional[StrictInt] = None
+    paper: Optional[StrictStr] = None
+    #: Paper millimetres, for the viewer's initial fit.
+    width_mm: Optional[StrictInt] = None
+    height_mm: Optional[StrictInt] = None
+    svg: StrictStr
+    bytes: StrictInt = 0
+    generated_at: Optional[datetime] = None
+
+
+class SheetSetSummaryOut(ResponseModel):
+    """Set-level facts the Sheets tab shows above the thumbnails.
+
+    ``chainSumOk`` is the §7 step-5 invariant, carried all the way to the UI. The
+    worker asserts it before a sheet exists, so this is always true in practice —
+    which is why it is worth displaying: it is the product's claim about its own
+    drawings, and a false there is a bug an architect must see immediately.
+    """
+
+    project_id: uuid.UUID
+    design_version_id: Optional[uuid.UUID] = None
+    sheet_count: StrictInt = 0
+    chain_count: StrictInt = 0
+    chain_sum_ok: StrictBool = True
+    label_collisions: StrictInt = 0
+    skipped: List[Dict[str, Any]] = Field(default_factory=list)
+    notes: List[StrictStr] = Field(default_factory=list)
+    formats_available: List[StrictStr] = Field(default_factory=list)
+    generated_at: Optional[datetime] = None
+
+
+__all__ = [
+    "MAX_REVISION_ROWS",
+    "NO_FUZZY_REANCHOR_POLICY",
+    "AnnotationOut",
+    "DrawingPreferencesIn",
+    "DrawingPreferencesOut",
+    "ReviewTrayOut",
+    "RevisionRow",
+    "SheetContentOut",
+    "SheetSetSummaryOut",
+    "TitleBlockFields",
+]

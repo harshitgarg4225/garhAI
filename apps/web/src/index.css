@@ -1,0 +1,104 @@
+/**
+ * Global stylesheet — base element behaviour only.
+ *
+ * COLOUR LIVES IN `@garh/ui/tokens.css`, which `main.tsx` imports immediately
+ * before this file. Every `--garh-*` variable is declared there for both themes,
+ * and `tailwind.config.ts` maps them onto the semantic class names the shared
+ * primitives use. Nothing in this file may declare a colour: a second palette is
+ * how a shared component ends up looking right in the app and wrong in a test,
+ * or right in light mode and invisible in dark.
+ *
+ * What belongs here is only what has no component to live in — the resets that
+ * make a browser behave under a full-viewport plan editor, the focus-ring
+ * policy, and the tabular-numerals rule that keeps dimension text from jittering
+ * as it updates during a drag.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * System font stacks only: no webfont request on the critical path (§14 <3s
+   * on 4G), no third-party origin to allow in the CSP, no CORS preflight. The
+   * preset's `font-sans` names the same families; this is the document default
+   * for anything Tailwind does not class.
+   */
+  html {
+    font-family: theme('fontFamily.sans');
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink antialiased;
+    /* The canvas owns overscroll; a rubber-banding page under a plan editor
+     * feels broken. */
+    overscroll-behavior: none;
+  }
+
+  /**
+   * Keyboard focus is visible everywhere, mouse focus is not (§15
+   * accessibility). `:focus-visible` gives that split with no JS heuristics.
+   * Components may override the ring, but they may not remove it.
+   */
+  :focus-visible {
+    @apply outline-none ring-2 ring-focus ring-offset-2 ring-offset-canvas;
+  }
+
+  /* Numbers on a drawing must not jitter as they update. */
+  .tabular,
+  input[type='number'],
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /**
+   * Honour the OS setting rather than animating over it. Duration is collapsed
+   * rather than animations removed, so anything that relies on an
+   * `animationend` event still fires.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /**
+   * The "skip to main content" link. Off-screen until focused, which is the one
+   * case where visually-hidden content must become visible.
+   */
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    @apply sr-only;
+  }
+
+  /**
+   * The drawing surface. Marked with `data-garh-canvas` so `lib/keymap.ts` can
+   * tell canvas-scoped shortcuts (Tab, Enter) from global ones, and styled here
+   * because the R3F `<Canvas>` renders its own element — there is no component
+   * of ours to hang the class on.
+   *
+   * `touch-action: none` hands every pointer gesture to the camera controls;
+   * without it a two-finger pan on a trackpad scrolls the page instead of the
+   * plan.
+   */
+  [data-garh-canvas] {
+    @apply bg-surface-sunken;
+    touch-action: none;
+    user-select: none;
+  }
+}

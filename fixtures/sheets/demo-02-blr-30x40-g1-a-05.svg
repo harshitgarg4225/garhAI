@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="594mm" height="420mm" viewBox="0 0 594 420" version="1.1">
+<!-- garh-sheet sheet-schedule door-window-schedule 1:100 -->
+<title>A-05 Door &amp; Window Schedule</title>
+<rect x="0" y="0" width="594" height="420" fill="#ffffff" stroke="none"/>
+<g id="g-frame">
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="407.000" y="359.000" font-size="5.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">Door &amp; Window Schedule</text>
+<text x="564.000" y="356.000" font-size="5.000" text-anchor="middle" dominant-baseline="alphabetic" font-weight="600">A-05</text>
+<text x="564.000" y="361.000" font-size="1.800" text-anchor="middle" dominant-baseline="alphabetic">SHEET</text>
+<text x="406.000" y="368.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">PROJECT  Sharma Residence</text>
+<text x="406.000" y="373.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">CLIENT  R. Sharma</text>
+<text x="406.000" y="378.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">ARCHITECT  Studio Demo</text>
+<text x="406.000" y="383.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">SCALE  1:100</text>
+<text x="496.000" y="368.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">DATE  01-01-2026</text>
+<text x="496.000" y="373.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">DRAWN  AR</text>
+<text x="496.000" y="378.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">CHECKED  HG</text>
+<text x="496.000" y="383.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">REV  A</text>
+<text x="406.000" y="391.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">Advisory only - not an approval.</text>
+<text x="406.000" y="396.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">REV</text>
+<text x="416.000" y="396.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">DATE</text>
+<text x="440.000" y="396.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">DESCRIPTION</text>
+<text x="406.000" y="402.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">A</text>
+<text x="416.000" y="402.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">01-01-2026</text>
+<text x="440.000" y="402.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">First issue for approval</text>
+<text x="406.000" y="408.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">B</text>
+<text x="416.000" y="408.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">15-01-2026</text>
+<text x="440.000" y="408.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">Kitchen window revised</text>
+</g>
+</g>
+<g class="layer" data-layer="A-TITL" stroke="#000000" stroke-width="0.350" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="2.000,2.000 592.000,2.000 592.000,418.000 2.000,418.000" fill="none"/>
+<polygon points="20.000,10.000 584.000,10.000 584.000,410.000 20.000,410.000" fill="none"/>
+<polygon points="404.000,350.000 584.000,350.000 584.000,410.000 404.000,410.000" fill="none"/>
+<line x1="404.000" y1="364.000" x2="584.000" y2="364.000"/>
+<line x1="544.000" y1="350.000" x2="544.000" y2="364.000"/>
+<line x1="494.000" y1="364.000" x2="494.000" y2="387.000"/>
+<line x1="404.000" y1="369.000" x2="494.000" y2="369.000"/>
+<line x1="404.000" y1="374.000" x2="494.000" y2="374.000"/>
+<line x1="404.000" y1="379.000" x2="494.000" y2="379.000"/>
+<line x1="494.000" y1="369.000" x2="584.000" y2="369.000"/>
+<line x1="494.000" y1="374.000" x2="584.000" y2="374.000"/>
+<line x1="494.000" y1="379.000" x2="584.000" y2="379.000"/>
+<line x1="404.000" y1="387.000" x2="584.000" y2="387.000"/>
+<line x1="404.000" y1="392.000" x2="584.000" y2="392.000"/>
+<line x1="414.000" y1="392.000" x2="414.000" y2="398.000"/>
+<line x1="438.000" y1="392.000" x2="438.000" y2="398.000"/>
+<line x1="404.000" y1="398.000" x2="584.000" y2="398.000"/>
+<line x1="414.000" y1="398.000" x2="414.000" y2="404.000"/>
+<line x1="438.000" y1="398.000" x2="438.000" y2="404.000"/>
+<line x1="404.000" y1="404.000" x2="584.000" y2="404.000"/>
+<line x1="414.000" y1="404.000" x2="414.000" y2="410.000"/>
+<line x1="438.000" y1="404.000" x2="438.000" y2="410.000"/>
+</g>
+</g>
+<g id="g-schedule">
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="25.000" y="25.000" font-size="5.000" text-anchor="start" dominant-baseline="hanging" font-weight="600">DOOR &amp; WINDOW SCHEDULE</text>
+<text x="35.000" y="40.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" font-weight="600">TAG</text>
+<text x="47.000" y="40.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">TYPE</text>
+<text x="109.000" y="40.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">WIDTH (mm)</text>
+<text x="139.000" y="40.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">HEIGHT (mm)</text>
+<text x="165.000" y="40.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">SILL (mm)</text>
+<text x="195.000" y="40.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">GROUND FLOOR</text>
+<text x="225.000" y="40.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">FIRST FLOOR</text>
+<text x="247.000" y="40.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">TOTAL</text>
+<text x="251.000" y="40.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">REMARKS</text>
+<text x="35.000" y="48.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">D1</text>
+<text x="47.000" y="48.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Door</text>
+<text x="109.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1000</text>
+<text x="139.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2100</text>
+<text x="165.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="195.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="225.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="247.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="251.000" y="48.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="35.000" y="56.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">D2</text>
+<text x="47.000" y="56.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Door</text>
+<text x="109.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
+<text x="139.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2100</text>
+<text x="165.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="195.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
+<text x="225.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
+<text x="247.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">6</text>
+<text x="251.000" y="56.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="35.000" y="64.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W1</text>
+<text x="47.000" y="64.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Window</text>
+<text x="109.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1800</text>
+<text x="139.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
+<text x="165.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
+<text x="195.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="225.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="247.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="251.000" y="64.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="35.000" y="72.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W2</text>
+<text x="47.000" y="72.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Window</text>
+<text x="109.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1500</text>
+<text x="139.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
+<text x="165.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
+<text x="195.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="225.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="247.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">4</text>
+<text x="251.000" y="72.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="35.000" y="80.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W3</text>
+<text x="47.000" y="80.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Window</text>
+<text x="109.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
+<text x="139.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
+<text x="165.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
+<text x="195.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
+<text x="225.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
+<text x="247.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">6</text>
+<text x="251.000" y="80.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="35.000" y="88.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">V1</text>
+<text x="47.000" y="88.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Ventilator</text>
+<text x="109.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">600</text>
+<text x="139.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">450</text>
+<text x="165.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1800</text>
+<text x="195.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="225.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="247.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="251.000" y="88.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+</g>
+</g>
+<g class="layer" data-layer="A-TITL" stroke="#000000" stroke-width="0.350" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="25.000,34.000 309.000,34.000 309.000,91.000 25.000,91.000" fill="none"/>
+<line x1="25.000" y1="43.000" x2="309.000" y2="43.000"/>
+<line x1="25.000" y1="51.000" x2="309.000" y2="51.000"/>
+<line x1="25.000" y1="59.000" x2="309.000" y2="59.000"/>
+<line x1="25.000" y1="67.000" x2="309.000" y2="67.000"/>
+<line x1="25.000" y1="75.000" x2="309.000" y2="75.000"/>
+<line x1="25.000" y1="83.000" x2="309.000" y2="83.000"/>
+<line x1="45.000" y1="34.000" x2="45.000" y2="91.000"/>
+<line x1="81.000" y1="34.000" x2="81.000" y2="91.000"/>
+<line x1="111.000" y1="34.000" x2="111.000" y2="91.000"/>
+<line x1="141.000" y1="34.000" x2="141.000" y2="91.000"/>
+<line x1="167.000" y1="34.000" x2="167.000" y2="91.000"/>
+<line x1="197.000" y1="34.000" x2="197.000" y2="91.000"/>
+<line x1="227.000" y1="34.000" x2="227.000" y2="91.000"/>
+<line x1="249.000" y1="34.000" x2="249.000" y2="91.000"/>
+</g>
+</g>
+</svg>

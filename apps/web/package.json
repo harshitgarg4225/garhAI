@@ -1,0 +1,51 @@
+{
+  "name": "@garh/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Garh AI web app — Vite + React 18 + TS strict shell, Zustand stores, typed API client. Components and pages live alongside; this package owns the shell, the stores and the client.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "pnpm run typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:golden": "vitest run src/stores/model.test.ts src/lib/units.test.ts",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "clean": "rm -rf dist coverage node_modules/.vite"
+  },
+  "dependencies": {
+    "@garh/model": "workspace:*",
+    "@garh/ui": "workspace:*",
+    "@react-three/drei": "9.114.3",
+    "@react-three/fiber": "8.17.9",
+    "manifold-3d": "3.0.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.26.2",
+    "three": "0.169.0",
+    "zod": "3.23.8",
+    "zustand": "5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.16.11",
+    "@types/react": "18.3.11",
+    "@types/react-dom": "18.3.1",
+    "@types/three": "0.169.0",
+    "@vitejs/plugin-react": "4.3.2",
+    "@vitest/coverage-v8": "2.1.2",
+    "autoprefixer": "10.4.20",
+    "jsdom": "25.0.1",
+    "postcss": "8.4.47",
+    "tailwindcss": "3.4.13",
+    "typescript": "5.6.2",
+    "vite": "5.4.8",
+    "vitest": "2.1.2"
+  },
+  "engines": {
+    "node": ">=20.11"
+  }
+}

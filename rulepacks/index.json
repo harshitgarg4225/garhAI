@@ -1,0 +1,67 @@
+{
+  "$comment": "Manifest for GET /rulepacks. The API serves title/authority/confidence/review straight from here so the UI can label every result without loading whole packs.",
+  "schemaVersion": 1,
+  "generatedFor": "Garh AI MVP - 3 launch cities",
+  "packs": [
+    {
+      "pack": "nbc-core",
+      "file": "nbc-core.json",
+      "version": "2026.07",
+      "extends": null,
+      "kind": "code",
+      "selectable": false,
+      "title": "NBC 2016 core - dwelling requirements (seed)",
+      "confidence": "seed",
+      "review": "unreviewed",
+      "ruleCount": 23
+    },
+    {
+      "pack": "blr",
+      "file": "blr.json",
+      "version": "2026.07",
+      "extends": "nbc-core",
+      "kind": "city",
+      "selectable": true,
+      "title": "Bengaluru - BBMP Building Bye-laws 2020 (seed)",
+      "confidence": "seed",
+      "review": "unreviewed",
+      "ruleCount": 33
+    },
+    {
+      "pack": "ncr",
+      "file": "ncr.json",
+      "version": "2026.07",
+      "extends": "nbc-core",
+      "kind": "city",
+      "selectable": true,
+      "title": "Delhi NCR - MPD-2021 and DDA Building Bye-laws 2016 (seed)",
+      "confidence": "seed",
+      "review": "unreviewed",
+      "ruleCount": 19
+    },
+    {
+      "pack": "hyd",
+      "file": "hyd.json",
+      "version": "2026.07",
+      "extends": "nbc-core",
+      "kind": "city",
+      "selectable": true,
+      "title": "Hyderabad - Telangana Building Rules 2012 / GHMC-HMDA (seed)",
+      "confidence": "seed",
+      "review": "unreviewed",
+      "ruleCount": 34
+    },
+    {
+      "pack": "vastu",
+      "file": "vastu.json",
+      "version": "2026.07",
+      "extends": null,
+      "kind": "advisory",
+      "selectable": true,
+      "title": "Vastu Shastra - directional advisory pack (seed)",
+      "confidence": "seed",
+      "review": "unreviewed",
+      "ruleCount": 9
+    }
+  ]
+}

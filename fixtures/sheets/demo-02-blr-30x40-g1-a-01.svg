@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="594mm" height="420mm" viewBox="0 0 594 420" version="1.1">
+<!-- garh-sheet sheet-site site-plan 1:100 -->
+<title>A-01 Site Plan</title>
+<rect x="0" y="0" width="594" height="420" fill="#ffffff" stroke="none"/>
+<defs>
+<pattern id="h-diagonal-500-45-100" width="5.000" height="5.000" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+<line x1="0" y1="0" x2="0" y2="5.000" stroke="#3a3a3a" stroke-width="0.080"/>
+</pattern>
+</defs>
+<g id="g-frame">
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="407.000" y="359.000" font-size="5.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">Site Plan</text>
+<text x="564.000" y="356.000" font-size="5.000" text-anchor="middle" dominant-baseline="alphabetic" font-weight="600">A-01</text>
+<text x="564.000" y="361.000" font-size="1.800" text-anchor="middle" dominant-baseline="alphabetic">SHEET</text>
+<text x="406.000" y="368.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">PROJECT  Sharma Residence</text>
+<text x="406.000" y="373.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">CLIENT  R. Sharma</text>
+<text x="406.000" y="378.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">ARCHITECT  Studio Demo</text>
+<text x="406.000" y="383.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">SCALE  1:100</text>
+<text x="496.000" y="368.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">DATE  01-01-2026</text>
+<text x="496.000" y="373.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">DRAWN  AR</text>
+<text x="496.000" y="378.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">CHECKED  HG</text>
+<text x="496.000" y="383.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">REV  A</text>
+<text x="406.000" y="391.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">Advisory only - not an approval.</text>
+<text x="406.000" y="396.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">REV</text>
+<text x="416.000" y="396.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">DATE</text>
+<text x="440.000" y="396.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">DESCRIPTION</text>
+<text x="406.000" y="402.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">A</text>
+<text x="416.000" y="402.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">01-01-2026</text>
+<text x="440.000" y="402.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">First issue for approval</text>
+<text x="406.000" y="408.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">B</text>
+<text x="416.000" y="408.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">15-01-2026</text>
+<text x="440.000" y="408.000" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">Kitchen window revised</text>
+</g>
+</g>
+<g class="layer" data-layer="A-TITL" stroke="#000000" stroke-width="0.350" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="2.000,2.000 592.000,2.000 592.000,418.000 2.000,418.000" fill="none"/>
+<polygon points="20.000,10.000 584.000,10.000 584.000,410.000 20.000,410.000" fill="none"/>
+<polygon points="404.000,350.000 584.000,350.000 584.000,410.000 404.000,410.000" fill="none"/>
+<line x1="404.000" y1="364.000" x2="584.000" y2="364.000"/>
+<line x1="544.000" y1="350.000" x2="544.000" y2="364.000"/>
+<line x1="494.000" y1="364.000" x2="494.000" y2="387.000"/>
+<line x1="404.000" y1="369.000" x2="494.000" y2="369.000"/>
+<line x1="404.000" y1="374.000" x2="494.000" y2="374.000"/>
+<line x1="404.000" y1="379.000" x2="494.000" y2="379.000"/>
+<line x1="494.000" y1="369.000" x2="584.000" y2="369.000"/>
+<line x1="494.000" y1="374.000" x2="584.000" y2="374.000"/>
+<line x1="494.000" y1="379.000" x2="584.000" y2="379.000"/>
+<line x1="404.000" y1="387.000" x2="584.000" y2="387.000"/>
+<line x1="404.000" y1="392.000" x2="584.000" y2="392.000"/>
+<line x1="414.000" y1="392.000" x2="414.000" y2="398.000"/>
+<line x1="438.000" y1="392.000" x2="438.000" y2="398.000"/>
+<line x1="404.000" y1="398.000" x2="584.000" y2="398.000"/>
+<line x1="414.000" y1="398.000" x2="414.000" y2="404.000"/>
+<line x1="438.000" y1="398.000" x2="438.000" y2="404.000"/>
+<line x1="404.000" y1="404.000" x2="584.000" y2="404.000"/>
+<line x1="414.000" y1="404.000" x2="414.000" y2="410.000"/>
+<line x1="438.000" y1="404.000" x2="438.000" y2="410.000"/>
+</g>
+</g>
+<g id="g-site">
+<g class="layer" data-layer="A-WALL" stroke="#000000" stroke-width="0.500" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="166.780,197.960 238.220,197.960 238.220,121.040 166.780,121.040" fill="none"/>
+</g>
+<g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="156.780,227.960 248.220,227.960 248.220,106.040 156.780,106.040" fill="none"/>
+<polygon points="156.780,227.960 248.220,227.960 248.220,317.960 156.780,317.960" fill="none" stroke-dasharray="3.000 1.500"/>
+</g>
+<g class="layer" data-layer="A-DIM" stroke="#1a1a1a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<line x1="202.500" y1="227.960" x2="202.500" y2="197.960"/>
+<line x1="202.500" y1="227.960" x2="203.750" y2="227.960"/>
+<line x1="202.500" y1="197.960" x2="203.750" y2="197.960"/>
+<text x="203.500" y="212.960" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 203.500 212.960)">3000</text>
+<line x1="202.500" y1="121.040" x2="202.500" y2="106.040"/>
+<line x1="202.500" y1="121.040" x2="203.750" y2="121.040"/>
+<line x1="202.500" y1="106.040" x2="203.750" y2="106.040"/>
+<text x="203.500" y="113.540" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 203.500 113.540)">1500</text>
+<line x1="156.780" y1="159.500" x2="166.780" y2="159.500"/>
+<line x1="156.780" y1="159.500" x2="156.780" y2="158.250"/>
+<line x1="166.780" y1="159.500" x2="166.780" y2="158.250"/>
+<text x="161.780" y="158.500" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">1000</text>
+<line x1="238.220" y1="159.500" x2="248.220" y2="159.500"/>
+<line x1="238.220" y1="159.500" x2="238.220" y2="158.250"/>
+<line x1="248.220" y1="159.500" x2="248.220" y2="158.250"/>
+<text x="243.220" y="158.500" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">1000</text>
+</g>
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="260.220,106.040 257.220,121.040 260.220,124.040 263.220,121.040" fill="none"/>
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="202.500" y="272.960" font-size="2.000" text-anchor="middle" dominant-baseline="central">9 m road (south)</text>
+<text x="260.220" y="102.040" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">N</text>
+</g>
+</g>
+<g class="layer" data-layer="A-AREA" stroke="#3a3a3a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<path d="M 166.780 197.960 L 238.220 197.960 L 238.220 121.040 L 166.780 121.040 Z" fill="url(#h-diagonal-500-45-100)" fill-rule="evenodd" stroke="none"/>
+<g font-family="Helvetica, Arial, sans-serif" fill="#3a3a3a" stroke="none">
+<text x="156.780" y="239.960" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">PLOT AREA: 111.48 m²</text>
+<text x="156.780" y="246.960" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">GROUND COVERAGE: 54.95 m² (permissible 78.04 m²)</text>
+<text x="156.780" y="253.960" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">FAR ACHIEVED: 0.99 (permissible 2.25)</text>
+</g>
+</g>
+</g>
+<g id="g-site-label">
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="210.000" y="332.960" font-size="3.500" text-anchor="middle" dominant-baseline="hanging" font-weight="600">SITE PLAN - 1:100</text>
+</g>
+</g>
+</g>
+</svg>

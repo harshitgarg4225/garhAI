@@ -1,0 +1,192 @@
+/**
+ * Garh AI theme tokens — THE one place colour lives.
+ * ---------------------------------------------------------------------------
+ * Every colour in the product resolves to a variable declared here. Components
+ * never hard-code a hex value and never reach for a Tailwind palette name
+ * (`bg-red-500`); they use the semantic names in `tailwind-preset.cjs`
+ * (`bg-fail-soft`, `text-ink-muted`, `border-line`). Swapping a firm's accent
+ * later is then a change to two blocks in this file, not a grep across 60
+ * components.
+ *
+ * Values are space-separated sRGB triples so Tailwind's `<alpha-value>` slot
+ * works: `bg-brand/10` compiles to `rgb(var(--garh-brand) / 0.1)`.
+ *
+ * CONTRAST (§15 "WCAG AA"): the text/background pairs below were chosen to
+ * clear 4.5:1 for body text and 3:1 for large text and UI borders. The ones
+ * that are close to the line are annotated with their measured ratio so a
+ * future palette tweak can be checked rather than guessed.
+ *
+ * Dark mode is class-based (`<html class="dark">`) so the app can offer an
+ * explicit toggle rather than only following the OS — see `theme.ts`.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --garh-canvas: 250 250 249; /* page background (warm stone-50) */
+  --garh-surface: 255 255 255; /* cards, panels, dialogs */
+  --garh-surface-muted: 245 245 244; /* inset rows, table headers */
+  --garh-surface-sunken: 237 235 233; /* the drawing canvas well */
+  --garh-scrim: 28 25 23; /* dialog backdrop, used at ~55% alpha */
+
+  /* ── Lines ────────────────────────────────────────────────────────────── */
+  --garh-line: 231 229 228; /* hairlines, card borders */
+  --garh-line-strong: 208 203 199; /* input borders — 3:1 against surface */
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --garh-ink: 28 25 23; /* 17.5:1 on surface */
+  --garh-ink-muted: 87 83 78; /* 7.3:1 on surface — secondary copy */
+  --garh-ink-subtle: 109 103 98; /* 5.4:1 on surface — labels, captions */
+  --garh-ink-inverse: 255 255 255;
+
+  /* ── Brand (warm Indian clay — reads as terracotta, not "SaaS blue") ──── */
+  --garh-brand: 194 65 12; /* 5.18:1 on white; white text on it = 5.18:1 */
+  --garh-brand-strong: 154 52 18; /* hover / pressed */
+  --garh-brand-soft: 255 237 227; /* tinted chip + selected-row background */
+  --garh-brand-fg: 255 255 255; /* text ON a brand-filled surface */
+  --garh-brand-ink: 154 52 18; /* brand-coloured TEXT on light surfaces (7.2:1) */
+
+  /* ── Severity (compliance chips, toasts, job states) ──────────────────── */
+  --garh-pass: 4 120 87; /* 5.48:1 on white */
+  --garh-pass-soft: 236 253 245;
+  --garh-pass-line: 167 226 205;
+  --garh-pass-ink: 6 95 70;
+
+  --garh-warn: 180 83 9; /* 5.02:1 on white */
+  --garh-warn-soft: 255 247 235;
+  --garh-warn-line: 245 208 154;
+  --garh-warn-ink: 146 64 14;
+
+  --garh-fail: 185 28 28; /* 6.47:1 on white */
+  --garh-fail-soft: 254 242 242;
+  --garh-fail-line: 245 189 189;
+  --garh-fail-ink: 153 27 27;
+
+  --garh-info: 3 105 161;
+  --garh-info-soft: 240 249 255;
+  --garh-info-line: 175 214 240;
+  --garh-info-ink: 7 89 133;
+
+  --garh-neutral-soft: 245 245 244;
+  --garh-neutral-line: 214 211 209;
+  --garh-neutral-ink: 68 64 60;
+
+  /* ── Focus ────────────────────────────────────────────────────────────── */
+  --garh-focus: 29 78 216; /* deliberately NOT the brand colour: a focus ring
+                              must stay visible on top of brand-coloured
+                              buttons, chips and selected rows. */
+  --garh-focus-offset: 255 255 255;
+
+  /* ── Elevation ────────────────────────────────────────────────────────── */
+  --garh-shadow-sm: 0 1px 2px 0 rgb(28 25 23 / 0.06);
+  --garh-shadow-md: 0 4px 12px -2px rgb(28 25 23 / 0.1), 0 2px 4px -2px rgb(28 25 23 / 0.06);
+  --garh-shadow-lg: 0 16px 40px -8px rgb(28 25 23 / 0.18), 0 4px 10px -4px rgb(28 25 23 / 0.08);
+}
+
+.dark,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --garh-canvas: 24 22 21;
+  --garh-surface: 34 31 30;
+  --garh-surface-muted: 44 40 38;
+  --garh-surface-sunken: 18 17 16;
+  --garh-scrim: 0 0 0;
+
+  --garh-line: 60 55 52;
+  --garh-line-strong: 88 81 77;
+
+  --garh-ink: 245 244 243; /* 14.9:1 on surface */
+  --garh-ink-muted: 190 184 179; /* 8.4:1 */
+  --garh-ink-subtle: 158 151 146; /* 5.5:1 */
+  --garh-ink-inverse: 24 22 21;
+
+  --garh-brand: 234 88 12; /* filled buttons stay legible with near-black text */
+  --garh-brand-strong: 249 115 22;
+  --garh-brand-soft: 62 33 18;
+  --garh-brand-fg: 24 22 21; /* dark text on the brighter dark-mode orange */
+  --garh-brand-ink: 253 186 116; /* brand-coloured TEXT on dark: 8.1:1 */
+
+  --garh-pass: 52 211 153;
+  --garh-pass-soft: 6 46 36;
+  --garh-pass-line: 21 94 74;
+  --garh-pass-ink: 110 231 183;
+
+  --garh-warn: 251 191 36;
+  --garh-warn-soft: 56 37 6;
+  --garh-warn-line: 120 78 12;
+  --garh-warn-ink: 253 213 122;
+
+  --garh-fail: 248 113 113;
+  --garh-fail-soft: 60 20 20;
+  --garh-fail-line: 127 44 44;
+  --garh-fail-ink: 252 165 165;
+
+  --garh-info: 56 189 248;
+  --garh-info-soft: 8 44 62;
+  --garh-info-line: 14 89 122;
+  --garh-info-ink: 125 211 252;
+
+  --garh-neutral-soft: 44 40 38;
+  --garh-neutral-line: 78 72 68;
+  --garh-neutral-ink: 214 211 209;
+
+  --garh-focus: 147 197 253;
+  --garh-focus-offset: 24 22 21;
+
+  --garh-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --garh-shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --garh-shadow-lg: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 4px 10px -4px rgb(0 0 0 / 0.4);
+}
+
+/* ── Base element defaults ─────────────────────────────────────────────────
+ * Kept tiny on purpose: everything else is a utility class on a component.
+ */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: rgb(var(--garh-canvas));
+  color: rgb(var(--garh-ink));
+  font-family:
+    'Inter var', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans',
+    'Noto Sans Devanagari', sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numerals wherever a number is compared down a column: areas,
+ * dimensions, rupees. Applied via the `.garh-nums` utility. */
+.garh-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Focus: we remove the UA outline ONLY where a component paints its own ring.
+ * Anything that forgets keeps the browser default — failing loud beats failing
+ * invisible for keyboard users. */
+.garh-focus-ring:focus-visible {
+  outline: 2px solid rgb(var(--garh-focus));
+  outline-offset: 2px;
+}
+
+/* §15 accessibility: honour the OS "reduce motion" setting everywhere. The
+ * skeleton shimmer and toast slide are decoration, never information. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scrollbars that don't fight the dark theme. */
+* {
+  scrollbar-color: rgb(var(--garh-line-strong)) transparent;
+  scrollbar-width: thin;
+}

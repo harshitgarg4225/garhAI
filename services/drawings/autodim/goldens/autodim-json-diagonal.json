@@ -1,0 +1,1128 @@
+{
+  "config": {
+    "dimToJamb": false,
+    "scaleDenominator": 100
+  },
+  "fixture": "json-diagonal",
+  "obstacles": [
+    [
+      1100,
+      1200,
+      1800,
+      600,
+      "roomlabel:room_JSON1"
+    ]
+  ],
+  "result": {
+    "chains": [
+      {
+        "id": "dim.storey_JSON.S.L1",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 1,
+        "lineMm": -2515,
+        "offsetMm": 2400,
+        "orientation": "horizontal",
+        "originMm": -115,
+        "outward": -1,
+        "overallMm": 4230,
+        "referenceMm": -115,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": null,
+            "label": "4230",
+            "lengthMm": 4230,
+            "startMm": 0
+          }
+        ],
+        "side": "S",
+        "storeyId": "storey_JSON"
+      },
+      {
+        "id": "dim.storey_JSON.S.L3",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 3,
+        "lineMm": -1315,
+        "offsetMm": 1200,
+        "orientation": "horizontal",
+        "originMm": -115,
+        "outward": -1,
+        "overallMm": 4230,
+        "referenceMm": -115,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": "opening_JD1",
+            "label": "1315",
+            "lengthMm": 1315,
+            "startMm": 0
+          },
+          {
+            "anchorElementId": "opening_JW1",
+            "label": "1700",
+            "lengthMm": 1700,
+            "startMm": 1315
+          },
+          {
+            "anchorElementId": "opening_JW1",
+            "label": "1215",
+            "lengthMm": 1215,
+            "startMm": 3015
+          }
+        ],
+        "side": "S",
+        "storeyId": "storey_JSON"
+      },
+      {
+        "id": "dim.storey_JSON.E.L1",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 1,
+        "lineMm": 6515,
+        "offsetMm": 2400,
+        "orientation": "vertical",
+        "originMm": -115,
+        "outward": 1,
+        "overallMm": 3230,
+        "referenceMm": 4115,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": null,
+            "label": "3230",
+            "lengthMm": 3230,
+            "startMm": 0
+          }
+        ],
+        "side": "E",
+        "storeyId": "storey_JSON"
+      },
+      {
+        "id": "dim.storey_JSON.N.L1",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 1,
+        "lineMm": 5515,
+        "offsetMm": 2400,
+        "orientation": "horizontal",
+        "originMm": -115,
+        "outward": 1,
+        "overallMm": 4230,
+        "referenceMm": 3115,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": null,
+            "label": "4230",
+            "lengthMm": 4230,
+            "startMm": 0
+          }
+        ],
+        "side": "N",
+        "storeyId": "storey_JSON"
+      },
+      {
+        "id": "dim.storey_JSON.W.L1",
+        "kind": "outer",
+        "layer": "A-DIM",
+        "level": 1,
+        "lineMm": -2515,
+        "offsetMm": 2400,
+        "orientation": "vertical",
+        "originMm": -115,
+        "outward": -1,
+        "overallMm": 3230,
+        "referenceMm": -115,
+        "roomId": null,
+        "segments": [
+          {
+            "anchorElementId": null,
+            "label": "3230",
+            "lengthMm": 3230,
+            "startMm": 0
+          }
+        ],
+        "side": "W",
+        "storeyId": "storey_JSON"
+      },
+      {
+        "id": "dim.storey_JSON.room.room_JSON1.W",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 515,
+        "offsetMm": 400,
+        "orientation": "horizontal",
+        "originMm": 115,
+        "outward": 1,
+        "overallMm": 3770,
+        "referenceMm": 115,
+        "roomId": "room_JSON1",
+        "segments": [
+          {
+            "anchorElementId": "room_JSON1",
+            "label": "3770",
+            "lengthMm": 3770,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_JSON"
+      },
+      {
+        "id": "dim.storey_JSON.room.room_JSON1.D",
+        "kind": "inner",
+        "layer": "A-DIM",
+        "level": 4,
+        "lineMm": 515,
+        "offsetMm": 400,
+        "orientation": "vertical",
+        "originMm": 115,
+        "outward": 1,
+        "overallMm": 2770,
+        "referenceMm": 115,
+        "roomId": "room_JSON1",
+        "segments": [
+          {
+            "anchorElementId": "room_JSON1",
+            "label": "2770",
+            "lengthMm": 2770,
+            "startMm": 0
+          }
+        ],
+        "side": null,
+        "storeyId": "storey_JSON"
+      }
+    ],
+    "labels": [
+      {
+        "anchor": [
+          6290,
+          1500
+        ],
+        "box": [
+          6115,
+          1100,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_JSON.E.L1",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_JSON.E.L1#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3230"
+      },
+      {
+        "anchor": [
+          2000,
+          5740
+        ],
+        "box": [
+          1600,
+          5565,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_JSON.N.L1",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_JSON.N.L1#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "4230"
+      },
+      {
+        "anchor": [
+          2000,
+          -2290
+        ],
+        "box": [
+          1600,
+          -2465,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_JSON.S.L1",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_JSON.S.L1#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "4230"
+      },
+      {
+        "anchor": [
+          -2740,
+          1500
+        ],
+        "box": [
+          -2915,
+          1100,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_JSON.W.L1",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_JSON.W.L1#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3230"
+      },
+      {
+        "anchor": [
+          542,
+          -1090
+        ],
+        "box": [
+          142,
+          -1265,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_JSON.S.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_JSON.S.L3#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1315"
+      },
+      {
+        "anchor": [
+          2050,
+          -1090
+        ],
+        "box": [
+          1650,
+          -1265,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_JSON.S.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_JSON.S.L3#1",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 1,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1700"
+      },
+      {
+        "anchor": [
+          3507,
+          -1090
+        ],
+        "box": [
+          3107,
+          -1265,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_JSON.S.L3",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_JSON.S.L3#2",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 2,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "1215"
+      },
+      {
+        "anchor": [
+          290,
+          1500
+        ],
+        "box": [
+          115,
+          1100,
+          350,
+          800
+        ],
+        "chainId": "dim.storey_JSON.room.room_JSON1.D",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_JSON.room.room_JSON1.D#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 90,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "2770"
+      },
+      {
+        "anchor": [
+          2000,
+          740
+        ],
+        "box": [
+          1600,
+          565,
+          800,
+          350
+        ],
+        "chainId": "dim.storey_JSON.room.room_JSON1.W",
+        "flipped": false,
+        "heightMm": 250,
+        "id": "dim.storey_JSON.room.room_JSON1.W#0",
+        "leaderFrom": null,
+        "leaderTo": null,
+        "rotationDeg": 0,
+        "segmentIndex": 0,
+        "shiftMm": 0,
+        "shrinkStep": 0,
+        "strategy": "base",
+        "text": "3770"
+      }
+    ],
+    "notes": [
+      "1 non-orthogonal wall(s) not auto-dimensioned (MVP is orthogonal-only) \u2014 dimension by hand: wall_JDIAG"
+    ],
+    "primitives": [
+      {
+        "a": [
+          6515,
+          -115
+        ],
+        "b": [
+          6515,
+          3115
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          4215,
+          -115
+        ],
+        "b": [
+          6635,
+          -115
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          6465,
+          -165
+        ],
+        "b": [
+          6565,
+          -65
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          4215,
+          3115
+        ],
+        "b": [
+          6635,
+          3115
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          6465,
+          3065
+        ],
+        "b": [
+          6565,
+          3165
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.E.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -115,
+          5515
+        ],
+        "b": [
+          4115,
+          5515
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -115,
+          3215
+        ],
+        "b": [
+          -115,
+          5635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -165,
+          5465
+        ],
+        "b": [
+          -65,
+          5565
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          4115,
+          3215
+        ],
+        "b": [
+          4115,
+          5635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          4065,
+          5465
+        ],
+        "b": [
+          4165,
+          5565
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.N.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -115,
+          -2515
+        ],
+        "b": [
+          4115,
+          -2515
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -115,
+          -215
+        ],
+        "b": [
+          -115,
+          -2635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -165,
+          -2565
+        ],
+        "b": [
+          -65,
+          -2465
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          4115,
+          -215
+        ],
+        "b": [
+          4115,
+          -2635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          4065,
+          -2565
+        ],
+        "b": [
+          4165,
+          -2465
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -2515,
+          -115
+        ],
+        "b": [
+          -2515,
+          3115
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -215,
+          -115
+        ],
+        "b": [
+          -2635,
+          -115
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -2565,
+          -165
+        ],
+        "b": [
+          -2465,
+          -65
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -215,
+          3115
+        ],
+        "b": [
+          -2635,
+          3115
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -2565,
+          3065
+        ],
+        "b": [
+          -2465,
+          3165
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.W.L1",
+        "t": "line"
+      },
+      {
+        "a": [
+          -115,
+          -1315
+        ],
+        "b": [
+          4115,
+          -1315
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          -115,
+          -215
+        ],
+        "b": [
+          -115,
+          -1435
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          -165,
+          -1365
+        ],
+        "b": [
+          -65,
+          -1265
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          1200,
+          -215
+        ],
+        "b": [
+          1200,
+          -1435
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          1150,
+          -1365
+        ],
+        "b": [
+          1250,
+          -1265
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          2900,
+          -215
+        ],
+        "b": [
+          2900,
+          -1435
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          2850,
+          -1365
+        ],
+        "b": [
+          2950,
+          -1265
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          4115,
+          -215
+        ],
+        "b": [
+          4115,
+          -1435
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          4065,
+          -1365
+        ],
+        "b": [
+          4165,
+          -1265
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3",
+        "t": "line"
+      },
+      {
+        "a": [
+          515,
+          115
+        ],
+        "b": [
+          515,
+          2885
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          215,
+          115
+        ],
+        "b": [
+          635,
+          115
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          465,
+          65
+        ],
+        "b": [
+          565,
+          165
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          215,
+          2885
+        ],
+        "b": [
+          635,
+          2885
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          465,
+          2835
+        ],
+        "b": [
+          565,
+          2935
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.D",
+        "t": "line"
+      },
+      {
+        "a": [
+          115,
+          515
+        ],
+        "b": [
+          3885,
+          515
+        ],
+        "kind": "dim-line",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          115,
+          215
+        ],
+        "b": [
+          115,
+          635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          65,
+          465
+        ],
+        "b": [
+          165,
+          565
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          3885,
+          215
+        ],
+        "b": [
+          3885,
+          635
+        ],
+        "kind": "dim-witness",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.W",
+        "t": "line"
+      },
+      {
+        "a": [
+          3835,
+          465
+        ],
+        "b": [
+          3935,
+          565
+        ],
+        "kind": "dim-tick",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.W",
+        "t": "line"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.E.L1#0",
+        "p": [
+          6290,
+          1500
+        ],
+        "rot": 90,
+        "s": "3230",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.N.L1#0",
+        "p": [
+          2000,
+          5740
+        ],
+        "rot": 0,
+        "s": "4230",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L1#0",
+        "p": [
+          2000,
+          -2290
+        ],
+        "rot": 0,
+        "s": "4230",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3#0",
+        "p": [
+          542,
+          -1090
+        ],
+        "rot": 0,
+        "s": "1315",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3#1",
+        "p": [
+          2050,
+          -1090
+        ],
+        "rot": 0,
+        "s": "1700",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.S.L3#2",
+        "p": [
+          3507,
+          -1090
+        ],
+        "rot": 0,
+        "s": "1215",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.W.L1#0",
+        "p": [
+          -2740,
+          1500
+        ],
+        "rot": 90,
+        "s": "3230",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.D#0",
+        "p": [
+          290,
+          1500
+        ],
+        "rot": 90,
+        "s": "2770",
+        "t": "text",
+        "va": "middle"
+      },
+      {
+        "h": 250,
+        "ha": "center",
+        "kind": "dim-text",
+        "layer": "A-DIM",
+        "ownerId": "dim.storey_JSON.room.room_JSON1.W#0",
+        "p": [
+          2000,
+          740
+        ],
+        "rot": 0,
+        "s": "3770",
+        "t": "text",
+        "va": "middle"
+      }
+    ],
+    "skippedWalls": [
+      {
+        "detail": "(0,0)->(2000,3000): dimension this wall by hand",
+        "reason": "non-orthogonal",
+        "wallId": "wall_JDIAG"
+      }
+    ],
+    "stats": {
+      "base": 9,
+      "byStrategy": {
+        "base": 9,
+        "flip": 0,
+        "leader": 0,
+        "shift": 0,
+        "shrink": 0
+      },
+      "flipped": 0,
+      "labels": 9,
+      "leaders": 0,
+      "shifted": 0,
+      "shrunk": 0
+    },
+    "storeyId": "storey_JSON",
+    "suppressedChains": []
+  }
+}

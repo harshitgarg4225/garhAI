@@ -1,0 +1,7 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  # e2e/ lives at the repo root per playbook §1 but still needs its own
+  # package.json (Playwright + fixtures), so it is a workspace member too.
+  # See DECISIONS.md 2026-07-31 "e2e as a workspace package".
+  - 'e2e'

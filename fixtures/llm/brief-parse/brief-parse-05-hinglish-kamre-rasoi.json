@@ -1,0 +1,98 @@
+{
+  "$comment": "Brief-parse eval fixture (playbook §10). `text` is a real-world Indian client brief; `expected` is the exact output of the deterministic mock parser (services/llm/brief_mock.py) AND the contract shape the real provider is held to. Regenerate deliberately with fixtures/llm/brief-parse/_tools/generate.py and read the diff.",
+  "id": "brief-parse-05-hinglish-kamre-rasoi",
+  "text": "Ghar chahiye 30x50 ke plot pe, 3 kamre, badi rasoi, pooja ghar aur parking 2 gaadi",
+  "expected": {
+    "brief": {
+      "storeys": 2,
+      "hasStilt": false,
+      "hasBasement": false,
+      "rooms": [
+        {
+          "type": "living_dining",
+          "count": 1
+        },
+        {
+          "type": "kitchen",
+          "count": 1
+        },
+        {
+          "type": "bedroom_master",
+          "count": 1
+        },
+        {
+          "type": "bedroom",
+          "count": 2
+        },
+        {
+          "type": "pooja",
+          "count": 1
+        },
+        {
+          "type": "bath_wc",
+          "count": 2
+        },
+        {
+          "type": "utility",
+          "count": 1
+        }
+      ],
+      "vastuMode": "advisory",
+      "parkingCount": 2
+    },
+    "assumptions": [
+      {
+        "field": "brief.storeys",
+        "value": 2,
+        "reason": "The brief did not say how many floors — G+1 is the most common fit for an Indian urban plot. Change it if the client wants otherwise."
+      },
+      {
+        "field": "brief.hasStilt",
+        "value": false,
+        "reason": "Stilt parking was not mentioned — assumed none; turn it on for a tight plot."
+      },
+      {
+        "field": "brief.hasBasement",
+        "value": false,
+        "reason": "A basement was not mentioned — assumed none."
+      },
+      {
+        "field": "brief.rooms.living_dining.count",
+        "value": 1,
+        "reason": "A living/dining space was not mentioned — added one; it is the heart of the plan."
+      },
+      {
+        "field": "brief.rooms.bath_wc.count",
+        "value": 2,
+        "reason": "Bathroom count was not stated — assumed one toilet per two bedrooms, minimum two."
+      },
+      {
+        "field": "brief.rooms.utility.count",
+        "value": 1,
+        "reason": "A utility/wash area was not asked for but is standard alongside an Indian kitchen."
+      },
+      {
+        "field": "brief.vastuMode",
+        "value": "advisory",
+        "reason": "A pooja room suggests Vastu matters — set to advisory guidance, not a hard constraint."
+      },
+      {
+        "field": "brief.budgetInr",
+        "value": null,
+        "reason": "No budget was given — costing will use the city benchmark ₹/sqft until you add one."
+      },
+      {
+        "field": "brief.familySize",
+        "value": null,
+        "reason": "Family size was not mentioned — the room programme drives the plan either way."
+      }
+    ],
+    "stated": [
+      "brief.rooms",
+      "brief.parkingCount"
+    ],
+    "unclear": [
+      "The brief mentions a 30x50 plot — plot size, facing and roads are set in the plot step; the brief holds no geometry."
+    ]
+  }
+}

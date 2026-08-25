@@ -1,0 +1,46 @@
+{
+  "$comment": "Mock rationale corpus (playbook §10: solver facts -> 60-word paragraph, list-then-write). Keys are the solver option signature the caller passes as fixture_key. Every paragraph here uses ONLY facts that the matching solver fixture supplies — that is the property the real prompt enforces and the mock must not undermine.",
+  "defaultKey": "default",
+  "responses": {
+    "default": {
+      "factsUsed": [
+        "Composite score 78 of 100",
+        "Circulation 11% of built-up area",
+        "All hard rules pass for the Bengaluru pack",
+        "Master bedroom in the south-west zone",
+        "Kitchen in the south-east zone"
+      ],
+      "paragraph": "This option scores 78 out of 100. Circulation is 11% of the built-up area, so very little space is lost to passages. Every hard rule in the Bengaluru pack passes. The master bedroom sits in the south-west zone and the kitchen in the south-east, which follows the usual Vastu placement."
+    },
+    "option-compact-north-entry": {
+      "factsUsed": [
+        "Composite score 82 of 100",
+        "Circulation 9% of built-up area",
+        "Entrance on the north edge",
+        "All three bedrooms have an external wall",
+        "Baths stacked over a single shaft on both floors"
+      ],
+      "paragraph": "The most compact of the three: circulation is just 9% of the built-up area and it scores 82. The entrance is on the north edge. All three bedrooms reach an external wall, so each gets daylight and a window. Both floors' bathrooms stack over one shaft, which keeps the plumbing simple."
+    },
+    "option-wide-frontage": {
+      "factsUsed": [
+        "Composite score 71 of 100",
+        "Circulation 14% of built-up area",
+        "Living and dining open to the front setback",
+        "Ground coverage 48% against 50% allowed",
+        "Two car spaces in the stilt"
+      ],
+      "paragraph": "This one trades compactness for frontage, scoring 71. Circulation is 14%. The living and dining open onto the front setback, giving the ground floor a wide outlook. Ground coverage is 48% against the 50% allowed, leaving a little headroom. Two car spaces fit in the stilt."
+    },
+    "option-vastu-strict": {
+      "factsUsed": [
+        "Composite score 69 of 100",
+        "Vastu score 94 of 100",
+        "Pooja room in the north-east zone",
+        "No toilet in the north-east zone",
+        "Circulation 13% of built-up area"
+      ],
+      "paragraph": "Chosen for Vastu: it scores 94 there and 69 overall. The pooja room sits in the north-east zone and no toilet falls in the north-east at all. Circulation is 13% of the built-up area, slightly more than the other options, which is the cost of holding those placements."
+    }
+  }
+}

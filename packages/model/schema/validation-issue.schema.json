@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://garh.ai/schema/validation-issue.schema.json",
+  "title": "ValidationIssue — machine-readable op rejection reason",
+  "$comment": "CROSS-LANGUAGE CONTRACT between packages/model/src/validate.ts and apps/api/garh_model/validate.py, and an API contract besides: POST /projects/:id/ops returns these in its problem+json body, and the copilot self-correction loop (§10) reads them. THE `code` VALUES ARE AN API — changing one breaks the copilot fixtures and the UI error-copy map, so treat this enum like a public interface.",
+  "type": "object",
+  "required": ["code", "message", "severity", "elementIds"],
+  "additionalProperties": false,
+  "properties": {
+    "code": { "$ref": "#/$defs/ValidationCode" },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "$comment": "User-facing copy. Golden Rule 9: say what happened and what to do next; never blame the user."
+    },
+    "severity": { "enum": ["error", "warning"] },
+    "elementIds": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ElementId" },
+      "$comment": "Drives canvas highlighting."
+    },
+    "field": {
+      "type": "string",
+      "$comment": "Payload path the issue is about, e.g. `payload.widthMm`."
+    },
+    "actual": { "oneOf": [{ "type": "number" }, { "type": "string" }, { "type": "null" }] },
+    "limit": { "oneOf": [{ "type": "number" }, { "type": "string" }, { "type": "null" }] },
+    "fix": {
+      "type": "string",
+      "$comment": "One-line suggestion the copilot can act on in its single self-correction pass."
+    }
+  },
+
+  "$defs": {
+    "ValidationCode": {
+      "enum": [
+        "OP_UNKNOWN_TYPE",
+        "OP_PAYLOAD_NOT_OBJECT",
+        "OP_FIELD_MISSING",
+        "OP_FIELD_NOT_INT_MM",
+        "OP_FIELD_NOT_INT",
+        "OP_FIELD_NOT_STRING",
+        "OP_FIELD_NOT_OBJECT",
+        "OP_FIELD_BAD_ENUM",
+        "OP_FIELD_BAD_ID",
+        "OP_FIELD_BAD_POINT",
+        "OP_FIELD_BAD_POLYGON",
+        "OP_FIELD_OUT_OF_RANGE",
+        "OP_ACTION_UNKNOWN",
+        "OP_ID_ALREADY_EXISTS",
+        "STOREY_UNKNOWN",
+        "STOREY_INDEX_OUT_OF_RANGE",
+        "WALL_UNKNOWN",
+        "OPENING_UNKNOWN",
+        "ROOM_UNKNOWN",
+        "STAIR_UNKNOWN",
+        "COLUMN_UNKNOWN",
+        "FURNITURE_UNKNOWN",
+        "BALCONY_UNKNOWN",
+        "FACADE_COMPONENT_UNKNOWN",
+        "MATERIAL_ASSIGNMENT_UNKNOWN",
+        "ANNOTATION_UNKNOWN",
+        "PLOT_EDGE_UNKNOWN",
+        "WALL_ZERO_LENGTH",
+        "WALL_THICKNESS_INVALID",
+        "WALL_DUPLICATE",
+        "WALL_SPLIT_OUT_OF_RANGE",
+        "OPENING_DIMENSION_INVALID",
+        "OPENING_OUT_OF_WALL",
+        "OPENING_EXCEEDS_STOREY_HEIGHT",
+        "OPENING_SILL_INVALID",
+        "STAIR_RISE_MISMATCH",
+        "STAIR_DIMENSION_INVALID",
+        "ROOM_NOT_CLOSED",
+        "STOREY_HEIGHT_INVALID",
+        "PLOT_BOUNDARY_NOT_CLOSED",
+        "PLOT_NORTH_INVALID",
+        "LEVELS_INVALID",
+        "BALCONY_POLYGON_INVALID",
+        "COLUMN_SIZE_INVALID",
+        "DUPLICATE_ELEMENT_ID",
+        "SCHEMA_VERSION_UNSUPPORTED"
+      ]
+    },
+    "OpRejection": {
+      "title": "The problem+json body POST /projects/:id/ops returns on rejection",
+      "type": "object",
+      "required": ["code", "message", "issues"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "const": "OP_REJECTED" },
+        "message": { "type": "string" },
+        "opType": { "type": "string" },
+        "issues": { "type": "array", "items": { "$ref": "#" }, "minItems": 1 }
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+# Build context is the repo root for every image (api, web, services), so this
+# file governs all three. Keep it aggressive: the context is re-sent on every
+# build and the repo path contains a space, which makes tar-ing slow contexts
+# even more annoying to debug.
+
+# ─── VCS & CI ─────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# ─── Secrets: must never reach an image layer ─────────────────────────────────
+.env
+.env.*
+!.env.example
+.keys/
+*.pem
+*.key
+
+# ─── Dependency trees (installed inside the image instead) ────────────────────
+**/node_modules/
+**/.pnpm-store/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+
+# ─── Build output & tool caches ───────────────────────────────────────────────
+**/dist/
+**/build/
+**/.vite/
+**/*.tsbuildinfo
+**/.eslintcache
+**/.mypy_cache/
+**/.ruff_cache/
+**/.pytest_cache/
+**/.hypothesis/
+**/.coverage
+**/htmlcov/
+.cache/
+
+# ─── Test artefacts ───────────────────────────────────────────────────────────
+playwright-report/
+test-results/
+blob-report/
+lighthouse-report*/
+
+# ─── Docs & editor cruft (not needed at runtime) ──────────────────────────────
+docs/
+*.md
+!README.md
+.editorconfig
+.prettierrc
+.idea/
+.vscode/
+**/.DS_Store
+
+# ─── Large local data ─────────────────────────────────────────────────────────
+pgdata/
+minio-data/
+local-storage/
+render-outputs/
+exports/
+weights/
+**/*.safetensors
+**/*.ckpt

@@ -1,0 +1,205 @@
+{
+  "dimToJamb": false,
+  "folded": {
+    "levels": {
+      "fflPerStoreyMm": [
+        600
+      ],
+      "lintelDefaultMm": 2100,
+      "parapetMm": 1000,
+      "plinthMm": 600,
+      "sillDefaultMm": 900
+    },
+    "openingCount": 2,
+    "roomAreasMm2": {
+      "room_3STWE7A7RW1W36KN6PTGH7ANAS": 10661560,
+      "room_66G2VB6DPW6JB5SWS7BRCH4SPN": 10661560
+    },
+    "roomCount": 2,
+    "stairCount": 0,
+    "storeys": [
+      "storey_01J000000000000000000000GF"
+    ],
+    "wallCount": 5
+  },
+  "id": "demo-01-two-room",
+  "name": "Two-room fixture (shared with garh_model.testing)",
+  "ops": [
+    {
+      "payload": {
+        "polygon": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 9144,
+            "y": 0
+          },
+          {
+            "x": 9144,
+            "y": 12192
+          },
+          {
+            "x": 0,
+            "y": 12192
+          }
+        ],
+        "source": "seed"
+      },
+      "type": "plot.set_boundary"
+    },
+    {
+      "payload": {
+        "deg": 0
+      },
+      "type": "plot.set_north"
+    },
+    {
+      "payload": {
+        "edgeIndex": 0,
+        "name": "9m Road",
+        "widthMm": 9000
+      },
+      "type": "plot.set_road"
+    },
+    {
+      "payload": {
+        "heightMm": 3000,
+        "id": "storey_01J000000000000000000000GF",
+        "index": 0,
+        "name": "Ground Floor"
+      },
+      "type": "storey.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 0,
+          "y": 0
+        },
+        "b": {
+          "x": 6000,
+          "y": 0
+        },
+        "id": "wall_01J000000000000000000000WS",
+        "kind": "external",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 6000,
+          "y": 0
+        },
+        "b": {
+          "x": 6000,
+          "y": 4000
+        },
+        "id": "wall_01J000000000000000000000WE",
+        "kind": "external",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 6000,
+          "y": 4000
+        },
+        "b": {
+          "x": 0,
+          "y": 4000
+        },
+        "id": "wall_01J000000000000000000000WN",
+        "kind": "external",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 0,
+          "y": 4000
+        },
+        "b": {
+          "x": 0,
+          "y": 0
+        },
+        "id": "wall_01J000000000000000000000WW",
+        "kind": "external",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 3000,
+          "y": 0
+        },
+        "b": {
+          "x": 3000,
+          "y": 4000
+        },
+        "id": "wall_01J00000000000000000000WSP",
+        "kind": "internal",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 115
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "heightMm": 2100,
+        "id": "opening_01J000000000000000000000D1",
+        "kind": "door",
+        "offsetMm": 1500,
+        "sillMm": 0,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000WS",
+        "widthMm": 900
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J000000000000000000000W1",
+        "kind": "window",
+        "offsetMm": 2000,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000WW",
+        "widthMm": 1200
+      },
+      "type": "opening.add"
+    }
+  ],
+  "provenance": "garh_model.testing.two_room_plan_ops() + opening_ops(), verbatim. Shared with fixtures/model/golden-states.json so a fold change shows up in both.",
+  "revisions": [
+    [
+      "A",
+      "01-01-2026",
+      "First issue"
+    ]
+  ],
+  "titleBlock": {
+    "checkedBy": "-",
+    "clientName": "-",
+    "date": "01-01-2026",
+    "drawnBy": "GARH",
+    "firmName": "Studio Demo",
+    "projectName": "Two-room test plan",
+    "revision": "A"
+  },
+  "unitsDisplay": "ft-in"
+}

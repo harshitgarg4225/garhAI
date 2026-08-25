@@ -1,0 +1,39 @@
+{
+  "$comment": "Manifest for fixtures/catalog. Written by hand; counts are asserted by apps/api/tests/test_catalog_fixtures.py, so a file edited without updating this manifest fails CI.",
+  "schemaVersion": 1,
+  "units": "integer millimetres; money in whole rupees",
+  "files": [
+    {
+      "name": "furniture.json",
+      "shape": "array of CatalogItemOut (garh_api/routers/catalog.py)",
+      "count": 45,
+      "minimum": 30,
+      "requiredKeys": [
+        "id",
+        "name",
+        "category",
+        "widthMm",
+        "depthMm",
+        "heightMm",
+        "roomTypes",
+        "clearanceMm"
+      ]
+    },
+    {
+      "name": "materials.json",
+      "shape": "array of MaterialOut",
+      "count": 31,
+      "minimum": 20,
+      "requiredKeys": ["id", "name", "category", "surfaceGroups"]
+    },
+    {
+      "name": "facade-kits.json",
+      "shape": "array of FacadeKitOut",
+      "count": 2,
+      "minimum": 2,
+      "requiredKeys": ["id", "name", "description", "components", "colorways", "rules"]
+    }
+  ],
+  "roomTypesWithoutFurniture": ["duct", "shaft", "unassigned", "void"],
+  "facadeKitIds": ["contemporary", "modern-minimal"]
+}

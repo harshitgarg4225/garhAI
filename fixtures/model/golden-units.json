@@ -1,0 +1,300 @@
+{
+  "$comment": "LANGUAGE-NEUTRAL CROSS-LANGUAGE CONTRACT for the mm parser. BOTH packages/model/src/units.ts (GOLDEN_UNIT_PAIRS / GOLDEN_UNIT_FAILURES) and apps/api/garh_model/units.py (load_golden_units) MUST read THIS file rather than duplicating literals. A disagreement on one row means the canvas and the drawing set disagree about a length: that is a build failure, never 'close enough'. packages/model/schema/golden-unit-pairs.json is the same table kept beside the JSON Schemas; if you edit one, regenerate the other in the same commit.",
+  "schemaVersion": 1,
+  "defaultUnit": "mm",
+  "rounding": "round-half-away-from-zero: x >= 0 ? floor(x + 0.5) : -floor(-x + 0.5) on IEEE-754 doubles. NOT banker's rounding, NOT Python's builtin round(), NOT JS Math.round().",
+  "notes": [
+    "Every pair is [input, expectedMm] parsed with defaultUnit 'mm'.",
+    "Every failure string MUST raise UnitParseError / throw UnitParseError.",
+    "Rows carrying non-ASCII characters are deliberate: U+2032 PRIME, U+2033 DOUBLE PRIME, U+2019/U+201D curly quotes (Word/WhatsApp), U+00A0 NBSP, U+2212 MINUS SIGN, U+2013 EN DASH.",
+    "A space is NOT a thousands separator: '3 800' is ambiguous and must be rejected."
+  ],
+  "pairs": [
+    [
+      "0",
+      0
+    ],
+    [
+      "0mm",
+      0
+    ],
+    [
+      "0.0m",
+      0
+    ],
+    [
+      "0'0\"",
+      0
+    ],
+    [
+      "3800",
+      3800
+    ],
+    [
+      "3800mm",
+      3800
+    ],
+    [
+      "3800 mm",
+      3800
+    ],
+    [
+      "0.5mm",
+      1
+    ],
+    [
+      "1.5mm",
+      2
+    ],
+    [
+      "2.5mm",
+      3
+    ],
+    [
+      "-0.5mm",
+      -1
+    ],
+    [
+      "-2.5mm",
+      -3
+    ],
+    [
+      "0.4mm",
+      0
+    ],
+    [
+      "-0.4mm",
+      0
+    ],
+    [
+      "3.8m",
+      3800
+    ],
+    [
+      "3.8 m",
+      3800
+    ],
+    [
+      "3.8metres",
+      3800
+    ],
+    [
+      "3.8 meters",
+      3800
+    ],
+    [
+      "380cm",
+      3800
+    ],
+    [
+      "1m",
+      1000
+    ],
+    [
+      "12.345m",
+      12345
+    ],
+    [
+      "0.001m",
+      1
+    ],
+    [
+      "12ft",
+      3658
+    ],
+    [
+      "12 ft",
+      3658
+    ],
+    [
+      "12 feet",
+      3658
+    ],
+    [
+      "12'",
+      3658
+    ],
+    [
+      "1ft",
+      305
+    ],
+    [
+      "1'",
+      305
+    ],
+    [
+      "1in",
+      25
+    ],
+    [
+      "1 inch",
+      25
+    ],
+    [
+      "9in",
+      229
+    ],
+    [
+      "9\"",
+      229
+    ],
+    [
+      "4.5in",
+      114
+    ],
+    [
+      "1yd",
+      914
+    ],
+    [
+      "1 yard",
+      914
+    ],
+    [
+      "12'6\"",
+      3810
+    ],
+    [
+      "12'6",
+      3810
+    ],
+    [
+      "12' 6\"",
+      3810
+    ],
+    [
+      "12'-6\"",
+      3810
+    ],
+    [
+      "12 ft 6 in",
+      3810
+    ],
+    [
+      "12 feet 6 inches",
+      3810
+    ],
+    [
+      "12-6",
+      3810
+    ],
+    [
+      "30-0",
+      9144
+    ],
+    [
+      "40-0",
+      12192
+    ],
+    [
+      "6 1/2\"",
+      165
+    ],
+    [
+      "6-1/2\"",
+      165
+    ],
+    [
+      "1/2\"",
+      13
+    ],
+    [
+      "12'-6 1/2\"",
+      3823
+    ],
+    [
+      "0-1/4",
+      6
+    ],
+    [
+      "12.5'",
+      3810
+    ],
+    [
+      "12.5 ft",
+      3810
+    ],
+    [
+      "6.25in",
+      159
+    ],
+    [
+      "-3800",
+      -3800
+    ],
+    [
+      "-3.8m",
+      -3800
+    ],
+    [
+      "-12'6\"",
+      -3810
+    ],
+    [
+      "-12-6",
+      -3810
+    ],
+    [
+      "+3800",
+      3800
+    ],
+    [
+      "  3800  ",
+      3800
+    ],
+    [
+      "\t3800\n",
+      3800
+    ],
+    [
+      "1,200",
+      1200
+    ],
+    [
+      "12,45,000",
+      1245000
+    ],
+    [
+      "12′06″",
+      3810
+    ],
+    [
+      "12′6″",
+      3810
+    ],
+    [
+      "12’6”",
+      3810
+    ],
+    [
+      "12 ft",
+      3658
+    ],
+    [
+      "−3800",
+      -3800
+    ],
+    [
+      "12–6",
+      3810
+    ]
+  ],
+  "failures": [
+    "",
+    "   ",
+    "abc",
+    "3 800",
+    "3 800 mm",
+    "12 6",
+    "twelve feet",
+    "3.8 furlongs",
+    "1/0\"",
+    "-",
+    "--3800",
+    "3,,800",
+    "12'6\"7",
+    "12ft6in3",
+    "NaN",
+    "Infinity"
+  ]
+}

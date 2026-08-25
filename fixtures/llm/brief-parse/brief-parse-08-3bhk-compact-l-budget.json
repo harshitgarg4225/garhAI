@@ -1,0 +1,90 @@
+{
+  "$comment": "Brief-parse eval fixture (playbook §10). `text` is a real-world Indian client brief; `expected` is the exact output of the deterministic mock parser (services/llm/brief_mock.py) AND the contract shape the real provider is held to. Regenerate deliberately with fixtures/llm/brief-parse/_tools/generate.py and read the diff.",
+  "id": "brief-parse-08-3bhk-compact-l-budget",
+  "text": "3BHK G+1, vastu compliant, east facing plot, guest room, 2 balconies, ₹75L budget",
+  "expected": {
+    "brief": {
+      "storeys": 2,
+      "hasStilt": false,
+      "hasBasement": false,
+      "rooms": [
+        {
+          "type": "living_dining",
+          "count": 1
+        },
+        {
+          "type": "kitchen",
+          "count": 1
+        },
+        {
+          "type": "bedroom_master",
+          "count": 1
+        },
+        {
+          "type": "bedroom",
+          "count": 2
+        },
+        {
+          "type": "guest_bedroom",
+          "count": 1
+        },
+        {
+          "type": "bath_wc",
+          "count": 2
+        },
+        {
+          "type": "utility",
+          "count": 1
+        },
+        {
+          "type": "balcony",
+          "count": 2
+        }
+      ],
+      "vastuMode": "advisory",
+      "budgetInr": 7500000,
+      "parkingCount": 1
+    },
+    "assumptions": [
+      {
+        "field": "brief.hasStilt",
+        "value": false,
+        "reason": "Stilt parking was not mentioned — assumed none; turn it on for a tight plot."
+      },
+      {
+        "field": "brief.hasBasement",
+        "value": false,
+        "reason": "A basement was not mentioned — assumed none."
+      },
+      {
+        "field": "brief.rooms.bath_wc.count",
+        "value": 2,
+        "reason": "Bathroom count was not stated — assumed one toilet per two bedrooms, minimum two."
+      },
+      {
+        "field": "brief.rooms.utility.count",
+        "value": 1,
+        "reason": "A utility/wash area was not asked for but is standard alongside an Indian kitchen."
+      },
+      {
+        "field": "brief.parkingCount",
+        "value": 1,
+        "reason": "Parking was not mentioned — one covered car space, which most city bye-laws require."
+      },
+      {
+        "field": "brief.familySize",
+        "value": null,
+        "reason": "Family size was not mentioned — the room programme drives the plan either way."
+      }
+    ],
+    "stated": [
+      "brief.storeys",
+      "brief.rooms",
+      "brief.vastuMode",
+      "brief.budgetInr"
+    ],
+    "unclear": [
+      "The plot was mentioned — set its boundary, road and facing in the plot step."
+    ]
+  }
+}

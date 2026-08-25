@@ -1,0 +1,966 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.garh.ai/rulepack/1.0.0/rulepack.schema.json",
+  "title": "Garh AI regulatory rule pack",
+  "description": "Data-only DSL for NBC / municipal bye-law / Vastu rule packs. A pack is a list of rules; each rule is a gate (`when`) plus a typed `check`. Packs carry NO executable code: the engine implements a closed set of check types (see `x-garh-check-meta`) and a closed set of `when` context fields (see $defs.predicate). The engine MUST reject a pack that references an unknown check type, an unknown `when` field, or an unknown `custom.fn` -- silently passing an unrecognised rule would report a house as compliant when it was never checked. Geometry is integer millimetres and areas integer square millimetres throughout; ratios are exact integer num/den pairs. There is not a single floating-point number in a valid pack.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "pack",
+    "idPrefix",
+    "version",
+    "title",
+    "authority",
+    "jurisdiction",
+    "citations_base",
+    "extends",
+    "confidenceDefault",
+    "review",
+    "disclaimer",
+    "rules"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional editor hint, e.g. \"./schema/rulepack.schema.json\"."
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version of THIS DSL. Bumped when check types or context fields change; the engine refuses a schemaVersion it does not implement."
+    },
+    "pack": { "$ref": "#/$defs/packId" },
+    "idPrefix": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]{1,15}$",
+      "description": "Every rule id in this pack MUST start with `<idPrefix>.`. Rule ids are globally unique across all packs -- a child pack never redefines a parent id, it disables it via `overrides`."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]{4}\\.[0-9]{2}(\\.[0-9]+)?$",
+      "description": "Pack data version, YYYY.MM[.patch]. Compliance reports pin this so a report can always be re-explained with the exact rules that produced it."
+    },
+    "title": { "type": "string", "minLength": 3, "maxLength": 120 },
+    "authority": {
+      "type": "string",
+      "minLength": 2,
+      "description": "The body that issues these rules (BIS, BBMP, DDA, GHMC, ...). Shown in the UI next to every citation."
+    },
+    "jurisdiction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["country"],
+      "properties": {
+        "country": { "type": "string", "pattern": "^[A-Z]{2}$" },
+        "state": { "type": "string" },
+        "city": { "type": "string" },
+        "scope": {
+          "type": "string",
+          "enum": ["national", "state", "municipal", "advisory"],
+          "description": "`advisory` = not a statutory code (Vastu)."
+        }
+      }
+    },
+    "extends": {
+      "oneOf": [{ "$ref": "#/$defs/packId" }, { "type": "null" }],
+      "description": "Parent pack id, or null for a root pack. Resolution: load the parent chain root-first, then this pack's rules; apply this pack's `overrides` to inherited rules; merge `vocabulary` key-by-key (child key replaces parent key wholesale, never element-wise). Cycles are a load error."
+    },
+    "citations_base": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Prefix for every rule `cite` in this pack. Full citation shown in the UI = `citations_base + ' ' + rule.cite`."
+    },
+    "confidenceDefault": {
+      "$ref": "#/$defs/confidence",
+      "description": "Confidence applied to any rule that omits `confidence`. Seed packs authored by the Garh team MUST set this to \"seed\"."
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reviewers", "lastReviewedAt"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["unreviewed", "in-review", "reviewed", "verified"],
+          "description": "Pack-level position on the confidence ladder. See rulepacks/README.md."
+        },
+        "reviewers": {
+          "type": "array",
+          "description": "Empanelled local architects who signed off. Empty for seed packs.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "role"],
+            "properties": {
+              "name": { "type": "string" },
+              "role": { "type": "string" },
+              "coaNumber": { "type": "string", "description": "Council of Architecture registration number." },
+              "signedAt": { "type": "string", "format": "date" }
+            }
+          }
+        },
+        "lastReviewedAt": { "oneOf": [{ "type": "string", "format": "date" }, { "type": "null" }] },
+        "nextReviewDue": { "oneOf": [{ "type": "string", "format": "date" }, { "type": "null" }] },
+        "notes": { "type": "string" }
+      }
+    },
+    "disclaimer": {
+      "type": "string",
+      "minLength": 20,
+      "description": "Verbatim text the UI and every export MUST show alongside results from this pack. Advisory, not approval."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Author notes about the pack as a whole: table structure, deliberate omissions (a nil statutory requirement produces NO rule), known gaps."
+    },
+    "sources": {
+      "type": "array",
+      "description": "Documents the pack was authored from. A seed pack lists what a reviewer must obtain to verify it.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label"],
+        "properties": {
+          "label": { "type": "string" },
+          "publisher": { "type": "string" },
+          "year": { "type": "integer" },
+          "url": { "type": "string" },
+          "obtained": {
+            "type": "boolean",
+            "description": "false = the authoring team did not have the primary document in hand. Seed packs are honest about this."
+          }
+        }
+      }
+    },
+    "vocabulary": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pack-owned classifications. These are regulatory judgements, not code constants, so they live in the pack: the engine reads them to derive `roomIsHabitable` and the area bases used by far_max / coverage_max.",
+      "properties": {
+        "habitableRoomTypes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/roomType" },
+          "description": "Derives the `roomIsHabitable` context field: roomIsHabitable == (roomType in habitableRoomTypes)."
+        },
+        "wetRoomTypes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/roomType" },
+          "description": "Used by the solver's plumbing-stack score and by ventilation defaults."
+        },
+        "openRoomTypes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/roomType" },
+          "description": "Room types that count as 'open' for brahmasthan_open."
+        },
+        "farExclusions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/areaExclusion" },
+          "description": "What the model layer must exclude when computing `farCountableAreaMm2` for this jurisdiction."
+        },
+        "coverageInclusions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/coverageInclusion" },
+          "description": "What the model layer must ADD to the ground-floor slab when computing `footprintAreaMm2`."
+        }
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "modeField", "scale", "aggregate", "rounding", "modes"],
+      "description": "Present only on advisory scoring packs (Vastu). When present EVERY rule in the pack must carry `weight`.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "modeField": {
+          "type": "string",
+          "enum": ["vastuMode"],
+          "description": "The context field that selects the mode. Closed set: only vastuMode exists today."
+        },
+        "scale": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": { "min": { "type": "integer" }, "max": { "type": "integer" } }
+        },
+        "aggregate": {
+          "type": "string",
+          "enum": ["weighted-mean"],
+          "description": "score = scale.max * SUM(weight_i * satisfaction_i) / SUM(weight_i), over APPLICABLE rules only (a rule with no matching element is excluded from both sums). satisfaction_i is an exact rational in [0,1]: 1 when the target is in `allow`, `fallback.scoreRatio` when in `fallback.allow`, 0 otherwise. With several matching elements, satisfaction_i is their arithmetic mean (exact rational)."
+        },
+        "rounding": {
+          "type": "string",
+          "enum": ["half-up"],
+          "description": "Applied once, to the final score only. Never to intermediate rationals."
+        },
+        "modes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["advisory", "strict"],
+          "description": "`off` is absent by design: when the mode field is `off` the pack is not loaded at all.",
+          "properties": {
+            "advisory": { "$ref": "#/$defs/scoringMode" },
+            "strict": { "$ref": "#/$defs/scoringMode" }
+          }
+        },
+        "groups": {
+          "type": "array",
+          "description": "Presentation grouping for the compass-wheel breakdown. Group weight is DERIVED (sum of member rule weights) -- never duplicated here.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+              "label": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "overrides": {
+      "type": "array",
+      "description": "How this pack alters INHERITED rules. Ids stay globally unique: a city pack disables an NBC rule and adds its own, it never shadows an id.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ruleId", "action", "reason"],
+        "properties": {
+          "ruleId": { "$ref": "#/$defs/ruleId" },
+          "action": {
+            "type": "string",
+            "enum": ["disable", "relax-to-warn", "replace"],
+            "description": "`relax-to-warn` keeps the check but clamps severity. `replace` requires `replacedBy`."
+          },
+          "replacedBy": { "$ref": "#/$defs/ruleId" },
+          "reason": { "type": "string", "minLength": 10 }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "action": { "const": "replace" } }, "required": ["action"] },
+            "then": { "required": ["replacedBy"] }
+          }
+        ]
+      }
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/rule" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["scoring"] },
+      "then": {
+        "properties": {
+          "rules": {
+            "items": {
+              "required": ["weight", "group"],
+              "description": "Scoring packs need a weight (for the 0-100 aggregate) and a group (for the per-rule UI breakdown) on every rule."
+            }
+          }
+        }
+      }
+    }
+  ],
+
+  "x-garh-check-meta": {
+    "$comment": "Machine-readable contract for the engine. `scope` = what the engine iterates to build one evaluation per rule; the rule's `when` is evaluated against the project context PLUS the fields bound by that scope. `resultUnit` = the unit of `actual` and `limit` in the result row. `worst` = how several instances of a scope collapse into one rule result (worst status wins; `elements[]` lists every offender).",
+    "scopes": {
+      "project": "evaluated once; only project-level `when` fields are bound",
+      "edge": "once per plot edge named by check.edge; binds edgeRoadWidthMm",
+      "storey": "once per storey; binds storeyIndex",
+      "room": "once per room; binds roomType, roomIsHabitable, roomIsInternal, storeyIndex",
+      "opening": "once per opening; binds openingKind, openingRole, storeyIndex",
+      "stair": "once per stair; binds storeyIndex",
+      "projection": "once per projection; binds storeyIndex",
+      "zone": "evaluated once, but the check selects its own target elements (see zone_check.target)"
+    },
+    "checks": {
+      "setback_min":           { "scope": "edge",       "resultUnit": "mm",      "actual": "plot.edges[selected].setbackProvidedMm (min across edges when the selector names several)" },
+      "far_max":               { "scope": "project",    "resultUnit": "mm2",     "actual": "model.farCountableAreaMm2", "limit": "floor(ratio.num * plot.areaMm2 / ratio.den)" },
+      "coverage_max":          { "scope": "project",    "resultUnit": "mm2",     "actual": "model.footprintAreaMm2", "limit": "floor(ratio.num * plot.areaMm2 / ratio.den)" },
+      "height_max":            { "scope": "project",    "resultUnit": "mm",      "actual": "model.buildingHeightMm - SUM(model.heightComponentsMm[k] for k in check.excludes)" },
+      "floors_max":            { "scope": "project",    "resultUnit": "count",   "actual": "model.storeyCount + COUNT(check.counts entries present in the model)" },
+      "room_area_min":         { "scope": "room",       "resultUnit": "mm2",     "actual": "room.areaMm2" },
+      "room_width_min":        { "scope": "room",       "resultUnit": "mm",      "actual": "room.leastWidthMm" },
+      "ceiling_height_min":    { "scope": "room",       "resultUnit": "mm",      "actual": "room.clearCeilingHeightMm" },
+      "ventilation_ratio_min": { "scope": "room",       "resultUnit": "mm2",     "actual": "room.ventilationOpeningAreaMm2", "limit": "max(ceil(ratio.num * room.areaMm2 / ratio.den) if ratio else 0, minAreaMm2 or 0)" },
+      "stair_riser_max":       { "scope": "stair",      "resultUnit": "mm",      "actual": "stair.riserMm" },
+      "stair_tread_min":       { "scope": "stair",      "resultUnit": "mm",      "actual": "stair.treadMm" },
+      "stair_width_min":       { "scope": "stair",      "resultUnit": "mm",      "actual": "stair.widthMm" },
+      "headroom_min":          { "scope": "stair",      "resultUnit": "mm",      "actual": "stair.headroomMm" },
+      "projection_max":        { "scope": "projection", "resultUnit": "mm",      "actual": "projection.projectionMm (only projections whose element matches, and whose intoSetback matches when check.intoSetbackOnly is true)" },
+      "parking_min":           { "scope": "project",    "resultUnit": "count",   "actual": "profile.parkingSpacesProvided", "limit": "max(ceil(rate.num * basisQuantity / rate.den), minSpaces or 0); basisQuantity = profile.dwellingUnits | model.builtUpAreaMm2" },
+      "opening_width_min":     { "scope": "opening",    "resultUnit": "mm",      "actual": "opening.widthMm" },
+      "zone_check":            { "scope": "zone",       "resultUnit": "zone",    "actual": "sorted unique zone/facing labels of the matched targets", "limit": "{allow, deny, fallback}" },
+      "custom":                { "scope": "declared by check.scope", "resultUnit": "per fn (rwh_required -> boolean, brahmasthan_open -> bp10000)" }
+    },
+    "customFns": {
+      "rwh_required": {
+        "scope": "project",
+        "resultUnit": "boolean",
+        "args": { "flag": "name of the boolean profile field that declares a rainwater-harvesting structure" },
+        "semantics": "actual = profile[args.flag]; limit = true. Deliberately a declaration check, not a geometric one: the MVP model has no RWH element, so the pack must not pretend to verify sump volume."
+      },
+      "brahmasthan_open": {
+        "scope": "project",
+        "resultUnit": "bp10000",
+        "args": {
+          "maxEnclosedRatio": "exact ratio of the centre (C) cell that a single non-open room may cover",
+          "openRoomTypes": "room types that do not count as enclosing (falls back to vocabulary.openRoomTypes when omitted)"
+        },
+        "semantics": "actual = max over non-open rooms of floor(10000 * area(room.polygonMm INTERSECT centreCell) / area(centreCell)); limit = floor(10000 * maxEnclosedRatio). Fails when actual > limit."
+      }
+    },
+    "statuses": {
+      "pass": "check satisfied",
+      "warn": "check violated and rule severity is warn (or a mode ceiling clamped it)",
+      "fail": "check violated and rule severity is fail",
+      "not_applicable": "`when` was not satisfied, or the scope produced no instances. Excluded from scores. The API may omit these rows."
+    },
+    "nullSemantics": "A numeric operator applied to a null context field (e.g. roadWidthMm on a plot with no road set yet) yields FALSE, so the rule becomes not_applicable. It never silently passes.",
+    "combination": "Several properties inside one `when` are ANDed. Several operators on one field are ANDed. There is no OR and no NOT: use `in` for set membership, or author two rules. An absent/empty `when` means the rule always applies.",
+    "stacking": "Two `*_min` rules on the same target both apply; the strictest effectively governs. This is intentional -- city front-setback tables are indexed by plot size AND road width, and the pack encodes them as two independent rule families whose maximum is the real requirement."
+  },
+
+  "$defs": {
+    "packId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,31}$",
+      "description": "Pack file is `rulepacks/<packId>.json`."
+    },
+    "ruleId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9_-]*)+$",
+      "minLength": 5,
+      "maxLength": 80,
+      "description": "Dotted, lowercase, stable forever: compliance reports, user overrides and annotations reference it. First segment == pack.idPrefix. Never reuse an id for a different meaning; retire it and add a new one."
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["seed", "reviewed", "verified"],
+      "description": "seed = drafted by the Garh team from secondary sources, NOT authoritative. reviewed = an empanelled local architect checked it against the primary document. verified = reviewed AND confirmed against a sanctioned drawing or municipal desk. The UI shows this next to every result; seed values render with a caution marker."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["fail", "warn"],
+      "description": "fail = hard rule: the solver discards options that violate it and the UI shows a red chip. warn = advisory chip. Neither ever blocks the user (SKILL.md golden rule 5)."
+    },
+    "ratio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["num", "den"],
+      "description": "Exact rational. FAR 1.75 is {num:175,den:100}; 'one tenth of the floor area' is {num:1,den:10}; 60% coverage is {num:60,den:100}. The engine cross-multiplies with integers -- no float ever touches a compliance verdict.",
+      "properties": {
+        "num": { "type": "integer", "minimum": 0 },
+        "den": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "lengthMm": { "type": "integer", "minimum": 0, "description": "Integer millimetres." },
+    "areaMm2": { "type": "integer", "minimum": 0, "description": "Integer square millimetres." },
+    "count": { "type": "integer", "minimum": 0 },
+
+    "cityPack": { "type": "string", "enum": ["nbc-core", "blr", "ncr", "hyd", "custom"] },
+    "zoneCategory": { "type": "string", "enum": ["residential", "mixed", "commercial", "institutional", "industrial"] },
+    "buildingUse": { "type": "string", "enum": ["dwelling-single", "dwelling-two", "row-house", "apartment", "other"] },
+    "vastuMode": { "type": "string", "enum": ["off", "advisory", "strict"] },
+    "roomType": {
+      "type": "string",
+      "enum": [
+        "living", "dining", "living_dining",
+        "bedroom", "master_bedroom", "guest_bedroom", "servant_room",
+        "kitchen", "kitchen_dining",
+        "bath", "wc", "bath_wc",
+        "pooja", "study", "store", "utility", "garage",
+        "balcony", "terrace", "courtyard",
+        "corridor", "lobby", "staircase", "shaft",
+        "porch", "stilt", "mumty", "other"
+      ],
+      "description": "Mirrors the model core's RoomType. `kitchen_dining` / `living_dining` / `bath_wc` are the combined-room types NBC treats separately -- the pack selects on them directly instead of on a boolean flag."
+    },
+    "openingKind": { "type": "string", "enum": ["door", "window", "ventilator"] },
+    "openingRole": {
+      "type": "string",
+      "enum": ["main-entrance", "internal", "bath", "balcony", "service", "garage"],
+      "description": "Functional role of an opening, assigned by the model layer (solver or user). Drives the door-width minima."
+    },
+    "edgeSelector": {
+      "type": "string",
+      "enum": ["front", "rear", "side-a", "side-b", "sides", "all"],
+      "description": "`sides` = both side edges (worst of the two). `all` = every edge."
+    },
+    "zone": {
+      "type": "string",
+      "enum": ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "C"],
+      "description": "Cell of the 3x3 grid over the plot, oriented to TRUE north. Derivation: rotate the plot boundary counter-clockwise by plot.northDeg so true north becomes +Y, take the axis-aligned bounding box, split into 3 equal columns x 3 equal rows (cell boundaries rounded half-up to whole mm). Top row = NW,N,NE; middle = W,C,E; bottom = SW,S,SE. An element's zone = the cell containing its centroid; a centroid exactly on a boundary belongs to the higher-index (more N / more E) cell. C is the brahmasthan."
+    },
+    "compass8": {
+      "type": "string",
+      "enum": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
+      "description": "Facing sector. Derivation: azimuth = (element.outwardNormalDeg - plot.northDeg) mod 360, where outwardNormalDeg is the plot-local bearing measured clockwise from +Y. Sectors are 45 deg wide and centred on the cardinal: N = [337.5,22.5), NE = [22.5,67.5), E = [67.5,112.5), and so on."
+    },
+    "serviceKind": {
+      "type": "string",
+      "enum": ["water_tank", "oht", "sump", "septic_tank", "borewell", "meter_room", "generator"]
+    },
+    "projectionElement": {
+      "type": "string",
+      "enum": ["balcony", "chajja", "porch", "bay-window", "cupboard", "canopy"]
+    },
+    "heightComponent": {
+      "type": "string",
+      "enum": ["parapet", "mumty", "oht", "stair-headroom", "lift-machine-room", "chimney"]
+    },
+    "extraFloorKind": {
+      "type": "string",
+      "enum": ["stilt", "basement", "mezzanine", "terrace-mumty"]
+    },
+    "areaExclusion": {
+      "type": "string",
+      "enum": ["stilt-parking", "basement-parking", "balcony-projection", "mumty", "oht", "stair-headroom", "porch", "shaft"]
+    },
+    "coverageInclusion": {
+      "type": "string",
+      "enum": ["porch", "balcony-projection", "chajja-over-1000mm", "stilt", "ramp"]
+    },
+
+    "intPredicate": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "lt": { "type": "integer" },
+        "lte": { "type": "integer" },
+        "gt": { "type": "integer" },
+        "gte": { "type": "integer" },
+        "eq": { "type": "integer" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "integer" } }
+      }
+    },
+    "boolPredicate": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "eq": { "type": "boolean" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "boolean" } }
+      }
+    },
+    "cityPackPredicate": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "eq": { "$ref": "#/$defs/cityPack" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/cityPack" } }
+      }
+    },
+    "zoneCategoryPredicate": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "eq": { "$ref": "#/$defs/zoneCategory" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/zoneCategory" } }
+      }
+    },
+    "buildingUsePredicate": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "eq": { "$ref": "#/$defs/buildingUse" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/buildingUse" } }
+      }
+    },
+    "roomTypePredicate": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "eq": { "$ref": "#/$defs/roomType" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/roomType" } }
+      }
+    },
+    "openingKindPredicate": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "eq": { "$ref": "#/$defs/openingKind" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/openingKind" } }
+      }
+    },
+    "openingRolePredicate": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "eq": { "$ref": "#/$defs/openingRole" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/openingRole" } }
+      }
+    },
+    "vastuModePredicate": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "eq": { "$ref": "#/$defs/vastuMode" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/vastuMode" } }
+      }
+    },
+
+    "predicate": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "description": "THE CLOSED CONTEXT FIELD SET. `additionalProperties: false` is the load-bearing part of this schema: an unknown field must be a hard load error, because a typo like `roadWidthmm` would otherwise make a rule silently apply to every plot (or none) and report a compliant house. Adding a field means bumping schemaVersion and teaching the engine to bind it.",
+      "properties": {
+        "cityPack": { "$ref": "#/$defs/cityPackPredicate", "description": "profile.cityPack -- the city preset in force." },
+        "zoneCategory": { "$ref": "#/$defs/zoneCategoryPredicate", "description": "profile.zoneCategory -- land-use zone." },
+        "buildingUse": { "$ref": "#/$defs/buildingUsePredicate", "description": "profile.buildingUse." },
+        "plotAreaSqm": {
+          "$ref": "#/$defs/intPredicate",
+          "description": "Plot area in WHOLE square metres, the unit every bye-law table is banded in. Thresholds are integers and the engine compares exactly: `{lte: 360}` means plot.areaMm2 <= 360 * 1000000. Nothing is rounded, so a 360.4 m2 plot correctly falls outside a <=360 band. Use plotAreaMm2 when a band is not a whole number of m2."
+        },
+        "plotAreaMm2": {
+          "$ref": "#/$defs/intPredicate",
+          "description": "plot.areaMm2. Use for bands defined in imperial units, e.g. 1200 sq ft = 111480000 mm2."
+        },
+        "plotFrontageMm": { "$ref": "#/$defs/intPredicate", "description": "plot.frontageMm -- width along the front edge. null when no front edge is set." },
+        "plotDepthMm": { "$ref": "#/$defs/intPredicate", "description": "plot.depthMm. null when undetermined." },
+        "roadWidthMm": {
+          "$ref": "#/$defs/intPredicate",
+          "description": "Width of the road abutting the FRONT edge (the primary access road). null when no road is set on the front edge."
+        },
+        "edgeRoadWidthMm": {
+          "$ref": "#/$defs/intPredicate",
+          "description": "Road width on the edge currently under evaluation. Bound only for edge-scoped checks; null (hence not_applicable) elsewhere."
+        },
+        "cornerPlot": { "$ref": "#/$defs/boolPredicate", "description": "plot.cornerPlot -- two or more edges abut roads that meet." },
+        "abuttingRoadCount": { "$ref": "#/$defs/intPredicate", "description": "Number of plot edges with a road." },
+        "storeys": { "$ref": "#/$defs/intPredicate", "description": "model.storeyCount -- habitable storeys above ground, stilt and basement excluded." },
+        "hasStilt": { "$ref": "#/$defs/boolPredicate" },
+        "hasBasement": { "$ref": "#/$defs/boolPredicate" },
+        "buildingHeightMm": { "$ref": "#/$defs/intPredicate", "description": "model.buildingHeightMm -- ground level to highest point, nothing excluded." },
+        "builtUpAreaMm2": { "$ref": "#/$defs/intPredicate", "description": "model.builtUpAreaMm2 -- gross built-up area, all storeys." },
+        "farCountableAreaMm2": { "$ref": "#/$defs/intPredicate", "description": "model.farCountableAreaMm2 -- built-up minus vocabulary.farExclusions." },
+        "dwellingUnits": { "$ref": "#/$defs/intPredicate", "description": "profile.dwellingUnits." },
+        "storeyIndex": { "$ref": "#/$defs/intPredicate", "description": "0 = ground. Bound for storey/room/opening/stair/projection scopes only." },
+        "roomType": { "$ref": "#/$defs/roomTypePredicate", "description": "Bound for room scope only." },
+        "roomIsHabitable": { "$ref": "#/$defs/boolPredicate", "description": "Derived: roomType in vocabulary.habitableRoomTypes. Room scope only." },
+        "roomIsInternal": { "$ref": "#/$defs/boolPredicate", "description": "Room has no wall on the building envelope. Room scope only." },
+        "openingKind": { "$ref": "#/$defs/openingKindPredicate", "description": "Opening scope only." },
+        "openingRole": { "$ref": "#/$defs/openingRolePredicate", "description": "Opening scope only." },
+        "vastuMode": { "$ref": "#/$defs/vastuModePredicate", "description": "brief.vastuMode -- off | advisory | strict." }
+      }
+    },
+
+    "scoringMode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enforce", "severityCeiling", "score"],
+      "properties": {
+        "enforce": {
+          "type": "boolean",
+          "description": "true = the solver treats rules marked `hard` as CP-SAT constraints (§5.2 strict mode). false = pure scoring, the solver only rewards satisfaction."
+        },
+        "severityCeiling": {
+          "$ref": "#/$defs/severity",
+          "description": "Every rule's severity is clamped to at most this. `warn` in advisory mode is how one rule set serves both modes without duplicating ids."
+        },
+        "score": { "type": "boolean", "description": "Whether to compute and surface the 0-100 score." }
+      }
+    },
+
+    "autofix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["opType", "strategy"],
+      "description": "Powers the 'Fix it' button (§15). Advisory only -- the client computes the actual op payload and always shows it as a reversible diff first.",
+      "properties": {
+        "opType": {
+          "type": "string",
+          "description": "An op `type` from playbook §4, e.g. `wall.move`, `opening.resize`, `plot.set_reg_profile`. Validated against the generated op catalogue at pack load."
+        },
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "grow-room-to-limit",
+            "widen-room-to-limit",
+            "raise-storey-height",
+            "enlarge-openings-to-ratio",
+            "resize-opening-to-limit",
+            "adjust-stair-parameters",
+            "move-building-line",
+            "reduce-footprint",
+            "reduce-built-up",
+            "reduce-storeys",
+            "trim-projection",
+            "add-parking-space",
+            "declare-rwh",
+            "relocate-room-to-zone",
+            "open-brahmasthan",
+            "none"
+          ]
+        },
+        "computable": {
+          "type": "boolean",
+          "default": true,
+          "description": "false = show the hint text only, no button (the fix needs a re-solve or a human decision)."
+        }
+      }
+    },
+
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "severity", "title", "message", "check", "cite", "fix", "confidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/ruleId" },
+        "severity": { "$ref": "#/$defs/severity" },
+        "title": { "type": "string", "minLength": 3, "maxLength": 80, "description": "Short label for tables and the compliance annexure." },
+        "message": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 240,
+          "description": "One-line human chip text, plain and warm, never blaming (§15). Placeholders the engine substitutes: {element} {actual} {limit} {cite}. Numbers are formatted per resultUnit (mm2 -> m2 with 2 decimals, mm -> m with 2 decimals or mm for small values)."
+        },
+        "when": { "$ref": "#/$defs/predicate", "description": "Applicability gate. Absent = the rule always applies." },
+        "check": { "$ref": "#/$defs/check" },
+        "cite": { "type": "string", "minLength": 1, "description": "Clause/table reference, appended to the pack's citations_base." },
+        "citeUrl": { "type": "string", "description": "Deep link to the published document, when one exists." },
+        "fix": { "type": "string", "minLength": 3, "description": "What the architect should do, in one sentence." },
+        "autofix": { "$ref": "#/$defs/autofix" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "weight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Relative weight in a scoring pack's 0-100 aggregate. Required when the pack declares `scoring`; meaningless otherwise."
+        },
+        "group": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "Id of a scoring.groups entry -- the breakdown bucket the compass wheel renders this under." },
+        "hard": {
+          "type": "boolean",
+          "default": false,
+          "description": "In a scoring pack: this constraint is absolute (Vastu's never-NE toilet) and the solver may encode it as a CP-SAT constraint when the mode enforces. Ignored in advisory mode beyond severity clamping."
+        },
+        "tags": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "supersedes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/ruleId" },
+          "description": "Inherited rule ids this rule is intended to replace. Informational: the actual disabling happens in pack-level `overrides`."
+        },
+        "notes": { "type": "string", "description": "Author's working notes: what still needs verification, which table cell this came from." }
+      }
+    },
+
+    "check": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "setback_min", "far_max", "coverage_max", "height_max", "floors_max",
+            "room_area_min", "room_width_min", "ceiling_height_min", "ventilation_ratio_min",
+            "stair_riser_max", "stair_tread_min", "stair_width_min", "headroom_min",
+            "projection_max", "parking_min", "opening_width_min", "zone_check", "custom"
+          ],
+          "description": "The complete set of check types the engine implements. 18 types, no extensibility except `custom`, whose `fn` is itself a closed enum."
+        }
+      },
+      "oneOf": [
+        { "$ref": "#/$defs/check_setback_min" },
+        { "$ref": "#/$defs/check_far_max" },
+        { "$ref": "#/$defs/check_coverage_max" },
+        { "$ref": "#/$defs/check_height_max" },
+        { "$ref": "#/$defs/check_floors_max" },
+        { "$ref": "#/$defs/check_room_area_min" },
+        { "$ref": "#/$defs/check_room_width_min" },
+        { "$ref": "#/$defs/check_ceiling_height_min" },
+        { "$ref": "#/$defs/check_ventilation_ratio_min" },
+        { "$ref": "#/$defs/check_stair_riser_max" },
+        { "$ref": "#/$defs/check_stair_tread_min" },
+        { "$ref": "#/$defs/check_stair_width_min" },
+        { "$ref": "#/$defs/check_headroom_min" },
+        { "$ref": "#/$defs/check_projection_max" },
+        { "$ref": "#/$defs/check_parking_min" },
+        { "$ref": "#/$defs/check_opening_width_min" },
+        { "$ref": "#/$defs/check_zone_check" },
+        { "$ref": "#/$defs/check_custom" }
+      ]
+    },
+
+    "check_setback_min": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "edge", "valueMm"],
+      "description": "Minimum open space between the plot line and the building line on the selected edge(s). scope=edge, resultUnit=mm.",
+      "properties": {
+        "type": { "const": "setback_min" },
+        "edge": { "$ref": "#/$defs/edgeSelector" },
+        "valueMm": { "$ref": "#/$defs/lengthMm" },
+        "measure": {
+          "type": "string",
+          "enum": ["to-building-line", "to-projection"],
+          "default": "to-building-line",
+          "description": "`to-projection` measures to the outermost balcony/chajja instead of the wall face."
+        }
+      }
+    },
+    "check_far_max": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "ratio"],
+      "description": "Floor Area Ratio / FSI cap. scope=project, resultUnit=mm2 (allowed vs achieved FAR-countable area). The UI derives the familiar '1.82 vs 1.75' by dividing by plot area.",
+      "properties": {
+        "type": { "const": "far_max" },
+        "ratio": { "$ref": "#/$defs/ratio" },
+        "premium": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ratio", "note"],
+          "description": "Extra FAR purchasable/allowed on conditions. NOT applied automatically -- surfaced as a note so the architect decides.",
+          "properties": { "ratio": { "$ref": "#/$defs/ratio" }, "note": { "type": "string" } }
+        }
+      }
+    },
+    "check_coverage_max": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "ratio"],
+      "description": "Maximum ground coverage. scope=project, resultUnit=mm2.",
+      "properties": {
+        "type": { "const": "coverage_max" },
+        "ratio": { "$ref": "#/$defs/ratio" }
+      }
+    },
+    "check_height_max": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "valueMm"],
+      "description": "Maximum building height. scope=project, resultUnit=mm.",
+      "properties": {
+        "type": { "const": "height_max" },
+        "valueMm": { "$ref": "#/$defs/lengthMm" },
+        "excludes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/heightComponent" },
+          "description": "Components subtracted from model.buildingHeightMm before comparing. Most bye-laws exclude parapet, mumty and overhead tank."
+        }
+      }
+    },
+    "check_floors_max": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "value"],
+      "description": "Maximum number of floors. scope=project, resultUnit=count. `value: 3` means G+2.",
+      "properties": {
+        "type": { "const": "floors_max" },
+        "value": { "$ref": "#/$defs/count" },
+        "counts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/extraFloorKind" },
+          "description": "Extra levels that count toward the limit. Omit/empty = stilt and basement are free."
+        }
+      }
+    },
+    "check_room_area_min": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "valueMm2"],
+      "description": "Minimum carpet area of a room. scope=room, resultUnit=mm2. Select the rooms with `when.roomType` / `when.roomIsHabitable`.",
+      "properties": {
+        "type": { "const": "room_area_min" },
+        "valueMm2": { "$ref": "#/$defs/areaMm2" }
+      }
+    },
+    "check_room_width_min": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "valueMm"],
+      "description": "Minimum least width of a room. scope=room, resultUnit=mm. Least width = the smaller side of the room polygon's axis-aligned bounding box (MVP is orthogonal-only; revisit if non-orthogonal walls ship).",
+      "properties": {
+        "type": { "const": "room_width_min" },
+        "valueMm": { "$ref": "#/$defs/lengthMm" }
+      }
+    },
+    "check_ceiling_height_min": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "valueMm"],
+      "description": "Minimum clear floor-to-ceiling height. scope=room, resultUnit=mm. Clear height = storey height minus slab thickness and any dropped ceiling, computed by the model layer.",
+      "properties": {
+        "type": { "const": "ceiling_height_min" },
+        "valueMm": { "$ref": "#/$defs/lengthMm" }
+      }
+    },
+    "check_ventilation_ratio_min": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "minProperties": 2,
+      "anyOf": [{ "required": ["ratio"] }, { "required": ["minAreaMm2"] }],
+      "description": "Minimum openable area for light and ventilation. scope=room, resultUnit=mm2. With both params the requirement is the LARGER of the two, which is how NBC states bathrooms (a ratio floored by an absolute minimum).",
+      "properties": {
+        "type": { "const": "ventilation_ratio_min" },
+        "ratio": { "$ref": "#/$defs/ratio", "description": "Fraction of the room's floor area, e.g. {num:1,den:10}." },
+        "minAreaMm2": { "$ref": "#/$defs/areaMm2", "description": "Absolute floor, e.g. 300000 mm2 = 0.30 m2." },
+        "countKinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/openingKind" },
+          "default": ["window", "ventilator"],
+          "description": "Which opening kinds the model layer counts toward the openable area."
+        }
+      }
+    },
+    "check_stair_riser_max": {
+      "type": "object", "additionalProperties": false, "required": ["type", "valueMm"],
+      "description": "Maximum riser. scope=stair, resultUnit=mm.",
+      "properties": { "type": { "const": "stair_riser_max" }, "valueMm": { "$ref": "#/$defs/lengthMm" } }
+    },
+    "check_stair_tread_min": {
+      "type": "object", "additionalProperties": false, "required": ["type", "valueMm"],
+      "description": "Minimum tread/going. scope=stair, resultUnit=mm.",
+      "properties": { "type": { "const": "stair_tread_min" }, "valueMm": { "$ref": "#/$defs/lengthMm" } }
+    },
+    "check_stair_width_min": {
+      "type": "object", "additionalProperties": false, "required": ["type", "valueMm"],
+      "description": "Minimum clear flight width. scope=stair, resultUnit=mm.",
+      "properties": { "type": { "const": "stair_width_min" }, "valueMm": { "$ref": "#/$defs/lengthMm" } }
+    },
+    "check_headroom_min": {
+      "type": "object", "additionalProperties": false, "required": ["type", "valueMm"],
+      "description": "Minimum clear headroom measured vertically from the nosing line. scope=stair, resultUnit=mm.",
+      "properties": { "type": { "const": "headroom_min" }, "valueMm": { "$ref": "#/$defs/lengthMm" } }
+    },
+    "check_projection_max": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "element", "valueMm"],
+      "description": "Maximum projection beyond the building line. scope=projection, resultUnit=mm.",
+      "properties": {
+        "type": { "const": "projection_max" },
+        "element": { "$ref": "#/$defs/projectionElement" },
+        "valueMm": { "$ref": "#/$defs/lengthMm" },
+        "intoSetbackOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "true = only projections that encroach on a required setback are checked."
+        }
+      }
+    },
+    "check_parking_min": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "basis", "rate"],
+      "description": "Minimum on-site parking. scope=project, resultUnit=count. required = max(ceil(rate x basisQuantity), minSpaces).",
+      "properties": {
+        "type": { "const": "parking_min" },
+        "basis": {
+          "type": "string",
+          "enum": ["dwelling", "built-up-area"],
+          "description": "`dwelling` -> rate is spaces per dwelling unit. `built-up-area` -> rate is spaces per mm2 of built-up area (2 ECS per 100 m2 is {num:2,den:100000000})."
+        },
+        "rate": { "$ref": "#/$defs/ratio" },
+        "minSpaces": { "$ref": "#/$defs/count", "default": 0 },
+        "spaceSizeMm": {
+          "type": "array",
+          "minItems": 2, "maxItems": 2,
+          "items": { "$ref": "#/$defs/lengthMm" },
+          "description": "[width, length] of one equivalent car space, for the site-plan check and the area statement."
+        }
+      }
+    },
+    "check_opening_width_min": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "valueMm"],
+      "description": "Minimum clear width of an opening. scope=opening, resultUnit=mm. Select with `when.openingKind` + `when.openingRole`. NOTE: this type is an addition to the list in playbook §6 -- §6's seed values include door minima but no check type covered them.",
+      "properties": {
+        "type": { "const": "opening_width_min" },
+        "valueMm": { "$ref": "#/$defs/lengthMm" }
+      }
+    },
+    "check_zone_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "target", "mode"],
+      "anyOf": [{ "required": ["allow"] }, { "required": ["deny"] }],
+      "description": "Directional placement check (Vastu). scope=zone, resultUnit=zone. Status: pass when every matched target is in `allow` and none in `deny`; warn when a target falls in `fallback.allow`; fail (clamped by the mode's severityCeiling) otherwise. Satisfaction for scoring: 1 in allow, fallback.scoreRatio in fallback, 0 elsewhere; mean over matched targets. No matched target -> not_applicable and excluded from the score.",
+      "properties": {
+        "type": { "const": "zone_check" },
+        "mode": {
+          "type": "string",
+          "enum": ["zone", "facing"],
+          "description": "`zone` = which 3x3 cell the target's centroid sits in. `facing` = which 45 deg compass sector the target's outward normal points to."
+        },
+        "target": { "$ref": "#/$defs/zoneTarget" },
+        "allow": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/zoneOrCompass" } },
+        "deny": {
+          "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/zoneOrCompass" },
+          "description": "Hard-never directions. A target here is always a violation, whatever `allow` says."
+        },
+        "fallback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["allow", "scoreRatio"],
+          "description": "Acceptable-but-not-ideal directions, scored at a fraction (Vastu's kitchen NW at half score).",
+          "properties": {
+            "allow": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/zoneOrCompass" } },
+            "scoreRatio": { "$ref": "#/$defs/ratio" }
+          }
+        }
+      }
+    },
+    "zoneOrCompass": {
+      "type": "string",
+      "enum": ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "C"],
+      "description": "A 3x3 zone when mode=zone; a compass sector when mode=facing (in which case `C` is invalid)."
+    },
+    "zoneTarget": {
+      "type": "object",
+      "required": ["kind"],
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "roomTypes"],
+          "properties": {
+            "kind": { "const": "room" },
+            "roomTypes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/roomType" } },
+            "storeyIndex": { "type": "integer", "minimum": 0, "description": "Restrict to one storey; omit for all storeys." }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "roles"],
+          "properties": {
+            "kind": { "const": "opening" },
+            "roles": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/openingRole" } }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "serviceKinds"],
+          "properties": {
+            "kind": { "const": "service" },
+            "serviceKinds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/serviceKind" } }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind"],
+          "properties": { "kind": { "const": "stair" } }
+        }
+      ]
+    },
+    "check_custom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "fn", "scope"],
+      "description": "Escape hatch for the two checks that are not expressible as a comparison. `fn` is a CLOSED enum -- registering a new function means bumping schemaVersion, so a pack can never name code that does not exist.",
+      "properties": {
+        "type": { "const": "custom" },
+        "fn": { "type": "string", "enum": ["rwh_required", "brahmasthan_open"] },
+        "scope": { "type": "string", "enum": ["project", "storey", "room"] },
+        "args": { "type": "object", "description": "Per-fn arguments; see x-garh-check-meta.customFns." }
+      }
+    }
+  }
+}

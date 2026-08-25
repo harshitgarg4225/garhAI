@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+
+    // Same reasoning as packages/model/tsconfig.json: consumed as TypeScript
+    // SOURCE, never emitted, so `composite` (inherited) must be off or tsc
+    // fails with TS6304 against `noEmit`.
+    //
+    // There is deliberately NO `references: [{ path: "../model" }]` either: a
+    // project reference makes tsc redirect `@garh/model` imports to
+    // packages/model/dist/*.d.ts, which is never built, and every importing
+    // file then fails with TS6305. The `paths` aliases inherited from
+    // tsconfig.base.json resolve straight into packages/model/src — the same
+    // way apps/web and Vite resolve it.
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["vitest/globals"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  // vitest.config.ts is included so that type-aware ESLint (projectService)
+  // can find a project for it — a TS file owned by no tsconfig is a lint error.
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vitest.config.ts"],
+  "exclude": ["dist", "node_modules"]
+}

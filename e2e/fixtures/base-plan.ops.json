@@ -1,0 +1,182 @@
+{
+  "$comment": "DERIVED \u2014 do not edit. Regenerate with `python3 e2e/fixtures/generate.py`. The two-room plan with openings from garh_model.testing, as wire ops. The copilot mock corpus proposes edits against these exact ids, so the e2e project must be built from this log and not by drawing.",
+  "source": "garh_model.testing.two_room_plan_ops() + opening_ops()",
+  "ids": {
+    "groundStorey": "storey_01J000000000000000000000GF",
+    "firstStorey": "storey_01J000000000000000000000FF",
+    "wallSouth": "wall_01J000000000000000000000WS",
+    "wallEast": "wall_01J000000000000000000000WE",
+    "wallNorth": "wall_01J000000000000000000000WN",
+    "wallWest": "wall_01J000000000000000000000WW",
+    "wallSpine": "wall_01J00000000000000000000WSP",
+    "doorMain": "opening_01J000000000000000000000D1",
+    "windowWest": "opening_01J000000000000000000000W1",
+    "stair": "stair_01J00000000000000000000ST1",
+    "column": "column_01J000000000000000000000C1",
+    "sofa": "furniture_01J00000000000000000000FS1",
+    "balcony": "balcony_01J000000000000000000000B1",
+    "material": "material_01J000000000000000000000M1",
+    "annotation": "annotation_01J000000000000000000000A1",
+    "sheet": "sheet_01J00000000000000000000SH1"
+  },
+  "ops": [
+    {
+      "type": "plot.set_boundary",
+      "payload": {
+        "polygon": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 9144,
+            "y": 0
+          },
+          {
+            "x": 9144,
+            "y": 12192
+          },
+          {
+            "x": 0,
+            "y": 12192
+          }
+        ],
+        "source": "seed"
+      }
+    },
+    {
+      "type": "plot.set_north",
+      "payload": {
+        "deg": 0
+      }
+    },
+    {
+      "type": "plot.set_road",
+      "payload": {
+        "edgeIndex": 0,
+        "widthMm": 9000,
+        "name": "9m Road"
+      }
+    },
+    {
+      "type": "storey.add",
+      "payload": {
+        "id": "storey_01J000000000000000000000GF",
+        "index": 0,
+        "name": "Ground Floor",
+        "heightMm": 3000
+      }
+    },
+    {
+      "type": "wall.add",
+      "payload": {
+        "id": "wall_01J000000000000000000000WS",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "a": {
+          "x": 0,
+          "y": 0
+        },
+        "b": {
+          "x": 6000,
+          "y": 0
+        },
+        "thicknessMm": 230,
+        "kind": "external"
+      }
+    },
+    {
+      "type": "wall.add",
+      "payload": {
+        "id": "wall_01J000000000000000000000WE",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "a": {
+          "x": 6000,
+          "y": 0
+        },
+        "b": {
+          "x": 6000,
+          "y": 4000
+        },
+        "thicknessMm": 230,
+        "kind": "external"
+      }
+    },
+    {
+      "type": "wall.add",
+      "payload": {
+        "id": "wall_01J000000000000000000000WN",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "a": {
+          "x": 6000,
+          "y": 4000
+        },
+        "b": {
+          "x": 0,
+          "y": 4000
+        },
+        "thicknessMm": 230,
+        "kind": "external"
+      }
+    },
+    {
+      "type": "wall.add",
+      "payload": {
+        "id": "wall_01J000000000000000000000WW",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "a": {
+          "x": 0,
+          "y": 4000
+        },
+        "b": {
+          "x": 0,
+          "y": 0
+        },
+        "thicknessMm": 230,
+        "kind": "external"
+      }
+    },
+    {
+      "type": "wall.add",
+      "payload": {
+        "id": "wall_01J00000000000000000000WSP",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "a": {
+          "x": 3000,
+          "y": 0
+        },
+        "b": {
+          "x": 3000,
+          "y": 4000
+        },
+        "thicknessMm": 115,
+        "kind": "internal"
+      }
+    },
+    {
+      "type": "opening.add",
+      "payload": {
+        "id": "opening_01J000000000000000000000D1",
+        "wallId": "wall_01J000000000000000000000WS",
+        "kind": "door",
+        "widthMm": 900,
+        "heightMm": 2100,
+        "sillMm": 0,
+        "offsetMm": 1500,
+        "swing": "in-left"
+      }
+    },
+    {
+      "type": "opening.add",
+      "payload": {
+        "id": "opening_01J000000000000000000000W1",
+        "wallId": "wall_01J000000000000000000000WW",
+        "kind": "window",
+        "widthMm": 1200,
+        "heightMm": 1200,
+        "sillMm": 900,
+        "offsetMm": 2000,
+        "swing": "in-left"
+      }
+    }
+  ]
+}

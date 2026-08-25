@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    /* ─── Target & module resolution ─────────────────────────────────────── */
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+
+    /* ─── Strictness ─────────────────────────────────────────────────────────
+     * The model core is integer-millimetre geometry: an `undefined` slipping
+     * through an index access or an optional-property write becomes a NaN
+     * coordinate, which becomes a wrong dimension chain on a municipal
+     * drawing. These four are the ones that catch that class of bug, and
+     * they are non-negotiable per the task brief.
+     */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "useUnknownInCatchVariables": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* ─── No composite, no project references, no emit ───────────────────────
+     * Nothing in this workspace is built by tsc. @garh/model and @garh/ui are
+     * consumed as TypeScript SOURCE (their package.json `main`/`types` point at
+     * src/index.ts) and Vite does all the emitting for apps/web. Every package's
+     * `typecheck` script is therefore `tsc --noEmit`.
+     *
+     * `composite: true` here would break exactly that: tsc rejects
+     * composite + noEmit with TS6304, and a `references` entry would redirect
+     * @garh/model imports at a dist/*.d.ts that is never written (TS6305).
+     * The `paths` aliases below are the whole resolution story — they mirror
+     * apps/web/vite.config.ts `resolve.alias`.
+     *
+     * If a package ever does need real .d.ts output, turn composite on IN THAT
+     * PACKAGE, give it a real outDir, and drop its `noEmit`.
+     */
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": true,
+
+    /* skipLibCheck: three/@react-three type packages ship overlapping
+     * declarations; checking them adds ~20s per typecheck for no signal. */
+    "skipLibCheck": true,
+
+    /* ─── Workspace path aliases ─────────────────────────────────────────────
+     * Paths point at source, not dist, so editors get go-to-definition and
+     * `tsc -b` resolves through project references. Keep in lockstep with
+     * apps/web/vite.config.ts `resolve.alias` and vitest's alias config.
+     */
+    "baseUrl": ".",
+    "paths": {
+      "@garh/model": ["./packages/model/src/index.ts"],
+      "@garh/model/*": ["./packages/model/src/*"],
+      "@garh/ui": ["./packages/ui/src/index.ts"],
+      "@garh/ui/*": ["./packages/ui/src/*"]
+    }
+  },
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    "**/build",
+    "**/.vite",
+    "**/coverage",
+    "**/playwright-report",
+    "**/test-results"
+  ]
+}

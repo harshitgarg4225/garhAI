@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="142mm" height="108mm" viewBox="0 0 14230 10825">
+  <style>
+  .dim    { stroke: #c0392b; stroke-width: 13; }
+  .witness{ stroke: #c0392b; stroke-width: 10; }
+  .tick   { stroke: #c0392b; stroke-width: 13; }
+  .leader { stroke: #c0392b; stroke-width: 10; }
+  text    { fill: #c0392b; font-family: monospace; text-anchor: middle;
+            dominant-baseline: central; }
+  </style>
+  <g id="A-DIM">
+    <line class="dim" x1="12855" y1="7705" x2="12855" y2="3475"/>
+    <line class="witness" x1="10555" y1="7705" x2="12975" y2="7705"/>
+    <line class="tick" x1="12805" y1="7755" x2="12905" y2="7655"/>
+    <line class="witness" x1="10555" y1="3475" x2="12975" y2="3475"/>
+    <line class="tick" x1="12805" y1="3525" x2="12905" y2="3425"/>
+    <line class="dim" x1="4225" y1="1075" x2="10455" y2="1075"/>
+    <line class="witness" x1="4225" y1="3375" x2="4225" y2="955"/>
+    <line class="tick" x1="4175" y1="1125" x2="4275" y2="1025"/>
+    <line class="witness" x1="10455" y1="3375" x2="10455" y2="955"/>
+    <line class="tick" x1="10405" y1="1125" x2="10505" y2="1025"/>
+    <line class="dim" x1="4225" y1="10105" x2="10455" y2="10105"/>
+    <line class="witness" x1="4225" y1="7805" x2="4225" y2="10225"/>
+    <line class="tick" x1="4175" y1="10155" x2="4275" y2="10055"/>
+    <line class="witness" x1="10455" y1="7805" x2="10455" y2="10225"/>
+    <line class="tick" x1="10405" y1="10155" x2="10505" y2="10055"/>
+    <line class="dim" x1="1825" y1="7705" x2="1825" y2="3475"/>
+    <line class="witness" x1="4125" y1="7705" x2="1705" y2="7705"/>
+    <line class="tick" x1="1775" y1="7755" x2="1875" y2="7655"/>
+    <line class="witness" x1="4125" y1="3475" x2="1705" y2="3475"/>
+    <line class="tick" x1="1775" y1="3525" x2="1875" y2="3425"/>
+    <line class="dim" x1="4225" y1="1675" x2="10455" y2="1675"/>
+    <line class="witness" x1="4225" y1="3375" x2="4225" y2="1555"/>
+    <line class="tick" x1="4175" y1="1725" x2="4275" y2="1625"/>
+    <line class="witness" x1="7340" y1="3375" x2="7340" y2="1555"/>
+    <line class="tick" x1="7290" y1="1725" x2="7390" y2="1625"/>
+    <line class="witness" x1="10455" y1="3375" x2="10455" y2="1555"/>
+    <line class="tick" x1="10405" y1="1725" x2="10505" y2="1625"/>
+    <line class="dim" x1="4225" y1="9505" x2="10455" y2="9505"/>
+    <line class="witness" x1="4225" y1="7805" x2="4225" y2="9625"/>
+    <line class="tick" x1="4175" y1="9555" x2="4275" y2="9455"/>
+    <line class="witness" x1="7340" y1="7805" x2="7340" y2="9625"/>
+    <line class="tick" x1="7290" y1="9555" x2="7390" y2="9455"/>
+    <line class="witness" x1="10455" y1="7805" x2="10455" y2="9625"/>
+    <line class="tick" x1="10405" y1="9555" x2="10505" y2="9455"/>
+    <line class="dim" x1="4225" y1="8905" x2="10455" y2="8905"/>
+    <line class="witness" x1="4225" y1="7805" x2="4225" y2="9025"/>
+    <line class="tick" x1="4175" y1="8955" x2="4275" y2="8855"/>
+    <line class="witness" x1="5840" y1="7805" x2="5840" y2="9025"/>
+    <line class="tick" x1="5790" y1="8955" x2="5890" y2="8855"/>
+    <line class="witness" x1="10455" y1="7805" x2="10455" y2="9025"/>
+    <line class="tick" x1="10405" y1="8955" x2="10505" y2="8855"/>
+    <line class="dim" x1="3025" y1="7705" x2="3025" y2="3475"/>
+    <line class="witness" x1="4125" y1="7705" x2="2905" y2="7705"/>
+    <line class="tick" x1="2975" y1="7755" x2="3075" y2="7655"/>
+    <line class="witness" x1="4125" y1="5590" x2="2905" y2="5590"/>
+    <line class="tick" x1="2975" y1="5640" x2="3075" y2="5540"/>
+    <line class="witness" x1="4125" y1="3475" x2="2905" y2="3475"/>
+    <line class="tick" x1="2975" y1="3525" x2="3075" y2="3425"/>
+    <line class="dim" x1="7397" y1="7075" x2="10225" y2="7075"/>
+    <line class="witness" x1="7397" y1="7375" x2="7397" y2="6955"/>
+    <line class="tick" x1="7347" y1="7125" x2="7447" y2="7025"/>
+    <line class="witness" x1="10225" y1="7375" x2="10225" y2="6955"/>
+    <line class="tick" x1="10175" y1="7125" x2="10275" y2="7025"/>
+    <line class="dim" x1="4855" y1="7475" x2="4855" y2="3705"/>
+    <line class="witness" x1="4555" y1="7475" x2="4975" y2="7475"/>
+    <line class="tick" x1="4805" y1="7525" x2="4905" y2="7425"/>
+    <line class="witness" x1="4555" y1="3705" x2="4975" y2="3705"/>
+    <line class="tick" x1="4805" y1="3755" x2="4905" y2="3655"/>
+    <line class="dim" x1="4455" y1="7075" x2="7283" y2="7075"/>
+    <line class="witness" x1="4455" y1="7375" x2="4455" y2="6955"/>
+    <line class="tick" x1="4405" y1="7125" x2="4505" y2="7025"/>
+    <line class="witness" x1="7283" y1="7375" x2="7283" y2="6955"/>
+    <line class="tick" x1="7233" y1="7125" x2="7333" y2="7025"/>
+    <text x="12630" y="5590" font-size="250" transform="rotate(-90 12630 5590)">4230</text>
+    <text x="7340" y="850" font-size="250">6230</text>
+    <text x="5782" y="1450" font-size="250">3115</text>
+    <text x="8897" y="1450" font-size="250">3115</text>
+    <text x="7340" y="9880" font-size="250">6230</text>
+    <text x="5782" y="9280" font-size="250">3115</text>
+    <text x="8897" y="9280" font-size="250">3115</text>
+    <text x="5032" y="8680" font-size="250">1615</text>
+    <text x="8147" y="8680" font-size="250">4615</text>
+    <text x="1600" y="5590" font-size="250" transform="rotate(-90 1600 5590)">4230</text>
+    <text x="2800" y="6648" font-size="250" transform="rotate(-90 2800 6648)">2115</text>
+    <text x="2800" y="4533" font-size="250" transform="rotate(-90 2800 4533)">2115</text>
+    <text x="8811" y="6850" font-size="250">2828</text>
+    <text x="4630" y="5590" font-size="250" transform="rotate(-90 4630 5590)">3770</text>
+    <text x="5869" y="6850" font-size="250">2828</text>
+  </g>
+</svg>

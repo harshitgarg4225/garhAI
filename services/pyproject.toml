@@ -1,0 +1,129 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "garh-services"
+version = "0.1.0"
+description = "Garh AI workers — CP-SAT solver (§5), drawings/DXF (§7), render providers (§9), LLM providers (§10)"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "Garh AI" }]
+
+# ---------------------------------------------------------------------------
+# Runtime dependencies — the MOCK path only.
+#
+# Locked decision (SKILL.md): the whole product runs and is e2e-testable with
+# PROVIDER_LLM=mock and PROVIDER_RENDER=mock — zero API keys, zero GPUs. That is
+# only true if the default install is light, so torch/diffusers live in the
+# optional `ml` extra below and are imported lazily (services/render/diffusers_provider.py).
+#
+# Versions are PINNED exactly and must match apps/api/pyproject.toml where they
+# overlap — one workspace, one version of redis/structlog/pydantic/httpx.
+#
+# License gate (references/market-research-and-oss-licenses.md): Apache/MIT/BSD/MPL
+# only, never GPL/AGPL.
+# ---------------------------------------------------------------------------
+dependencies = [
+  "redis==5.1.1",                  # MIT           queue + progress pub/sub
+  "structlog==24.4.0",             # Apache-2.0/MIT JSON worker logs (§18)
+  "pydantic==2.9.2",               # MIT           typed job payloads
+  "pydantic-settings==2.5.2",      # MIT           12-factor worker config (§18)
+  "httpx==0.27.2",                 # BSD-3         presigned blob IO + Anthropic Messages API
+  "python-ulid==2.7.0",            # MIT           element ids the solver mints
+  "ortools==9.11.4210",            # Apache-2.0    CP-SAT layout engine (§5)
+  "ezdxf==1.3.4",                  # MIT           DXF export + audit (§7)
+  "pillow==10.4.0",                # MIT-CMU/HPND  MockRenderProvider compositor (§9)
+]
+
+[project.optional-dependencies]
+# --------------------------------------------------------------------------
+# `llm` — PROVIDER_LLM=anthropic only. Small (httpx + pydantic, both already
+# base deps), but kept optional so the default mock path installs with no SDK
+# and no possibility of an accidental network call. Imported lazily inside
+# services/llm/provider.py's `anthropic` branch.
+# --------------------------------------------------------------------------
+llm = [
+  "anthropic==0.116.0",            # MIT           Messages API, structured outputs (§10)
+]
+
+# --------------------------------------------------------------------------
+# `ml` — PROVIDER_RENDER=diffusers only (Phase 7). Multi-GB, CUDA-shaped, and
+# never installed in CI or on a laptop. `pip install -e ".[ml]"` opts in.
+#
+# Weight licences are enforced at runtime, not by pip: services/render/licenses.py
+# refuses FLUX.1-dev (non-commercial). Read that module before adding a model id.
+# --------------------------------------------------------------------------
+ml = [
+  "torch==2.4.1",                  # BSD-3
+  "diffusers==0.30.3",             # Apache-2.0
+  "transformers==4.44.2",          # Apache-2.0
+  "accelerate==0.34.2",            # Apache-2.0
+  "safetensors==0.4.5",            # Apache-2.0
+  "controlnet-aux==0.0.9",         # Apache-2.0  (MLSD + depth preprocessors)
+  "realesrgan==0.3.0",             # BSD-3       (pulls basicsr, Apache-2.0) — 2x upscale
+]
+
+dev = [
+  "pytest==8.3.3",                 # MIT
+  "pytest-asyncio==0.24.0",        # Apache-2.0
+  "hypothesis==6.112.2",           # MPL-2.0
+  "ruff==0.6.9",                   # MIT
+  "mypy==1.11.2",                  # MIT
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["common", "solver", "render", "drawings", "llm"]
+
+# ---------------------------------------------------------------------------
+# Lint / types / tests
+#
+# CI and the Makefile invoke ruff and mypy with `--config-file apps/api/pyproject.toml`
+# (one config for all Python in the repo), so the sections below only take effect
+# for a developer running `ruff check .` / `mypy .` from inside services/. They are
+# deliberately identical to the API's settings — if the two ever disagree, the API
+# file wins because that is the one CI reads.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = [".."]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "ASYNC", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+# Lazily imported, `ml`-extra only, and absent from every CI image by design.
+module = [
+  "torch.*",
+  "diffusers.*",
+  "transformers.*",
+  "controlnet_aux.*",
+  "realesrgan.*",
+  "basicsr.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# OR-Tools ships partial stubs; CP-SAT model building is not fully typed upstream.
+module = ["ortools.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers"
+markers = [
+  "integration: needs a live Redis",
+  "golden: golden-file comparison",
+  "gpu: needs PROVIDER_RENDER=diffusers and a GPU",
+]

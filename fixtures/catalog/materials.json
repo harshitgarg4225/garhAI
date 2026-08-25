@@ -1,0 +1,361 @@
+[
+  {
+    "id": "vitrified-tile-600",
+    "name": "Vitrified tile 600×600",
+    "category": "floor",
+    "finish": "glossy",
+    "colorHex": "#E8E4DC",
+    "priceInrPerSqm": 850,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "vitrified-tile-800",
+    "name": "Vitrified tile 800×800",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#DED8CE",
+    "priceInrPerSqm": 1150,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "granite-flooring",
+    "name": "Granite flooring",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#4A4A4A",
+    "priceInrPerSqm": 2400,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "kota-stone",
+    "name": "Kota stone",
+    "category": "floor",
+    "finish": "honed",
+    "colorHex": "#6E7B6B",
+    "priceInrPerSqm": 900,
+    "surfaceGroups": [
+      "floor.utility",
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "marble-italian",
+    "name": "Italian marble",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#F2F0EA",
+    "priceInrPerSqm": 4500,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "wooden-laminate",
+    "name": "Wooden laminate",
+    "category": "floor",
+    "finish": "textured",
+    "colorHex": "#8B6A45",
+    "priceInrPerSqm": 1300,
+    "surfaceGroups": [
+      "floor.bedroom"
+    ]
+  },
+  {
+    "id": "cement-ips",
+    "name": "IPS cement finish",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#9C9C97",
+    "priceInrPerSqm": 450,
+    "surfaceGroups": [
+      "floor.utility",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "anti-skid-tile",
+    "name": "Anti-skid ceramic tile",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#C9C4BA",
+    "priceInrPerSqm": 650,
+    "surfaceGroups": [
+      "floor.bath",
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "ceramic-wall-tile",
+    "name": "Ceramic wall tile",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#F5F5F0",
+    "priceInrPerSqm": 600,
+    "surfaceGroups": [
+      "wall.bath",
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "interior-emulsion",
+    "name": "Interior emulsion paint",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#F7F4EF",
+    "priceInrPerSqm": 220,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "exterior-texture",
+    "name": "Exterior texture paint",
+    "category": "wall",
+    "finish": "textured",
+    "colorHex": "#E3DDD2",
+    "priceInrPerSqm": 380,
+    "surfaceGroups": [
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "exposed-brick",
+    "name": "Exposed brick",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#9C4A2F",
+    "priceInrPerSqm": 1400,
+    "surfaceGroups": [
+      "wall.exterior",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "exposed-concrete",
+    "name": "Exposed concrete",
+    "category": "wall",
+    "finish": "board-formed",
+    "colorHex": "#A8A8A3",
+    "priceInrPerSqm": 1600,
+    "surfaceGroups": [
+      "wall.exterior",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "stone-cladding",
+    "name": "Natural stone cladding",
+    "category": "wall",
+    "finish": "split-face",
+    "colorHex": "#7A6E5D",
+    "priceInrPerSqm": 2200,
+    "surfaceGroups": [
+      "wall.exterior",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "wpc-cladding",
+    "name": "WPC wood-finish cladding",
+    "category": "wall",
+    "finish": "wood-grain",
+    "colorHex": "#7A5230",
+    "priceInrPerSqm": 2000,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding"
+    ]
+  },
+  {
+    "id": "acp-panel",
+    "name": "ACP panel",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#3C3C3C",
+    "priceInrPerSqm": 1800,
+    "surfaceGroups": [
+      "facade.cladding"
+    ]
+  },
+  {
+    "id": "glass-clear",
+    "name": "Clear float glass",
+    "category": "glazing",
+    "finish": "clear",
+    "colorHex": "#CFE3E8",
+    "priceInrPerSqm": 1200,
+    "surfaceGroups": [
+      "window.glazing"
+    ]
+  },
+  {
+    "id": "glass-tinted",
+    "name": "Tinted glass",
+    "category": "glazing",
+    "finish": "tinted",
+    "colorHex": "#7E9AA3",
+    "priceInrPerSqm": 1600,
+    "surfaceGroups": [
+      "window.glazing",
+      "facade.glazing"
+    ]
+  },
+  {
+    "id": "upvc-window",
+    "name": "uPVC window frame",
+    "category": "joinery",
+    "finish": "matte",
+    "colorHex": "#FFFFFF",
+    "priceInrPerSqm": 4200,
+    "surfaceGroups": [
+      "window.frame"
+    ]
+  },
+  {
+    "id": "aluminium-window",
+    "name": "Aluminium window frame",
+    "category": "joinery",
+    "finish": "anodised",
+    "colorHex": "#6B6B6B",
+    "priceInrPerSqm": 5200,
+    "surfaceGroups": [
+      "window.frame"
+    ]
+  },
+  {
+    "id": "teak-door",
+    "name": "Teak wood door",
+    "category": "joinery",
+    "finish": "polished",
+    "colorHex": "#6B4423",
+    "priceInrPerSqm": 9000,
+    "surfaceGroups": [
+      "door.main"
+    ]
+  },
+  {
+    "id": "flush-door",
+    "name": "Flush door",
+    "category": "joinery",
+    "finish": "laminated",
+    "colorHex": "#B08A5E",
+    "priceInrPerSqm": 2600,
+    "surfaceGroups": [
+      "door.internal"
+    ]
+  },
+  {
+    "id": "ms-railing",
+    "name": "MS railing",
+    "category": "railing",
+    "finish": "powder-coated",
+    "colorHex": "#2E2E2E",
+    "priceInrPerSqm": 2800,
+    "surfaceGroups": [
+      "railing.balcony",
+      "railing.stair"
+    ]
+  },
+  {
+    "id": "ss-railing",
+    "name": "Stainless steel railing",
+    "category": "railing",
+    "finish": "brushed",
+    "colorHex": "#B8BCC0",
+    "priceInrPerSqm": 4500,
+    "surfaceGroups": [
+      "railing.balcony",
+      "railing.stair"
+    ]
+  },
+  {
+    "id": "glass-railing",
+    "name": "Toughened glass railing",
+    "category": "railing",
+    "finish": "clear",
+    "colorHex": "#D6E7EC",
+    "priceInrPerSqm": 6500,
+    "surfaceGroups": [
+      "railing.balcony"
+    ]
+  },
+  {
+    "id": "clay-roof-tile",
+    "name": "Mangalore clay roof tile",
+    "category": "roof",
+    "finish": "natural",
+    "colorHex": "#B5502F",
+    "priceInrPerSqm": 1100,
+    "surfaceGroups": [
+      "roof.pitched"
+    ]
+  },
+  {
+    "id": "waterproof-membrane",
+    "name": "Waterproofing membrane",
+    "category": "roof",
+    "finish": "matte",
+    "colorHex": "#8E8E8E",
+    "priceInrPerSqm": 550,
+    "surfaceGroups": [
+      "roof.flat",
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "wooden-louvers",
+    "name": "Wooden louvers (pergola / screen)",
+    "category": "wall",
+    "finish": "sealed",
+    "colorHex": "#8A5A2B",
+    "priceInrPerSqm": 3200,
+    "surfaceGroups": [
+      "facade.louvers",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "terracotta-jaali",
+    "name": "Terracotta jaali screen",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#B5643C",
+    "priceInrPerSqm": 2600,
+    "surfaceGroups": [
+      "facade.screen",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "red-oxide-floor",
+    "name": "Red oxide flooring",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#8C3B24",
+    "priceInrPerSqm": 700,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.pooja"
+    ]
+  },
+  {
+    "id": "athangudi-tile",
+    "name": "Athangudi handmade tile",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#C9A227",
+    "priceInrPerSqm": 1900,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.pooja"
+    ]
+  }
+]

@@ -1,0 +1,130 @@
+[
+  {
+    "id": "contemporary",
+    "name": "Contemporary",
+    "description": "Flat chajjas, a full-height cladding band at the stair bay, slim MS railings — monochrome with a wood accent.",
+    "components": {
+      "windowTrim": {
+        "style": "flush-band",
+        "widthMm": 100,
+        "projectionMm": 40
+      },
+      "chajja": {
+        "style": "flat",
+        "projectionMm": 600,
+        "thicknessMm": 100,
+        "allowedProjectionsMm": [
+          600,
+          750
+        ]
+      },
+      "parapetProfile": {
+        "style": "banded",
+        "heightMm": 1050,
+        "capThicknessMm": 75
+      },
+      "claddingZones": {
+        "rule": "stack full-height at entry bay",
+        "materialId": "wpc-cladding",
+        "widthMm": 1200
+      },
+      "porch": {
+        "style": "cantilever",
+        "projectionMm": 1800,
+        "thicknessMm": 200
+      },
+      "railing": {
+        "style": "ms-slim",
+        "heightMm": 1050,
+        "materialId": "ms-railing"
+      }
+    },
+    "colorways": [
+      {
+        "id": "mono-wood",
+        "name": "Monochrome + wood",
+        "base": "#F2F0EB",
+        "accent": "#7A5230",
+        "trim": "#2E2E2E"
+      },
+      {
+        "id": "warm-grey",
+        "name": "Warm grey",
+        "base": "#DAD5CC",
+        "accent": "#8B6A45",
+        "trim": "#3C3C3C"
+      }
+    ],
+    "rules": {
+      "minFacadeWidthMm": 4500,
+      "chajjaOverOpenings": [
+        "window",
+        "door"
+      ],
+      "claddingBayPickedBy": "stair-adjacent external wall"
+    }
+  },
+  {
+    "id": "modern-minimal",
+    "name": "Modern Minimal",
+    "description": "Recessed windows with a hidden chajja, a plain parapet and a glass railing — white and grey.",
+    "components": {
+      "windowTrim": {
+        "style": "recessed",
+        "widthMm": 0,
+        "projectionMm": -75
+      },
+      "chajja": {
+        "style": "hidden",
+        "projectionMm": 600,
+        "thicknessMm": 75,
+        "allowedProjectionsMm": [
+          600
+        ]
+      },
+      "parapetProfile": {
+        "style": "plain",
+        "heightMm": 1050,
+        "capThicknessMm": 50
+      },
+      "claddingZones": {
+        "rule": "none",
+        "materialId": null,
+        "widthMm": 0
+      },
+      "porch": {
+        "style": "flush",
+        "projectionMm": 1200,
+        "thicknessMm": 150
+      },
+      "railing": {
+        "style": "glass",
+        "heightMm": 1050,
+        "materialId": "glass-railing"
+      }
+    },
+    "colorways": [
+      {
+        "id": "white-grey",
+        "name": "White + grey",
+        "base": "#FFFFFF",
+        "accent": "#8E8E8E",
+        "trim": "#6B6B6B"
+      },
+      {
+        "id": "off-white",
+        "name": "Off white",
+        "base": "#F5F3EE",
+        "accent": "#A8A8A3",
+        "trim": "#3C3C3C"
+      }
+    ],
+    "rules": {
+      "minFacadeWidthMm": 4500,
+      "chajjaOverOpenings": [
+        "window"
+      ],
+      "recessDepthMm": 150
+    }
+  }
+]

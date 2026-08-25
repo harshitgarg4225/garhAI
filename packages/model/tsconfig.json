@@ -1,0 +1,34 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+
+    // This package is never emitted: `main`/`types` point at src/index.ts and
+    // apps/web bundles it from source. `composite: true` (inherited from
+    // tsconfig.base.json) is incompatible with `noEmit` — tsc rejects the pair
+    // with TS6304 "Composite projects may not disable emit" — so the composite
+    // machinery is switched off here rather than pointing `outDir` at a
+    // directory nothing ever reads. apps/web/tsconfig.json does the same, for
+    // the same reason.
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "types": ["node", "vitest/globals"],
+
+    // This package is consumed as TypeScript SOURCE (no build step): apps/web
+    // imports it through Vite and apps/api mirrors it in Python. Relative
+    // imports here are extensionless, so the workspace base config must use
+    // "moduleResolution": "bundler" (or "node10") — see the contract note in
+    // the package README section of the model core hand-off.
+    "resolveJsonModule": true,
+
+    // Integer-mm geometry is index-heavy (shoelace sums, half-edge walks, ring
+    // offsets). With noUncheckedIndexedAccess every `poly[i]` would need a
+    // non-null assertion, which adds noise without catching a real bug class in
+    // loops that are provably in-bounds. Turned off HERE ONLY, deliberately.
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

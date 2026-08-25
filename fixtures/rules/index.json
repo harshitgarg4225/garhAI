@@ -1,0 +1,3261 @@
+{
+  "$comment": "Enumerate fixtures from here, never by globbing: a rule whose fixtures were deleted must break the suite loudly instead of silently dropping out of it.",
+  "schemaVersion": 1,
+  "generatedBy": "fixtures/rules/_tools/generate_fixtures.py",
+  "fixtureSchema": "rulepacks/schema/fixture.schema.json",
+  "invariants": [
+    "every rule id in rulepacks/*.json appears exactly once in exactly one pack entry",
+    "every rule has at least one 'pass' and at least one 'fail' fixture",
+    "fixtureId == filename without .json, and == '<ruleId>.<kind-suffix>'"
+  ],
+  "counts": {
+    "packs": 5,
+    "rules": 118,
+    "fixtures": 238
+  },
+  "packs": [
+    {
+      "packId": "nbc-core",
+      "packVersion": "2026.07",
+      "ruleCount": 23,
+      "rules": [
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.habitable.area.min",
+          "pass": [
+            "nbc-core/nbc.room.habitable.area.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.habitable.area.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.habitable.width.min",
+          "pass": [
+            "nbc-core/nbc.room.habitable.width.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.habitable.width.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.kitchen.area.min",
+          "pass": [
+            "nbc-core/nbc.room.kitchen.area.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.kitchen.area.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.kitchen_dining.area.min",
+          "pass": [
+            "nbc-core/nbc.room.kitchen_dining.area.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.kitchen_dining.area.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.kitchen.width.min",
+          "pass": [
+            "nbc-core/nbc.room.kitchen.width.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.kitchen.width.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.bath.area.min",
+          "pass": [
+            "nbc-core/nbc.room.bath.area.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.bath.area.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.bath.width.min",
+          "pass": [
+            "nbc-core/nbc.room.bath.width.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.bath.width.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.wc.area.min",
+          "pass": [
+            "nbc-core/nbc.room.wc.area.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.wc.area.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.wc.width.min",
+          "pass": [
+            "nbc-core/nbc.room.wc.width.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.wc.width.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.room.bath_wc.area.min",
+          "pass": [
+            "nbc-core/nbc.room.bath_wc.area.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.room.bath_wc.area.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.ceiling.habitable.min",
+          "pass": [
+            "nbc-core/nbc.ceiling.habitable.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.ceiling.habitable.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.ceiling.kitchen.min",
+          "pass": [
+            "nbc-core/nbc.ceiling.kitchen.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.ceiling.kitchen.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.ceiling.bath.min",
+          "pass": [
+            "nbc-core/nbc.ceiling.bath.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.ceiling.bath.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.ventilation.habitable.min",
+          "pass": [
+            "nbc-core/nbc.ventilation.habitable.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.ventilation.habitable.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.ventilation.kitchen.min",
+          "pass": [
+            "nbc-core/nbc.ventilation.kitchen.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.ventilation.kitchen.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.ventilation.bath.min",
+          "pass": [
+            "nbc-core/nbc.ventilation.bath.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.ventilation.bath.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.stair.riser.max",
+          "pass": [
+            "nbc-core/nbc.stair.riser.max.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.stair.riser.max.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.stair.tread.min",
+          "pass": [
+            "nbc-core/nbc.stair.tread.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.stair.tread.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.stair.width.min",
+          "pass": [
+            "nbc-core/nbc.stair.width.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.stair.width.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.stair.headroom.min",
+          "pass": [
+            "nbc-core/nbc.stair.headroom.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.stair.headroom.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.door.main.width.min",
+          "pass": [
+            "nbc-core/nbc.door.main.width.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.door.main.width.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.door.internal.width.min",
+          "pass": [
+            "nbc-core/nbc.door.internal.width.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.door.internal.width.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.door.bath.width.min",
+          "pass": [
+            "nbc-core/nbc.door.bath.width.min.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.door.bath.width.min.fail.json"
+          ],
+          "extra": []
+        }
+      ]
+    },
+    {
+      "packId": "blr",
+      "packVersion": "2026.07",
+      "ruleCount": 33,
+      "rules": [
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.front.plot.le120",
+          "pass": [
+            "blr/blr.setback.front.plot.le120.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.front.plot.le120.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.front.plot.121-240",
+          "pass": [
+            "blr/blr.setback.front.plot.121-240.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.front.plot.121-240.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.front.plot.241-500",
+          "pass": [
+            "blr/blr.setback.front.plot.241-500.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.front.plot.241-500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.front.plot.gt500",
+          "pass": [
+            "blr/blr.setback.front.plot.gt500.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.front.plot.gt500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.front.road.lt9m",
+          "pass": [
+            "blr/blr.setback.front.road.lt9m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.front.road.lt9m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.front.road.9-18m",
+          "pass": [
+            "blr/blr.setback.front.road.9-18m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.front.road.9-18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.front.road.ge18m",
+          "pass": [
+            "blr/blr.setback.front.road.ge18m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.front.road.ge18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.rear.plot.le120",
+          "pass": [
+            "blr/blr.setback.rear.plot.le120.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.rear.plot.le120.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.rear.plot.121-240",
+          "pass": [
+            "blr/blr.setback.rear.plot.121-240.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.rear.plot.121-240.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.rear.plot.241-500",
+          "pass": [
+            "blr/blr.setback.rear.plot.241-500.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.rear.plot.241-500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.rear.plot.gt500",
+          "pass": [
+            "blr/blr.setback.rear.plot.gt500.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.rear.plot.gt500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.side.plot.le120",
+          "pass": [
+            "blr/blr.setback.side.plot.le120.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.side.plot.le120.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.side.plot.121-240",
+          "pass": [
+            "blr/blr.setback.side.plot.121-240.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.side.plot.121-240.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.side.plot.241-500",
+          "pass": [
+            "blr/blr.setback.side.plot.241-500.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.side.plot.241-500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.setback.side.plot.gt500",
+          "pass": [
+            "blr/blr.setback.side.plot.gt500.pass.json"
+          ],
+          "fail": [
+            "blr/blr.setback.side.plot.gt500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.coverage.plot.le120",
+          "pass": [
+            "blr/blr.coverage.plot.le120.pass.json"
+          ],
+          "fail": [
+            "blr/blr.coverage.plot.le120.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.coverage.plot.121-240",
+          "pass": [
+            "blr/blr.coverage.plot.121-240.pass.json"
+          ],
+          "fail": [
+            "blr/blr.coverage.plot.121-240.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.coverage.plot.241-500",
+          "pass": [
+            "blr/blr.coverage.plot.241-500.pass.json"
+          ],
+          "fail": [
+            "blr/blr.coverage.plot.241-500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.coverage.plot.gt500",
+          "pass": [
+            "blr/blr.coverage.plot.gt500.pass.json"
+          ],
+          "fail": [
+            "blr/blr.coverage.plot.gt500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.far.road.lt9m",
+          "pass": [
+            "blr/blr.far.road.lt9m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.far.road.lt9m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.far.road.9-18m",
+          "pass": [
+            "blr/blr.far.road.9-18m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.far.road.9-18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.far.road.ge18m",
+          "pass": [
+            "blr/blr.far.road.ge18m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.far.road.ge18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.height.road.lt9m",
+          "pass": [
+            "blr/blr.height.road.lt9m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.height.road.lt9m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.height.road.9-18m",
+          "pass": [
+            "blr/blr.height.road.9-18m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.height.road.9-18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.height.road.ge18m",
+          "pass": [
+            "blr/blr.height.road.ge18m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.height.road.ge18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.floors.road.lt9m",
+          "pass": [
+            "blr/blr.floors.road.lt9m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.floors.road.lt9m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.floors.road.9-18m",
+          "pass": [
+            "blr/blr.floors.road.9-18m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.floors.road.9-18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.floors.road.ge18m",
+          "pass": [
+            "blr/blr.floors.road.ge18m.pass.json"
+          ],
+          "fail": [
+            "blr/blr.floors.road.ge18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.parking.plot.le240",
+          "pass": [
+            "blr/blr.parking.plot.le240.pass.json"
+          ],
+          "fail": [
+            "blr/blr.parking.plot.le240.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.parking.plot.gt240",
+          "pass": [
+            "blr/blr.parking.plot.gt240.pass.json"
+          ],
+          "fail": [
+            "blr/blr.parking.plot.gt240.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.projection.balcony.front",
+          "pass": [
+            "blr/blr.projection.balcony.front.pass.json"
+          ],
+          "fail": [
+            "blr/blr.projection.balcony.front.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.projection.chajja",
+          "pass": [
+            "blr/blr.projection.chajja.pass.json"
+          ],
+          "fail": [
+            "blr/blr.projection.chajja.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "blr",
+          "ruleId": "blr.rwh.required",
+          "pass": [
+            "blr/blr.rwh.required.pass.json"
+          ],
+          "fail": [
+            "blr/blr.rwh.required.fail.json"
+          ],
+          "extra": []
+        }
+      ]
+    },
+    {
+      "packId": "ncr",
+      "packVersion": "2026.07",
+      "ruleCount": 19,
+      "rules": [
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.setback.front.plot.101-750",
+          "pass": [
+            "ncr/ncr.setback.front.plot.101-750.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.setback.front.plot.101-750.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.setback.front.plot.gt750",
+          "pass": [
+            "ncr/ncr.setback.front.plot.gt750.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.setback.front.plot.gt750.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.setback.rear.plot.gt250",
+          "pass": [
+            "ncr/ncr.setback.rear.plot.gt250.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.setback.rear.plot.gt250.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.setback.side.plot.gt250",
+          "pass": [
+            "ncr/ncr.setback.side.plot.gt250.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.setback.side.plot.gt250.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.setback.front.road.18-24m",
+          "pass": [
+            "ncr/ncr.setback.front.road.18-24m.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.setback.front.road.18-24m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.setback.front.road.ge24m",
+          "pass": [
+            "ncr/ncr.setback.front.road.ge24m.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.setback.front.road.ge24m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.coverage.plot.le100",
+          "pass": [
+            "ncr/ncr.coverage.plot.le100.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.coverage.plot.le100.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.coverage.plot.101-750",
+          "pass": [
+            "ncr/ncr.coverage.plot.101-750.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.coverage.plot.101-750.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.coverage.plot.gt750",
+          "pass": [
+            "ncr/ncr.coverage.plot.gt750.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.coverage.plot.gt750.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.far.plot.le100",
+          "pass": [
+            "ncr/ncr.far.plot.le100.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.far.plot.le100.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.far.plot.101-250",
+          "pass": [
+            "ncr/ncr.far.plot.101-250.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.far.plot.101-250.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.far.plot.251-750",
+          "pass": [
+            "ncr/ncr.far.plot.251-750.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.far.plot.251-750.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.far.plot.gt750",
+          "pass": [
+            "ncr/ncr.far.plot.gt750.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.far.plot.gt750.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.height.max",
+          "pass": [
+            "ncr/ncr.height.max.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.height.max.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.floors.max",
+          "pass": [
+            "ncr/ncr.floors.max.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.floors.max.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.parking.ecs",
+          "pass": [
+            "ncr/ncr.parking.ecs.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.parking.ecs.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.projection.balcony.front",
+          "pass": [
+            "ncr/ncr.projection.balcony.front.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.projection.balcony.front.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.projection.chajja",
+          "pass": [
+            "ncr/ncr.projection.chajja.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.projection.chajja.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "ncr",
+          "ruleId": "ncr.rwh.required",
+          "pass": [
+            "ncr/ncr.rwh.required.pass.json"
+          ],
+          "fail": [
+            "ncr/ncr.rwh.required.fail.json"
+          ],
+          "extra": []
+        }
+      ]
+    },
+    {
+      "packId": "hyd",
+      "packVersion": "2026.07",
+      "ruleCount": 34,
+      "rules": [
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.front.plot.le100",
+          "pass": [
+            "hyd/hyd.setback.front.plot.le100.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.front.plot.le100.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.front.plot.101-200",
+          "pass": [
+            "hyd/hyd.setback.front.plot.101-200.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.front.plot.101-200.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.front.plot.201-500",
+          "pass": [
+            "hyd/hyd.setback.front.plot.201-500.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.front.plot.201-500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.front.plot.gt500",
+          "pass": [
+            "hyd/hyd.setback.front.plot.gt500.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.front.plot.gt500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.front.road.lt9m",
+          "pass": [
+            "hyd/hyd.setback.front.road.lt9m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.front.road.lt9m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.front.road.9-18m",
+          "pass": [
+            "hyd/hyd.setback.front.road.9-18m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.front.road.9-18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.front.road.ge18m",
+          "pass": [
+            "hyd/hyd.setback.front.road.ge18m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.front.road.ge18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.rear.plot.le100",
+          "pass": [
+            "hyd/hyd.setback.rear.plot.le100.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.rear.plot.le100.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.rear.plot.101-200",
+          "pass": [
+            "hyd/hyd.setback.rear.plot.101-200.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.rear.plot.101-200.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.rear.plot.201-500",
+          "pass": [
+            "hyd/hyd.setback.rear.plot.201-500.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.rear.plot.201-500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.rear.plot.gt500",
+          "pass": [
+            "hyd/hyd.setback.rear.plot.gt500.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.rear.plot.gt500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.side.plot.le100",
+          "pass": [
+            "hyd/hyd.setback.side.plot.le100.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.side.plot.le100.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.side.plot.101-200",
+          "pass": [
+            "hyd/hyd.setback.side.plot.101-200.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.side.plot.101-200.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.side.plot.201-500",
+          "pass": [
+            "hyd/hyd.setback.side.plot.201-500.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.side.plot.201-500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.setback.side.plot.gt500",
+          "pass": [
+            "hyd/hyd.setback.side.plot.gt500.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.setback.side.plot.gt500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.coverage.plot.le200",
+          "pass": [
+            "hyd/hyd.coverage.plot.le200.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.coverage.plot.le200.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.coverage.plot.201-500",
+          "pass": [
+            "hyd/hyd.coverage.plot.201-500.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.coverage.plot.201-500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.coverage.plot.gt500",
+          "pass": [
+            "hyd/hyd.coverage.plot.gt500.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.coverage.plot.gt500.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.far.road.lt9m",
+          "pass": [
+            "hyd/hyd.far.road.lt9m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.far.road.lt9m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.far.road.9-18m",
+          "pass": [
+            "hyd/hyd.far.road.9-18m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.far.road.9-18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.far.road.ge18m",
+          "pass": [
+            "hyd/hyd.far.road.ge18m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.far.road.ge18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.height.road.lt9m",
+          "pass": [
+            "hyd/hyd.height.road.lt9m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.height.road.lt9m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.height.road.9-12m",
+          "pass": [
+            "hyd/hyd.height.road.9-12m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.height.road.9-12m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.height.road.12-18m",
+          "pass": [
+            "hyd/hyd.height.road.12-18m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.height.road.12-18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.height.road.ge18m",
+          "pass": [
+            "hyd/hyd.height.road.ge18m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.height.road.ge18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.floors.road.lt9m",
+          "pass": [
+            "hyd/hyd.floors.road.lt9m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.floors.road.lt9m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.floors.road.9-12m",
+          "pass": [
+            "hyd/hyd.floors.road.9-12m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.floors.road.9-12m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.floors.road.12-18m",
+          "pass": [
+            "hyd/hyd.floors.road.12-18m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.floors.road.12-18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.floors.road.ge18m",
+          "pass": [
+            "hyd/hyd.floors.road.ge18m.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.floors.road.ge18m.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.parking.plot.le200",
+          "pass": [
+            "hyd/hyd.parking.plot.le200.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.parking.plot.le200.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.parking.plot.gt200",
+          "pass": [
+            "hyd/hyd.parking.plot.gt200.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.parking.plot.gt200.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.projection.balcony.front",
+          "pass": [
+            "hyd/hyd.projection.balcony.front.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.projection.balcony.front.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.projection.chajja",
+          "pass": [
+            "hyd/hyd.projection.chajja.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.projection.chajja.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "hyd",
+          "ruleId": "hyd.rwh.required",
+          "pass": [
+            "hyd/hyd.rwh.required.pass.json"
+          ],
+          "fail": [
+            "hyd/hyd.rwh.required.fail.json"
+          ],
+          "extra": []
+        }
+      ]
+    },
+    {
+      "packId": "vastu",
+      "packVersion": "2026.07",
+      "ruleCount": 9,
+      "rules": [
+        {
+          "packId": "vastu",
+          "ruleId": "vastu.entrance.edge",
+          "pass": [
+            "vastu/vastu.entrance.edge.pass.json"
+          ],
+          "fail": [
+            "vastu/vastu.entrance.edge.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "vastu",
+          "ruleId": "vastu.pooja.zone",
+          "pass": [
+            "vastu/vastu.pooja.zone.pass.json"
+          ],
+          "fail": [
+            "vastu/vastu.pooja.zone.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "vastu",
+          "ruleId": "vastu.kitchen.zone",
+          "pass": [
+            "vastu/vastu.kitchen.zone.pass.json"
+          ],
+          "fail": [
+            "vastu/vastu.kitchen.zone.fail.json"
+          ],
+          "extra": [
+            "vastu/vastu.kitchen.zone.extra-fallback.json"
+          ]
+        },
+        {
+          "packId": "vastu",
+          "ruleId": "vastu.master.zone",
+          "pass": [
+            "vastu/vastu.master.zone.pass.json"
+          ],
+          "fail": [
+            "vastu/vastu.master.zone.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "vastu",
+          "ruleId": "vastu.toilet.zone",
+          "pass": [
+            "vastu/vastu.toilet.zone.pass.json"
+          ],
+          "fail": [
+            "vastu/vastu.toilet.zone.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "vastu",
+          "ruleId": "vastu.toilet.never_ne",
+          "pass": [
+            "vastu/vastu.toilet.never_ne.pass.json"
+          ],
+          "fail": [
+            "vastu/vastu.toilet.never_ne.fail.json"
+          ],
+          "extra": [
+            "vastu/vastu.toilet.never_ne.extra-advisory.json"
+          ]
+        },
+        {
+          "packId": "vastu",
+          "ruleId": "vastu.stair.zone",
+          "pass": [
+            "vastu/vastu.stair.zone.pass.json"
+          ],
+          "fail": [
+            "vastu/vastu.stair.zone.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "vastu",
+          "ruleId": "vastu.brahmasthan.open",
+          "pass": [
+            "vastu/vastu.brahmasthan.open.pass.json"
+          ],
+          "fail": [
+            "vastu/vastu.brahmasthan.open.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "vastu",
+          "ruleId": "vastu.water_tank.zone",
+          "pass": [
+            "vastu/vastu.water_tank.zone.pass.json"
+          ],
+          "fail": [
+            "vastu/vastu.water_tank.zone.fail.json"
+          ],
+          "extra": []
+        }
+      ]
+    }
+  ],
+  "fixtures": [
+    {
+      "fixtureId": "nbc.room.habitable.area.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.habitable.area.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.habitable.area.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.habitable.area.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.habitable.area.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.habitable.area.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.room.habitable.width.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.habitable.width.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.habitable.width.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.habitable.width.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.habitable.width.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.habitable.width.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.room.kitchen.area.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.kitchen.area.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.kitchen.area.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.kitchen.area.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.kitchen.area.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.kitchen.area.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.room.kitchen_dining.area.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.kitchen_dining.area.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.kitchen_dining.area.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.kitchen_dining.area.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.kitchen_dining.area.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.kitchen_dining.area.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.room.kitchen.width.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.kitchen.width.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.kitchen.width.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.kitchen.width.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.kitchen.width.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.kitchen.width.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.room.bath.area.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.bath.area.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.bath.area.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.bath.area.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.bath.area.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.bath.area.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.room.bath.width.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.bath.width.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.bath.width.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.bath.width.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.bath.width.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.bath.width.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.room.wc.area.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.wc.area.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.wc.area.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.wc.area.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.wc.area.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.wc.area.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.room.wc.width.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.wc.width.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.wc.width.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.wc.width.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.wc.width.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.wc.width.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.room.bath_wc.area.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.bath_wc.area.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.room.bath_wc.area.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.room.bath_wc.area.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.room.bath_wc.area.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.room.bath_wc.area.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.ceiling.habitable.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ceiling.habitable.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.ceiling.habitable.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.ceiling.habitable.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ceiling.habitable.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.ceiling.habitable.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.ceiling.kitchen.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ceiling.kitchen.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.ceiling.kitchen.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.ceiling.kitchen.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ceiling.kitchen.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.ceiling.kitchen.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.ceiling.bath.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ceiling.bath.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.ceiling.bath.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.ceiling.bath.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ceiling.bath.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.ceiling.bath.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.ventilation.habitable.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ventilation.habitable.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.ventilation.habitable.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.ventilation.habitable.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ventilation.habitable.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.ventilation.habitable.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.ventilation.kitchen.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ventilation.kitchen.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.ventilation.kitchen.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.ventilation.kitchen.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ventilation.kitchen.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.ventilation.kitchen.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.ventilation.bath.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ventilation.bath.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.ventilation.bath.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.ventilation.bath.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.ventilation.bath.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.ventilation.bath.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.stair.riser.max.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.stair.riser.max",
+      "kind": "pass",
+      "path": "nbc-core/nbc.stair.riser.max.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.stair.riser.max.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.stair.riser.max",
+      "kind": "fail",
+      "path": "nbc-core/nbc.stair.riser.max.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.stair.tread.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.stair.tread.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.stair.tread.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.stair.tread.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.stair.tread.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.stair.tread.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.stair.width.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.stair.width.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.stair.width.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.stair.width.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.stair.width.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.stair.width.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.stair.headroom.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.stair.headroom.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.stair.headroom.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.stair.headroom.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.stair.headroom.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.stair.headroom.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.door.main.width.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.door.main.width.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.door.main.width.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.door.main.width.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.door.main.width.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.door.main.width.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.door.internal.width.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.door.internal.width.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.door.internal.width.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.door.internal.width.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.door.internal.width.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.door.internal.width.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.door.bath.width.min.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.door.bath.width.min",
+      "kind": "pass",
+      "path": "nbc-core/nbc.door.bath.width.min.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.door.bath.width.min.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.door.bath.width.min",
+      "kind": "fail",
+      "path": "nbc-core/nbc.door.bath.width.min.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.front.plot.le120.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.plot.le120",
+      "kind": "pass",
+      "path": "blr/blr.setback.front.plot.le120.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.front.plot.le120.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.plot.le120",
+      "kind": "fail",
+      "path": "blr/blr.setback.front.plot.le120.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.front.plot.121-240.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.plot.121-240",
+      "kind": "pass",
+      "path": "blr/blr.setback.front.plot.121-240.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.front.plot.121-240.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.plot.121-240",
+      "kind": "fail",
+      "path": "blr/blr.setback.front.plot.121-240.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.front.plot.241-500.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.plot.241-500",
+      "kind": "pass",
+      "path": "blr/blr.setback.front.plot.241-500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.front.plot.241-500.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.plot.241-500",
+      "kind": "fail",
+      "path": "blr/blr.setback.front.plot.241-500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.front.plot.gt500.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.plot.gt500",
+      "kind": "pass",
+      "path": "blr/blr.setback.front.plot.gt500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.front.plot.gt500.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.plot.gt500",
+      "kind": "fail",
+      "path": "blr/blr.setback.front.plot.gt500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.front.road.lt9m.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.road.lt9m",
+      "kind": "pass",
+      "path": "blr/blr.setback.front.road.lt9m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.front.road.lt9m.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.road.lt9m",
+      "kind": "fail",
+      "path": "blr/blr.setback.front.road.lt9m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.front.road.9-18m.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.road.9-18m",
+      "kind": "pass",
+      "path": "blr/blr.setback.front.road.9-18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.front.road.9-18m.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.road.9-18m",
+      "kind": "fail",
+      "path": "blr/blr.setback.front.road.9-18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.front.road.ge18m.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.road.ge18m",
+      "kind": "pass",
+      "path": "blr/blr.setback.front.road.ge18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.front.road.ge18m.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.front.road.ge18m",
+      "kind": "fail",
+      "path": "blr/blr.setback.front.road.ge18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.rear.plot.le120.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.rear.plot.le120",
+      "kind": "pass",
+      "path": "blr/blr.setback.rear.plot.le120.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.rear.plot.le120.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.rear.plot.le120",
+      "kind": "fail",
+      "path": "blr/blr.setback.rear.plot.le120.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.rear.plot.121-240.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.rear.plot.121-240",
+      "kind": "pass",
+      "path": "blr/blr.setback.rear.plot.121-240.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.rear.plot.121-240.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.rear.plot.121-240",
+      "kind": "fail",
+      "path": "blr/blr.setback.rear.plot.121-240.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.rear.plot.241-500.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.rear.plot.241-500",
+      "kind": "pass",
+      "path": "blr/blr.setback.rear.plot.241-500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.rear.plot.241-500.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.rear.plot.241-500",
+      "kind": "fail",
+      "path": "blr/blr.setback.rear.plot.241-500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.rear.plot.gt500.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.rear.plot.gt500",
+      "kind": "pass",
+      "path": "blr/blr.setback.rear.plot.gt500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.rear.plot.gt500.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.rear.plot.gt500",
+      "kind": "fail",
+      "path": "blr/blr.setback.rear.plot.gt500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.side.plot.le120.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.side.plot.le120",
+      "kind": "pass",
+      "path": "blr/blr.setback.side.plot.le120.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.side.plot.le120.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.side.plot.le120",
+      "kind": "fail",
+      "path": "blr/blr.setback.side.plot.le120.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.side.plot.121-240.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.side.plot.121-240",
+      "kind": "pass",
+      "path": "blr/blr.setback.side.plot.121-240.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.side.plot.121-240.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.side.plot.121-240",
+      "kind": "fail",
+      "path": "blr/blr.setback.side.plot.121-240.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.side.plot.241-500.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.side.plot.241-500",
+      "kind": "pass",
+      "path": "blr/blr.setback.side.plot.241-500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.side.plot.241-500.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.side.plot.241-500",
+      "kind": "fail",
+      "path": "blr/blr.setback.side.plot.241-500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.setback.side.plot.gt500.pass",
+      "packId": "blr",
+      "ruleId": "blr.setback.side.plot.gt500",
+      "kind": "pass",
+      "path": "blr/blr.setback.side.plot.gt500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.setback.side.plot.gt500.fail",
+      "packId": "blr",
+      "ruleId": "blr.setback.side.plot.gt500",
+      "kind": "fail",
+      "path": "blr/blr.setback.side.plot.gt500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.coverage.plot.le120.pass",
+      "packId": "blr",
+      "ruleId": "blr.coverage.plot.le120",
+      "kind": "pass",
+      "path": "blr/blr.coverage.plot.le120.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.coverage.plot.le120.fail",
+      "packId": "blr",
+      "ruleId": "blr.coverage.plot.le120",
+      "kind": "fail",
+      "path": "blr/blr.coverage.plot.le120.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.coverage.plot.121-240.pass",
+      "packId": "blr",
+      "ruleId": "blr.coverage.plot.121-240",
+      "kind": "pass",
+      "path": "blr/blr.coverage.plot.121-240.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.coverage.plot.121-240.fail",
+      "packId": "blr",
+      "ruleId": "blr.coverage.plot.121-240",
+      "kind": "fail",
+      "path": "blr/blr.coverage.plot.121-240.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.coverage.plot.241-500.pass",
+      "packId": "blr",
+      "ruleId": "blr.coverage.plot.241-500",
+      "kind": "pass",
+      "path": "blr/blr.coverage.plot.241-500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.coverage.plot.241-500.fail",
+      "packId": "blr",
+      "ruleId": "blr.coverage.plot.241-500",
+      "kind": "fail",
+      "path": "blr/blr.coverage.plot.241-500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.coverage.plot.gt500.pass",
+      "packId": "blr",
+      "ruleId": "blr.coverage.plot.gt500",
+      "kind": "pass",
+      "path": "blr/blr.coverage.plot.gt500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.coverage.plot.gt500.fail",
+      "packId": "blr",
+      "ruleId": "blr.coverage.plot.gt500",
+      "kind": "fail",
+      "path": "blr/blr.coverage.plot.gt500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.far.road.lt9m.pass",
+      "packId": "blr",
+      "ruleId": "blr.far.road.lt9m",
+      "kind": "pass",
+      "path": "blr/blr.far.road.lt9m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.far.road.lt9m.fail",
+      "packId": "blr",
+      "ruleId": "blr.far.road.lt9m",
+      "kind": "fail",
+      "path": "blr/blr.far.road.lt9m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.far.road.9-18m.pass",
+      "packId": "blr",
+      "ruleId": "blr.far.road.9-18m",
+      "kind": "pass",
+      "path": "blr/blr.far.road.9-18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.far.road.9-18m.fail",
+      "packId": "blr",
+      "ruleId": "blr.far.road.9-18m",
+      "kind": "fail",
+      "path": "blr/blr.far.road.9-18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.far.road.ge18m.pass",
+      "packId": "blr",
+      "ruleId": "blr.far.road.ge18m",
+      "kind": "pass",
+      "path": "blr/blr.far.road.ge18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.far.road.ge18m.fail",
+      "packId": "blr",
+      "ruleId": "blr.far.road.ge18m",
+      "kind": "fail",
+      "path": "blr/blr.far.road.ge18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.height.road.lt9m.pass",
+      "packId": "blr",
+      "ruleId": "blr.height.road.lt9m",
+      "kind": "pass",
+      "path": "blr/blr.height.road.lt9m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.height.road.lt9m.fail",
+      "packId": "blr",
+      "ruleId": "blr.height.road.lt9m",
+      "kind": "fail",
+      "path": "blr/blr.height.road.lt9m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.height.road.9-18m.pass",
+      "packId": "blr",
+      "ruleId": "blr.height.road.9-18m",
+      "kind": "pass",
+      "path": "blr/blr.height.road.9-18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.height.road.9-18m.fail",
+      "packId": "blr",
+      "ruleId": "blr.height.road.9-18m",
+      "kind": "fail",
+      "path": "blr/blr.height.road.9-18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.height.road.ge18m.pass",
+      "packId": "blr",
+      "ruleId": "blr.height.road.ge18m",
+      "kind": "pass",
+      "path": "blr/blr.height.road.ge18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.height.road.ge18m.fail",
+      "packId": "blr",
+      "ruleId": "blr.height.road.ge18m",
+      "kind": "fail",
+      "path": "blr/blr.height.road.ge18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.floors.road.lt9m.pass",
+      "packId": "blr",
+      "ruleId": "blr.floors.road.lt9m",
+      "kind": "pass",
+      "path": "blr/blr.floors.road.lt9m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.floors.road.lt9m.fail",
+      "packId": "blr",
+      "ruleId": "blr.floors.road.lt9m",
+      "kind": "fail",
+      "path": "blr/blr.floors.road.lt9m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.floors.road.9-18m.pass",
+      "packId": "blr",
+      "ruleId": "blr.floors.road.9-18m",
+      "kind": "pass",
+      "path": "blr/blr.floors.road.9-18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.floors.road.9-18m.fail",
+      "packId": "blr",
+      "ruleId": "blr.floors.road.9-18m",
+      "kind": "fail",
+      "path": "blr/blr.floors.road.9-18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.floors.road.ge18m.pass",
+      "packId": "blr",
+      "ruleId": "blr.floors.road.ge18m",
+      "kind": "pass",
+      "path": "blr/blr.floors.road.ge18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.floors.road.ge18m.fail",
+      "packId": "blr",
+      "ruleId": "blr.floors.road.ge18m",
+      "kind": "fail",
+      "path": "blr/blr.floors.road.ge18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.parking.plot.le240.pass",
+      "packId": "blr",
+      "ruleId": "blr.parking.plot.le240",
+      "kind": "pass",
+      "path": "blr/blr.parking.plot.le240.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.parking.plot.le240.fail",
+      "packId": "blr",
+      "ruleId": "blr.parking.plot.le240",
+      "kind": "fail",
+      "path": "blr/blr.parking.plot.le240.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.parking.plot.gt240.pass",
+      "packId": "blr",
+      "ruleId": "blr.parking.plot.gt240",
+      "kind": "pass",
+      "path": "blr/blr.parking.plot.gt240.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.parking.plot.gt240.fail",
+      "packId": "blr",
+      "ruleId": "blr.parking.plot.gt240",
+      "kind": "fail",
+      "path": "blr/blr.parking.plot.gt240.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.projection.balcony.front.pass",
+      "packId": "blr",
+      "ruleId": "blr.projection.balcony.front",
+      "kind": "pass",
+      "path": "blr/blr.projection.balcony.front.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.projection.balcony.front.fail",
+      "packId": "blr",
+      "ruleId": "blr.projection.balcony.front",
+      "kind": "fail",
+      "path": "blr/blr.projection.balcony.front.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.projection.chajja.pass",
+      "packId": "blr",
+      "ruleId": "blr.projection.chajja",
+      "kind": "pass",
+      "path": "blr/blr.projection.chajja.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.projection.chajja.fail",
+      "packId": "blr",
+      "ruleId": "blr.projection.chajja",
+      "kind": "fail",
+      "path": "blr/blr.projection.chajja.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.rwh.required.pass",
+      "packId": "blr",
+      "ruleId": "blr.rwh.required",
+      "kind": "pass",
+      "path": "blr/blr.rwh.required.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.rwh.required.fail",
+      "packId": "blr",
+      "ruleId": "blr.rwh.required",
+      "kind": "fail",
+      "path": "blr/blr.rwh.required.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "ncr.setback.front.plot.101-750.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.front.plot.101-750",
+      "kind": "pass",
+      "path": "ncr/ncr.setback.front.plot.101-750.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.setback.front.plot.101-750.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.front.plot.101-750",
+      "kind": "fail",
+      "path": "ncr/ncr.setback.front.plot.101-750.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.setback.front.plot.gt750.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.front.plot.gt750",
+      "kind": "pass",
+      "path": "ncr/ncr.setback.front.plot.gt750.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.setback.front.plot.gt750.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.front.plot.gt750",
+      "kind": "fail",
+      "path": "ncr/ncr.setback.front.plot.gt750.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.setback.rear.plot.gt250.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.rear.plot.gt250",
+      "kind": "pass",
+      "path": "ncr/ncr.setback.rear.plot.gt250.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.setback.rear.plot.gt250.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.rear.plot.gt250",
+      "kind": "fail",
+      "path": "ncr/ncr.setback.rear.plot.gt250.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.setback.side.plot.gt250.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.side.plot.gt250",
+      "kind": "pass",
+      "path": "ncr/ncr.setback.side.plot.gt250.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.setback.side.plot.gt250.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.side.plot.gt250",
+      "kind": "fail",
+      "path": "ncr/ncr.setback.side.plot.gt250.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.setback.front.road.18-24m.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.front.road.18-24m",
+      "kind": "pass",
+      "path": "ncr/ncr.setback.front.road.18-24m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.setback.front.road.18-24m.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.front.road.18-24m",
+      "kind": "fail",
+      "path": "ncr/ncr.setback.front.road.18-24m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.setback.front.road.ge24m.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.front.road.ge24m",
+      "kind": "pass",
+      "path": "ncr/ncr.setback.front.road.ge24m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.setback.front.road.ge24m.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.setback.front.road.ge24m",
+      "kind": "fail",
+      "path": "ncr/ncr.setback.front.road.ge24m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.coverage.plot.le100.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.coverage.plot.le100",
+      "kind": "pass",
+      "path": "ncr/ncr.coverage.plot.le100.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.coverage.plot.le100.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.coverage.plot.le100",
+      "kind": "fail",
+      "path": "ncr/ncr.coverage.plot.le100.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.coverage.plot.101-750.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.coverage.plot.101-750",
+      "kind": "pass",
+      "path": "ncr/ncr.coverage.plot.101-750.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.coverage.plot.101-750.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.coverage.plot.101-750",
+      "kind": "fail",
+      "path": "ncr/ncr.coverage.plot.101-750.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.coverage.plot.gt750.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.coverage.plot.gt750",
+      "kind": "pass",
+      "path": "ncr/ncr.coverage.plot.gt750.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.coverage.plot.gt750.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.coverage.plot.gt750",
+      "kind": "fail",
+      "path": "ncr/ncr.coverage.plot.gt750.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.far.plot.le100.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.far.plot.le100",
+      "kind": "pass",
+      "path": "ncr/ncr.far.plot.le100.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.far.plot.le100.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.far.plot.le100",
+      "kind": "fail",
+      "path": "ncr/ncr.far.plot.le100.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.far.plot.101-250.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.far.plot.101-250",
+      "kind": "pass",
+      "path": "ncr/ncr.far.plot.101-250.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.far.plot.101-250.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.far.plot.101-250",
+      "kind": "fail",
+      "path": "ncr/ncr.far.plot.101-250.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.far.plot.251-750.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.far.plot.251-750",
+      "kind": "pass",
+      "path": "ncr/ncr.far.plot.251-750.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.far.plot.251-750.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.far.plot.251-750",
+      "kind": "fail",
+      "path": "ncr/ncr.far.plot.251-750.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.far.plot.gt750.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.far.plot.gt750",
+      "kind": "pass",
+      "path": "ncr/ncr.far.plot.gt750.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.far.plot.gt750.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.far.plot.gt750",
+      "kind": "fail",
+      "path": "ncr/ncr.far.plot.gt750.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.height.max.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.height.max",
+      "kind": "pass",
+      "path": "ncr/ncr.height.max.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.height.max.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.height.max",
+      "kind": "fail",
+      "path": "ncr/ncr.height.max.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.floors.max.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.floors.max",
+      "kind": "pass",
+      "path": "ncr/ncr.floors.max.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.floors.max.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.floors.max",
+      "kind": "fail",
+      "path": "ncr/ncr.floors.max.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.parking.ecs.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.parking.ecs",
+      "kind": "pass",
+      "path": "ncr/ncr.parking.ecs.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.parking.ecs.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.parking.ecs",
+      "kind": "fail",
+      "path": "ncr/ncr.parking.ecs.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.projection.balcony.front.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.projection.balcony.front",
+      "kind": "pass",
+      "path": "ncr/ncr.projection.balcony.front.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.projection.balcony.front.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.projection.balcony.front",
+      "kind": "fail",
+      "path": "ncr/ncr.projection.balcony.front.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.projection.chajja.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.projection.chajja",
+      "kind": "pass",
+      "path": "ncr/ncr.projection.chajja.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.projection.chajja.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.projection.chajja",
+      "kind": "fail",
+      "path": "ncr/ncr.projection.chajja.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.rwh.required.pass",
+      "packId": "ncr",
+      "ruleId": "ncr.rwh.required",
+      "kind": "pass",
+      "path": "ncr/ncr.rwh.required.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.rwh.required.fail",
+      "packId": "ncr",
+      "ruleId": "ncr.rwh.required",
+      "kind": "fail",
+      "path": "ncr/ncr.rwh.required.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "hyd.setback.front.plot.le100.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.plot.le100",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.front.plot.le100.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.front.plot.le100.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.plot.le100",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.front.plot.le100.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.front.plot.101-200.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.plot.101-200",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.front.plot.101-200.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.front.plot.101-200.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.plot.101-200",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.front.plot.101-200.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.front.plot.201-500.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.plot.201-500",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.front.plot.201-500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.front.plot.201-500.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.plot.201-500",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.front.plot.201-500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.front.plot.gt500.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.plot.gt500",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.front.plot.gt500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.front.plot.gt500.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.plot.gt500",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.front.plot.gt500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.front.road.lt9m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.road.lt9m",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.front.road.lt9m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.front.road.lt9m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.road.lt9m",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.front.road.lt9m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.front.road.9-18m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.road.9-18m",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.front.road.9-18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.front.road.9-18m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.road.9-18m",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.front.road.9-18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.front.road.ge18m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.road.ge18m",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.front.road.ge18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.front.road.ge18m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.front.road.ge18m",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.front.road.ge18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.rear.plot.le100.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.rear.plot.le100",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.rear.plot.le100.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.rear.plot.le100.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.rear.plot.le100",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.rear.plot.le100.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.rear.plot.101-200.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.rear.plot.101-200",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.rear.plot.101-200.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.rear.plot.101-200.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.rear.plot.101-200",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.rear.plot.101-200.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.rear.plot.201-500.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.rear.plot.201-500",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.rear.plot.201-500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.rear.plot.201-500.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.rear.plot.201-500",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.rear.plot.201-500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.rear.plot.gt500.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.rear.plot.gt500",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.rear.plot.gt500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.rear.plot.gt500.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.rear.plot.gt500",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.rear.plot.gt500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.side.plot.le100.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.side.plot.le100",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.side.plot.le100.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.side.plot.le100.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.side.plot.le100",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.side.plot.le100.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.side.plot.101-200.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.side.plot.101-200",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.side.plot.101-200.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.side.plot.101-200.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.side.plot.101-200",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.side.plot.101-200.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.side.plot.201-500.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.side.plot.201-500",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.side.plot.201-500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.side.plot.201-500.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.side.plot.201-500",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.side.plot.201-500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.setback.side.plot.gt500.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.side.plot.gt500",
+      "kind": "pass",
+      "path": "hyd/hyd.setback.side.plot.gt500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.setback.side.plot.gt500.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.setback.side.plot.gt500",
+      "kind": "fail",
+      "path": "hyd/hyd.setback.side.plot.gt500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.coverage.plot.le200.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.coverage.plot.le200",
+      "kind": "pass",
+      "path": "hyd/hyd.coverage.plot.le200.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.coverage.plot.le200.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.coverage.plot.le200",
+      "kind": "fail",
+      "path": "hyd/hyd.coverage.plot.le200.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.coverage.plot.201-500.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.coverage.plot.201-500",
+      "kind": "pass",
+      "path": "hyd/hyd.coverage.plot.201-500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.coverage.plot.201-500.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.coverage.plot.201-500",
+      "kind": "fail",
+      "path": "hyd/hyd.coverage.plot.201-500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.coverage.plot.gt500.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.coverage.plot.gt500",
+      "kind": "pass",
+      "path": "hyd/hyd.coverage.plot.gt500.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.coverage.plot.gt500.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.coverage.plot.gt500",
+      "kind": "fail",
+      "path": "hyd/hyd.coverage.plot.gt500.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.far.road.lt9m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.far.road.lt9m",
+      "kind": "pass",
+      "path": "hyd/hyd.far.road.lt9m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.far.road.lt9m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.far.road.lt9m",
+      "kind": "fail",
+      "path": "hyd/hyd.far.road.lt9m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.far.road.9-18m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.far.road.9-18m",
+      "kind": "pass",
+      "path": "hyd/hyd.far.road.9-18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.far.road.9-18m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.far.road.9-18m",
+      "kind": "fail",
+      "path": "hyd/hyd.far.road.9-18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.far.road.ge18m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.far.road.ge18m",
+      "kind": "pass",
+      "path": "hyd/hyd.far.road.ge18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.far.road.ge18m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.far.road.ge18m",
+      "kind": "fail",
+      "path": "hyd/hyd.far.road.ge18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.height.road.lt9m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.height.road.lt9m",
+      "kind": "pass",
+      "path": "hyd/hyd.height.road.lt9m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.height.road.lt9m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.height.road.lt9m",
+      "kind": "fail",
+      "path": "hyd/hyd.height.road.lt9m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.height.road.9-12m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.height.road.9-12m",
+      "kind": "pass",
+      "path": "hyd/hyd.height.road.9-12m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.height.road.9-12m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.height.road.9-12m",
+      "kind": "fail",
+      "path": "hyd/hyd.height.road.9-12m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.height.road.12-18m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.height.road.12-18m",
+      "kind": "pass",
+      "path": "hyd/hyd.height.road.12-18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.height.road.12-18m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.height.road.12-18m",
+      "kind": "fail",
+      "path": "hyd/hyd.height.road.12-18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.height.road.ge18m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.height.road.ge18m",
+      "kind": "pass",
+      "path": "hyd/hyd.height.road.ge18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.height.road.ge18m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.height.road.ge18m",
+      "kind": "fail",
+      "path": "hyd/hyd.height.road.ge18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.floors.road.lt9m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.floors.road.lt9m",
+      "kind": "pass",
+      "path": "hyd/hyd.floors.road.lt9m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.floors.road.lt9m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.floors.road.lt9m",
+      "kind": "fail",
+      "path": "hyd/hyd.floors.road.lt9m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.floors.road.9-12m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.floors.road.9-12m",
+      "kind": "pass",
+      "path": "hyd/hyd.floors.road.9-12m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.floors.road.9-12m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.floors.road.9-12m",
+      "kind": "fail",
+      "path": "hyd/hyd.floors.road.9-12m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.floors.road.12-18m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.floors.road.12-18m",
+      "kind": "pass",
+      "path": "hyd/hyd.floors.road.12-18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.floors.road.12-18m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.floors.road.12-18m",
+      "kind": "fail",
+      "path": "hyd/hyd.floors.road.12-18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.floors.road.ge18m.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.floors.road.ge18m",
+      "kind": "pass",
+      "path": "hyd/hyd.floors.road.ge18m.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.floors.road.ge18m.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.floors.road.ge18m",
+      "kind": "fail",
+      "path": "hyd/hyd.floors.road.ge18m.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.parking.plot.le200.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.parking.plot.le200",
+      "kind": "pass",
+      "path": "hyd/hyd.parking.plot.le200.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.parking.plot.le200.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.parking.plot.le200",
+      "kind": "fail",
+      "path": "hyd/hyd.parking.plot.le200.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.parking.plot.gt200.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.parking.plot.gt200",
+      "kind": "pass",
+      "path": "hyd/hyd.parking.plot.gt200.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.parking.plot.gt200.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.parking.plot.gt200",
+      "kind": "fail",
+      "path": "hyd/hyd.parking.plot.gt200.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.projection.balcony.front.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.projection.balcony.front",
+      "kind": "pass",
+      "path": "hyd/hyd.projection.balcony.front.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.projection.balcony.front.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.projection.balcony.front",
+      "kind": "fail",
+      "path": "hyd/hyd.projection.balcony.front.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.projection.chajja.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.projection.chajja",
+      "kind": "pass",
+      "path": "hyd/hyd.projection.chajja.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.projection.chajja.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.projection.chajja",
+      "kind": "fail",
+      "path": "hyd/hyd.projection.chajja.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.rwh.required.pass",
+      "packId": "hyd",
+      "ruleId": "hyd.rwh.required",
+      "kind": "pass",
+      "path": "hyd/hyd.rwh.required.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.rwh.required.fail",
+      "packId": "hyd",
+      "ruleId": "hyd.rwh.required",
+      "kind": "fail",
+      "path": "hyd/hyd.rwh.required.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "vastu.entrance.edge.pass",
+      "packId": "vastu",
+      "ruleId": "vastu.entrance.edge",
+      "kind": "pass",
+      "path": "vastu/vastu.entrance.edge.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "vastu.entrance.edge.fail",
+      "packId": "vastu",
+      "ruleId": "vastu.entrance.edge",
+      "kind": "fail",
+      "path": "vastu/vastu.entrance.edge.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "vastu.pooja.zone.pass",
+      "packId": "vastu",
+      "ruleId": "vastu.pooja.zone",
+      "kind": "pass",
+      "path": "vastu/vastu.pooja.zone.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "vastu.pooja.zone.fail",
+      "packId": "vastu",
+      "ruleId": "vastu.pooja.zone",
+      "kind": "fail",
+      "path": "vastu/vastu.pooja.zone.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "vastu.kitchen.zone.pass",
+      "packId": "vastu",
+      "ruleId": "vastu.kitchen.zone",
+      "kind": "pass",
+      "path": "vastu/vastu.kitchen.zone.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "vastu.kitchen.zone.fail",
+      "packId": "vastu",
+      "ruleId": "vastu.kitchen.zone",
+      "kind": "fail",
+      "path": "vastu/vastu.kitchen.zone.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "vastu.master.zone.pass",
+      "packId": "vastu",
+      "ruleId": "vastu.master.zone",
+      "kind": "pass",
+      "path": "vastu/vastu.master.zone.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "vastu.master.zone.fail",
+      "packId": "vastu",
+      "ruleId": "vastu.master.zone",
+      "kind": "fail",
+      "path": "vastu/vastu.master.zone.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "vastu.toilet.zone.pass",
+      "packId": "vastu",
+      "ruleId": "vastu.toilet.zone",
+      "kind": "pass",
+      "path": "vastu/vastu.toilet.zone.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "vastu.toilet.zone.fail",
+      "packId": "vastu",
+      "ruleId": "vastu.toilet.zone",
+      "kind": "fail",
+      "path": "vastu/vastu.toilet.zone.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "vastu.toilet.never_ne.pass",
+      "packId": "vastu",
+      "ruleId": "vastu.toilet.never_ne",
+      "kind": "pass",
+      "path": "vastu/vastu.toilet.never_ne.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "vastu.toilet.never_ne.fail",
+      "packId": "vastu",
+      "ruleId": "vastu.toilet.never_ne",
+      "kind": "fail",
+      "path": "vastu/vastu.toilet.never_ne.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "vastu.stair.zone.pass",
+      "packId": "vastu",
+      "ruleId": "vastu.stair.zone",
+      "kind": "pass",
+      "path": "vastu/vastu.stair.zone.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "vastu.stair.zone.fail",
+      "packId": "vastu",
+      "ruleId": "vastu.stair.zone",
+      "kind": "fail",
+      "path": "vastu/vastu.stair.zone.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "vastu.brahmasthan.open.pass",
+      "packId": "vastu",
+      "ruleId": "vastu.brahmasthan.open",
+      "kind": "pass",
+      "path": "vastu/vastu.brahmasthan.open.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "vastu.brahmasthan.open.fail",
+      "packId": "vastu",
+      "ruleId": "vastu.brahmasthan.open",
+      "kind": "fail",
+      "path": "vastu/vastu.brahmasthan.open.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "vastu.water_tank.zone.pass",
+      "packId": "vastu",
+      "ruleId": "vastu.water_tank.zone",
+      "kind": "pass",
+      "path": "vastu/vastu.water_tank.zone.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "vastu.water_tank.zone.fail",
+      "packId": "vastu",
+      "ruleId": "vastu.water_tank.zone",
+      "kind": "fail",
+      "path": "vastu/vastu.water_tank.zone.fail.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "vastu.kitchen.zone.extra-fallback",
+      "packId": "vastu",
+      "ruleId": "vastu.kitchen.zone",
+      "kind": "extra",
+      "path": "vastu/vastu.kitchen.zone.extra-fallback.json",
+      "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "vastu.toilet.never_ne.extra-advisory",
+      "packId": "vastu",
+      "ruleId": "vastu.toilet.never_ne",
+      "kind": "extra",
+      "path": "vastu/vastu.toilet.never_ne.extra-advisory.json",
+      "expectStatus": "warn"
+    }
+  ]
+}

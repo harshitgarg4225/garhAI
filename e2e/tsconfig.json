@@ -1,0 +1,23 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    /* Playwright specs are never emitted — they run through its own esbuild
+     * transform. `composite` from the base config requires an outDir even with
+     * noEmit, so it is switched off here rather than pointed at a directory
+     * nothing reads. */
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node"],
+    /* DOM is in `lib` because `page.evaluate(() => ...)` bodies are typed as
+     * browser code (they reference `document`, `performance`, `PerformanceEntry`)
+     * even though the file around them runs in Node. Everything outside an
+     * `evaluate` should go through Playwright's `page`/`expect` instead. */
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "../playwright-report", "../test-results"]
+}

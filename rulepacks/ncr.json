@@ -1,0 +1,784 @@
+{
+  "$schema": "./schema/rulepack.schema.json",
+  "schemaVersion": 1,
+  "pack": "ncr",
+  "idPrefix": "ncr",
+  "version": "2026.07",
+  "title": "Delhi NCR - MPD-2021 and DDA Building Bye-laws 2016 (seed)",
+  "authority": "Delhi Development Authority",
+  "jurisdiction": {
+    "country": "IN",
+    "state": "DL",
+    "city": "Delhi",
+    "scope": "municipal"
+  },
+  "extends": "nbc-core",
+  "citations_base": "MPD-2021 / DDA Building Bye-laws 2016",
+  "confidenceDefault": "seed",
+  "review": {
+    "status": "unreviewed",
+    "reviewers": [],
+    "lastReviewedAt": null,
+    "nextReviewDue": null,
+    "notes": "SEED PACK - NOT AUTHORITATIVE. Table structure follows the published bye-laws; the numbers are plausible drafting defaults entered by the Garh AI team from secondary summaries, not transcribed from the primary document. An empanelled local architect must replace every value, confirm every citation, and move the pack to 'reviewed' before it is used on a submission."
+  },
+  "disclaimer": "Advisory only, not an approval. Every value in this pack is marked 'seed': it was drafted by the Garh AI team from secondary summaries of the bye-laws and has NOT been verified against the primary document or by a local architect. Do not rely on it for a sanction submission. The architect of record remains responsible for compliance; verify each figure against the current bye-laws and any local amendment before signing a drawing.",
+  "notes": "Delhi indexes FAR and coverage on PLOT SIZE (not road width) and caps residential height flat at 15 m, so this pack has no road-width FAR/height families - only two road-width front-setback rules for wide roads. Plots up to 100 m2 in an approved layout may have NIL setbacks; that is encoded as the ABSENCE of setback rules for that band, never as a 0 mm rule, because a 0 mm minimum can never be violated and would give a false sense of having been checked. MPD-2021 also caps dwelling units per plot; there is no check type for that in schemaVersion 1 and it is deliberately omitted rather than approximated.",
+  "sources": [
+    {
+      "label": "Master Plan for Delhi 2021",
+      "publisher": "Delhi Development Authority",
+      "year": 2007,
+      "obtained": false
+    },
+    {
+      "label": "Unified Building Bye-Laws for Delhi 2016",
+      "publisher": "Delhi Development Authority",
+      "year": 2016,
+      "obtained": false
+    }
+  ],
+  "vocabulary": {
+    "coverageInclusions": [
+      "porch",
+      "ramp"
+    ],
+    "farExclusions": [
+      "stilt-parking",
+      "basement-parking",
+      "mumty",
+      "oht",
+      "stair-headroom",
+      "shaft",
+      "balcony-projection"
+    ]
+  },
+  "rules": [
+    {
+      "id": "ncr.setback.front.plot.101-750",
+      "severity": "fail",
+      "title": "Front setback - plots 101-750 m2",
+      "message": "The front setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 100,
+          "lte": 750
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 3000
+      },
+      "cite": "Building Bye-laws 2016, Table 2 - setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 3 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front"
+      ]
+    },
+    {
+      "id": "ncr.setback.front.plot.gt750",
+      "severity": "fail",
+      "title": "Front setback - plots above 750 m2",
+      "message": "The front setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 750
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 6000
+      },
+      "cite": "Building Bye-laws 2016, Table 2 - setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 6 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front"
+      ]
+    },
+    {
+      "id": "ncr.setback.rear.plot.gt250",
+      "severity": "fail",
+      "title": "Rear setback - plots above 250 m2",
+      "message": "The rear setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 250
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "rear",
+        "valueMm": 3000
+      },
+      "cite": "Building Bye-laws 2016, Table 2 - setbacks for residential plots",
+      "fix": "Move the building line back so the rear setback is at least 3 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "rear"
+      ]
+    },
+    {
+      "id": "ncr.setback.side.plot.gt250",
+      "severity": "fail",
+      "title": "Side setback - plots above 250 m2",
+      "message": "The side setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 250
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "sides",
+        "valueMm": 3000
+      },
+      "cite": "Building Bye-laws 2016, Table 2 - setbacks for residential plots",
+      "fix": "Move the building line back so the side setback is at least 3 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "side"
+      ]
+    },
+    {
+      "id": "ncr.setback.front.road.18-24m",
+      "severity": "fail",
+      "title": "Front setback - road 18-24 m",
+      "message": "The front setback is {actual} - a 18-24 m access road needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 18000,
+          "lt": 24000
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 6000
+      },
+      "cite": "Building Bye-laws 2016, Table 2 - setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 6 m for this road width.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front",
+        "road-width"
+      ],
+      "notes": "Stacks with the plot-size front setback rule; the larger of the two governs."
+    },
+    {
+      "id": "ncr.setback.front.road.ge24m",
+      "severity": "fail",
+      "title": "Front setback - road 24 m and wider",
+      "message": "The front setback is {actual} - a 24 m and wider access road needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 24000
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 9000
+      },
+      "cite": "Building Bye-laws 2016, Table 2 - setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 9 m for this road width.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front",
+        "road-width"
+      ],
+      "notes": "Stacks with the plot-size front setback rule; the larger of the two governs."
+    },
+    {
+      "id": "ncr.coverage.plot.le100",
+      "severity": "fail",
+      "title": "Ground coverage - plots up to 100 m2",
+      "message": "The footprint covers {actual} - the most allowed on this plot is {limit} (90% of the plot).",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "lte": 100
+        }
+      },
+      "check": {
+        "type": "coverage_max",
+        "ratio": {
+          "num": 90,
+          "den": 100
+        }
+      },
+      "cite": "MPD-2021 Table 7.1 - residential plotted development",
+      "fix": "Reduce the ground-floor footprint to 90% of the plot area or less.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-footprint",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "coverage"
+      ]
+    },
+    {
+      "id": "ncr.coverage.plot.101-750",
+      "severity": "fail",
+      "title": "Ground coverage - plots 101-750 m2",
+      "message": "The footprint covers {actual} - the most allowed on this plot is {limit} (75% of the plot).",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 100,
+          "lte": 750
+        }
+      },
+      "check": {
+        "type": "coverage_max",
+        "ratio": {
+          "num": 75,
+          "den": 100
+        }
+      },
+      "cite": "MPD-2021 Table 7.1 - residential plotted development",
+      "fix": "Reduce the ground-floor footprint to 75% of the plot area or less.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-footprint",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "coverage"
+      ]
+    },
+    {
+      "id": "ncr.coverage.plot.gt750",
+      "severity": "fail",
+      "title": "Ground coverage - plots above 750 m2",
+      "message": "The footprint covers {actual} - the most allowed on this plot is {limit} (50% of the plot).",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 750
+        }
+      },
+      "check": {
+        "type": "coverage_max",
+        "ratio": {
+          "num": 50,
+          "den": 100
+        }
+      },
+      "cite": "MPD-2021 Table 7.1 - residential plotted development",
+      "fix": "Reduce the ground-floor footprint to 50% of the plot area or less.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-footprint",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "coverage"
+      ]
+    },
+    {
+      "id": "ncr.far.plot.le100",
+      "severity": "fail",
+      "title": "FAR - plots up to 100 m2",
+      "message": "The design uses {actual} of countable floor area - FAR 3.5 allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "lte": 100
+        }
+      },
+      "check": {
+        "type": "far_max",
+        "ratio": {
+          "num": 350,
+          "den": 100
+        }
+      },
+      "cite": "MPD-2021 Table 7.1 - residential plotted development",
+      "fix": "Reduce countable floor area to FAR 3.5, or check which areas your city excludes from FAR.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-built-up",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "far"
+      ]
+    },
+    {
+      "id": "ncr.far.plot.101-250",
+      "severity": "fail",
+      "title": "FAR - plots 101-250 m2",
+      "message": "The design uses {actual} of countable floor area - FAR 3 allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 100,
+          "lte": 250
+        }
+      },
+      "check": {
+        "type": "far_max",
+        "ratio": {
+          "num": 300,
+          "den": 100
+        }
+      },
+      "cite": "MPD-2021 Table 7.1 - residential plotted development",
+      "fix": "Reduce countable floor area to FAR 3, or check which areas your city excludes from FAR.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-built-up",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "far"
+      ]
+    },
+    {
+      "id": "ncr.far.plot.251-750",
+      "severity": "fail",
+      "title": "FAR - plots 251-750 m2",
+      "message": "The design uses {actual} of countable floor area - FAR 2.25 allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 250,
+          "lte": 750
+        }
+      },
+      "check": {
+        "type": "far_max",
+        "ratio": {
+          "num": 225,
+          "den": 100
+        }
+      },
+      "cite": "MPD-2021 Table 7.1 - residential plotted development",
+      "fix": "Reduce countable floor area to FAR 2.25, or check which areas your city excludes from FAR.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-built-up",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "far"
+      ]
+    },
+    {
+      "id": "ncr.far.plot.gt750",
+      "severity": "fail",
+      "title": "FAR - plots above 750 m2",
+      "message": "The design uses {actual} of countable floor area - FAR 1.8 allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 750
+        }
+      },
+      "check": {
+        "type": "far_max",
+        "ratio": {
+          "num": 180,
+          "den": 100
+        }
+      },
+      "cite": "MPD-2021 Table 7.1 - residential plotted development",
+      "fix": "Reduce countable floor area to FAR 1.8, or check which areas your city excludes from FAR.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-built-up",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "far"
+      ]
+    },
+    {
+      "id": "ncr.height.max",
+      "severity": "fail",
+      "title": "Building height - maximum",
+      "message": "The building is {actual} tall - Delhi allows {limit} for residential plotted development.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        }
+      },
+      "check": {
+        "type": "height_max",
+        "valueMm": 15000,
+        "excludes": [
+          "parapet",
+          "mumty",
+          "oht",
+          "stair-headroom"
+        ]
+      },
+      "cite": "Building Bye-laws 2016, Cl. 6.2 - height",
+      "fix": "Lower the building to 15.00 m measured to the terrace level, excluding parapet, mumty and overhead tank.",
+      "autofix": {
+        "opType": "storey.set_height",
+        "strategy": "reduce-storeys",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "height"
+      ],
+      "notes": "Delhi's residential height cap is flat, not road-width indexed - hence one rule instead of a road-width family."
+    },
+    {
+      "id": "ncr.floors.max",
+      "severity": "fail",
+      "title": "Floors - maximum",
+      "message": "The design has {actual} floors above ground - Delhi allows {limit} over a stilt.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        }
+      },
+      "check": {
+        "type": "floors_max",
+        "value": 4,
+        "counts": []
+      },
+      "cite": "Building Bye-laws 2016, Cl. 6.2 - height",
+      "fix": "Reduce to 4 floors above ground (stilt does not count toward the limit).",
+      "autofix": {
+        "opType": "storey.remove",
+        "strategy": "reduce-storeys",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "floors"
+      ]
+    },
+    {
+      "id": "ncr.parking.ecs",
+      "severity": "fail",
+      "title": "Parking - equivalent car spaces",
+      "message": "{actual} car space(s) are shown - {limit} equivalent car space(s) are required for this built-up area.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        }
+      },
+      "check": {
+        "type": "parking_min",
+        "basis": "built-up-area",
+        "rate": {
+          "num": 2,
+          "den": 100000000
+        },
+        "minSpaces": 1,
+        "spaceSizeMm": [
+          2500,
+          5000
+        ]
+      },
+      "cite": "MPD-2021 Cl. 15.7 - parking standards (ECS)",
+      "fix": "Show 2 equivalent car spaces per 100 m2 of built-up area, at 2 500 x 5 000 mm each.",
+      "autofix": {
+        "opType": "furniture.place",
+        "strategy": "add-parking-space",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "parking"
+      ],
+      "notes": "Rate is expressed as spaces per mm2 of built-up area: 2 per 100 m2 = 2/100000000."
+    },
+    {
+      "id": "ncr.projection.balcony.front",
+      "severity": "fail",
+      "title": "Balcony projection - maximum",
+      "message": "{element} projects {actual} - the most allowed is {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        }
+      },
+      "check": {
+        "type": "projection_max",
+        "element": "balcony",
+        "valueMm": 1200,
+        "intoSetbackOnly": true
+      },
+      "cite": "Building Bye-laws 2016, Cl. 6.7 - projections",
+      "fix": "Trim the balcony to 1.2 m of projection on the road side.",
+      "autofix": {
+        "opType": "balcony.edit",
+        "strategy": "trim-projection"
+      },
+      "confidence": "seed",
+      "tags": [
+        "projection"
+      ]
+    },
+    {
+      "id": "ncr.projection.chajja",
+      "severity": "fail",
+      "title": "Chajja projection - maximum",
+      "message": "{element} projects {actual} - the most allowed is {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        }
+      },
+      "check": {
+        "type": "projection_max",
+        "element": "chajja",
+        "valueMm": 750,
+        "intoSetbackOnly": true
+      },
+      "cite": "Building Bye-laws 2016, Cl. 6.7 - projections",
+      "fix": "Trim the chajja to 0.75 m of projection.",
+      "autofix": {
+        "opType": "balcony.edit",
+        "strategy": "trim-projection"
+      },
+      "confidence": "seed",
+      "tags": [
+        "projection"
+      ]
+    },
+    {
+      "id": "ncr.rwh.required",
+      "severity": "warn",
+      "title": "Rainwater harvesting - required",
+      "message": "Rainwater harvesting is mandatory for plots of 100 m2 and above, and none is declared yet.",
+      "when": {
+        "plotAreaSqm": {
+          "gte": 100
+        }
+      },
+      "check": {
+        "type": "custom",
+        "fn": "rwh_required",
+        "scope": "project",
+        "args": {
+          "flag": "rwhDeclared"
+        }
+      },
+      "cite": "Building Bye-laws 2016, Cl. 8.3 - rainwater harvesting",
+      "fix": "Add a rainwater harvesting sump or recharge pit to the site plan and tick the declaration in the regulatory profile.",
+      "autofix": {
+        "opType": "plot.set_reg_profile",
+        "strategy": "declare-rwh"
+      },
+      "confidence": "seed",
+      "tags": [
+        "rwh",
+        "services"
+      ],
+      "notes": "Declaration check, not a geometric one: the MVP model has no RWH element, so the pack must not claim to verify capacity. Severity is warn for that reason."
+    }
+  ]
+}

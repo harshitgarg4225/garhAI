@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    /* An application, not a library: nothing imports our .d.ts, and `tsc` here
+     * only ever typechecks — Vite does the emitting. Turning the composite
+     * machinery off avoids the `noEmit` conflicts it would otherwise create.
+     *
+     * `@garh/model` is consumed as SOURCE (its package.json points `types` at
+     * `src/index.ts`), so no project reference and no build step is needed to
+     * see its types — the `paths` aliases inherited from tsconfig.base.json
+     * resolve straight into `packages/model/src`. */
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+
+    /* Strictness is inherited from the base config and deliberately NOT
+     * relaxed here. Two flags in particular earn their keep in this package:
+     *   - noUncheckedIndexedAccess: `ops[i]` in a rebase loop is genuinely
+     *     possibly-undefined, and pretending otherwise is how a rebase drops
+     *     an edit silently.
+     *   - exactOptionalPropertyTypes: store state uses `T | null` rather than
+     *     `T?` everywhere precisely so this flag has nothing to complain about
+     *     and "absent" always means one thing. */
+    "useDefineForClassFields": true
+  },
+  "include": ["src", "src/**/*.json"],
+  "exclude": ["dist", "node_modules", "coverage"]
+}

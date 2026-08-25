@@ -1,0 +1,1339 @@
+{
+  "$schema": "./schema/rulepack.schema.json",
+  "schemaVersion": 1,
+  "pack": "blr",
+  "idPrefix": "blr",
+  "version": "2026.07",
+  "title": "Bengaluru - BBMP Building Bye-laws 2020 (seed)",
+  "authority": "Bruhat Bengaluru Mahanagara Palike",
+  "jurisdiction": {
+    "country": "IN",
+    "state": "KA",
+    "city": "Bengaluru",
+    "scope": "municipal"
+  },
+  "extends": "nbc-core",
+  "citations_base": "BBMP Building Bye-laws 2020",
+  "confidenceDefault": "seed",
+  "review": {
+    "status": "unreviewed",
+    "reviewers": [],
+    "lastReviewedAt": null,
+    "nextReviewDue": null,
+    "notes": "SEED PACK - NOT AUTHORITATIVE. Table structure follows the published bye-laws; the numbers are plausible drafting defaults entered by the Garh AI team from secondary summaries, not transcribed from the primary document. An empanelled local architect must replace every value, confirm every citation, and move the pack to 'reviewed' before it is used on a submission."
+  },
+  "disclaimer": "Advisory only, not an approval. Every value in this pack is marked 'seed': it was drafted by the Garh AI team from secondary summaries of the bye-laws and has NOT been verified against the primary document or by a local architect. Do not rely on it for a sanction submission. The architect of record remains responsible for compliance; verify each figure against the current bye-laws and any local amendment before signing a drawing.",
+  "notes": "Setbacks are tabulated twice on purpose: once by plot area and once by access-road width. Both families are minima, so the larger requirement governs - that is how the bye-law's two-axis table behaves. FAR, height and floor limits are indexed on the access-road width, coverage on plot area. Karnataka also permits height as a function of (road width + front setback); that formula is NOT encoded here and must be added at review as a custom check if the reviewing architect wants it.",
+  "sources": [
+    {
+      "label": "BBMP Building Bye-laws 2020",
+      "publisher": "Bruhat Bengaluru Mahanagara Palike",
+      "year": 2020,
+      "obtained": false
+    },
+    {
+      "label": "Revised Master Plan 2015 - Zoning of Land Use and Regulations",
+      "publisher": "Bangalore Development Authority",
+      "year": 2007,
+      "obtained": false
+    },
+    {
+      "label": "BWSSB (Amendment) Regulations 2009 - rainwater harvesting",
+      "publisher": "Bangalore Water Supply and Sewerage Board",
+      "year": 2009,
+      "obtained": false
+    }
+  ],
+  "vocabulary": {
+    "coverageInclusions": [
+      "porch",
+      "ramp"
+    ]
+  },
+  "rules": [
+    {
+      "id": "blr.setback.front.plot.le120",
+      "severity": "fail",
+      "title": "Front setback - plots up to 120 m2",
+      "message": "The front setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "lte": 120
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 1500
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 1.5 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front"
+      ]
+    },
+    {
+      "id": "blr.setback.front.plot.121-240",
+      "severity": "fail",
+      "title": "Front setback - plots 121-240 m2",
+      "message": "The front setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 120,
+          "lte": 240
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 2000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 2 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front"
+      ]
+    },
+    {
+      "id": "blr.setback.front.plot.241-500",
+      "severity": "fail",
+      "title": "Front setback - plots 241-500 m2",
+      "message": "The front setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 240,
+          "lte": 500
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 3000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 3 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front"
+      ]
+    },
+    {
+      "id": "blr.setback.front.plot.gt500",
+      "severity": "fail",
+      "title": "Front setback - plots above 500 m2",
+      "message": "The front setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 500
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 4000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 4 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front"
+      ]
+    },
+    {
+      "id": "blr.setback.front.road.lt9m",
+      "severity": "fail",
+      "title": "Front setback - road under 9 m",
+      "message": "The front setback is {actual} - a under 9 m access road needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "lt": 9000
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 1500
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 1.5 m for this road width.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front",
+        "road-width"
+      ],
+      "notes": "Stacks with the plot-size front setback rule; the larger of the two governs."
+    },
+    {
+      "id": "blr.setback.front.road.9-18m",
+      "severity": "fail",
+      "title": "Front setback - road 9-18 m",
+      "message": "The front setback is {actual} - a 9-18 m access road needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 9000,
+          "lt": 18000
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 3000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 3 m for this road width.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front",
+        "road-width"
+      ],
+      "notes": "Stacks with the plot-size front setback rule; the larger of the two governs."
+    },
+    {
+      "id": "blr.setback.front.road.ge18m",
+      "severity": "fail",
+      "title": "Front setback - road 18 m and wider",
+      "message": "The front setback is {actual} - a 18 m and wider access road needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 18000
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "front",
+        "valueMm": 4500
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the front setback is at least 4.5 m for this road width.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "front",
+        "road-width"
+      ],
+      "notes": "Stacks with the plot-size front setback rule; the larger of the two governs."
+    },
+    {
+      "id": "blr.setback.rear.plot.le120",
+      "severity": "fail",
+      "title": "Rear setback - plots up to 120 m2",
+      "message": "The rear setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "lte": 120
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "rear",
+        "valueMm": 1000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the rear setback is at least 1 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "rear"
+      ]
+    },
+    {
+      "id": "blr.setback.rear.plot.121-240",
+      "severity": "fail",
+      "title": "Rear setback - plots 121-240 m2",
+      "message": "The rear setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 120,
+          "lte": 240
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "rear",
+        "valueMm": 1500
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the rear setback is at least 1.5 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "rear"
+      ]
+    },
+    {
+      "id": "blr.setback.rear.plot.241-500",
+      "severity": "fail",
+      "title": "Rear setback - plots 241-500 m2",
+      "message": "The rear setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 240,
+          "lte": 500
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "rear",
+        "valueMm": 2000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the rear setback is at least 2 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "rear"
+      ]
+    },
+    {
+      "id": "blr.setback.rear.plot.gt500",
+      "severity": "fail",
+      "title": "Rear setback - plots above 500 m2",
+      "message": "The rear setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 500
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "rear",
+        "valueMm": 3000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the rear setback is at least 3 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "rear"
+      ]
+    },
+    {
+      "id": "blr.setback.side.plot.le120",
+      "severity": "fail",
+      "title": "Side setback - plots up to 120 m2",
+      "message": "The side setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "lte": 120
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "sides",
+        "valueMm": 1000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the side setback is at least 1 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "side"
+      ]
+    },
+    {
+      "id": "blr.setback.side.plot.121-240",
+      "severity": "fail",
+      "title": "Side setback - plots 121-240 m2",
+      "message": "The side setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 120,
+          "lte": 240
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "sides",
+        "valueMm": 1000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the side setback is at least 1 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "side"
+      ]
+    },
+    {
+      "id": "blr.setback.side.plot.241-500",
+      "severity": "fail",
+      "title": "Side setback - plots 241-500 m2",
+      "message": "The side setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 240,
+          "lte": 500
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "sides",
+        "valueMm": 1500
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the side setback is at least 1.5 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "side"
+      ]
+    },
+    {
+      "id": "blr.setback.side.plot.gt500",
+      "severity": "fail",
+      "title": "Side setback - plots above 500 m2",
+      "message": "The side setback is {actual} - a plot of this size needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 500
+        }
+      },
+      "check": {
+        "type": "setback_min",
+        "edge": "sides",
+        "valueMm": 2000
+      },
+      "cite": "Table 6 - Setbacks for residential plots",
+      "fix": "Move the building line back so the side setback is at least 2 m.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "move-building-line",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "setback",
+        "side"
+      ]
+    },
+    {
+      "id": "blr.coverage.plot.le120",
+      "severity": "fail",
+      "title": "Ground coverage - plots up to 120 m2",
+      "message": "The footprint covers {actual} - the most allowed on this plot is {limit} (70% of the plot).",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "lte": 120
+        }
+      },
+      "check": {
+        "type": "coverage_max",
+        "ratio": {
+          "num": 70,
+          "den": 100
+        }
+      },
+      "cite": "Table 5 - FAR and coverage by road width",
+      "fix": "Reduce the ground-floor footprint to 70% of the plot area or less.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-footprint",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "coverage"
+      ]
+    },
+    {
+      "id": "blr.coverage.plot.121-240",
+      "severity": "fail",
+      "title": "Ground coverage - plots 121-240 m2",
+      "message": "The footprint covers {actual} - the most allowed on this plot is {limit} (65% of the plot).",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 120,
+          "lte": 240
+        }
+      },
+      "check": {
+        "type": "coverage_max",
+        "ratio": {
+          "num": 65,
+          "den": 100
+        }
+      },
+      "cite": "Table 5 - FAR and coverage by road width",
+      "fix": "Reduce the ground-floor footprint to 65% of the plot area or less.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-footprint",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "coverage"
+      ]
+    },
+    {
+      "id": "blr.coverage.plot.241-500",
+      "severity": "fail",
+      "title": "Ground coverage - plots 241-500 m2",
+      "message": "The footprint covers {actual} - the most allowed on this plot is {limit} (60% of the plot).",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 240,
+          "lte": 500
+        }
+      },
+      "check": {
+        "type": "coverage_max",
+        "ratio": {
+          "num": 60,
+          "den": 100
+        }
+      },
+      "cite": "Table 5 - FAR and coverage by road width",
+      "fix": "Reduce the ground-floor footprint to 60% of the plot area or less.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-footprint",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "coverage"
+      ]
+    },
+    {
+      "id": "blr.coverage.plot.gt500",
+      "severity": "fail",
+      "title": "Ground coverage - plots above 500 m2",
+      "message": "The footprint covers {actual} - the most allowed on this plot is {limit} (55% of the plot).",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 500
+        }
+      },
+      "check": {
+        "type": "coverage_max",
+        "ratio": {
+          "num": 55,
+          "den": 100
+        }
+      },
+      "cite": "Table 5 - FAR and coverage by road width",
+      "fix": "Reduce the ground-floor footprint to 55% of the plot area or less.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-footprint",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "coverage"
+      ]
+    },
+    {
+      "id": "blr.far.road.lt9m",
+      "severity": "fail",
+      "title": "FAR - road under 9 m",
+      "message": "The design uses {actual} of countable floor area - FAR 1.5 allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "lt": 9000
+        }
+      },
+      "check": {
+        "type": "far_max",
+        "ratio": {
+          "num": 150,
+          "den": 100
+        }
+      },
+      "cite": "Table 5 - FAR and coverage by road width",
+      "fix": "Reduce countable floor area to FAR 1.5, or check which areas your city excludes from FAR.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-built-up",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "far"
+      ]
+    },
+    {
+      "id": "blr.far.road.9-18m",
+      "severity": "fail",
+      "title": "FAR - road 9-18 m",
+      "message": "The design uses {actual} of countable floor area - FAR 2.25 allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 9000,
+          "lt": 18000
+        }
+      },
+      "check": {
+        "type": "far_max",
+        "ratio": {
+          "num": 225,
+          "den": 100
+        }
+      },
+      "cite": "Table 5 - FAR and coverage by road width",
+      "fix": "Reduce countable floor area to FAR 2.25, or check which areas your city excludes from FAR.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-built-up",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "far"
+      ]
+    },
+    {
+      "id": "blr.far.road.ge18m",
+      "severity": "fail",
+      "title": "FAR - road 18 m and wider",
+      "message": "The design uses {actual} of countable floor area - FAR 3 allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 18000
+        }
+      },
+      "check": {
+        "type": "far_max",
+        "ratio": {
+          "num": 300,
+          "den": 100
+        }
+      },
+      "cite": "Table 5 - FAR and coverage by road width",
+      "fix": "Reduce countable floor area to FAR 3, or check which areas your city excludes from FAR.",
+      "autofix": {
+        "opType": "wall.move",
+        "strategy": "reduce-built-up",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "far"
+      ]
+    },
+    {
+      "id": "blr.height.road.lt9m",
+      "severity": "fail",
+      "title": "Building height - road under 9 m",
+      "message": "The building is {actual} tall - a under 9 m road allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "lt": 9000
+        }
+      },
+      "check": {
+        "type": "height_max",
+        "valueMm": 11500,
+        "excludes": [
+          "parapet",
+          "mumty",
+          "oht"
+        ]
+      },
+      "cite": "Cl. 4.5 - Height by access road width",
+      "fix": "Lower the building to 11.5 m, or check whether a wider access road applies.",
+      "autofix": {
+        "opType": "storey.set_height",
+        "strategy": "reduce-storeys",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "height"
+      ]
+    },
+    {
+      "id": "blr.height.road.9-18m",
+      "severity": "fail",
+      "title": "Building height - road 9-18 m",
+      "message": "The building is {actual} tall - a 9-18 m road allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 9000,
+          "lt": 18000
+        }
+      },
+      "check": {
+        "type": "height_max",
+        "valueMm": 15000,
+        "excludes": [
+          "parapet",
+          "mumty",
+          "oht"
+        ]
+      },
+      "cite": "Cl. 4.5 - Height by access road width",
+      "fix": "Lower the building to 15 m, or check whether a wider access road applies.",
+      "autofix": {
+        "opType": "storey.set_height",
+        "strategy": "reduce-storeys",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "height"
+      ]
+    },
+    {
+      "id": "blr.height.road.ge18m",
+      "severity": "fail",
+      "title": "Building height - road 18 m and wider",
+      "message": "The building is {actual} tall - a 18 m and wider road allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 18000
+        }
+      },
+      "check": {
+        "type": "height_max",
+        "valueMm": 18000,
+        "excludes": [
+          "parapet",
+          "mumty",
+          "oht"
+        ]
+      },
+      "cite": "Cl. 4.5 - Height by access road width",
+      "fix": "Lower the building to 18 m, or check whether a wider access road applies.",
+      "autofix": {
+        "opType": "storey.set_height",
+        "strategy": "reduce-storeys",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "height"
+      ]
+    },
+    {
+      "id": "blr.floors.road.lt9m",
+      "severity": "fail",
+      "title": "Floors - road under 9 m",
+      "message": "The design has {actual} floors - a under 9 m road allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "lt": 9000
+        }
+      },
+      "check": {
+        "type": "floors_max",
+        "value": 3,
+        "counts": []
+      },
+      "cite": "Cl. 4.5 - Height by access road width",
+      "fix": "Reduce to 3 floors (G+2), excluding stilt and basement.",
+      "autofix": {
+        "opType": "storey.remove",
+        "strategy": "reduce-storeys",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "floors"
+      ]
+    },
+    {
+      "id": "blr.floors.road.9-18m",
+      "severity": "fail",
+      "title": "Floors - road 9-18 m",
+      "message": "The design has {actual} floors - a 9-18 m road allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 9000,
+          "lt": 18000
+        }
+      },
+      "check": {
+        "type": "floors_max",
+        "value": 4,
+        "counts": []
+      },
+      "cite": "Cl. 4.5 - Height by access road width",
+      "fix": "Reduce to 4 floors (G+3), excluding stilt and basement.",
+      "autofix": {
+        "opType": "storey.remove",
+        "strategy": "reduce-storeys",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "floors"
+      ]
+    },
+    {
+      "id": "blr.floors.road.ge18m",
+      "severity": "fail",
+      "title": "Floors - road 18 m and wider",
+      "message": "The design has {actual} floors - a 18 m and wider road allows {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "roadWidthMm": {
+          "gte": 18000
+        }
+      },
+      "check": {
+        "type": "floors_max",
+        "value": 5,
+        "counts": []
+      },
+      "cite": "Cl. 4.5 - Height by access road width",
+      "fix": "Reduce to 5 floors (G+4), excluding stilt and basement.",
+      "autofix": {
+        "opType": "storey.remove",
+        "strategy": "reduce-storeys",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "floors"
+      ]
+    },
+    {
+      "id": "blr.parking.plot.le240",
+      "severity": "fail",
+      "title": "Parking - plots up to 240 m2",
+      "message": "{actual} car space(s) are shown - this plot needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "lte": 240
+        }
+      },
+      "check": {
+        "type": "parking_min",
+        "basis": "dwelling",
+        "rate": {
+          "num": 1,
+          "den": 1
+        },
+        "minSpaces": 1,
+        "spaceSizeMm": [
+          2500,
+          5000
+        ]
+      },
+      "cite": "Table 9 - Off-street parking",
+      "fix": "Show at least 1 car space(s) of 2500 x 5000 mm on the site plan.",
+      "autofix": {
+        "opType": "furniture.place",
+        "strategy": "add-parking-space",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "parking"
+      ]
+    },
+    {
+      "id": "blr.parking.plot.gt240",
+      "severity": "fail",
+      "title": "Parking - plots above 240 m2",
+      "message": "{actual} car space(s) are shown - this plot needs at least {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        },
+        "plotAreaSqm": {
+          "gt": 240
+        }
+      },
+      "check": {
+        "type": "parking_min",
+        "basis": "dwelling",
+        "rate": {
+          "num": 2,
+          "den": 1
+        },
+        "minSpaces": 2,
+        "spaceSizeMm": [
+          2500,
+          5000
+        ]
+      },
+      "cite": "Table 9 - Off-street parking",
+      "fix": "Show at least 2 car space(s) of 2500 x 5000 mm on the site plan.",
+      "autofix": {
+        "opType": "furniture.place",
+        "strategy": "add-parking-space",
+        "computable": false
+      },
+      "confidence": "seed",
+      "tags": [
+        "parking"
+      ]
+    },
+    {
+      "id": "blr.projection.balcony.front",
+      "severity": "fail",
+      "title": "Balcony projection - maximum",
+      "message": "{element} projects {actual} - the most allowed is {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        }
+      },
+      "check": {
+        "type": "projection_max",
+        "element": "balcony",
+        "valueMm": 1000,
+        "intoSetbackOnly": true
+      },
+      "cite": "Cl. 4.9 - Projections into setbacks",
+      "fix": "Trim the balcony to 1 m of projection on the road side.",
+      "autofix": {
+        "opType": "balcony.edit",
+        "strategy": "trim-projection"
+      },
+      "confidence": "seed",
+      "tags": [
+        "projection"
+      ]
+    },
+    {
+      "id": "blr.projection.chajja",
+      "severity": "fail",
+      "title": "Chajja projection - maximum",
+      "message": "{element} projects {actual} - the most allowed is {limit}.",
+      "when": {
+        "zoneCategory": {
+          "eq": "residential"
+        },
+        "buildingUse": {
+          "in": [
+            "dwelling-single",
+            "dwelling-two",
+            "row-house"
+          ]
+        }
+      },
+      "check": {
+        "type": "projection_max",
+        "element": "chajja",
+        "valueMm": 750,
+        "intoSetbackOnly": true
+      },
+      "cite": "Cl. 4.9 - Projections into setbacks",
+      "fix": "Trim the chajja to 0.75 m of projection.",
+      "autofix": {
+        "opType": "balcony.edit",
+        "strategy": "trim-projection"
+      },
+      "confidence": "seed",
+      "tags": [
+        "projection"
+      ]
+    },
+    {
+      "id": "blr.rwh.required",
+      "severity": "warn",
+      "title": "Rainwater harvesting - required",
+      "message": "Rainwater harvesting is mandatory for sites of 1 200 sq ft (111.48 m2) and above, and none is declared yet.",
+      "when": {
+        "plotAreaMm2": {
+          "gte": 111480000
+        }
+      },
+      "check": {
+        "type": "custom",
+        "fn": "rwh_required",
+        "scope": "project",
+        "args": {
+          "flag": "rwhDeclared"
+        }
+      },
+      "cite": "BWSSB Amendment Regulations 2009, Cl. 3",
+      "fix": "Add a rainwater harvesting sump or recharge pit to the site plan and tick the declaration in the regulatory profile.",
+      "autofix": {
+        "opType": "plot.set_reg_profile",
+        "strategy": "declare-rwh"
+      },
+      "confidence": "seed",
+      "tags": [
+        "rwh",
+        "services"
+      ],
+      "notes": "Declaration check, not a geometric one: the MVP model has no RWH element, so the pack must not claim to verify capacity. Severity is warn for that reason."
+    }
+  ]
+}

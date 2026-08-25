@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://garh.ai/schema/house-model.schema.json",
+  "title": "HouseModel (playbook §3)",
+  "$comment": "CROSS-LANGUAGE CONTRACT between packages/model/src/model.ts (TypeScript) and apps/api/garh_model/model.py (Python). Kept in lockstep BY HAND — a test in each language validates its own constructors against this file. This is the shape stored in design_versions.snapshot; ProjectDoc (project-doc.schema.json) wraps it with plot, brief and annotations, and is what the op log folds to and what stateHash hashes. rooms[] and slabs[] are DERIVED from walls on every fold, but are persisted because their ids are stable and load-bearing (annotations, locks, copilot references).",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "storeys",
+    "walls",
+    "openings",
+    "rooms",
+    "stairs",
+    "slabs",
+    "columns",
+    "furniture",
+    "facade",
+    "materials",
+    "levels",
+    "balconies",
+    "meta"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "storeys": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Storey" },
+      "$comment": "ORDERED: ground floor is index 0. This order is semantic and is NOT sorted by the canonicaliser."
+    },
+    "walls": { "type": "array", "items": { "$ref": "#/$defs/Wall" } },
+    "openings": { "type": "array", "items": { "$ref": "#/$defs/Opening" } },
+    "rooms": { "type": "array", "items": { "$ref": "#/$defs/Room" } },
+    "stairs": { "type": "array", "items": { "$ref": "#/$defs/Stair" } },
+    "slabs": { "type": "array", "items": { "$ref": "#/$defs/Slab" } },
+    "columns": { "type": "array", "items": { "$ref": "#/$defs/Column" } },
+    "furniture": { "type": "array", "items": { "$ref": "#/$defs/FurnitureInstance" } },
+    "facade": { "$ref": "#/$defs/FacadeModel" },
+    "materials": { "type": "array", "items": { "$ref": "#/$defs/MaterialAssignment" } },
+    "levels": { "$ref": "#/$defs/Levels" },
+    "balconies": { "type": "array", "items": { "$ref": "#/$defs/Balcony" } },
+    "meta": { "$ref": "#/$defs/ModelMeta" }
+  },
+
+  "$defs": {
+    "Storey": {
+      "type": "object",
+      "required": ["id", "name", "level", "heightMm"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/StoreyId" },
+        "name": { "type": "string" },
+        "level": { "$ref": "common.schema.json#/$defs/LevelData" },
+        "heightMm": {
+          "$ref": "common.schema.json#/$defs/PositiveIntMm",
+          "$comment": "Floor-to-floor height."
+        }
+      }
+    },
+    "Wall": {
+      "type": "object",
+      "required": ["id", "storeyId", "a", "b", "thicknessMm", "kind", "loadBearing"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/WallId" },
+        "storeyId": { "$ref": "common.schema.json#/$defs/StoreyId" },
+        "a": { "$ref": "common.schema.json#/$defs/Pt" },
+        "b": { "$ref": "common.schema.json#/$defs/Pt" },
+        "thicknessMm": { "$ref": "common.schema.json#/$defs/PositiveIntMm" },
+        "kind": { "$ref": "common.schema.json#/$defs/WallKind" },
+        "loadBearing": { "type": "boolean" }
+      },
+      "$comment": "a and b are the CENTRELINE endpoints and must differ (WALL_ZERO_LENGTH). No two walls on a storey may overlap along a non-zero length (WALL_DUPLICATE)."
+    },
+    "Opening": {
+      "type": "object",
+      "required": [
+        "id",
+        "wallId",
+        "kind",
+        "widthMm",
+        "heightMm",
+        "sillMm",
+        "offsetMm",
+        "swing",
+        "tag"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/OpeningId" },
+        "wallId": { "$ref": "common.schema.json#/$defs/WallId" },
+        "kind": { "$ref": "common.schema.json#/$defs/OpeningKind" },
+        "widthMm": { "$ref": "common.schema.json#/$defs/PositiveIntMm" },
+        "heightMm": { "$ref": "common.schema.json#/$defs/PositiveIntMm" },
+        "sillMm": { "$ref": "common.schema.json#/$defs/NonNegativeIntMm" },
+        "offsetMm": {
+          "$ref": "common.schema.json#/$defs/NonNegativeIntMm",
+          "$comment": "Distance along the host wall from `a` to the opening CENTRE."
+        },
+        "swing": { "$ref": "common.schema.json#/$defs/OpeningSwing" },
+        "tag": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "$comment": "Schedule tag D1/W2/V1, assigned by the schedule generator (§7)."
+        }
+      },
+      "$comment": "Invariants: the opening must fit inside the host wall minus a 115mm margin at each end (OPENING_OUT_OF_WALL), and sillMm + heightMm <= storey heightMm (OPENING_EXCEEDS_STOREY_HEIGHT)."
+    },
+    "Room": {
+      "type": "object",
+      "required": [
+        "id",
+        "storeyId",
+        "type",
+        "name",
+        "polygon",
+        "areaMm2",
+        "tags",
+        "locked",
+        "targetAreaMm2",
+        "mustFace"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/RoomId" },
+        "storeyId": { "$ref": "common.schema.json#/$defs/StoreyId" },
+        "type": { "$ref": "common.schema.json#/$defs/RoomType" },
+        "name": { "type": "string", "$comment": "Empty string = fall back to the type label." },
+        "polygon": {
+          "$ref": "common.schema.json#/$defs/Polygon",
+          "$comment": "CLEAR (inside-face) polygon: the wall-network face inset by half the thickness of each bounding wall."
+        },
+        "areaMm2": { "$ref": "common.schema.json#/$defs/IntMm2" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "locked": { "type": "boolean" },
+        "targetAreaMm2": { "oneOf": [{ "type": "integer" }, { "type": "null" }] },
+        "mustFace": {
+          "oneOf": [{ "$ref": "common.schema.json#/$defs/Direction8" }, { "type": "null" }]
+        }
+      },
+      "$comment": "DERIVED by planar subdivision, but ids are preserved across edits by maximum-Jaccard matching. A room id dies only when no new face matches it."
+    },
+    "Stair": {
+      "type": "object",
+      "required": [
+        "id",
+        "storeyId",
+        "kind",
+        "origin",
+        "direction",
+        "riserMm",
+        "treadMm",
+        "widthMm",
+        "risersCount",
+        "landing"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/StairId" },
+        "storeyId": { "$ref": "common.schema.json#/$defs/StoreyId" },
+        "kind": { "$ref": "common.schema.json#/$defs/StairKind" },
+        "origin": { "$ref": "common.schema.json#/$defs/Pt" },
+        "direction": { "$ref": "common.schema.json#/$defs/Direction4" },
+        "riserMm": { "$ref": "common.schema.json#/$defs/PositiveIntMm" },
+        "treadMm": { "$ref": "common.schema.json#/$defs/PositiveIntMm" },
+        "widthMm": { "$ref": "common.schema.json#/$defs/PositiveIntMm" },
+        "risersCount": { "type": "integer", "minimum": 2 },
+        "landing": {
+          "oneOf": [{ "$ref": "common.schema.json#/$defs/StairLanding" }, { "type": "null" }]
+        }
+      },
+      "$comment": "Invariant: risersCount * riserMm must equal the storey height within +/-10mm (STAIR_RISE_MISMATCH)."
+    },
+    "Slab": {
+      "type": "object",
+      "required": ["id", "storeyId", "kind", "polygon", "thicknessMm", "cutouts"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/SlabId" },
+        "storeyId": { "$ref": "common.schema.json#/$defs/StoreyId" },
+        "kind": { "$ref": "common.schema.json#/$defs/SlabKind" },
+        "polygon": { "$ref": "common.schema.json#/$defs/Polygon" },
+        "thicknessMm": { "$ref": "common.schema.json#/$defs/PositiveIntMm" },
+        "cutouts": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/Polygon" },
+          "$comment": "Stair wells (from the stair on the storey below), double-height voids, shafts."
+        }
+      },
+      "$comment": "DERIVED per storey from the outer face of the wall network."
+    },
+    "Column": {
+      "type": "object",
+      "required": ["id", "storeyId", "pt", "sizeMm"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/ColumnId" },
+        "storeyId": { "$ref": "common.schema.json#/$defs/StoreyId" },
+        "pt": { "$ref": "common.schema.json#/$defs/Pt" },
+        "sizeMm": { "$ref": "common.schema.json#/$defs/SizeMm" }
+      },
+      "$comment": "Coordination-only: columns never affect room detection or areas."
+    },
+    "FurnitureInstance": {
+      "type": "object",
+      "required": ["id", "storeyId", "catalogId", "pt", "rotationDeg"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/FurnitureId" },
+        "storeyId": { "$ref": "common.schema.json#/$defs/StoreyId" },
+        "catalogId": { "type": "string", "minLength": 1 },
+        "pt": { "$ref": "common.schema.json#/$defs/Pt" },
+        "rotationDeg": { "$ref": "common.schema.json#/$defs/IntDeg" }
+      }
+    },
+    "Balcony": {
+      "type": "object",
+      "required": [
+        "id",
+        "storeyId",
+        "polygon",
+        "railingKind",
+        "railingHeightMm",
+        "projectionMm",
+        "slabThicknessMm"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/BalconyId" },
+        "storeyId": { "$ref": "common.schema.json#/$defs/StoreyId" },
+        "polygon": { "$ref": "common.schema.json#/$defs/Polygon" },
+        "railingKind": { "$ref": "common.schema.json#/$defs/RailingKind" },
+        "railingHeightMm": { "$ref": "common.schema.json#/$defs/NonNegativeIntMm" },
+        "projectionMm": { "$ref": "common.schema.json#/$defs/NonNegativeIntMm" },
+        "slabThicknessMm": { "$ref": "common.schema.json#/$defs/PositiveIntMm" }
+      }
+    },
+    "FacadeComponent": {
+      "type": "object",
+      "required": ["id", "kind", "storeyId", "wallId", "openingId", "params"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/FacadeComponentId" },
+        "kind": { "$ref": "common.schema.json#/$defs/FacadeComponentKind" },
+        "storeyId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/StoreyId" }, { "type": "null" }] },
+        "wallId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/WallId" }, { "type": "null" }] },
+        "openingId": {
+          "oneOf": [{ "$ref": "common.schema.json#/$defs/OpeningId" }, { "type": "null" }]
+        },
+        "params": { "$ref": "common.schema.json#/$defs/JsonObject" }
+      }
+    },
+    "FacadeModel": {
+      "type": "object",
+      "required": ["kitId", "seed", "colorwayId", "components"],
+      "additionalProperties": false,
+      "properties": {
+        "kitId": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "seed": { "type": "integer", "minimum": 0 },
+        "colorwayId": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "components": { "type": "array", "items": { "$ref": "#/$defs/FacadeComponent" } }
+      },
+      "$comment": "ISOLATED sub-model (§3, §8): nothing here may affect walls, rooms, openings or areas."
+    },
+    "MaterialAssignment": {
+      "type": "object",
+      "required": ["id", "target", "materialId"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/MaterialAssignmentId" },
+        "target": { "$ref": "common.schema.json#/$defs/SurfaceGroupRef" },
+        "materialId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "Levels": {
+      "type": "object",
+      "required": [
+        "plinthMm",
+        "fflPerStoreyMm",
+        "sillDefaultMm",
+        "lintelDefaultMm",
+        "parapetMm"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "plinthMm": { "$ref": "common.schema.json#/$defs/NonNegativeIntMm" },
+        "fflPerStoreyMm": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/IntMm" },
+          "$comment": "Index-aligned with storeys[]; derived as plinth + running sum of storey heights unless levels.set supplied it explicitly."
+        },
+        "sillDefaultMm": { "$ref": "common.schema.json#/$defs/NonNegativeIntMm" },
+        "lintelDefaultMm": { "$ref": "common.schema.json#/$defs/NonNegativeIntMm" },
+        "parapetMm": { "$ref": "common.schema.json#/$defs/NonNegativeIntMm" }
+      },
+      "$comment": "First-class (§3): sections, elevations and the height/ventilation rules all read these."
+    },
+    "ModelMeta": {
+      "type": "object",
+      "required": ["unitsDisplay", "regProfileRef", "briefRef"],
+      "additionalProperties": false,
+      "properties": {
+        "unitsDisplay": { "$ref": "common.schema.json#/$defs/UnitsDisplay" },
+        "regProfileRef": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+        "briefRef": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+      }
+    }
+  }
+}

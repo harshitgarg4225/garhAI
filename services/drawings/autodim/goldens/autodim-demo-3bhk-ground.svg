@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="149mm" height="144mm" viewBox="0 0 14980 14475">
+  <style>
+  .dim    { stroke: #c0392b; stroke-width: 13; }
+  .witness{ stroke: #c0392b; stroke-width: 10; }
+  .tick   { stroke: #c0392b; stroke-width: 13; }
+  .leader { stroke: #c0392b; stroke-width: 10; }
+  text    { fill: #c0392b; font-family: monospace; text-anchor: middle;
+            dominant-baseline: central; }
+  </style>
+  <g id="A-DIM">
+    <line class="dim" x1="13605" y1="11355" x2="13605" y2="3475"/>
+    <line class="witness" x1="11305" y1="11355" x2="13725" y2="11355"/>
+    <line class="tick" x1="13555" y1="11405" x2="13655" y2="11305"/>
+    <line class="witness" x1="11305" y1="3475" x2="13725" y2="3475"/>
+    <line class="tick" x1="13555" y1="3525" x2="13655" y2="3425"/>
+    <line class="dim" x1="4225" y1="1075" x2="11205" y2="1075"/>
+    <line class="witness" x1="4225" y1="3375" x2="4225" y2="955"/>
+    <line class="tick" x1="4175" y1="1125" x2="4275" y2="1025"/>
+    <line class="witness" x1="11205" y1="3375" x2="11205" y2="955"/>
+    <line class="tick" x1="11155" y1="1125" x2="11255" y2="1025"/>
+    <line class="dim" x1="4225" y1="13755" x2="11205" y2="13755"/>
+    <line class="witness" x1="4225" y1="11455" x2="4225" y2="13875"/>
+    <line class="tick" x1="4175" y1="13805" x2="4275" y2="13705"/>
+    <line class="witness" x1="11205" y1="11455" x2="11205" y2="13875"/>
+    <line class="tick" x1="11155" y1="13805" x2="11255" y2="13705"/>
+    <line class="dim" x1="1825" y1="11355" x2="1825" y2="3475"/>
+    <line class="witness" x1="4125" y1="11355" x2="1705" y2="11355"/>
+    <line class="tick" x1="1775" y1="11405" x2="1875" y2="11305"/>
+    <line class="witness" x1="4125" y1="3475" x2="1705" y2="3475"/>
+    <line class="tick" x1="1775" y1="3525" x2="1875" y2="3425"/>
+    <line class="dim" x1="13005" y1="11355" x2="13005" y2="3475"/>
+    <line class="witness" x1="11305" y1="11355" x2="13125" y2="11355"/>
+    <line class="tick" x1="12955" y1="11405" x2="13055" y2="11305"/>
+    <line class="witness" x1="11305" y1="7340" x2="13125" y2="7340"/>
+    <line class="tick" x1="12955" y1="7390" x2="13055" y2="7290"/>
+    <line class="witness" x1="11305" y1="5340" x2="13125" y2="5340"/>
+    <line class="tick" x1="12955" y1="5390" x2="13055" y2="5290"/>
+    <line class="witness" x1="11305" y1="3475" x2="13125" y2="3475"/>
+    <line class="tick" x1="12955" y1="3525" x2="13055" y2="3425"/>
+    <line class="dim" x1="4225" y1="1675" x2="11205" y2="1675"/>
+    <line class="witness" x1="4225" y1="3375" x2="4225" y2="1555"/>
+    <line class="tick" x1="4175" y1="1725" x2="4275" y2="1625"/>
+    <line class="witness" x1="7440" y1="3375" x2="7440" y2="1555"/>
+    <line class="tick" x1="7390" y1="1725" x2="7490" y2="1625"/>
+    <line class="witness" x1="9240" y1="3375" x2="9240" y2="1555"/>
+    <line class="tick" x1="9190" y1="1725" x2="9290" y2="1625"/>
+    <line class="witness" x1="11205" y1="3375" x2="11205" y2="1555"/>
+    <line class="tick" x1="11155" y1="1725" x2="11255" y2="1625"/>
+    <line class="dim" x1="4225" y1="13155" x2="11205" y2="13155"/>
+    <line class="witness" x1="4225" y1="11455" x2="4225" y2="13275"/>
+    <line class="tick" x1="4175" y1="13205" x2="4275" y2="13105"/>
+    <line class="witness" x1="7440" y1="11455" x2="7440" y2="13275"/>
+    <line class="tick" x1="7390" y1="13205" x2="7490" y2="13105"/>
+    <line class="witness" x1="11205" y1="11455" x2="11205" y2="13275"/>
+    <line class="tick" x1="11155" y1="13205" x2="11255" y2="13105"/>
+    <line class="dim" x1="2425" y1="11355" x2="2425" y2="3475"/>
+    <line class="witness" x1="4125" y1="11355" x2="2305" y2="11355"/>
+    <line class="tick" x1="2375" y1="11405" x2="2475" y2="11305"/>
+    <line class="witness" x1="4125" y1="7340" x2="2305" y2="7340"/>
+    <line class="tick" x1="2375" y1="7390" x2="2475" y2="7290"/>
+    <line class="witness" x1="4125" y1="5340" x2="2305" y2="5340"/>
+    <line class="tick" x1="2375" y1="5390" x2="2475" y2="5290"/>
+    <line class="witness" x1="4125" y1="3475" x2="2305" y2="3475"/>
+    <line class="tick" x1="2375" y1="3525" x2="2475" y2="3425"/>
+    <line class="dim" x1="12405" y1="11355" x2="12405" y2="3475"/>
+    <line class="witness" x1="11305" y1="11355" x2="12525" y2="11355"/>
+    <line class="tick" x1="12355" y1="11405" x2="12455" y2="11305"/>
+    <line class="witness" x1="11305" y1="9340" x2="12525" y2="9340"/>
+    <line class="tick" x1="12355" y1="9390" x2="12455" y2="9290"/>
+    <line class="witness" x1="11305" y1="6340" x2="12525" y2="6340"/>
+    <line class="tick" x1="12355" y1="6390" x2="12455" y2="6290"/>
+    <line class="witness" x1="11305" y1="4540" x2="12525" y2="4540"/>
+    <line class="tick" x1="12355" y1="4590" x2="12455" y2="4490"/>
+    <line class="witness" x1="11305" y1="3475" x2="12525" y2="3475"/>
+    <line class="tick" x1="12355" y1="3525" x2="12455" y2="3425"/>
+    <line class="dim" x1="4225" y1="2275" x2="11205" y2="2275"/>
+    <line class="witness" x1="4225" y1="3375" x2="4225" y2="2155"/>
+    <line class="tick" x1="4175" y1="2325" x2="4275" y2="2225"/>
+    <line class="witness" x1="5840" y1="3375" x2="5840" y2="2155"/>
+    <line class="tick" x1="5790" y1="2325" x2="5890" y2="2225"/>
+    <line class="witness" x1="8340" y1="3375" x2="8340" y2="2155"/>
+    <line class="tick" x1="8290" y1="2325" x2="8390" y2="2225"/>
+    <line class="witness" x1="11205" y1="3375" x2="11205" y2="2155"/>
+    <line class="tick" x1="11155" y1="2325" x2="11255" y2="2225"/>
+    <line class="dim" x1="4225" y1="12555" x2="11205" y2="12555"/>
+    <line class="witness" x1="4225" y1="11455" x2="4225" y2="12675"/>
+    <line class="tick" x1="4175" y1="12605" x2="4275" y2="12505"/>
+    <line class="witness" x1="5840" y1="11455" x2="5840" y2="12675"/>
+    <line class="tick" x1="5790" y1="12605" x2="5890" y2="12505"/>
+    <line class="witness" x1="9240" y1="11455" x2="9240" y2="12675"/>
+    <line class="tick" x1="9190" y1="12605" x2="9290" y2="12505"/>
+    <line class="witness" x1="11205" y1="11455" x2="11205" y2="12675"/>
+    <line class="tick" x1="11155" y1="12605" x2="11255" y2="12505"/>
+    <line class="dim" x1="3025" y1="11355" x2="3025" y2="3475"/>
+    <line class="witness" x1="4125" y1="11355" x2="2905" y2="11355"/>
+    <line class="tick" x1="2975" y1="11405" x2="3075" y2="11305"/>
+    <line class="witness" x1="4125" y1="9240" x2="2905" y2="9240"/>
+    <line class="tick" x1="2975" y1="9290" x2="3075" y2="9190"/>
+    <line class="witness" x1="4125" y1="6340" x2="2905" y2="6340"/>
+    <line class="tick" x1="2975" y1="6390" x2="3075" y2="6290"/>
+    <line class="witness" x1="4125" y1="3475" x2="2905" y2="3475"/>
+    <line class="tick" x1="2975" y1="3525" x2="3075" y2="3425"/>
+    <line class="dim" x1="4855" y1="11125" x2="4855" y2="7397"/>
+    <line class="witness" x1="4555" y1="11125" x2="4975" y2="11125"/>
+    <line class="tick" x1="4805" y1="11175" x2="4905" y2="11075"/>
+    <line class="witness" x1="4555" y1="7397" x2="4975" y2="7397"/>
+    <line class="tick" x1="4805" y1="7447" x2="4905" y2="7347"/>
+    <line class="dim" x1="4455" y1="10725" x2="7383" y2="10725"/>
+    <line class="witness" x1="4455" y1="11025" x2="4455" y2="10605"/>
+    <line class="tick" x1="4405" y1="10775" x2="4505" y2="10675"/>
+    <line class="witness" x1="7383" y1="11025" x2="7383" y2="10605"/>
+    <line class="tick" x1="7333" y1="10775" x2="7433" y2="10675"/>
+    <line class="dim" x1="7497" y1="10725" x2="10975" y2="10725"/>
+    <line class="witness" x1="7497" y1="11025" x2="7497" y2="10605"/>
+    <line class="tick" x1="7447" y1="10775" x2="7547" y2="10675"/>
+    <line class="witness" x1="10975" y1="11025" x2="10975" y2="10605"/>
+    <line class="tick" x1="10925" y1="10775" x2="11025" y2="10675"/>
+    <line class="dim" x1="9697" y1="5283" x2="9697" y2="3705"/>
+    <line class="witness" x1="9397" y1="5283" x2="9817" y2="5283"/>
+    <line class="tick" x1="9647" y1="5333" x2="9747" y2="5233"/>
+    <line class="witness" x1="9397" y1="3705" x2="9817" y2="3705"/>
+    <line class="tick" x1="9647" y1="3755" x2="9747" y2="3655"/>
+    <line class="dim" x1="9297" y1="4883" x2="10975" y2="4883"/>
+    <line class="witness" x1="9297" y1="5183" x2="9297" y2="4763"/>
+    <line class="tick" x1="9247" y1="4933" x2="9347" y2="4833"/>
+    <line class="witness" x1="10975" y1="5183" x2="10975" y2="4763"/>
+    <line class="tick" x1="10925" y1="4933" x2="11025" y2="4833"/>
+    <line class="dim" x1="7497" y1="4883" x2="9183" y2="4883"/>
+    <line class="witness" x1="7497" y1="5183" x2="7497" y2="4763"/>
+    <line class="tick" x1="7447" y1="4933" x2="7547" y2="4833"/>
+    <line class="witness" x1="9183" y1="5183" x2="9183" y2="4763"/>
+    <line class="tick" x1="9133" y1="4933" x2="9233" y2="4833"/>
+    <line class="dim" x1="4855" y1="5283" x2="4855" y2="3705"/>
+    <line class="witness" x1="4555" y1="5283" x2="4975" y2="5283"/>
+    <line class="tick" x1="4805" y1="5333" x2="4905" y2="5233"/>
+    <line class="witness" x1="4555" y1="3705" x2="4975" y2="3705"/>
+    <line class="tick" x1="4805" y1="3755" x2="4905" y2="3655"/>
+    <line class="dim" x1="4455" y1="4883" x2="7383" y2="4883"/>
+    <line class="witness" x1="4455" y1="5183" x2="4455" y2="4763"/>
+    <line class="tick" x1="4405" y1="4933" x2="4505" y2="4833"/>
+    <line class="witness" x1="7383" y1="5183" x2="7383" y2="4763"/>
+    <line class="tick" x1="7333" y1="4933" x2="7433" y2="4833"/>
+    <line class="dim" x1="4855" y1="7283" x2="4855" y2="5397"/>
+    <line class="witness" x1="4555" y1="7283" x2="4975" y2="7283"/>
+    <line class="tick" x1="4805" y1="7333" x2="4905" y2="7233"/>
+    <line class="witness" x1="4555" y1="5397" x2="4975" y2="5397"/>
+    <line class="tick" x1="4805" y1="5447" x2="4905" y2="5347"/>
+    <text x="13380" y="7415" font-size="250" transform="rotate(-90 13380 7415)">7880</text>
+    <text x="12780" y="9348" font-size="250" transform="rotate(-90 12780 9348)">4015</text>
+    <text x="12780" y="6340" font-size="250" transform="rotate(-90 12780 6340)">2000</text>
+    <text x="12780" y="4408" font-size="250" transform="rotate(-90 12780 4408)">1865</text>
+    <text x="12180" y="10348" font-size="250" transform="rotate(-90 12180 10348)">2015</text>
+    <text x="12180" y="7840" font-size="250" transform="rotate(-90 12180 7840)">3000</text>
+    <text x="12180" y="5440" font-size="250" transform="rotate(-90 12180 5440)">1800</text>
+    <text x="12180" y="4008" font-size="250" transform="rotate(-90 12180 4008)">1065</text>
+    <text x="7715" y="850" font-size="250">6980</text>
+    <text x="5832" y="1450" font-size="250">3215</text>
+    <text x="8340" y="1450" font-size="250">1800</text>
+    <text x="10222" y="1450" font-size="250">1965</text>
+    <text x="5032" y="2050" font-size="250">1615</text>
+    <text x="7090" y="2050" font-size="250">2500</text>
+    <text x="9772" y="2050" font-size="250">2865</text>
+    <text x="7715" y="13530" font-size="250">6980</text>
+    <text x="5832" y="12930" font-size="250">3215</text>
+    <text x="9322" y="12930" font-size="250">3765</text>
+    <text x="5032" y="12330" font-size="250">1615</text>
+    <text x="7540" y="12330" font-size="250">3400</text>
+    <text x="10222" y="12330" font-size="250">1965</text>
+    <text x="1600" y="7415" font-size="250" transform="rotate(-90 1600 7415)">7880</text>
+    <text x="2200" y="9348" font-size="250" transform="rotate(-90 2200 9348)">4015</text>
+    <text x="2200" y="6340" font-size="250" transform="rotate(-90 2200 6340)">2000</text>
+    <text x="2200" y="4408" font-size="250" transform="rotate(-90 2200 4408)">1865</text>
+    <text x="2800" y="10298" font-size="250" transform="rotate(-90 2800 10298)">2115</text>
+    <text x="2800" y="7790" font-size="250" transform="rotate(-90 2800 7790)">2900</text>
+    <text x="2800" y="4908" font-size="250" transform="rotate(-90 2800 4908)">2865</text>
+    <text x="4630" y="9261" font-size="250" transform="rotate(-90 4630 9261)">3728</text>
+    <text x="5919" y="10500" font-size="250">2928</text>
+    <text x="9236" y="10500" font-size="250">3478</text>
+    <text x="9472" y="3744" font-size="250" transform="rotate(-90 9472 3744)">1578</text>
+    <text x="10261" y="5108" font-size="250">1678</text>
+    <text x="8340" y="5108" font-size="250">1686</text>
+    <text x="4630" y="4369" font-size="250" transform="rotate(-90 4630 4369)">1578</text>
+    <text x="5919" y="5108" font-size="250">2928</text>
+    <text x="4630" y="6340" font-size="250" transform="rotate(-90 4630 6340)">1886</text>
+  </g>
+</svg>

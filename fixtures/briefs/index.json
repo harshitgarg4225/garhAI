@@ -1,0 +1,272 @@
+{
+  "$comment": "Manifest for the §16 golden brief corpus. Counts are asserted by apps/api/tests/test_brief_corpus.py.",
+  "schemaVersion": 1,
+  "count": 20,
+  "required": 20,
+  "strata": {
+    "city": {
+      "blr": 7,
+      "hyd": 6,
+      "ncr": 7
+    },
+    "shape": {
+      "L": 4,
+      "T": 3,
+      "rect": 13
+    },
+    "floorsAboveGround": {
+      "0": 2,
+      "1": 4,
+      "2": 12,
+      "3": 2
+    },
+    "plotAreaBand": {
+      "121-240": 6,
+      "241-500": 7,
+      "gt500": 1,
+      "le120": 6
+    }
+  },
+  "briefs": [
+    {
+      "id": "brief-01-blr-30x40-rect-g1",
+      "file": "brief-01-blr-30x40-rect-g1.json",
+      "title": "Bengaluru — 30×40 ft rectangular plot, G+1, 3BHK",
+      "city": "blr",
+      "shape": "rect",
+      "floorsAboveGround": 1,
+      "plotAreaSqm": 111,
+      "plotAreaBand": "le120",
+      "bedrooms": 3,
+      "vastuMode": "advisory"
+    },
+    {
+      "id": "brief-02-blr-25x40-rect-g2",
+      "file": "brief-02-blr-25x40-rect-g2.json",
+      "title": "Bengaluru — 25×40 ft rectangular plot, G+2, 2BHK",
+      "city": "blr",
+      "shape": "rect",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 92,
+      "plotAreaBand": "le120",
+      "bedrooms": 2,
+      "vastuMode": "off"
+    },
+    {
+      "id": "brief-03-blr-30x50-l-g1",
+      "file": "brief-03-blr-30x50-l-g1.json",
+      "title": "Bengaluru — 30×50 ft L-shaped plot, G+1, 3BHK",
+      "city": "blr",
+      "shape": "L",
+      "floorsAboveGround": 1,
+      "plotAreaSqm": 123,
+      "plotAreaBand": "121-240",
+      "bedrooms": 3,
+      "vastuMode": "strict"
+    },
+    {
+      "id": "brief-04-blr-40x60-rect-g2",
+      "file": "brief-04-blr-40x60-rect-g2.json",
+      "title": "Bengaluru — 40×60 ft rectangular plot, G+2, 4BHK",
+      "city": "blr",
+      "shape": "rect",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 222,
+      "plotAreaBand": "121-240",
+      "bedrooms": 4,
+      "vastuMode": "advisory"
+    },
+    {
+      "id": "brief-05-blr-50x80-t-g2",
+      "file": "brief-05-blr-50x80-t-g2.json",
+      "title": "Bengaluru — 50×80 ft T-shaped plot, G+2, 4BHK",
+      "city": "blr",
+      "shape": "T",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 247,
+      "plotAreaBand": "241-500",
+      "bedrooms": 4,
+      "vastuMode": "advisory"
+    },
+    {
+      "id": "brief-06-blr-45x75-rect-g0",
+      "file": "brief-06-blr-45x75-rect-g0.json",
+      "title": "Bengaluru — 45×75 ft rectangular plot, G+0, 3BHK",
+      "city": "blr",
+      "shape": "rect",
+      "floorsAboveGround": 0,
+      "plotAreaSqm": 313,
+      "plotAreaBand": "241-500",
+      "bedrooms": 3,
+      "vastuMode": "off"
+    },
+    {
+      "id": "brief-07-blr-60x90-rect-g3",
+      "file": "brief-07-blr-60x90-rect-g3.json",
+      "title": "Bengaluru — 60×90 ft rectangular plot, G+3, 5BHK",
+      "city": "blr",
+      "shape": "rect",
+      "floorsAboveGround": 3,
+      "plotAreaSqm": 501,
+      "plotAreaBand": "gt500",
+      "bedrooms": 5,
+      "vastuMode": "strict"
+    },
+    {
+      "id": "brief-08-ncr-30x50-rect-g2",
+      "file": "brief-08-ncr-30x50-rect-g2.json",
+      "title": "Delhi NCR — 30×50 ft rectangular plot, G+2, 3BHK",
+      "city": "ncr",
+      "shape": "rect",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 139,
+      "plotAreaBand": "121-240",
+      "bedrooms": 3,
+      "vastuMode": "off"
+    },
+    {
+      "id": "brief-09-ncr-25x50-l-g2",
+      "file": "brief-09-ncr-25x50-l-g2.json",
+      "title": "Delhi NCR — 25×50 ft L-shaped plot, G+2, 3BHK",
+      "city": "ncr",
+      "shape": "L",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 103,
+      "plotAreaBand": "le120",
+      "bedrooms": 3,
+      "vastuMode": "advisory"
+    },
+    {
+      "id": "brief-10-ncr-45x60-rect-g2",
+      "file": "brief-10-ncr-45x60-rect-g2.json",
+      "title": "Delhi NCR — 45×60 ft rectangular plot, G+2, 4BHK",
+      "city": "ncr",
+      "shape": "rect",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 250,
+      "plotAreaBand": "241-500",
+      "bedrooms": 4,
+      "vastuMode": "off"
+    },
+    {
+      "id": "brief-11-ncr-20x40-rect-g2",
+      "file": "brief-11-ncr-20x40-rect-g2.json",
+      "title": "Delhi NCR — 20×40 ft rectangular plot, G+2, 3BHK",
+      "city": "ncr",
+      "shape": "rect",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 74,
+      "plotAreaBand": "le120",
+      "bedrooms": 3,
+      "vastuMode": "off"
+    },
+    {
+      "id": "brief-12-ncr-35x55-t-g1",
+      "file": "brief-12-ncr-35x55-t-g1.json",
+      "title": "Delhi NCR — 35×55 ft T-shaped plot, G+1, 3BHK",
+      "city": "ncr",
+      "shape": "T",
+      "floorsAboveGround": 1,
+      "plotAreaSqm": 119,
+      "plotAreaBand": "le120",
+      "bedrooms": 3,
+      "vastuMode": "advisory"
+    },
+    {
+      "id": "brief-13-ncr-50x90-rect-g2",
+      "file": "brief-13-ncr-50x90-rect-g2.json",
+      "title": "Delhi NCR — 50×90 ft rectangular plot, G+2, 5BHK",
+      "city": "ncr",
+      "shape": "rect",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 418,
+      "plotAreaBand": "241-500",
+      "bedrooms": 5,
+      "vastuMode": "off"
+    },
+    {
+      "id": "brief-14-ncr-30x60-l-g2",
+      "file": "brief-14-ncr-30x60-l-g2.json",
+      "title": "Delhi NCR — 30×60 ft L-shaped plot, G+2, 4BHK",
+      "city": "ncr",
+      "shape": "L",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 148,
+      "plotAreaBand": "121-240",
+      "bedrooms": 4,
+      "vastuMode": "strict"
+    },
+    {
+      "id": "brief-15-hyd-40x60-rect-g1",
+      "file": "brief-15-hyd-40x60-rect-g1.json",
+      "title": "Hyderabad — 40×60 ft rectangular plot, G+1, 3BHK",
+      "city": "hyd",
+      "shape": "rect",
+      "floorsAboveGround": 1,
+      "plotAreaSqm": 222,
+      "plotAreaBand": "121-240",
+      "bedrooms": 3,
+      "vastuMode": "advisory"
+    },
+    {
+      "id": "brief-16-hyd-30x40-l-g2",
+      "file": "brief-16-hyd-30x40-l-g2.json",
+      "title": "Hyderabad — 30×40 ft L-shaped plot, G+2, 3BHK",
+      "city": "hyd",
+      "shape": "L",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 99,
+      "plotAreaBand": "le120",
+      "bedrooms": 3,
+      "vastuMode": "off"
+    },
+    {
+      "id": "brief-17-hyd-50x80-rect-g3",
+      "file": "brief-17-hyd-50x80-rect-g3.json",
+      "title": "Hyderabad — 50×80 ft rectangular plot, G+3, 5BHK",
+      "city": "hyd",
+      "shape": "rect",
+      "floorsAboveGround": 3,
+      "plotAreaSqm": 371,
+      "plotAreaBand": "241-500",
+      "bedrooms": 5,
+      "vastuMode": "advisory"
+    },
+    {
+      "id": "brief-18-hyd-35x50-rect-g2",
+      "file": "brief-18-hyd-35x50-rect-g2.json",
+      "title": "Hyderabad — 35×50 ft rectangular plot, G+2, 3BHK",
+      "city": "hyd",
+      "shape": "rect",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 162,
+      "plotAreaBand": "121-240",
+      "bedrooms": 3,
+      "vastuMode": "strict"
+    },
+    {
+      "id": "brief-19-hyd-60x75-t-g2",
+      "file": "brief-19-hyd-60x75-t-g2.json",
+      "title": "Hyderabad — 60×75 ft T-shaped plot, G+2, 4BHK",
+      "city": "hyd",
+      "shape": "T",
+      "floorsAboveGround": 2,
+      "plotAreaSqm": 278,
+      "plotAreaBand": "241-500",
+      "bedrooms": 4,
+      "vastuMode": "advisory"
+    },
+    {
+      "id": "brief-20-hyd-45x60-rect-g0",
+      "file": "brief-20-hyd-45x60-rect-g0.json",
+      "title": "Hyderabad — 45×60 ft rectangular plot, G+0, 2BHK",
+      "city": "hyd",
+      "shape": "rect",
+      "floorsAboveGround": 0,
+      "plotAreaSqm": 250,
+      "plotAreaBand": "241-500",
+      "bedrooms": 2,
+      "vastuMode": "off"
+    }
+  ]
+}

@@ -1,0 +1,663 @@
+{
+  "dimToJamb": false,
+  "folded": {
+    "levels": {
+      "fflPerStoreyMm": [
+        600,
+        3600
+      ],
+      "lintelDefaultMm": 2100,
+      "parapetMm": 1000,
+      "plinthMm": 600,
+      "sillDefaultMm": 900
+    },
+    "openingCount": 22,
+    "roomAreasMm2": {
+      "room_0F3YD4ZY4XZC12P2YFXG6NS5HQ": 11441841,
+      "room_0QFT8KQ36ZM195F28HE3103Z44": 11943365,
+      "room_1H2KQQVX8CG7GF61SP2MN3FAVG": 11638569,
+      "room_4V92RD53WTWR1BZ4Y28DWC0XP6": 11741485,
+      "room_5V5TVMV3546WD7A2NN0KZPV4W4": 11441841,
+      "room_64BX15SZ8TRKA3AZD0C0284TKC": 11741485,
+      "room_6E674VDX3329DWD2T056E70X13": 11943365,
+      "room_6NMQB38X185VQJVV67GXB1F2YK": 11638569
+    },
+    "roomCount": 8,
+    "stairCount": 1,
+    "storeys": [
+      "storey_01J000000000000000000000GF",
+      "storey_01J000000000000000000000FF"
+    ],
+    "wallCount": 12
+  },
+  "id": "demo-02-blr-30x40-g1",
+  "name": "Sharma Residence - 30x40 ft Bengaluru, G+1",
+  "ops": [
+    {
+      "payload": {
+        "polygon": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 9144,
+            "y": 0
+          },
+          {
+            "x": 9144,
+            "y": 12192
+          },
+          {
+            "x": 0,
+            "y": 12192
+          }
+        ],
+        "source": "seed"
+      },
+      "type": "plot.set_boundary"
+    },
+    {
+      "payload": {
+        "deg": 0
+      },
+      "type": "plot.set_north"
+    },
+    {
+      "payload": {
+        "edgeIndex": 0,
+        "name": "9 m road (south)",
+        "widthMm": 9000
+      },
+      "type": "plot.set_road"
+    },
+    {
+      "payload": {
+        "cityPack": "blr",
+        "overrides": {}
+      },
+      "type": "plot.set_reg_profile"
+    },
+    {
+      "payload": {
+        "completeness": 80,
+        "patch": {
+          "bedrooms": 3,
+          "storeys": 2
+        },
+        "vastuMode": "off"
+      },
+      "type": "brief.update"
+    },
+    {
+      "payload": {
+        "heightMm": 3000,
+        "id": "storey_01J000000000000000000000GF",
+        "index": 0,
+        "name": "Ground Floor"
+      },
+      "type": "storey.add"
+    },
+    {
+      "payload": {
+        "heightMm": 3000,
+        "id": "storey_01J000000000000000000000FF",
+        "index": 1,
+        "name": "First Floor"
+      },
+      "type": "storey.add"
+    },
+    {
+      "payload": {
+        "lintelDefaultMm": 2100,
+        "parapetMm": 1000,
+        "plinthMm": 600,
+        "sillDefaultMm": 900
+      },
+      "type": "levels.set"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 1115,
+          "y": 3115
+        },
+        "b": {
+          "x": 8029,
+          "y": 3115
+        },
+        "id": "wall_01J000000000000000000000SG",
+        "kind": "external",
+        "loadBearing": true,
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 8029,
+          "y": 3115
+        },
+        "b": {
+          "x": 8029,
+          "y": 10577
+        },
+        "id": "wall_01J000000000000000000000EG",
+        "kind": "external",
+        "loadBearing": true,
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 8029,
+          "y": 10577
+        },
+        "b": {
+          "x": 1115,
+          "y": 10577
+        },
+        "id": "wall_01J000000000000000000000NG",
+        "kind": "external",
+        "loadBearing": true,
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 1115,
+          "y": 10577
+        },
+        "b": {
+          "x": 1115,
+          "y": 3115
+        },
+        "id": "wall_01J000000000000000000000WG",
+        "kind": "external",
+        "loadBearing": true,
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 4600,
+          "y": 3115
+        },
+        "b": {
+          "x": 4600,
+          "y": 10577
+        },
+        "id": "wall_01J000000000000000000000VG",
+        "kind": "internal",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 115
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 1115,
+          "y": 6800
+        },
+        "b": {
+          "x": 8029,
+          "y": 6800
+        },
+        "id": "wall_01J000000000000000000000HG",
+        "kind": "internal",
+        "storeyId": "storey_01J000000000000000000000GF",
+        "thicknessMm": 115
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "heightMm": 2100,
+        "id": "opening_01J00000000000000000000D1G",
+        "kind": "door",
+        "offsetMm": 2000,
+        "sillMm": 0,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000SG",
+        "widthMm": 1000
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W1G",
+        "kind": "window",
+        "offsetMm": 5200,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000SG",
+        "widthMm": 1500
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W2G",
+        "kind": "window",
+        "offsetMm": 2000,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000EG",
+        "widthMm": 1500
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W3G",
+        "kind": "window",
+        "offsetMm": 5600,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000EG",
+        "widthMm": 1200
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W4G",
+        "kind": "window",
+        "offsetMm": 2400,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000NG",
+        "widthMm": 1800
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W5G",
+        "kind": "window",
+        "offsetMm": 2200,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000WG",
+        "widthMm": 1200
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W6G",
+        "kind": "window",
+        "offsetMm": 5600,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000WG",
+        "widthMm": 1200
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 450,
+        "id": "opening_01J00000000000000000000V1G",
+        "kind": "ventilator",
+        "offsetMm": 5800,
+        "sillMm": 1800,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000NG",
+        "widthMm": 600
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 2100,
+        "id": "opening_01J00000000000000000000D2G",
+        "kind": "door",
+        "offsetMm": 1800,
+        "sillMm": 0,
+        "swing": "in-right",
+        "wallId": "wall_01J000000000000000000000VG",
+        "widthMm": 900
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 2100,
+        "id": "opening_01J00000000000000000000D3G",
+        "kind": "door",
+        "offsetMm": 5400,
+        "sillMm": 0,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000VG",
+        "widthMm": 900
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 2100,
+        "id": "opening_01J00000000000000000000D4G",
+        "kind": "door",
+        "offsetMm": 1500,
+        "sillMm": 0,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000HG",
+        "widthMm": 900
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 1115,
+          "y": 3115
+        },
+        "b": {
+          "x": 8029,
+          "y": 3115
+        },
+        "id": "wall_01J000000000000000000000SF",
+        "kind": "external",
+        "loadBearing": true,
+        "storeyId": "storey_01J000000000000000000000FF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 8029,
+          "y": 3115
+        },
+        "b": {
+          "x": 8029,
+          "y": 10577
+        },
+        "id": "wall_01J000000000000000000000EF",
+        "kind": "external",
+        "loadBearing": true,
+        "storeyId": "storey_01J000000000000000000000FF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 8029,
+          "y": 10577
+        },
+        "b": {
+          "x": 1115,
+          "y": 10577
+        },
+        "id": "wall_01J000000000000000000000NF",
+        "kind": "external",
+        "loadBearing": true,
+        "storeyId": "storey_01J000000000000000000000FF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 1115,
+          "y": 10577
+        },
+        "b": {
+          "x": 1115,
+          "y": 3115
+        },
+        "id": "wall_01J000000000000000000000WF",
+        "kind": "external",
+        "loadBearing": true,
+        "storeyId": "storey_01J000000000000000000000FF",
+        "thicknessMm": 230
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 4600,
+          "y": 3115
+        },
+        "b": {
+          "x": 4600,
+          "y": 10577
+        },
+        "id": "wall_01J000000000000000000000VF",
+        "kind": "internal",
+        "storeyId": "storey_01J000000000000000000000FF",
+        "thicknessMm": 115
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "a": {
+          "x": 1115,
+          "y": 6800
+        },
+        "b": {
+          "x": 8029,
+          "y": 6800
+        },
+        "id": "wall_01J000000000000000000000HF",
+        "kind": "internal",
+        "storeyId": "storey_01J000000000000000000000FF",
+        "thicknessMm": 115
+      },
+      "type": "wall.add"
+    },
+    {
+      "payload": {
+        "heightMm": 2100,
+        "id": "opening_01J00000000000000000000D1F",
+        "kind": "door",
+        "offsetMm": 2000,
+        "sillMm": 0,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000SF",
+        "widthMm": 1000
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W1F",
+        "kind": "window",
+        "offsetMm": 5200,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000SF",
+        "widthMm": 1500
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W2F",
+        "kind": "window",
+        "offsetMm": 2000,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000EF",
+        "widthMm": 1500
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W3F",
+        "kind": "window",
+        "offsetMm": 5600,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000EF",
+        "widthMm": 1200
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W4F",
+        "kind": "window",
+        "offsetMm": 2400,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000NF",
+        "widthMm": 1800
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W5F",
+        "kind": "window",
+        "offsetMm": 2200,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000WF",
+        "widthMm": 1200
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 1200,
+        "id": "opening_01J00000000000000000000W6F",
+        "kind": "window",
+        "offsetMm": 5600,
+        "sillMm": 900,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000WF",
+        "widthMm": 1200
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 450,
+        "id": "opening_01J00000000000000000000V1F",
+        "kind": "ventilator",
+        "offsetMm": 5800,
+        "sillMm": 1800,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000NF",
+        "widthMm": 600
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 2100,
+        "id": "opening_01J00000000000000000000D2F",
+        "kind": "door",
+        "offsetMm": 1800,
+        "sillMm": 0,
+        "swing": "in-right",
+        "wallId": "wall_01J000000000000000000000VF",
+        "widthMm": 900
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 2100,
+        "id": "opening_01J00000000000000000000D3F",
+        "kind": "door",
+        "offsetMm": 5400,
+        "sillMm": 0,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000VF",
+        "widthMm": 900
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "heightMm": 2100,
+        "id": "opening_01J00000000000000000000D4F",
+        "kind": "door",
+        "offsetMm": 1500,
+        "sillMm": 0,
+        "swing": "in-left",
+        "wallId": "wall_01J000000000000000000000HF",
+        "widthMm": 900
+      },
+      "type": "opening.add"
+    },
+    {
+      "payload": {
+        "direction": "N",
+        "id": "stair_01J00000000000000000000ST1",
+        "kind": "dogleg",
+        "landing": {
+          "depthMm": 1000,
+          "widthMm": 2115
+        },
+        "origin": {
+          "x": 1400,
+          "y": 7100
+        },
+        "riserMm": 167,
+        "risersCount": 18,
+        "storeyId": "storey_01J000000000000000000000GF",
+        "treadMm": 275,
+        "widthMm": 1000
+      },
+      "type": "stair.add"
+    }
+  ],
+  "provenance": "Hand-drawn plan on \u00a717's demo plot (30x40 ft Bengaluru, 9 m road south, G+1). NOT solver output \u2014 fixtures/plans/ is empty until Phase 3, and a fabricated solver golden would be worse than none. Setbacks front 3000, sides 1000, rear 1500 mm, so the site plan and the area statement have real numbers to print.",
+  "revisions": [
+    [
+      "A",
+      "01-01-2026",
+      "First issue for approval"
+    ],
+    [
+      "B",
+      "15-01-2026",
+      "Kitchen window revised"
+    ]
+  ],
+  "titleBlock": {
+    "checkedBy": "HG",
+    "clientName": "R. Sharma",
+    "date": "01-01-2026",
+    "drawnBy": "AR",
+    "firmName": "Studio Demo",
+    "notes": "Advisory only - not an approval.",
+    "projectName": "Sharma Residence",
+    "revision": "A"
+  },
+  "unitsDisplay": "ft-in"
+}

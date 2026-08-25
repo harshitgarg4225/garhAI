@@ -1,0 +1,451 @@
+{
+  "projectId": "demo-01-two-room",
+  "sheets": [
+    {
+      "chains": [
+        {
+          "id": "site-setback-rear",
+          "level": 1,
+          "offsetMm": 3000,
+          "orientation": "vertical",
+          "originMm": 4115,
+          "overallMm": 8077,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "8077",
+              "lengthMm": 8077,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 8077
+        },
+        {
+          "id": "site-setback-side-b",
+          "level": 1,
+          "offsetMm": 2000,
+          "orientation": "horizontal",
+          "originMm": 6115,
+          "overallMm": 3029,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "3029",
+              "lengthMm": 3029,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 3029
+        }
+      ],
+      "scale": 100,
+      "sheetId": "sheet-site",
+      "sheetNumber": "A-01"
+    },
+    {
+      "chains": [
+        {
+          "id": "storey_01J000000000000000000000GF-S-L1",
+          "level": 1,
+          "offsetMm": -2515,
+          "orientation": "horizontal",
+          "originMm": -115,
+          "overallMm": 6230,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "6230",
+              "lengthMm": 6230,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 6230
+        },
+        {
+          "id": "storey_01J000000000000000000000GF-S-L2",
+          "level": 2,
+          "offsetMm": -1915,
+          "orientation": "horizontal",
+          "originMm": -115,
+          "overallMm": 6230,
+          "segments": [
+            {
+              "anchorElementId": "wall_01J000000000000000000000WW",
+              "label": "115",
+              "lengthMm": 115,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "wall_01J000000000000000000000WW",
+              "label": "3000",
+              "lengthMm": 3000,
+              "startMm": 115
+            },
+            {
+              "anchorElementId": "wall_01J00000000000000000000WSP",
+              "label": "3000",
+              "lengthMm": 3000,
+              "startMm": 3115
+            },
+            {
+              "anchorElementId": "wall_01J000000000000000000000WE",
+              "label": "115",
+              "lengthMm": 115,
+              "startMm": 6115
+            }
+          ],
+          "sumMm": 6230
+        },
+        {
+          "id": "storey_01J000000000000000000000GF-S-L3",
+          "level": 3,
+          "offsetMm": -1315,
+          "orientation": "horizontal",
+          "originMm": -115,
+          "overallMm": 6230,
+          "segments": [
+            {
+              "anchorElementId": "opening_01J000000000000000000000D1",
+              "label": "1615",
+              "lengthMm": 1615,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "opening_01J000000000000000000000D1",
+              "label": "4615",
+              "lengthMm": 4615,
+              "startMm": 1615
+            }
+          ],
+          "sumMm": 6230
+        },
+        {
+          "id": "storey_01J000000000000000000000GF-W-L1",
+          "level": 1,
+          "offsetMm": -2515,
+          "orientation": "vertical",
+          "originMm": -115,
+          "overallMm": 4230,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "4230",
+              "lengthMm": 4230,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 4230
+        },
+        {
+          "id": "storey_01J000000000000000000000GF-W-L2",
+          "level": 2,
+          "offsetMm": -1915,
+          "orientation": "vertical",
+          "originMm": -115,
+          "overallMm": 4230,
+          "segments": [
+            {
+              "anchorElementId": "wall_01J000000000000000000000WS",
+              "label": "115",
+              "lengthMm": 115,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "wall_01J000000000000000000000WS",
+              "label": "4000",
+              "lengthMm": 4000,
+              "startMm": 115
+            },
+            {
+              "anchorElementId": "wall_01J000000000000000000000WN",
+              "label": "115",
+              "lengthMm": 115,
+              "startMm": 4115
+            }
+          ],
+          "sumMm": 4230
+        },
+        {
+          "id": "storey_01J000000000000000000000GF-W-L3",
+          "level": 3,
+          "offsetMm": -1315,
+          "orientation": "vertical",
+          "originMm": -115,
+          "overallMm": 4230,
+          "segments": [
+            {
+              "anchorElementId": "opening_01J000000000000000000000W1",
+              "label": "2115",
+              "lengthMm": 2115,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "opening_01J000000000000000000000W1",
+              "label": "2115",
+              "lengthMm": 2115,
+              "startMm": 2115
+            }
+          ],
+          "sumMm": 4230
+        },
+        {
+          "id": "room_3STWE7A7RW1W36KN6PTGH7ANAS-W",
+          "level": 4,
+          "offsetMm": 2000,
+          "orientation": "horizontal",
+          "originMm": 3057,
+          "overallMm": 2828,
+          "segments": [
+            {
+              "anchorElementId": "room_3STWE7A7RW1W36KN6PTGH7ANAS",
+              "label": "2828",
+              "lengthMm": 2828,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 2828
+        },
+        {
+          "id": "room_3STWE7A7RW1W36KN6PTGH7ANAS-D",
+          "level": 4,
+          "offsetMm": 4471,
+          "orientation": "vertical",
+          "originMm": 115,
+          "overallMm": 3770,
+          "segments": [
+            {
+              "anchorElementId": "room_3STWE7A7RW1W36KN6PTGH7ANAS",
+              "label": "3770",
+              "lengthMm": 3770,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 3770
+        },
+        {
+          "id": "room_66G2VB6DPW6JB5SWS7BRCH4SPN-W",
+          "level": 4,
+          "offsetMm": 2000,
+          "orientation": "horizontal",
+          "originMm": 115,
+          "overallMm": 2828,
+          "segments": [
+            {
+              "anchorElementId": "room_66G2VB6DPW6JB5SWS7BRCH4SPN",
+              "label": "2828",
+              "lengthMm": 2828,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 2828
+        },
+        {
+          "id": "room_66G2VB6DPW6JB5SWS7BRCH4SPN-D",
+          "level": 4,
+          "offsetMm": 1529,
+          "orientation": "vertical",
+          "originMm": 115,
+          "overallMm": 3770,
+          "segments": [
+            {
+              "anchorElementId": "room_66G2VB6DPW6JB5SWS7BRCH4SPN",
+              "label": "3770",
+              "lengthMm": 3770,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 3770
+        }
+      ],
+      "scale": 100,
+      "sheetId": "sheet-plan-ground-floor",
+      "sheetNumber": "A-02A"
+    },
+    {
+      "chains": [
+        {
+          "id": "elev-N-H",
+          "level": 1,
+          "offsetMm": -2400,
+          "orientation": "vertical",
+          "originMm": 0,
+          "overallMm": 4600,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "600",
+              "lengthMm": 600,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": null,
+              "label": "3000",
+              "lengthMm": 3000,
+              "startMm": 600
+            },
+            {
+              "anchorElementId": null,
+              "label": "1000",
+              "lengthMm": 1000,
+              "startMm": 3600
+            }
+          ],
+          "sumMm": 4600
+        }
+      ],
+      "scale": 100,
+      "sheetId": "sheet-elev-n",
+      "sheetNumber": "A-03A"
+    },
+    {
+      "chains": [
+        {
+          "id": "elev-E-H",
+          "level": 1,
+          "offsetMm": -2400,
+          "orientation": "vertical",
+          "originMm": 0,
+          "overallMm": 4600,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "600",
+              "lengthMm": 600,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": null,
+              "label": "3000",
+              "lengthMm": 3000,
+              "startMm": 600
+            },
+            {
+              "anchorElementId": null,
+              "label": "1000",
+              "lengthMm": 1000,
+              "startMm": 3600
+            }
+          ],
+          "sumMm": 4600
+        }
+      ],
+      "scale": 100,
+      "sheetId": "sheet-elev-e",
+      "sheetNumber": "A-03B"
+    },
+    {
+      "chains": [
+        {
+          "id": "elev-S-H",
+          "level": 1,
+          "offsetMm": -2400,
+          "orientation": "vertical",
+          "originMm": 0,
+          "overallMm": 4600,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "600",
+              "lengthMm": 600,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": null,
+              "label": "3000",
+              "lengthMm": 3000,
+              "startMm": 600
+            },
+            {
+              "anchorElementId": null,
+              "label": "1000",
+              "lengthMm": 1000,
+              "startMm": 3600
+            }
+          ],
+          "sumMm": 4600
+        }
+      ],
+      "scale": 100,
+      "sheetId": "sheet-elev-s",
+      "sheetNumber": "A-03C"
+    },
+    {
+      "chains": [
+        {
+          "id": "elev-W-H",
+          "level": 1,
+          "offsetMm": -2400,
+          "orientation": "vertical",
+          "originMm": 0,
+          "overallMm": 4600,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "600",
+              "lengthMm": 600,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": null,
+              "label": "3000",
+              "lengthMm": 3000,
+              "startMm": 600
+            },
+            {
+              "anchorElementId": null,
+              "label": "1000",
+              "lengthMm": 1000,
+              "startMm": 3600
+            }
+          ],
+          "sumMm": 4600
+        }
+      ],
+      "scale": 100,
+      "sheetId": "sheet-elev-w",
+      "sheetNumber": "A-03D"
+    },
+    {
+      "chains": [
+        {
+          "id": "section-H",
+          "level": 1,
+          "offsetMm": -2400,
+          "orientation": "vertical",
+          "originMm": -900,
+          "overallMm": 5500,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "900",
+              "lengthMm": 900,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": null,
+              "label": "600",
+              "lengthMm": 600,
+              "startMm": 900
+            },
+            {
+              "anchorElementId": null,
+              "label": "3000",
+              "lengthMm": 3000,
+              "startMm": 1500
+            },
+            {
+              "anchorElementId": null,
+              "label": "1000",
+              "lengthMm": 1000,
+              "startMm": 4500
+            }
+          ],
+          "sumMm": 5500
+        }
+      ],
+      "scale": 100,
+      "sheetId": "sheet-section-a",
+      "sheetNumber": "A-04"
+    }
+  ]
+}

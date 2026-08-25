@@ -1,0 +1,575 @@
+# Garh AI — CI.
+#
+# Job order is the playbook §1 pipeline:
+#
+#     lint → typecheck → unit → golden → e2e(smoke)
+#
+# plus a `supply-chain` job that runs in parallel from the start (a GPL
+# dependency or a published CVE should surface in the first minute, not after
+# twenty). Each stage `needs:` the previous one, so a formatting error doesn't
+# burn a Playwright runner.
+#
+# The security guards are NOT reimplemented here — they live in the Makefile
+# (`make secret-audit` / `tenancy-audit` / `license-check`) so the check a
+# developer runs locally and the check that gates a merge are the same code.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A new push supersedes an in-flight run on the same ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9.12.0'
+  PYTHON_VERSION: '3.11'
+  FORCE_COLOR: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+
+jobs:
+  # ══════════════════════════════════════════════════════════════════════════
+  # 1. lint — formatting, static rules, and the §13 security guards
+  # ══════════════════════════════════════════════════════════════════════════
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install python tooling
+        run: python -m pip install ruff==0.6.9
+
+      # This runs in the FIRST job on purpose. `pnpm install --frozen-lockfile`
+      # against a missing lockfile fails with ERR_PNPM_NO_LOCKFILE, which reads as
+      # a pnpm problem rather than as "nobody has committed a lockfile yet" — and
+      # it would fail identically in all six JS jobs. One clear message, first,
+      # beats six obscure ones.
+      - name: 'Preflight — pnpm-lock.yaml must be committed'
+        run: |
+          if [ ! -f pnpm-lock.yaml ]; then
+            echo "::error file=pnpm-workspace.yaml::pnpm-lock.yaml is not committed."
+            echo ""
+            echo "Every JS job here installs with --frozen-lockfile, which is"
+            echo "deliberate: an absent or stale lockfile is a supply-chain problem"
+            echo "(playbook §13 'Dependencies: lockfiles'), not a convenience to"
+            echo "paper over with --no-frozen-lockfile."
+            echo ""
+            echo "Generate it once, on a machine with Node 20 + pnpm 9.12.0:"
+            echo "    pnpm install          # at the repo root"
+            echo "    git add pnpm-lock.yaml && git commit"
+            echo ""
+            echo "See docs/phase-0-verification.md for the full bootstrap sequence."
+            exit 1
+          fi
+
+      - name: Install JS workspace
+        # --frozen-lockfile is deliberate: a stale or absent lockfile is a
+        # supply-chain problem, not a convenience to paper over (§13).
+        run: pnpm install --frozen-lockfile
+
+      - name: ruff check
+        run: ruff check --config apps/api/pyproject.toml apps/api services
+
+      - name: ruff format --check
+        run: ruff format --check --config apps/api/pyproject.toml apps/api services
+
+      - name: eslint
+        run: pnpm exec eslint .
+
+      - name: prettier --check
+        run: pnpm exec prettier --check .
+
+      - name: 'Secret audit — no non-VITE_ secret may reach the browser bundle (§13)'
+        run: make secret-audit
+
+      - name: 'Tenancy audit — only the repository layer touches tables (§13)'
+        run: make tenancy-audit
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # supply-chain — licences + known vulnerabilities (parallel with lint)
+  # ══════════════════════════════════════════════════════════════════════════
+  supply-chain:
+    name: supply-chain
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Extract pinned python requirements
+        run: |
+          python - <<'PY' > /tmp/requirements-all.txt
+          import tomllib
+          # BOTH manifests: services/pyproject.toml carries ortools, ezdxf and
+          # pillow, and PROVIDER_RENDER=mock imports PIL at module scope.
+          # The heavy `ml` extra is deliberately never installed in CI.
+          deps = []
+          for path in ("apps/api/pyproject.toml", "services/pyproject.toml"):
+              project = tomllib.load(open(path, "rb"))["project"]
+              deps += project["dependencies"] + project["optional-dependencies"]["dev"]
+          print("\n".join(dict.fromkeys(deps)))
+          PY
+          cat /tmp/requirements-all.txt
+
+      - name: Install python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r /tmp/requirements-all.txt
+
+      - name: Install JS workspace
+        run: pnpm install --frozen-lockfile
+
+      # Blocks the merge: Apache/MIT/BSD/MPL only, never GPL/AGPL, and never an
+      # app dependency with no declared licence at all (SKILL.md locked rule).
+      - name: 'Licence scan — fail on GPL/AGPL/unknown (§13)'
+        run: make license-check
+
+      # extra="ignore" on both settings classes means a renamed variable is
+      # silently dropped and the field keeps its dev default. This gate is the
+      # only thing that turns that into a build failure.
+      - name: 'Env audit — .env.example must match the settings classes (§18)'
+        run: make env-audit
+
+      - name: pnpm audit (production dependencies)
+        run: pnpm audit --prod --audit-level=high
+
+      - name: pip-audit
+        run: |
+          python -m pip install pip-audit==2.7.3
+          pip-audit --strict --requirement /tmp/requirements-all.txt
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # 2. typecheck — mypy (strict on garh_model + services) and tsc --noEmit
+  # ══════════════════════════════════════════════════════════════════════════
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install python dependencies
+        # mypy needs the real dependency types installed, not just mypy itself,
+        # or every third-party import degrades to Any and strict mode is theatre.
+        run: |
+          python - <<'PY' > /tmp/requirements-all.txt
+          import tomllib
+          # BOTH manifests: services/pyproject.toml carries ortools, ezdxf and
+          # pillow, and PROVIDER_RENDER=mock imports PIL at module scope.
+          # The heavy `ml` extra is deliberately never installed in CI.
+          deps = []
+          for path in ("apps/api/pyproject.toml", "services/pyproject.toml"):
+              project = tomllib.load(open(path, "rb"))["project"]
+              deps += project["dependencies"] + project["optional-dependencies"]["dev"]
+          print("\n".join(dict.fromkeys(deps)))
+          PY
+          python -m pip install --upgrade pip
+          python -m pip install -r /tmp/requirements-all.txt
+
+      - name: Install JS workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: mypy (garh_api)
+        working-directory: apps/api
+        run: mypy garh_api
+
+      - name: mypy --strict (garh_model — playbook §1)
+        working-directory: apps/api
+        run: mypy --strict garh_model
+
+      - name: mypy --strict (services/*)
+        run: mypy --strict --config-file apps/api/pyproject.toml services
+
+      - name: tsc --noEmit (all workspace packages)
+        run: pnpm -r --if-present typecheck
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # 3a. unit (python) — pytest against real Postgres + Redis
+  # ══════════════════════════════════════════════════════════════════════════
+  unit-python:
+    name: unit (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [typecheck]
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: garh
+          POSTGRES_PASSWORD: garh_ci
+          POSTGRES_DB: garh_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U garh -d garh_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://garh:garh_ci@localhost:5432/garh_test
+      REDIS_URL: redis://localhost:6379/0
+      PROVIDER_LLM: mock
+      PROVIDER_RENDER: mock
+      PROVIDER_BILLING: mock
+      RULEPACK_DIR: ${{ github.workspace }}/rulepacks
+      FIXTURE_DIR: ${{ github.workspace }}/fixtures
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install python dependencies
+        run: |
+          python - <<'PY' > /tmp/requirements-all.txt
+          import tomllib
+          # BOTH manifests: services/pyproject.toml carries ortools, ezdxf and
+          # pillow, and PROVIDER_RENDER=mock imports PIL at module scope.
+          # The heavy `ml` extra is deliberately never installed in CI.
+          deps = []
+          for path in ("apps/api/pyproject.toml", "services/pyproject.toml"):
+              project = tomllib.load(open(path, "rb"))["project"]
+              deps += project["dependencies"] + project["optional-dependencies"]["dev"]
+          print("\n".join(dict.fromkeys(deps)))
+          PY
+          python -m pip install --upgrade pip
+          python -m pip install -r /tmp/requirements-all.txt
+
+      - name: Generate a test JWT keypair
+        # RS256 is not optional for the auth tests, and a keypair minted per run
+        # means no key material is ever committed (§13).
+        run: |
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /tmp/jwt-private.pem
+          openssl rsa -in /tmp/jwt-private.pem -pubout -out /tmp/jwt-public.pem
+          # config.py takes the PEM inline with literal \n escapes.
+          echo "JWT_PRIVATE_KEY=$(awk 'BEGIN{ORS="\\n"}1' /tmp/jwt-private.pem)" >> "$GITHUB_ENV"
+          echo "JWT_PUBLIC_KEY=$(awk 'BEGIN{ORS="\\n"}1' /tmp/jwt-public.pem)" >> "$GITHUB_ENV"
+
+      - name: Apply migrations
+        working-directory: apps/api
+        run: alembic upgrade head
+
+      - name: pytest (excluding golden — those are their own stage)
+        working-directory: apps/api
+        run: pytest -q -m "not golden"
+
+      - name: pytest (services/*)
+        run: |
+          if ls services/*/tests/*.py >/dev/null 2>&1; then
+            pytest -q -m "not golden" -c apps/api/pyproject.toml services
+          else
+            echo "no services tests yet"
+          fi
+
+      # §13 requires this in CI, and it is the single most important test in the
+      # suite: reaching another firm's project must be impossible, not merely
+      # unlikely. Named so a failure is unmissable in the run summary.
+      - name: 'Cross-tenant isolation must fail closed (404/403)'
+        working-directory: apps/api
+        run: |
+          set +e
+          pytest -q -k "cross_tenant or tenancy"
+          code=$?
+          set -e
+          # pytest exits 5 when nothing matched. For this check that is itself
+          # the failure: §13 makes a cross-tenant test a standing CI requirement,
+          # so "no such test" must not read as "passed".
+          if [ "$code" = "5" ]; then
+            echo "::error::No cross-tenant isolation test found. §13 requires one (fetching another firm's project must 404/403)."
+            exit 1
+          fi
+          exit $code
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # 3b. unit (web) — vitest
+  # ══════════════════════════════════════════════════════════════════════════
+  unit-web:
+    name: unit (vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install JS workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: vitest
+        run: pnpm -r --if-present test
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # 4. golden — plan JSON, dimension chains, SVG/DXF sheets, units TS↔PY
+  # ══════════════════════════════════════════════════════════════════════════
+  # "Golden files gate merges" (SKILL.md rule 10). A diff here is a build
+  # failure, not a warning: intentional changes are regenerated in the same
+  # commit with a note.
+  golden:
+    name: golden
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [unit-python, unit-web]
+
+    env:
+      APP_ENV: test
+      PROVIDER_LLM: mock
+      PROVIDER_RENDER: mock
+      RULEPACK_DIR: ${{ github.workspace }}/rulepacks
+      FIXTURE_DIR: ${{ github.workspace }}/fixtures
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install python dependencies
+        run: |
+          python - <<'PY' > /tmp/requirements-all.txt
+          import tomllib
+          # BOTH manifests: services/pyproject.toml carries ortools, ezdxf and
+          # pillow, and PROVIDER_RENDER=mock imports PIL at module scope.
+          # The heavy `ml` extra is deliberately never installed in CI.
+          deps = []
+          for path in ("apps/api/pyproject.toml", "services/pyproject.toml"):
+              project = tomllib.load(open(path, "rb"))["project"]
+              deps += project["dependencies"] + project["optional-dependencies"]["dev"]
+          print("\n".join(dict.fromkeys(deps)))
+          PY
+          python -m pip install --upgrade pip
+          python -m pip install -r /tmp/requirements-all.txt
+
+      - name: Install JS workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: 'Golden suites (python): plans, dims, sheets'
+        working-directory: apps/api
+        run: pytest -q -m golden
+
+      - name: 'Golden suites (services)'
+        run: |
+          if ls services/*/tests/*.py >/dev/null 2>&1; then
+            pytest -q -m golden -c apps/api/pyproject.toml services
+          else
+            echo "no services golden tests yet"
+          fi
+
+      - name: 'Golden suites (web): units TS must agree with units PY'
+        run: pnpm -r --if-present test:golden
+
+      # A DXF that opens in LibreCAD/ODA but trips ezdxf.audit() is a broken
+      # deliverable to the architect — §16 makes this a hard gate.
+      - name: 'ezdxf audit — exported DXF must be structurally clean'
+        run: |
+          python - <<'PY'
+          import glob
+          import sys
+
+          paths = sorted(glob.glob("fixtures/sheets/**/*.dxf", recursive=True))
+          if not paths:
+              print("no DXF goldens yet (Phase 8)")
+              sys.exit(0)
+
+          from ezdxf import recover
+
+          failed = []
+          for path in paths:
+              _doc, auditor = recover.readfile(path)
+              if auditor.has_errors:
+                  failed.append((path, [str(e) for e in auditor.errors]))
+
+          for path, errors in failed:
+              print("AUDIT FAILED %s" % path)
+              for err in errors:
+                  print("    %s" % err)
+
+          print("audited %d DXF golden(s): %d failed" % (len(paths), len(failed)))
+          sys.exit(1 if failed else 0)
+          PY
+
+      - name: Upload golden diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-diffs
+          path: |
+            **/__diff__/**
+            **/*.actual.svg
+            **/*.actual.dxf
+            **/*.actual.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # 5. e2e (smoke) — login → open demo → edit wall → undo → compliance chip
+  # ══════════════════════════════════════════════════════════════════════════
+  # Runs the real stack via `docker compose up`, because that is the supported
+  # way to run this app (playbook §1) — testing a bespoke CI-only wiring would
+  # be testing something users never run.
+  e2e-smoke:
+    name: e2e (smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: [golden]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install JS workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Create .env
+        run: cp .env.example .env
+
+      - name: Bring up the stack
+        run: docker compose up -d --build --wait --wait-timeout 600
+
+      - name: Seed the demo project (§17)
+        run: docker compose exec -T api python -m garh_api.seed
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @garh/e2e exec playwright install --with-deps chromium
+
+      - name: Playwright smoke
+        env:
+          APP_URL: http://localhost:5173
+          API_URL: http://localhost:8000
+        run: pnpm --filter @garh/e2e test:smoke
+
+      - name: Dump service logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=300
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v --remove-orphans
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # Single required status check — branch protection points at this one job.
+  # ══════════════════════════════════════════════════════════════════════════
+  ci-green:
+    name: ci-green
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [lint, supply-chain, typecheck, unit-python, unit-web, golden, e2e-smoke]
+    steps:
+      - name: Fail if any upstream job did not succeed
+        run: |
+          echo "lint          ${{ needs.lint.result }}"
+          echo "supply-chain  ${{ needs.supply-chain.result }}"
+          echo "typecheck     ${{ needs.typecheck.result }}"
+          echo "unit-python   ${{ needs.unit-python.result }}"
+          echo "unit-web      ${{ needs.unit-web.result }}"
+          echo "golden        ${{ needs.golden.result }}"
+          echo "e2e-smoke     ${{ needs.e2e-smoke.result }}"
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
+            echo "::error::CI is not green"
+            exit 1
+          fi
+          echo "all stages green"

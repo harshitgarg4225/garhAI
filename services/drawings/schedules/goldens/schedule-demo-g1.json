@@ -1,0 +1,112 @@
+{
+  "rows": [
+    {
+      "countsByStorey": {
+        "storey_01J000000000000000000000GF": 1
+      },
+      "heightMm": 2100,
+      "kind": "door",
+      "notes": "",
+      "sillMm": 0,
+      "tag": "D1",
+      "total": 1,
+      "widthMm": 1000
+    },
+    {
+      "countsByStorey": {
+        "storey_01J000000000000000000000FF": 1,
+        "storey_01J000000000000000000000GF": 1
+      },
+      "heightMm": 2100,
+      "kind": "door",
+      "notes": "",
+      "sillMm": 0,
+      "tag": "D2",
+      "total": 2,
+      "widthMm": 900
+    },
+    {
+      "countsByStorey": {
+        "storey_01J000000000000000000000GF": 1
+      },
+      "heightMm": 2100,
+      "kind": "door",
+      "notes": "",
+      "sillMm": 0,
+      "tag": "D3",
+      "total": 1,
+      "widthMm": 800
+    },
+    {
+      "countsByStorey": {
+        "storey_01J000000000000000000000FF": 2,
+        "storey_01J000000000000000000000GF": 1
+      },
+      "heightMm": 1350,
+      "kind": "window",
+      "notes": "Sill 900",
+      "sillMm": 900,
+      "tag": "W1",
+      "total": 3,
+      "widthMm": 1800
+    },
+    {
+      "countsByStorey": {
+        "storey_01J000000000000000000000FF": 1,
+        "storey_01J000000000000000000000GF": 1
+      },
+      "heightMm": 1200,
+      "kind": "window",
+      "notes": "Sill 900",
+      "sillMm": 900,
+      "tag": "W2",
+      "total": 2,
+      "widthMm": 1200
+    },
+    {
+      "countsByStorey": {
+        "storey_01J000000000000000000000FF": 1,
+        "storey_01J000000000000000000000GF": 1
+      },
+      "heightMm": 450,
+      "kind": "ventilator",
+      "notes": "Sill 1800",
+      "sillMm": 1800,
+      "tag": "V1",
+      "total": 2,
+      "widthMm": 600
+    }
+  ],
+  "storeyHeaders": {
+    "storey_01J000000000000000000000FF": "FF",
+    "storey_01J000000000000000000000GF": "GF"
+  },
+  "storeyIds": [
+    "storey_01J000000000000000000000GF",
+    "storey_01J000000000000000000000FF"
+  ],
+  "tagByOpeningId": {
+    "opening_01J00000000000000000000FD1": "D2",
+    "opening_01J00000000000000000000FV1": "V1",
+    "opening_01J00000000000000000000FW1": "W1",
+    "opening_01J00000000000000000000FW2": "W1",
+    "opening_01J00000000000000000000FW3": "W2",
+    "opening_01J00000000000000000000GD1": "D1",
+    "opening_01J00000000000000000000GD2": "D2",
+    "opening_01J00000000000000000000GD3": "D3",
+    "opening_01J00000000000000000000GV1": "V1",
+    "opening_01J00000000000000000000GW1": "W1",
+    "opening_01J00000000000000000000GW2": "W2"
+  },
+  "total": 11,
+  "totalsByKind": {
+    "door": 4,
+    "ventilator": 2,
+    "window": 5
+  },
+  "totalsByStorey": {
+    "storey_01J000000000000000000000FF": 5,
+    "storey_01J000000000000000000000GF": 6
+  },
+  "warnings": []
+}

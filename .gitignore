@@ -1,6 +1,78 @@
-node_modules/
-dist/
+# ─── Secrets & local config ───────────────────────────────────────────────────
 .env
-.env.local
+.env.*
+!.env.example
+.keys/
+*.pem
+*.key
+!**/testdata/**/*.pem
+
+# ─── Node / pnpm ──────────────────────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
+dist/
+build/
+.vite/
+*.tsbuildinfo
+.eslintcache
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# ─── Test & QA artifacts ──────────────────────────────────────────────────────
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+e2e/.auth/
+lighthouse-report*/
+# Failed-golden diffs are written next to the goldens; never commit them.
+**/__diff__/
+*.actual.svg
+*.actual.dxf
+*.actual.json
+
+# ─── Local runtime data ───────────────────────────────────────────────────────
+.cache/
+tmp/
+scratch/
 *.log
+local-storage/
+minio-data/
+pgdata/
+
+# ─── Generated model/render outputs (large binaries; never committed) ─────────
+render-outputs/
+exports/
+*.glb
+*.gltf
+!fixtures/**/*.gltf
+weights/
+*.safetensors
+*.ckpt
+
+# ─── Editors & OS ─────────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.recommended.json

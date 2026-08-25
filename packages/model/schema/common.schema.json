@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://garh.ai/schema/common.schema.json",
+  "title": "Garh AI — shared model primitives",
+  "$comment": "CROSS-LANGUAGE CONTRACT between packages/model (TypeScript) and apps/api/garh_model (Python). Hand-written and kept in LOCKSTEP with src/*.ts — `schema.test.ts` asserts that every enum here matches its TS constant and that every op in OP_CATALOG has a $def in ops.schema.json. Rules that hold everywhere in this schema: (1) every length is an INTEGER number of millimetres, every area an integer mm^2, every angle an integer degree — there are no floats in a Garh document, which is what makes the canonical JSON hash portable; (2) element ids are `${type}_${ulid}`; (3) polygons are implicitly closed (no repeated last vertex), counter-clockwise, and simple.",
+
+  "$defs": {
+    "IntMm": {
+      "title": "Length in whole millimetres",
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "PositiveIntMm": { "type": "integer", "exclusiveMinimum": 0 },
+    "NonNegativeIntMm": { "type": "integer", "minimum": 0 },
+    "IntMm2": { "title": "Area in whole square millimetres", "type": "integer" },
+    "IntDeg": { "title": "Angle in whole degrees", "type": "integer" },
+    "Bearing": { "type": "integer", "minimum": 0, "maximum": 359 },
+
+    "Ulid": {
+      "type": "string",
+      "pattern": "^[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$",
+      "$comment": "26 Crockford base32 chars (no I, L, O, U). First char 0-7 keeps the 48-bit ULID timestamp range valid, including for deterministically derived ids."
+    },
+    "ElementId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]{1,15}_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$"
+    },
+    "StoreyId": { "type": "string", "pattern": "^storey_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "WallId": { "type": "string", "pattern": "^wall_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "OpeningId": { "type": "string", "pattern": "^opening_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "RoomId": { "type": "string", "pattern": "^room_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "StairId": { "type": "string", "pattern": "^stair_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "SlabId": { "type": "string", "pattern": "^slab_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "ColumnId": { "type": "string", "pattern": "^column_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "FurnitureId": { "type": "string", "pattern": "^furniture_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "BalconyId": { "type": "string", "pattern": "^balcony_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "FacadeComponentId": {
+      "type": "string",
+      "pattern": "^facadecomp_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$"
+    },
+    "MaterialAssignmentId": {
+      "type": "string",
+      "pattern": "^material_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$"
+    },
+    "AnnotationId": {
+      "type": "string",
+      "pattern": "^annotation_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$"
+    },
+    "SheetId": { "type": "string", "pattern": "^sheet_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "GroupId": { "type": "string", "minLength": 1, "maxLength": 64 },
+
+    "Pt": {
+      "title": "Point in plot-local integer millimetres",
+      "type": "object",
+      "properties": {
+        "x": { "$ref": "#/$defs/IntMm" },
+        "y": { "$ref": "#/$defs/IntMm" }
+      },
+      "required": ["x", "y"],
+      "additionalProperties": false,
+      "$comment": "Origin at the plot SW corner, +X east, +Y north. True north is `plot.northDeg` clockwise from +Y."
+    },
+    "Polygon": {
+      "title": "Simple closed ring, CCW, no repeated last vertex",
+      "type": "array",
+      "items": { "$ref": "#/$defs/Pt" },
+      "minItems": 3
+    },
+    "PolygonOrEmpty": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Pt" },
+      "$comment": "Empty array = 'no polygon' (used by plot.set_boundary's clear/undo form)."
+    },
+    "SizeMm": {
+      "type": "object",
+      "properties": {
+        "xMm": { "$ref": "#/$defs/PositiveIntMm" },
+        "yMm": { "$ref": "#/$defs/PositiveIntMm" }
+      },
+      "required": ["xMm", "yMm"],
+      "additionalProperties": false
+    },
+
+    "JsonValue": {
+      "$comment": "Free-form JSON that ends up INSIDE the document (brief data, reg-profile overrides, facade params, annotation payloads). Numbers must be integers: canonicalJson refuses to serialise a float, so a float here would make the state hash unhashable. Scale values instead (whole rupees, mm, tenths of a degree, basis points).",
+      "anyOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "integer" },
+        { "type": "string" },
+        { "type": "array", "items": { "$ref": "#/$defs/JsonValue" } },
+        { "type": "object", "additionalProperties": { "$ref": "#/$defs/JsonValue" } }
+      ]
+    },
+    "JsonObject": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/JsonValue" }
+    },
+
+    "UnitsDisplay": { "enum": ["ft-in", "m"] },
+    "RoomType": {
+      "enum": [
+        "unassigned",
+        "living",
+        "dining",
+        "living_dining",
+        "kitchen",
+        "utility",
+        "store",
+        "bedroom_master",
+        "bedroom",
+        "guest_bedroom",
+        "servant_room",
+        "study",
+        "pooja",
+        "bath",
+        "wc",
+        "bath_wc",
+        "dress",
+        "passage",
+        "lobby",
+        "foyer",
+        "staircase",
+        "balcony",
+        "terrace",
+        "porch",
+        "garage",
+        "stilt",
+        "shaft",
+        "duct",
+        "void"
+      ]
+    },
+    "WallKind": { "enum": ["external", "internal", "parapet"] },
+    "OpeningKind": { "enum": ["door", "window", "ventilator"] },
+    "OpeningSwing": { "enum": ["in-left", "in-right", "out-left", "out-right"] },
+    "StairKind": { "enum": ["straight", "dogleg", "L", "U"] },
+    "Direction4": { "enum": ["N", "E", "S", "W"] },
+    "Direction8": { "enum": ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] },
+    "SlabKind": { "enum": ["floor", "terrace", "plinth", "mumty"] },
+    "RailingKind": { "enum": ["ms", "glass", "masonry", "ms_glass", "none"] },
+    "FacadeComponentKind": {
+      "enum": [
+        "window_trim",
+        "chajja",
+        "parapet_profile",
+        "cladding_zone",
+        "porch",
+        "railing",
+        "band",
+        "louver",
+        "entry_feature"
+      ]
+    },
+    "SurfaceGroup": {
+      "enum": [
+        "external_wall",
+        "internal_wall",
+        "floor",
+        "ceiling",
+        "roof",
+        "parapet",
+        "railing",
+        "door",
+        "window",
+        "cladding",
+        "plinth",
+        "staircase"
+      ]
+    },
+    "VastuMode": { "enum": ["off", "advisory", "strict"] },
+    "OpSource": { "enum": ["manual", "copilot", "solver", "system"] },
+    "AnnotationAnchorKind": {
+      "enum": ["wall", "opening", "room", "stair", "column", "balcony", "sheet"]
+    },
+
+    "SurfaceGroupRef": {
+      "type": "object",
+      "properties": {
+        "group": { "$ref": "#/$defs/SurfaceGroup" },
+        "storeyId": { "oneOf": [{ "$ref": "#/$defs/StoreyId" }, { "type": "null" }] },
+        "elementId": { "oneOf": [{ "$ref": "#/$defs/ElementId" }, { "type": "null" }] }
+      },
+      "required": ["group", "storeyId", "elementId"],
+      "additionalProperties": false
+    },
+    "StairLanding": {
+      "type": "object",
+      "properties": {
+        "widthMm": { "$ref": "#/$defs/PositiveIntMm" },
+        "depthMm": { "$ref": "#/$defs/PositiveIntMm" }
+      },
+      "required": ["widthMm", "depthMm"],
+      "additionalProperties": false
+    },
+    "LevelData": {
+      "type": "object",
+      "properties": {
+        "fflMm": { "$ref": "#/$defs/IntMm" },
+        "slabThicknessMm": { "$ref": "#/$defs/PositiveIntMm" },
+        "sillDefaultMm": { "oneOf": [{ "$ref": "#/$defs/NonNegativeIntMm" }, { "type": "null" }] },
+        "lintelDefaultMm": {
+          "oneOf": [{ "$ref": "#/$defs/NonNegativeIntMm" }, { "type": "null" }]
+        }
+      },
+      "required": ["fflMm", "slabThicknessMm", "sillDefaultMm", "lintelDefaultMm"],
+      "additionalProperties": false
+    }
+  }
+}

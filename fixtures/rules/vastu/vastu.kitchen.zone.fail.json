@@ -1,0 +1,339 @@
+{
+  "$schema": "../../../rulepacks/schema/fixture.schema.json",
+  "fixtureId": "vastu.kitchen.zone.fail",
+  "packId": "vastu",
+  "ruleId": "vastu.kitchen.zone",
+  "kind": "fail",
+  "description": "The kitchen sits in NE, which is neither preferred nor an accepted fallback, so the rule scores zero (strict mode).",
+  "context": {
+    "packs": [
+      "vastu"
+    ],
+    "vastuMode": "strict",
+    "plot": {
+      "boundaryMm": [
+        [
+          0,
+          0
+        ],
+        [
+          12000,
+          0
+        ],
+        [
+          12000,
+          12000
+        ],
+        [
+          0,
+          12000
+        ]
+      ],
+      "areaMm2": 144000000,
+      "northDeg": 0,
+      "frontageMm": 12000,
+      "depthMm": 12000,
+      "cornerPlot": false,
+      "edges": [
+        {
+          "index": 0,
+          "role": "rear",
+          "roadWidthMm": null,
+          "setbackProvidedMm": 1500
+        },
+        {
+          "index": 1,
+          "role": "side-a",
+          "roadWidthMm": null,
+          "setbackProvidedMm": 1200
+        },
+        {
+          "index": 2,
+          "role": "front",
+          "roadWidthMm": 9000,
+          "setbackProvidedMm": 3000
+        },
+        {
+          "index": 3,
+          "role": "side-b",
+          "roadWidthMm": null,
+          "setbackProvidedMm": 1200
+        }
+      ]
+    },
+    "profile": {
+      "cityPack": "custom",
+      "zoneCategory": "residential",
+      "buildingUse": "dwelling-single",
+      "dwellingUnits": 1,
+      "parkingSpacesProvided": 1,
+      "rwhDeclared": true
+    },
+    "model": {
+      "storeyCount": 2,
+      "hasStilt": false,
+      "hasBasement": false,
+      "buildingHeightMm": 10200,
+      "heightComponentsMm": {
+        "mumty": 2400,
+        "oht": 1200
+      },
+      "footprintAreaMm2": 86000000,
+      "builtUpAreaMm2": 172000000,
+      "farCountableAreaMm2": 172000000,
+      "storeys": [
+        {
+          "id": "storey_g",
+          "index": 0,
+          "heightMm": 3000,
+          "clearHeightMm": 2850,
+          "builtUpAreaMm2": 86000000
+        },
+        {
+          "id": "storey_1",
+          "index": 1,
+          "heightMm": 3000,
+          "clearHeightMm": 2850,
+          "builtUpAreaMm2": 86000000
+        }
+      ],
+      "rooms": [
+        {
+          "id": "room_pooja",
+          "storeyId": "storey_g",
+          "type": "pooja",
+          "name": "Pooja",
+          "polygonMm": [
+            [
+              8800,
+              8800
+            ],
+            [
+              10400,
+              8800
+            ],
+            [
+              10400,
+              10400
+            ],
+            [
+              8800,
+              10400
+            ]
+          ],
+          "areaMm2": 2560000,
+          "leastWidthMm": 1600,
+          "centroidMm": [
+            9600,
+            9600
+          ],
+          "clearCeilingHeightMm": 2900,
+          "ventilationOpeningAreaMm2": 300000,
+          "isInternal": false
+        },
+        {
+          "id": "room_kitchen",
+          "storeyId": "storey_g",
+          "type": "kitchen",
+          "name": "Kitchen",
+          "polygonMm": [
+            [
+              8800,
+              8800
+            ],
+            [
+              11200,
+              8800
+            ],
+            [
+              11200,
+              11200
+            ],
+            [
+              8800,
+              11200
+            ]
+          ],
+          "areaMm2": 5760000,
+          "leastWidthMm": 2400,
+          "centroidMm": [
+            10000,
+            10000
+          ],
+          "clearCeilingHeightMm": 2900,
+          "ventilationOpeningAreaMm2": 576000,
+          "isInternal": false
+        },
+        {
+          "id": "room_master",
+          "storeyId": "storey_g",
+          "type": "master_bedroom",
+          "name": "Master Bedroom",
+          "polygonMm": [
+            [
+              500,
+              500
+            ],
+            [
+              3500,
+              500
+            ],
+            [
+              3500,
+              3500
+            ],
+            [
+              500,
+              3500
+            ]
+          ],
+          "areaMm2": 9000000,
+          "leastWidthMm": 3000,
+          "centroidMm": [
+            2000,
+            2000
+          ],
+          "clearCeilingHeightMm": 2900,
+          "ventilationOpeningAreaMm2": 900000,
+          "isInternal": false
+        },
+        {
+          "id": "room_bathwc",
+          "storeyId": "storey_g",
+          "type": "bath_wc",
+          "name": "Bath + WC",
+          "polygonMm": [
+            [
+              1200,
+              5200
+            ],
+            [
+              2800,
+              5200
+            ],
+            [
+              2800,
+              6800
+            ],
+            [
+              1200,
+              6800
+            ]
+          ],
+          "areaMm2": 2560000,
+          "leastWidthMm": 1600,
+          "centroidMm": [
+            2000,
+            6000
+          ],
+          "clearCeilingHeightMm": 2900,
+          "ventilationOpeningAreaMm2": 300000,
+          "isInternal": false
+        },
+        {
+          "id": "room_living",
+          "storeyId": "storey_g",
+          "type": "living_dining",
+          "name": "Living / Dining",
+          "polygonMm": [
+            [
+              4000,
+              4000
+            ],
+            [
+              8000,
+              4000
+            ],
+            [
+              8000,
+              8000
+            ],
+            [
+              4000,
+              8000
+            ]
+          ],
+          "areaMm2": 16000000,
+          "leastWidthMm": 4000,
+          "centroidMm": [
+            6000,
+            6000
+          ],
+          "clearCeilingHeightMm": 2900,
+          "ventilationOpeningAreaMm2": 1600000,
+          "isInternal": false
+        }
+      ],
+      "openings": [
+        {
+          "id": "open_main",
+          "storeyId": "storey_g",
+          "wallId": "wall_ext_n",
+          "kind": "door",
+          "role": "main-entrance",
+          "widthMm": 1050,
+          "heightMm": 2100,
+          "sillMm": 0,
+          "roomIds": [
+            "room_living"
+          ],
+          "outwardNormalDeg": 0
+        }
+      ],
+      "stairs": [
+        {
+          "id": "stair_main",
+          "storeyId": "storey_g",
+          "kind": "dogleg",
+          "riserMm": 165,
+          "treadMm": 280,
+          "widthMm": 1050,
+          "headroomMm": 2200,
+          "risersCount": 18,
+          "centroidMm": [
+            6400,
+            2400
+          ]
+        }
+      ],
+      "serviceElements": [
+        {
+          "id": "svc_oht",
+          "kind": "oht",
+          "storeyId": "storey_1",
+          "centroidMm": [
+            10600,
+            10600
+          ]
+        }
+      ]
+    }
+  },
+  "expected": {
+    "status": "warn",
+    "actual": [
+      "NE"
+    ],
+    "limit": {
+      "allow": [
+        "SE"
+      ],
+      "fallback": {
+        "allow": [
+          "NW"
+        ],
+        "scoreRatio": {
+          "num": 1,
+          "den": 2
+        }
+      }
+    },
+    "elements": [
+      "room_kitchen"
+    ],
+    "satisfaction": {
+      "num": 0,
+      "den": 1
+    }
+  }
+}

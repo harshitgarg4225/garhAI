@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.garh.ai/rulepack/1.0.0/fixture.schema.json",
+  "title": "Garh AI rule fixture",
+  "description": "One rule, one scenario, one expected result. Playbook §16 requires at least one passing and one violating fixture per rule; these files are the gate on the rules engine. `context` is a complete EvaluationContext -- $defs.evaluationContext is ALSO the engine's input contract, so the engine's context builder and these fixtures are checked against the same shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["fixtureId", "packId", "ruleId", "kind", "description", "context", "expected"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "fixtureId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9_-]*)+$",
+      "description": "`<ruleId>.<kind>`. Matches the filename without .json."
+    },
+    "packId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$" },
+    "ruleId": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9_-]*)+$" },
+    "kind": {
+      "type": "string",
+      "enum": ["pass", "fail", "extra"],
+      "description": "`pass` = the rule is satisfied, usually EXACTLY at the limit (the most informative passing case). `fail` = the rule is violated, usually by one unit -- note that `expected.status` is `warn` rather than `fail` when the rule's severity is warn or a scoring mode clamps it. `extra` = an additional behaviour case (partial-score fallback, advisory clamping)."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Why this scenario produces this result, in one sentence, with the numbers."
+    },
+    "context": { "$ref": "#/$defs/evaluationContext" },
+    "expected": { "$ref": "#/$defs/expectedResult" },
+    "notes": { "type": "string" }
+  },
+
+  "$defs": {
+    "expectedResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "actual", "limit"],
+      "description": "The single result row the engine must produce for `ruleId`. A fixture asserts THAT ROW ONLY -- other rules may pass or fail in the same context, which is why the file names the rule.",
+      "properties": {
+        "status": { "type": "string", "enum": ["pass", "warn", "fail", "not_applicable"] },
+        "actual": {
+          "description": "Measured value in the check's resultUnit (see rulepack.schema.json x-garh-check-meta). Integer mm / mm2 / count, boolean for rwh_required, array of zone labels for zone_check.",
+          "type": ["integer", "boolean", "string", "array", "null"]
+        },
+        "limit": {
+          "description": "Permitted value in the same unit. An object for zone_check ({allow, deny, fallback}).",
+          "type": ["integer", "boolean", "string", "array", "object", "null"]
+        },
+        "elements": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ids of the offending elements, for chip highlighting. Empty for project-scope checks."
+        },
+        "satisfaction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["num", "den"],
+          "properties": { "num": { "type": "integer" }, "den": { "type": "integer", "minimum": 1 } },
+          "description": "Scoring packs only: the exact rational contribution before weighting."
+        }
+      }
+    },
+
+    "evaluationContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["packs", "vastuMode", "plot", "profile", "model"],
+      "description": "A flattened, pre-derived projection of HouseModel + Plot + RegProfile, built by the model layer (`build_context`). The rules engine does no geometry beyond polygon area / bounding box / centroid and the 3x3 zone classification -- that is what keeps a full run under 100ms and safe to debounce on every edit.",
+      "properties": {
+        "packs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "Resolved pack load order, root first (e.g. [\"nbc-core\", \"blr\"])."
+        },
+        "vastuMode": { "type": "string", "enum": ["off", "advisory", "strict"] },
+        "plot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["boundaryMm", "areaMm2", "northDeg", "cornerPlot", "edges"],
+          "properties": {
+            "boundaryMm": {
+              "type": "array",
+              "minItems": 3,
+              "items": {
+                "type": "array", "minItems": 2, "maxItems": 2,
+                "items": { "type": "integer" }
+              },
+              "description": "Open ring, counter-clockwise, plot-local integer mm, origin at the plot's SW corner."
+            },
+            "areaMm2": { "type": "integer", "minimum": 1 },
+            "northDeg": {
+              "type": "integer", "minimum": 0, "maximum": 359,
+              "description": "Plot-local bearing of TRUE north, measured clockwise from +Y. 0 = plot +Y is north."
+            },
+            "frontageMm": { "type": ["integer", "null"], "minimum": 0 },
+            "depthMm": { "type": ["integer", "null"], "minimum": 0 },
+            "cornerPlot": { "type": "boolean" },
+            "edges": {
+              "type": "array",
+              "minItems": 3,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["index", "role", "roadWidthMm", "setbackProvidedMm"],
+                "properties": {
+                  "index": { "type": "integer", "minimum": 0, "description": "Index into boundaryMm of the edge's start vertex." },
+                  "role": { "type": "string", "enum": ["front", "rear", "side-a", "side-b", "other"] },
+                  "roadWidthMm": { "type": ["integer", "null"], "minimum": 0 },
+                  "setbackProvidedMm": { "type": "integer", "minimum": 0, "description": "Open space actually left between this plot line and the building line." }
+                }
+              }
+            }
+          }
+        },
+        "profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cityPack", "zoneCategory", "buildingUse", "dwellingUnits", "parkingSpacesProvided", "rwhDeclared"],
+          "properties": {
+            "cityPack": { "type": "string", "enum": ["nbc-core", "blr", "ncr", "hyd", "custom"] },
+            "zoneCategory": { "type": "string", "enum": ["residential", "mixed", "commercial", "institutional", "industrial"] },
+            "buildingUse": { "type": "string", "enum": ["dwelling-single", "dwelling-two", "row-house", "apartment", "other"] },
+            "dwellingUnits": { "type": "integer", "minimum": 1 },
+            "parkingSpacesProvided": { "type": "integer", "minimum": 0 },
+            "rwhDeclared": { "type": "boolean" },
+            "overrides": {
+              "type": "object",
+              "description": "ruleId -> override record. An overridden rule still evaluates; the UI marks the result as accepted-with-override and audit_log keeps the reason (§13). The reserved key `values` is NOT a rule id: it carries the plot panel's integer value overrides (ratios ×100) and is routed separately by the context parser.",
+              "properties": {
+                "values": {
+                  "type": "object",
+                  "description": "Reserved: architect's value overrides (`setbackFrontMm`, `farX100`, ...) as integers. Parsed into ProfileSummary.value_overrides; substitution into check values is Phase 3.",
+                  "additionalProperties": { "type": "integer" }
+                }
+              },
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string" },
+                  "byUserId": { "type": "string" },
+                  "at": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["storeyCount", "hasStilt", "hasBasement", "buildingHeightMm", "footprintAreaMm2", "builtUpAreaMm2", "farCountableAreaMm2", "storeys", "rooms", "openings", "stairs"],
+          "properties": {
+            "storeyCount": { "type": "integer", "minimum": 0, "description": "Habitable storeys above ground; stilt and basement excluded." },
+            "hasStilt": { "type": "boolean" },
+            "hasBasement": { "type": "boolean" },
+            "buildingHeightMm": { "type": "integer", "minimum": 0, "description": "Ground level to highest point, nothing excluded." },
+            "heightComponentsMm": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Heights of the components a bye-law may exclude from the height limit.",
+              "properties": {
+                "parapet": { "type": "integer", "minimum": 0 },
+                "mumty": { "type": "integer", "minimum": 0 },
+                "oht": { "type": "integer", "minimum": 0 },
+                "stair-headroom": { "type": "integer", "minimum": 0 },
+                "lift-machine-room": { "type": "integer", "minimum": 0 },
+                "chimney": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "footprintAreaMm2": { "type": "integer", "minimum": 0, "description": "Ground coverage, including whatever the pack's vocabulary.coverageInclusions names." },
+            "builtUpAreaMm2": { "type": "integer", "minimum": 0, "description": "Gross built-up over all storeys." },
+            "farCountableAreaMm2": { "type": "integer", "minimum": 0, "description": "builtUpAreaMm2 minus the pack's vocabulary.farExclusions." },
+            "storeys": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "index", "heightMm"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "index": { "type": "integer", "minimum": 0 },
+                  "heightMm": { "type": "integer", "minimum": 0, "description": "Floor-to-floor." },
+                  "clearHeightMm": { "type": "integer", "minimum": 0 },
+                  "builtUpAreaMm2": { "type": "integer", "minimum": 0 }
+                }
+              }
+            },
+            "rooms": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "storeyId", "type", "name", "polygonMm", "areaMm2", "leastWidthMm", "centroidMm", "clearCeilingHeightMm", "ventilationOpeningAreaMm2", "isInternal"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "storeyId": { "type": "string" },
+                  "type": { "type": "string" },
+                  "name": { "type": "string" },
+                  "polygonMm": {
+                    "type": "array", "minItems": 3,
+                    "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" } },
+                    "description": "Inner face polygon, open ring, CCW. areaMm2 / leastWidthMm / centroidMm are pre-derived from it; the test suite asserts they agree, so a fixture cannot quietly lie about its geometry."
+                  },
+                  "areaMm2": { "type": "integer", "minimum": 0 },
+                  "leastWidthMm": { "type": "integer", "minimum": 0 },
+                  "centroidMm": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" } },
+                  "clearCeilingHeightMm": { "type": "integer", "minimum": 0 },
+                  "ventilationOpeningAreaMm2": { "type": "integer", "minimum": 0, "description": "Sum of openable window/ventilator areas serving this room." },
+                  "isInternal": { "type": "boolean", "description": "No wall on the building envelope." },
+                  "hasShaftAccess": { "type": "boolean" }
+                }
+              }
+            },
+            "openings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "storeyId", "kind", "role", "widthMm", "heightMm"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "storeyId": { "type": "string" },
+                  "wallId": { "type": "string" },
+                  "kind": { "type": "string", "enum": ["door", "window", "ventilator"] },
+                  "role": { "type": "string", "enum": ["main-entrance", "internal", "bath", "balcony", "service", "garage"] },
+                  "widthMm": { "type": "integer", "minimum": 0 },
+                  "heightMm": { "type": "integer", "minimum": 0 },
+                  "sillMm": { "type": "integer", "minimum": 0 },
+                  "roomIds": { "type": "array", "items": { "type": "string" } },
+                  "centroidMm": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" } },
+                  "outwardNormalDeg": {
+                    "type": ["integer", "null"], "minimum": 0, "maximum": 359,
+                    "description": "Plot-local bearing (clockwise from +Y) of the host wall's outward normal. Required for zone_check mode=facing; null for internal openings."
+                  }
+                }
+              }
+            },
+            "stairs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "storeyId", "riserMm", "treadMm", "widthMm", "headroomMm"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "storeyId": { "type": "string" },
+                  "kind": { "type": "string", "enum": ["straight", "dogleg", "L", "U"] },
+                  "riserMm": { "type": "integer", "minimum": 0 },
+                  "treadMm": { "type": "integer", "minimum": 0 },
+                  "widthMm": { "type": "integer", "minimum": 0 },
+                  "headroomMm": { "type": "integer", "minimum": 0 },
+                  "risersCount": { "type": "integer", "minimum": 0 },
+                  "centroidMm": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" } }
+                }
+              }
+            },
+            "projections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "storeyId", "element", "edgeRole", "projectionMm"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "storeyId": { "type": "string" },
+                  "element": { "type": "string", "enum": ["balcony", "chajja", "porch", "bay-window", "cupboard", "canopy"] },
+                  "edgeRole": { "type": "string", "enum": ["front", "rear", "side-a", "side-b", "other"] },
+                  "projectionMm": { "type": "integer", "minimum": 0 },
+                  "intoSetback": { "type": "boolean" }
+                }
+              }
+            },
+            "serviceElements": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "kind", "centroidMm"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "kind": { "type": "string", "enum": ["water_tank", "oht", "sump", "septic_tank", "borewell", "meter_room", "generator"] },
+                  "storeyId": { "type": "string" },
+                  "centroidMm": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

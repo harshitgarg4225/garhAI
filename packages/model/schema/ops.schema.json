@@ -1,0 +1,1958 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://garh.ai/schema/ops.schema.json",
+  "title": "Op — the 32-op taxonomy (playbook §4)",
+  "$comment": "CROSS-LANGUAGE CONTRACT between packages/model/src/ops.ts (TypeScript) and apps/api/garh_model/ops.py (Python), kept in LOCKSTEP BY HAND. `$defs` holds ONE entry PER OP, keyed by the op type string, so a mirror can look up `#/$defs/wall.add` directly; the root `oneOf` accepts any of them. `ops.test.ts` asserts that the key set here equals OP_TYPES exactly — a new op that is not in both places is a build failure. Two structural rules make replay deterministic: creation ops carry the new element's id in the payload (ids are minted by the op producer, never inside fold), and no op carries a timestamp, an actor or a random value. All lengths are integer millimetres.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/plot.set_boundary"
+    },
+    {
+      "$ref": "#/$defs/plot.set_north"
+    },
+    {
+      "$ref": "#/$defs/plot.set_road"
+    },
+    {
+      "$ref": "#/$defs/plot.set_reg_profile"
+    },
+    {
+      "$ref": "#/$defs/brief.update"
+    },
+    {
+      "$ref": "#/$defs/storey.add"
+    },
+    {
+      "$ref": "#/$defs/storey.remove"
+    },
+    {
+      "$ref": "#/$defs/storey.set_height"
+    },
+    {
+      "$ref": "#/$defs/wall.add"
+    },
+    {
+      "$ref": "#/$defs/wall.move"
+    },
+    {
+      "$ref": "#/$defs/wall.split"
+    },
+    {
+      "$ref": "#/$defs/wall.delete"
+    },
+    {
+      "$ref": "#/$defs/wall.set_thickness"
+    },
+    {
+      "$ref": "#/$defs/opening.add"
+    },
+    {
+      "$ref": "#/$defs/opening.move"
+    },
+    {
+      "$ref": "#/$defs/opening.resize"
+    },
+    {
+      "$ref": "#/$defs/opening.flip"
+    },
+    {
+      "$ref": "#/$defs/opening.delete"
+    },
+    {
+      "$ref": "#/$defs/room.assign"
+    },
+    {
+      "$ref": "#/$defs/room.set_target"
+    },
+    {
+      "$ref": "#/$defs/stair.add"
+    },
+    {
+      "$ref": "#/$defs/stair.edit"
+    },
+    {
+      "$ref": "#/$defs/stair.delete"
+    },
+    {
+      "$ref": "#/$defs/column.set"
+    },
+    {
+      "$ref": "#/$defs/furniture.set"
+    },
+    {
+      "$ref": "#/$defs/balcony.set"
+    },
+    {
+      "$ref": "#/$defs/facade.apply_kit"
+    },
+    {
+      "$ref": "#/$defs/facade.edit_component"
+    },
+    {
+      "$ref": "#/$defs/material.assign"
+    },
+    {
+      "$ref": "#/$defs/levels.set"
+    },
+    {
+      "$ref": "#/$defs/solver.apply_option"
+    },
+    {
+      "$ref": "#/$defs/annotation.set"
+    }
+  ],
+  "$defs": {
+    "OpMeta": {
+      "type": "object",
+      "properties": {
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId",
+          "$comment": "Undo/redo works on groups, not single ops."
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128,
+          "$comment": "Client idempotency key; the server dedupes on it."
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "plot.set_boundary": {
+      "title": "1. plot.set_boundary",
+      "description": "Replace the plot boundary polygon. An EMPTY array clears it (the undo form).",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "plot.set_boundary"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "polygon"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "polygon": {
+              "$ref": "common.schema.json#/$defs/PolygonOrEmpty"
+            },
+            "source": {
+              "type": "string"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "plot.set_north": {
+      "title": "2. plot.set_north",
+      "description": "Rotate true north. Integer degrees 0-359, clockwise from +Y.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "plot.set_north"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "deg"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "deg": {
+              "$ref": "common.schema.json#/$defs/Bearing"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "plot.set_road": {
+      "title": "3. plot.set_road",
+      "description": "Attach or remove the abutting road width on one plot edge (drives setback tables).",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "plot.set_road"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "edgeIndex",
+            "widthMm"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "edgeIndex": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "widthMm": {
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/PositiveIntMm"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "name": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "plot.set_reg_profile": {
+      "title": "4. plot.set_reg_profile",
+      "description": "Choose the city rule pack and per-project overrides. Overrides are audited (§13).",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "plot.set_reg_profile"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "cityPack",
+            "overrides"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "cityPack": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "overrides": {
+              "$ref": "common.schema.json#/$defs/JsonObject"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "brief.update": {
+      "title": "5. brief.update",
+      "description": "RFC 7386 JSON merge patch on brief.data (null deletes a key).",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "brief.update"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "patch"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "patch": {
+              "$ref": "common.schema.json#/$defs/JsonObject"
+            },
+            "vastuMode": {
+              "$ref": "common.schema.json#/$defs/VastuMode"
+            },
+            "completeness": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "storey.add": {
+      "title": "6. storey.add",
+      "description": "Insert a storey at `index` (0 = ground). FFLs re-derive from storey heights.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "storey.add"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "id",
+            "index",
+            "heightMm"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/StoreyId"
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "name": {
+              "type": "string"
+            },
+            "heightMm": {
+              "type": "integer",
+              "minimum": 1800,
+              "maximum": 12000
+            },
+            "level": {
+              "$ref": "common.schema.json#/$defs/LevelData"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "storey.remove": {
+      "title": "7. storey.remove",
+      "description": "Remove the storey at `index` and everything on it.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "storey.remove"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "index"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "index": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "storey.set_height": {
+      "title": "8. storey.set_height",
+      "description": "Change one storey's floor-to-floor height; FFLs above shift, stairs re-check.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "storey.set_height"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "storeyId",
+            "heightMm"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "storeyId": {
+              "$ref": "common.schema.json#/$defs/StoreyId"
+            },
+            "heightMm": {
+              "type": "integer",
+              "minimum": 1800,
+              "maximum": 12000
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "wall.add": {
+      "title": "9. wall.add",
+      "description": "Add a wall centreline on a storey. Rooms re-detect afterwards.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "wall.add"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "id",
+            "storeyId",
+            "a",
+            "b",
+            "thicknessMm",
+            "kind"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/WallId"
+            },
+            "storeyId": {
+              "$ref": "common.schema.json#/$defs/StoreyId"
+            },
+            "a": {
+              "$ref": "common.schema.json#/$defs/Pt"
+            },
+            "b": {
+              "$ref": "common.schema.json#/$defs/Pt"
+            },
+            "thicknessMm": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 1000
+            },
+            "kind": {
+              "$ref": "common.schema.json#/$defs/WallKind"
+            },
+            "loadBearing": {
+              "type": "boolean"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "wall.move": {
+      "title": "10. wall.move",
+      "description": "Set both wall endpoints. Joins re-resolve and rooms re-detect (ids preserved).",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "wall.move"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "wallId",
+            "a",
+            "b"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "wallId": {
+              "$ref": "common.schema.json#/$defs/WallId"
+            },
+            "a": {
+              "$ref": "common.schema.json#/$defs/Pt"
+            },
+            "b": {
+              "$ref": "common.schema.json#/$defs/Pt"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "wall.split": {
+      "title": "11. wall.split",
+      "description": "Split a wall at `atMm` from its `a` end; openings re-host by position.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "wall.split"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "wallId",
+            "atMm",
+            "newWallId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "wallId": {
+              "$ref": "common.schema.json#/$defs/WallId"
+            },
+            "atMm": {
+              "$ref": "common.schema.json#/$defs/PositiveIntMm"
+            },
+            "newWallId": {
+              "$ref": "common.schema.json#/$defs/WallId"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "wall.delete": {
+      "title": "12. wall.delete",
+      "description": "Delete a wall and every opening hosted on it. Rooms re-detect.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "wall.delete"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "wallId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "wallId": {
+              "$ref": "common.schema.json#/$defs/WallId"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "wall.set_thickness": {
+      "title": "13. wall.set_thickness",
+      "description": "Change wall thickness. Room clear areas shrink or grow accordingly.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "wall.set_thickness"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "wallId",
+            "thicknessMm"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "wallId": {
+              "$ref": "common.schema.json#/$defs/WallId"
+            },
+            "thicknessMm": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 1000
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "opening.add": {
+      "title": "14. opening.add",
+      "description": "Host a door/window/ventilator on a wall. offsetMm is to the CENTRE from wall.a; 115mm end margins are enforced.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "opening.add"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "id",
+            "wallId",
+            "kind",
+            "widthMm",
+            "heightMm",
+            "sillMm",
+            "offsetMm",
+            "swing"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/OpeningId"
+            },
+            "wallId": {
+              "$ref": "common.schema.json#/$defs/WallId"
+            },
+            "kind": {
+              "$ref": "common.schema.json#/$defs/OpeningKind"
+            },
+            "widthMm": {
+              "$ref": "common.schema.json#/$defs/PositiveIntMm"
+            },
+            "heightMm": {
+              "$ref": "common.schema.json#/$defs/PositiveIntMm"
+            },
+            "sillMm": {
+              "$ref": "common.schema.json#/$defs/NonNegativeIntMm"
+            },
+            "offsetMm": {
+              "$ref": "common.schema.json#/$defs/NonNegativeIntMm"
+            },
+            "swing": {
+              "$ref": "common.schema.json#/$defs/OpeningSwing"
+            },
+            "tag": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "opening.move": {
+      "title": "15. opening.move",
+      "description": "Slide an opening along its wall, or re-host it by passing wallId.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "opening.move"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "openingId",
+            "offsetMm"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "openingId": {
+              "$ref": "common.schema.json#/$defs/OpeningId"
+            },
+            "offsetMm": {
+              "$ref": "common.schema.json#/$defs/NonNegativeIntMm"
+            },
+            "wallId": {
+              "$ref": "common.schema.json#/$defs/WallId"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "opening.resize": {
+      "title": "16. opening.resize",
+      "description": "Change width / height / sill. At least one must be present.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "opening.resize"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "openingId"
+          ],
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "widthMm"
+              ]
+            },
+            {
+              "required": [
+                "heightMm"
+              ]
+            },
+            {
+              "required": [
+                "sillMm"
+              ]
+            }
+          ],
+          "properties": {
+            "openingId": {
+              "$ref": "common.schema.json#/$defs/OpeningId"
+            },
+            "widthMm": {
+              "$ref": "common.schema.json#/$defs/PositiveIntMm"
+            },
+            "heightMm": {
+              "$ref": "common.schema.json#/$defs/PositiveIntMm"
+            },
+            "sillMm": {
+              "$ref": "common.schema.json#/$defs/NonNegativeIntMm"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "opening.flip": {
+      "title": "17. opening.flip",
+      "description": "Change the door swing / hand.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "opening.flip"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "openingId",
+            "swing"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "openingId": {
+              "$ref": "common.schema.json#/$defs/OpeningId"
+            },
+            "swing": {
+              "$ref": "common.schema.json#/$defs/OpeningSwing"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "opening.delete": {
+      "title": "18. opening.delete",
+      "description": "Remove an opening from its wall.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "opening.delete"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "openingId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "openingId": {
+              "$ref": "common.schema.json#/$defs/OpeningId"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "room.assign": {
+      "title": "19. room.assign",
+      "description": "Set a detected room's programme type, name, tags and lock flag. Never changes geometry.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "room.assign"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "roomId",
+            "type"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "roomId": {
+              "$ref": "common.schema.json#/$defs/RoomId"
+            },
+            "type": {
+              "$ref": "common.schema.json#/$defs/RoomType"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "locked": {
+              "type": "boolean"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "room.set_target": {
+      "title": "20. room.set_target",
+      "description": "Set a target area and/or required facing. Feeds the solver, not the geometry.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "room.set_target"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "roomId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "roomId": {
+              "$ref": "common.schema.json#/$defs/RoomId"
+            },
+            "targetAreaMm2": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mustFace": {
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/Direction8"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "stair.add": {
+      "title": "21. stair.add",
+      "description": "Add a stair. risersCount * riserMm must equal the storey height within +/-10mm.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "stair.add"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "id",
+            "storeyId",
+            "kind",
+            "origin",
+            "direction",
+            "riserMm",
+            "treadMm",
+            "widthMm",
+            "risersCount"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/StairId"
+            },
+            "storeyId": {
+              "$ref": "common.schema.json#/$defs/StoreyId"
+            },
+            "kind": {
+              "$ref": "common.schema.json#/$defs/StairKind"
+            },
+            "origin": {
+              "$ref": "common.schema.json#/$defs/Pt"
+            },
+            "direction": {
+              "$ref": "common.schema.json#/$defs/Direction4"
+            },
+            "riserMm": {
+              "type": "integer",
+              "minimum": 50,
+              "maximum": 400
+            },
+            "treadMm": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 600
+            },
+            "widthMm": {
+              "type": "integer",
+              "minimum": 300
+            },
+            "risersCount": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 60
+            },
+            "landing": {
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/StairLanding"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "stair.edit": {
+      "title": "22. stair.edit",
+      "description": "Patch stair fields; omitted fields are unchanged.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "stair.edit"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "stairId",
+            "patch"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "stairId": {
+              "$ref": "common.schema.json#/$defs/StairId"
+            },
+            "patch": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "$ref": "common.schema.json#/$defs/StairKind"
+                },
+                "origin": {
+                  "$ref": "common.schema.json#/$defs/Pt"
+                },
+                "direction": {
+                  "$ref": "common.schema.json#/$defs/Direction4"
+                },
+                "riserMm": {
+                  "type": "integer",
+                  "minimum": 50,
+                  "maximum": 400
+                },
+                "treadMm": {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 600
+                },
+                "widthMm": {
+                  "type": "integer",
+                  "minimum": 300
+                },
+                "risersCount": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 60
+                },
+                "landing": {
+                  "oneOf": [
+                    {
+                      "$ref": "common.schema.json#/$defs/StairLanding"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "stair.delete": {
+      "title": "23. stair.delete",
+      "description": "Remove a stair.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "stair.delete"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "stairId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "stairId": {
+              "$ref": "common.schema.json#/$defs/StairId"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "column.set": {
+      "title": "24. column.set (add | move | delete)",
+      "description": "One op for all column edits; `action` selects the verb. Columns are coordination-only.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "column.set"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "action",
+            "id"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "enum": [
+                "add",
+                "move",
+                "delete"
+              ]
+            },
+            "id": {
+              "$ref": "common.schema.json#/$defs/ColumnId"
+            },
+            "storeyId": {
+              "$ref": "common.schema.json#/$defs/StoreyId"
+            },
+            "pt": {
+              "$ref": "common.schema.json#/$defs/Pt"
+            },
+            "sizeMm": {
+              "$ref": "common.schema.json#/$defs/SizeMm"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "action": {
+                    "const": "add"
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              },
+              "then": {
+                "required": [
+                  "storeyId",
+                  "pt"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "action": {
+                    "const": "move"
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              },
+              "then": {
+                "required": [
+                  "pt"
+                ]
+              }
+            }
+          ]
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "furniture.set": {
+      "title": "25. furniture.set (place | transform | delete)",
+      "description": "One op for all furniture edits; `action` selects the verb.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "furniture.set"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "action",
+            "id"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "enum": [
+                "place",
+                "transform",
+                "delete"
+              ]
+            },
+            "id": {
+              "$ref": "common.schema.json#/$defs/FurnitureId"
+            },
+            "storeyId": {
+              "$ref": "common.schema.json#/$defs/StoreyId"
+            },
+            "catalogId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pt": {
+              "$ref": "common.schema.json#/$defs/Pt"
+            },
+            "rotationDeg": {
+              "type": "integer",
+              "minimum": -359,
+              "maximum": 359
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "action": {
+                    "const": "place"
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              },
+              "then": {
+                "required": [
+                  "storeyId",
+                  "catalogId",
+                  "pt"
+                ]
+              }
+            }
+          ]
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "balcony.set": {
+      "title": "26. balcony.set (add | edit | delete)",
+      "description": "One op for all balcony edits; `action` selects the verb. Projection is checked against the projection rules.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "balcony.set"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "action",
+            "id"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "enum": [
+                "add",
+                "edit",
+                "delete"
+              ]
+            },
+            "id": {
+              "$ref": "common.schema.json#/$defs/BalconyId"
+            },
+            "storeyId": {
+              "$ref": "common.schema.json#/$defs/StoreyId"
+            },
+            "polygon": {
+              "$ref": "common.schema.json#/$defs/Polygon"
+            },
+            "railingKind": {
+              "$ref": "common.schema.json#/$defs/RailingKind"
+            },
+            "railingHeightMm": {
+              "$ref": "common.schema.json#/$defs/NonNegativeIntMm"
+            },
+            "projectionMm": {
+              "$ref": "common.schema.json#/$defs/NonNegativeIntMm"
+            },
+            "slabThicknessMm": {
+              "$ref": "common.schema.json#/$defs/PositiveIntMm"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "action": {
+                    "const": "add"
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              },
+              "then": {
+                "required": [
+                  "storeyId",
+                  "polygon"
+                ]
+              }
+            }
+          ]
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "facade.apply_kit": {
+      "title": "27. facade.apply_kit",
+      "description": "Replace the whole facade sub-model with a kit instantiation. kitId null clears it. Components are carried so replay never re-runs the generator.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "facade.apply_kit"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "kitId",
+            "seed",
+            "components"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kitId": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "colorwayId": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "components": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "kind",
+                  "params"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/FacadeComponentId"
+                  },
+                  "kind": {
+                    "$ref": "common.schema.json#/$defs/FacadeComponentKind"
+                  },
+                  "storeyId": {
+                    "oneOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/StoreyId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "wallId": {
+                    "oneOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/WallId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "openingId": {
+                    "oneOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/OpeningId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "params": {
+                    "$ref": "common.schema.json#/$defs/JsonObject"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "facade.edit_component": {
+      "title": "28. facade.edit_component",
+      "description": "RFC 7386 merge patch on one facade component's params.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "facade.edit_component"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "componentId",
+            "patch"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "componentId": {
+              "$ref": "common.schema.json#/$defs/FacadeComponentId"
+            },
+            "patch": {
+              "$ref": "common.schema.json#/$defs/JsonObject"
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "material.assign": {
+      "title": "29. material.assign",
+      "description": "Assign a catalogue material to a surface group. materialId null removes the assignment.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "material.assign"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "id",
+            "target",
+            "materialId"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "common.schema.json#/$defs/MaterialAssignmentId"
+            },
+            "target": {
+              "$ref": "common.schema.json#/$defs/SurfaceGroupRef"
+            },
+            "materialId": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "levels.set": {
+      "title": "30. levels.set",
+      "description": "Set plinth / default sill / default lintel / parapet heights. At least one field required.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "levels.set"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "plinthMm": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6000
+            },
+            "sillDefaultMm": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6000
+            },
+            "lintelDefaultMm": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6000
+            },
+            "parapetMm": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6000
+            },
+            "fflPerStoreyMm": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/IntMm"
+              }
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "solver.apply_option": {
+      "title": "31. solver.apply_option",
+      "description": "Apply a generated plan option as ONE atomic group. Carries its own expansion so replay never re-runs the solver.",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "solver.apply_option"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "solverJobId",
+            "optionIndex",
+            "ops"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "solverJobId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "optionIndex": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ops": {
+              "type": "array",
+              "items": {
+                "$ref": "#"
+              }
+            },
+            "lockedRoomIds": {
+              "type": "array",
+              "items": {
+                "$ref": "common.schema.json#/$defs/RoomId"
+              }
+            }
+          }
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    },
+    "annotation.set": {
+      "title": "32. annotation.set (add | edit | delete)",
+      "description": "One op for all sheet annotations; `action` selects the verb. Annotations anchor to element ids (§7).",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "annotation.set"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "action",
+            "id"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "enum": [
+                "add",
+                "edit",
+                "delete"
+              ]
+            },
+            "id": {
+              "$ref": "common.schema.json#/$defs/AnnotationId"
+            },
+            "sheetId": {
+              "$ref": "common.schema.json#/$defs/SheetId"
+            },
+            "anchorElementId": {
+              "oneOf": [
+                {
+                  "$ref": "common.schema.json#/$defs/ElementId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "anchorKind": {
+              "$ref": "common.schema.json#/$defs/AnnotationAnchorKind"
+            },
+            "payload": {
+              "$ref": "common.schema.json#/$defs/JsonObject"
+            },
+            "orphaned": {
+              "type": "boolean"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "action": {
+                    "const": "add"
+                  }
+                },
+                "required": [
+                  "action"
+                ]
+              },
+              "then": {
+                "required": [
+                  "sheetId",
+                  "anchorKind"
+                ]
+              }
+            }
+          ]
+        },
+        "groupId": {
+          "$ref": "common.schema.json#/$defs/GroupId"
+        },
+        "clientOpId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/OpSource"
+        }
+      }
+    }
+  }
+}

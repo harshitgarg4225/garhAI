@@ -1,0 +1,394 @@
+# Garh AI — full local stack (playbook §1, §18).
+#
+#     cp .env.example .env && docker compose up
+#
+# That is the whole quickstart. This file brings up postgres, redis, minio
+# (+ bucket bootstrap), the FastAPI API with hot reload, the Vite dev server
+# with HMR, and the three Python workers. Migrations run automatically before
+# the API serves; a dev JWT keypair is generated on first boot if absent.
+#
+# ── Two things that bite here, both deliberate ────────────────────────────────
+#
+# 1. `name:` is REQUIRED. Compose derives the project name from the checkout
+#    directory, which is "Garh AI" — a space and capitals, both illegal in a
+#    project name. Without this line `docker compose up` fails before it starts
+#    anything. See DECISIONS.md 2026-07-31.
+#
+# 2. Every bind-mount source is QUOTED. The absolute host path contains a
+#    space, and an unquoted short-form mount is split on `:` after shell
+#    interpolation in some tooling paths. Quoting costs nothing and removes a
+#    whole class of "works on my machine" reports.
+#
+# Requires Docker Compose v2.24+ (for `env_file: required: false`). Check with
+# `docker compose version`. Interpolation defaults below mean the stack also
+# comes up with no .env at all — `.env` only overrides.
+
+name: garh-ai
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Shared fragments
+# ══════════════════════════════════════════════════════════════════════════════
+
+x-env-file: &env-file
+  env_file:
+    - path: .env
+      required: false
+
+# Datastore + storage connection info. Container hostnames, not localhost.
+#
+# Names here MUST match the fields in apps/api/garh_api/config.py. That module
+# uses pydantic-settings with extra="ignore", so a misspelled variable is
+# silently dropped and the setting quietly keeps its local dev default — no
+# error, no warning. Renaming a field there means renaming it here.
+x-backend-env: &backend-env
+  APP_ENV: ${APP_ENV:-dev} # dev | test | staging | prod — validated literal
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  LOG_FORMAT: ${LOG_FORMAT:-json}
+  APP_URL: ${APP_URL:-http://localhost:5173}
+  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://garh:garh_local_dev@postgres:5432/garh}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+  S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-http://localhost:9000}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-garhminio}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-garhminio_local_dev}
+  S3_BUCKET: ${S3_BUCKET:-garh-local}
+  S3_REGION: ${S3_REGION:-ap-south-1}
+  S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+  QUEUE_SOLVER: ${QUEUE_SOLVER:-garh:queue:solver}
+  QUEUE_RENDER: ${QUEUE_RENDER:-garh:queue:render}
+  QUEUE_DRAWINGS: ${QUEUE_DRAWINGS:-garh:queue:drawings}
+  RULEPACK_DIR: ${RULEPACK_DIR:-/app/rulepacks}
+  FIXTURE_DIR: ${FIXTURE_DIR:-/app/fixtures}
+  # Without this, GET /catalog/* serves the compiled-in table and the JSON files
+  # in fixtures/catalog/ — which `python -m garh_api.seed` validates and
+  # tests/test_catalog_fixtures.py asserts against — are never read by the running
+  # app. The seed already warns about the mismatch ("seed.catalog_not_served");
+  # setting it here means the warning never has to fire in the standard stack.
+  GARH_CATALOG_DIR: ${GARH_CATALOG_DIR:-/app/fixtures/catalog}
+  PYTHONPATH: /app:/app/apps/api
+  PYTHONUNBUFFERED: '1'
+
+# Provider selection. All three default to deterministic mocks: the stack is
+# fully functional and e2e-testable with no API keys and no GPU (§9, §10).
+x-provider-env: &provider-env
+  PROVIDER_LLM: ${PROVIDER_LLM:-mock}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5}
+  PROVIDER_RENDER: ${PROVIDER_RENDER:-mock}
+  RENDER_DEVICE: ${RENDER_DEVICE:-cpu}
+  RENDER_CONCURRENCY_PER_FIRM: ${RENDER_CONCURRENCY_PER_FIRM:-4}
+  RENDER_MODEL_ID: ${RENDER_MODEL_ID:-stabilityai/stable-diffusion-xl-base-1.0}
+  RENDER_MODEL_ALLOWLIST: ${RENDER_MODEL_ALLOWLIST:-stabilityai/stable-diffusion-xl-base-1.0,black-forest-labs/FLUX.1-schnell,Qwen/Qwen-Image}
+  PROVIDER_BILLING: ${PROVIDER_BILLING:-mock}
+  HF_HOME: ${HF_HOME:-/app/.cache/huggingface}
+
+# Python source trees, mounted read-write so every worker hot-reloads on save.
+x-python-mounts: &python-mounts
+  - './apps/api:/app/apps/api'
+  - './services:/app/services'
+  - './packages/model:/app/packages/model'
+  - './rulepacks:/app/rulepacks'
+  - './fixtures:/app/fixtures'
+  - 'jwt-keys:/run/secrets:ro'
+
+x-worker-base: &worker-base
+  build:
+    context: .
+    dockerfile: services/Dockerfile
+    target: dev
+  working_dir: /app
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    api:
+      condition: service_started
+  volumes: *python-mounts
+  healthcheck:
+    # A worker is healthy when it can still reach its queue. Cheap, and it
+    # catches the common failure (Redis went away, worker is spinning).
+    test: ['CMD-SHELL', 'python -c "import os,redis;redis.Redis.from_url(os.environ[''REDIS_URL'']).ping()"']
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 20s
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Services
+# ══════════════════════════════════════════════════════════════════════════════
+
+services:
+  # ─── Postgres 15 ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-garh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-garh_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-garh}
+      # Deterministic collation: ordering differences would show up as
+      # golden-file diffs on anything that sorts by name.
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - 'pgdata:/var/lib/postgresql/data'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER:-garh}" -d "$${POSTGRES_DB:-garh}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  # ─── Redis 7 — job queues, rate-limit counters, SSE fan-out ─────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Queues are durable enough for local work; appendonly keeps a restart from
+    # silently dropping enqueued solver jobs.
+    command: ['redis-server', '--appendonly', 'yes', '--save', '60', '1']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - 'redisdata:/data'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  # ─── MinIO — S3-compatible object storage ───────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-garhminio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-garhminio_local_dev}
+      MINIO_REGION_NAME: ${S3_REGION:-ap-south-1}
+    ports:
+      - '${MINIO_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001' # web console
+    volumes:
+      - 'miniodata:/data'
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  # ─── MinIO bootstrap — creates the bucket, then exits ───────────────────────
+  # One-shot init sidecar for `minio`. Idempotent, so `docker compose up`
+  # re-runs it harmlessly on every start.
+  minio-init:
+    image: minio/mc:latest
+    restart: 'no'
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-garhminio}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-garhminio_local_dev}
+      S3_BUCKET: ${S3_BUCKET:-garh-local}
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - >
+        set -e;
+        mc alias set local http://minio:9000 "$$S3_ACCESS_KEY_ID" "$$S3_SECRET_ACCESS_KEY";
+        mc mb --ignore-existing "local/$$S3_BUCKET";
+        mc version enable "local/$$S3_BUCKET" || true;
+        echo "minio ready: bucket $$S3_BUCKET (versioning on)"
+
+  # ─── API — FastAPI, hot reload ──────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    restart: unless-stopped
+    <<: *env-file
+    environment:
+      <<: [*backend-env, *provider-env]
+      API_MIGRATE_ON_BOOT: ${API_MIGRATE_ON_BOOT:-true}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:5173}
+      # Blank by default — the command below mints a throwaway dev keypair when
+      # these are empty, so a fresh clone needs no preparation. Set them in .env
+      # (or run `make dev-keys`) to pin a stable pair.
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+    working_dir: /app/apps/api
+    ports:
+      - '${API_PORT:-8000}:8000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    volumes:
+      - './apps/api:/app/apps/api'
+      - './services:/app/services'
+      - './packages/model:/app/packages/model'
+      - './rulepacks:/app/rulepacks'
+      - './fixtures:/app/fixtures'
+      # Read-write (workers mount it :ro) because the API is what generates the
+      # dev keypair on first boot.
+      - 'jwt-keys:/run/secrets'
+    # Three steps, in order, so a fresh clone needs no preparation:
+    #   1. mint a dev RS256 keypair if JWT_PRIVATE_KEY is empty
+    #   2. apply migrations (fail loudly — serving on a stale schema is worse)
+    #   3. exec uvicorn so it receives signals as PID 1
+    #
+    # config.py takes the keys INLINE, not as file paths: its _normalise_pem
+    # validator converts a literal two-character \n back into real newlines. So
+    # the generated PEMs are collapsed to one line with awk (ORS="\\n" emits a
+    # literal backslash-n) and exported.
+    #
+    # NOTE: every line of this folded scalar sits at the same indentation on
+    # purpose. A more-indented line in a `>` block keeps its newline instead of
+    # folding, which quietly changes the script the shell receives.
+    command:
+      - sh
+      - -c
+      - >
+        set -e;
+        if [ -z "$${JWT_PRIVATE_KEY}" ]; then
+        if [ ! -f /run/secrets/jwt-private.pem ]; then
+        echo "[api] no JWT keypair configured - minting a 2048-bit dev keypair in /run/secrets";
+        openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /run/secrets/jwt-private.pem;
+        openssl rsa -in /run/secrets/jwt-private.pem -pubout -out /run/secrets/jwt-public.pem;
+        chmod 600 /run/secrets/jwt-private.pem;
+        fi;
+        JWT_PRIVATE_KEY="$$(awk 'BEGIN{ORS="\\n"}1' /run/secrets/jwt-private.pem)";
+        JWT_PUBLIC_KEY="$$(awk 'BEGIN{ORS="\\n"}1' /run/secrets/jwt-public.pem)";
+        export JWT_PRIVATE_KEY JWT_PUBLIC_KEY;
+        fi;
+        if [ "$${API_MIGRATE_ON_BOOT}" = "true" ]; then echo "[api] alembic upgrade head"; alembic upgrade head; fi;
+        exec uvicorn garh_api.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/apps/api --reload-dir /app/packages/model
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8000/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  # ─── Web — Vite dev server + HMR ────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    restart: unless-stopped
+    <<: *env-file
+    environment:
+      NODE_ENV: development
+      # Client-visible config only — see the VITE_ section of .env.example.
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
+      VITE_APP_NAME: ${VITE_APP_NAME:-Garh AI}
+      VITE_APP_URL: ${VITE_APP_URL:-http://localhost:5173}
+      VITE_HMR_PORT: ${WEB_HMR_PORT:-24678}
+      VITE_ENABLE_DEVTOOLS: ${VITE_ENABLE_DEVTOOLS:-true}
+      VITE_DEFAULT_UNITS: ${VITE_DEFAULT_UNITS:-ft-in}
+      # Bind-mounted source on macOS/Windows does not deliver inotify events;
+      # without polling the dev server simply never rebuilds.
+      CHOKIDAR_USEPOLLING: 'true'
+      WATCHPACK_POLLING: 'true'
+    working_dir: /app
+    ports:
+      - '${WEB_PORT:-5173}:5173' # dev server
+      - '${WEB_HMR_PORT:-24678}:24678' # HMR websocket
+    depends_on:
+      api:
+        condition: service_started
+    volumes:
+      - './apps/web:/app/apps/web'
+      - './packages:/app/packages'
+      - './e2e:/app/e2e'
+      - './package.json:/app/package.json'
+      - './pnpm-workspace.yaml:/app/pnpm-workspace.yaml'
+      - './tsconfig.base.json:/app/tsconfig.base.json'
+      - './eslint.config.js:/app/eslint.config.js'
+      - './.prettierrc:/app/.prettierrc'
+      # Named volumes keep the image's installed dependency trees from being
+      # shadowed by the bind mounts above.
+      - 'web-root-modules:/app/node_modules'
+      - 'web-app-modules:/app/apps/web/node_modules'
+      - 'web-model-modules:/app/packages/model/node_modules'
+      - 'web-ui-modules:/app/packages/ui/node_modules'
+      # e2e is a workspace member, so `pnpm install` in the image created
+      # /app/e2e/node_modules; the './e2e:/app/e2e' bind above would shadow it and
+      # leave a workspace member with no dependency tree. Nothing in this container
+      # runs Playwright, but a half-installed workspace is a confusing state to
+      # debug into.
+      - 'web-e2e-modules:/app/e2e/node_modules'
+    command:
+      ['pnpm', '--filter', '@garh/web', 'dev', '--host', '0.0.0.0', '--port', '5173']
+    healthcheck:
+      # curl is installed explicitly in apps/web/Dockerfile — node:20-slim
+      # ships with neither curl nor wget.
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5173/']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ─── worker-solver — OR-Tools CP-SAT layout engine (§5) ─────────────────────
+  worker-solver:
+    <<: [*worker-base, *env-file]
+    environment:
+      <<: [*backend-env, *provider-env]
+      WORKER_NAME: solver
+      WORKER_QUEUE: ${QUEUE_SOLVER:-garh:queue:solver}
+      WORKER_CONCURRENCY: ${WORKER_SOLVER_CONCURRENCY:-2}
+      SOLVER_NUM_SEARCH_WORKERS: ${SOLVER_NUM_SEARCH_WORKERS:-8}
+      SOLVER_TIME_BUDGET_SECONDS: ${SOLVER_TIME_BUDGET_SECONDS:-15}
+    command: ['python', '-m', 'services.solver.worker']
+
+  # ─── worker-render — provider interface: mock (default) | diffusers (§9) ────
+  worker-render:
+    <<: [*worker-base, *env-file]
+    environment:
+      <<: [*backend-env, *provider-env]
+      WORKER_NAME: render
+      WORKER_QUEUE: ${QUEUE_RENDER:-garh:queue:render}
+      WORKER_CONCURRENCY: ${WORKER_RENDER_CONCURRENCY:-1}
+    volumes:
+      - './apps/api:/app/apps/api'
+      - './services:/app/services'
+      - './packages/model:/app/packages/model'
+      - './rulepacks:/app/rulepacks'
+      - './fixtures:/app/fixtures'
+      - 'jwt-keys:/run/secrets:ro'
+      # Model weights are multi-GB; never re-download them on rebuild.
+      - 'hfcache:/app/.cache/huggingface'
+    command: ['python', '-m', 'services.render.worker']
+
+  # ─── worker-drawings — auto-dim, sheets, ezdxf/PDF export (§7) ──────────────
+  worker-drawings:
+    <<: [*worker-base, *env-file]
+    environment:
+      <<: [*backend-env, *provider-env]
+      WORKER_NAME: drawings
+      WORKER_QUEUE: ${QUEUE_DRAWINGS:-garh:queue:drawings}
+      WORKER_CONCURRENCY: ${WORKER_DRAWINGS_CONCURRENCY:-2}
+    command: ['python', '-m', 'services.drawings.worker']
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Volumes — `docker compose down -v` wipes all of this (see `make reset`)
+# ══════════════════════════════════════════════════════════════════════════════
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  hfcache:
+  jwt-keys:
+  web-root-modules:
+  web-app-modules:
+  web-model-modules:
+  web-ui-modules:
+  web-e2e-modules:
