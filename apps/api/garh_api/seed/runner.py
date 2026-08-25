@@ -38,6 +38,7 @@ import asyncio
 import json
 import os
 import sys
+import traceback
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -486,6 +487,11 @@ async def run(options: SeedOptions | None = None) -> SeedResult:
         async with session_scope(settings) as session:
             return await seed(session, opts, settings=settings)
     except SQLAlchemyError as exc:
+        # The full traceback goes to the log before the friendly message: a
+        # one-line "the database rejected the seed" cost a real debugging
+        # session when the cause was a code bug (sync IO on the async
+        # session), not a schema problem — the file and line are the fix.
+        _log.error("seed.database_error", traceback=traceback.format_exc())
         raise SeedError(
             "The database rejected the seed: %s\nIf this mentions a missing relation, the "
             "schema is not applied yet — run `alembic upgrade head` in apps/api (compose "

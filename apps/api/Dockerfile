@@ -81,6 +81,10 @@ COPY ["apps/api", "/app/apps/api"]
 COPY ["services", "/app/services"]
 COPY ["packages/model", "/app/packages/model"]
 COPY ["rulepacks", "/app/rulepacks"]
+# fixtures/: the seeder reads the demo brief and catalog files from here
+# (garh_api.seed warns and falls back to compiled-in stubs without them),
+# and the drawings pipeline's golden comparisons read fixtures/sheets.
+COPY ["fixtures", "/app/fixtures"]
 
 # Non-root: nothing in the request path needs to write to the filesystem.
 RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin garh \
