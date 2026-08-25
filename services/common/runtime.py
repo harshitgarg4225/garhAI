@@ -371,7 +371,32 @@ class Worker:
             log.info("job.released", reason="worker shutting down")
             raise
         except Exception as exc:  # noqa: BLE001 - classified below, never swallowed
-            await self._handle_failure(queue, reservation, progress, checkpoint, exc)
+            try:
+                await self._handle_failure(queue, reservation, progress, checkpoint, exc)
+            except Exception as failure_exc:  # noqa: BLE001 - the failure path broke
+                # The failure path failing is how a job gets stuck "running"
+                # forever with a healthy-looking worker (progress.failed's kwarg
+                # collision did exactly that on the solver's first real job). An
+                # imperfectly-reported failure beats an unreported one: log both
+                # errors, best-effort a minimal failed event, and ALWAYS take the
+                # job off the queue.
+                log.error(
+                    "job.failure_handling_crashed",
+                    original=repr(exc),
+                    failure_error=repr(failure_exc),
+                    exc_info=True,
+                )
+                with contextlib.suppress(Exception):
+                    await progress.failed(
+                        {
+                            "code": "worker_error",
+                            "message": "This job failed, and reporting the details also failed.",
+                            "action": "Try again — and check the worker logs.",
+                        }
+                    )
+                with contextlib.suppress(Exception):
+                    await queue.ack(reservation)
+                self.metrics.jobs_failed += 1
         finally:
             if supervisor is not None:
                 supervisor.cancel()

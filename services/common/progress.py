@@ -120,6 +120,18 @@ class ProgressEvent:
         )
 
 
+def _data_of(problem: dict[str, Any]) -> dict[str, Any]:
+    """A problem dict minus the keys :meth:`ProgressReporter.emit` binds explicitly.
+
+    ``emit("failed", message=..., **problem)`` crashed on EVERY real failure —
+    ``problem`` always carries ``message`` (``user_facing`` guarantees it), so the
+    splat collided with the explicit keyword. The failure reporter failing is the
+    worst kind of bug: the job dies unreported and sits "running" forever. Found
+    on the solver's first real job; negative-tested in ``tests/test_progress.py``.
+    """
+    return {k: v for k, v in problem.items() if k not in ("message", "stage", "percent")}
+
+
 class ProgressReporter:
     """Publishes events for ONE job. Handlers receive one of these, nothing else.
 
@@ -188,7 +200,7 @@ class ProgressReporter:
 
     async def failed(self, problem: dict[str, Any]) -> ProgressEvent:
         """Terminal failure. ``problem`` is ``{code, message, action}`` (§11)."""
-        return await self.emit("failed", message=str(problem.get("message", "")), **problem)
+        return await self.emit("failed", message=str(problem.get("message", "")), **_data_of(problem))
 
     async def cancelled(self) -> ProgressEvent:
         return await self.emit("cancelled", message="Cancelled.")
@@ -205,7 +217,7 @@ class ProgressReporter:
 
     async def dead_lettered(self, problem: dict[str, Any]) -> ProgressEvent:
         return await self.emit(
-            "dead_lettered", message=str(problem.get("message", "")), **problem
+            "dead_lettered", message=str(problem.get("message", "")), **_data_of(problem)
         )
 
     # -- plumbing --------------------------------------------------------
