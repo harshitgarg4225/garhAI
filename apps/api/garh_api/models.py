@@ -154,7 +154,17 @@ class UuidPk:
 
 
 class Timestamps:
-    """``created_at`` / ``updated_at`` on every table."""
+    """``created_at`` / ``updated_at`` on every table.
+
+    ``eager_defaults`` is load-bearing on the ASYNC session: an UPDATE flush
+    expires ``updated_at`` (it changes server-side), and the next attribute
+    read — every repository's ``to_domain(row)`` after a mutation — would
+    otherwise trigger a SYNC lazy refresh inside the async session, which
+    raises ``MissingGreenlet``. With eager_defaults the flush fetches the new
+    server values in the same UPDATE ... RETURNING round trip instead.
+    """
+
+    __mapper_args__ = {"eager_defaults": True}
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
