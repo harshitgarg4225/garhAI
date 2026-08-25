@@ -161,6 +161,13 @@ export interface ModelState {
 
   // ── actions ────────────────────────────────────────────────────────────
   hydrate: (projectId: string, options?: { version?: string | null }) => Promise<void>;
+  /**
+   * Hydrate from the anonymous share surface (`/share/:token/model`) for the
+   * read-only client viewer. Same fold, same model core — a shared plan is
+   * the plan (see routers/share.py) — but no op queue, no undo, no saving:
+   * the viewer never dispatches.
+   */
+  hydrateShared: (token: string) => Promise<void>;
   reset: () => void;
 
   /** Apply ops as one atomic group. The only way design state changes. */
@@ -376,6 +383,53 @@ export const useModelStore = create<ModelState>()((set, get) => ({
           durationMs: 0,
         });
       }
+    } catch (err) {
+      const error = AppError.from(err);
+      if (error.isAborted) return;
+      set({ status: 'error', loadError: error });
+    }
+  },
+
+  hydrateShared: async (token) => {
+    clearRetry();
+    set({
+      projectId: null,
+      status: 'loading',
+      loadError: null,
+      pending: [],
+      undoStack: [],
+      redoStack: [],
+      syncError: null,
+      divergedAt: null,
+      saveState: 'idle',
+    });
+
+    try {
+      const state = await api.shareViewer.model(token);
+
+      let doc = state.snapshot == null ? freshDoc() : asProjectDoc(state.snapshot);
+      doc = foldPersisted(doc, state.ops);
+      const idx = lastIdx(state.ops, state.baseIdx);
+
+      // The share surface has no `since` pagination — the server caps the tail
+      // (`truncated`) and a guest sees the design as of that cap. That is a
+      // display decision, not a divergence: viewers never write.
+      set({
+        doc,
+        serverDoc: doc,
+        projectId: state.projectId,
+        baseIdx: idx,
+        headIdx: Math.max(idx, state.headIdx),
+        versionBranch: state.versionBranch,
+        status: 'ready',
+        saveState: 'idle',
+      });
+
+      const ui = useUiStore.getState();
+      const first = doc.house.storeys[0];
+      const stillValid =
+        ui.activeStoreyId !== null && doc.house.storeys.some((s) => s.id === ui.activeStoreyId);
+      if (!stillValid) ui.setActiveStorey(first?.id ?? null);
     } catch (err) {
       const error = AppError.from(err);
       if (error.isAborted) return;

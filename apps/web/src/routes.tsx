@@ -106,6 +106,15 @@ const CopilotEvalLogPage = lazy(async () => ({
   default: (await import('./pages/dev/CopilotEvalLogPage')).CopilotEvalLogPage,
 }));
 
+/**
+ * The §13 client viewer. Lazy for the same reason as Plan/3D: it mounts the
+ * R3F canvas, and a client tapping a WhatsApp link is the LAST person who
+ * should wait on `three` before seeing anything.
+ */
+const ShareViewerPage = lazy(async () => ({
+  default: (await import('./pages/share/ShareViewerPage')).ShareViewerPage,
+}));
+
 // ---------------------------------------------------------------------------
 // Skeleton slots
 // ---------------------------------------------------------------------------
@@ -371,12 +380,22 @@ export const routes: RouteObject[] = [
     : []),
 
   /*
-   * `/share/:token` — the read-only client surface (§13) — is deliberately NOT
-   * registered yet. The viewer is a Phase 9 deliverable and the transport for
-   * it already exists (`api.shareViewer`, `session.enterShareMode`), but a
-   * route pointing at a component nobody has written would turn a shared link
-   * into a blank page rather than a 404 that explains itself.
+   * `/share/:token` — the read-only client surface (§13). Deliberately OUTSIDE
+   * `RequireAuth`: the whole point is a client with no account. The token in
+   * the URL is the only credential, and the page hands it straight to the
+   * anonymous `api.shareViewer` calls — nothing here touches the session
+   * bootstrap, so opening a share link never triggers a refresh-cookie probe.
    */
+  {
+    path: '/share/:token',
+    element: (
+      <ErrorBoundary region="shared design">
+        <Suspense fallback={<DashboardSkeleton />}>
+          <ShareViewerPage />
+        </Suspense>
+      </ErrorBoundary>
+    ),
+  },
 
   {
     path: '*',

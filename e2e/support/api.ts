@@ -173,7 +173,7 @@ export interface OpEnvelope {
 }
 
 export interface OpsPage {
-  ops: Array<{ idx: number; type: string; payload: Record<string, unknown>; groupId?: string }>;
+  ops: { idx: number; type: string; payload: Record<string, unknown>; groupId?: string }[];
   headIdx: number;
 }
 
@@ -189,7 +189,7 @@ export async function appendOps(
   request: APIRequestContext,
   token: string,
   projectId: string,
-  ops: Array<{ type: string; payload: Record<string, unknown> }>,
+  ops: { type: string; payload: Record<string, unknown> }[],
   baseIdx: number,
 ): Promise<{ headIdx: number }> {
   const response = await request.post(`${apiBase()}/projects/${projectId}/ops`, {
@@ -223,33 +223,33 @@ export interface FoldedModel {
   headIdx: number;
   model: {
     house: {
-      storeys: Array<{ id: string; name: string }>;
-      walls: Array<{
+      storeys: { id: string; name: string }[];
+      walls: {
         id: string;
         storeyId: string;
         a: { x: number; y: number };
         b: { x: number; y: number };
         thicknessMm: number;
-      }>;
-      rooms: Array<{
+      }[];
+      rooms: {
         id: string;
         storeyId: string;
         type: string;
         name: string;
         areaMm2: number;
         /** Clear inside-face ring, integer mm — how a spec aims a click. */
-        polygon: Array<{ x: number; y: number }>;
-      }>;
+        polygon: { x: number; y: number }[];
+      }[];
       /** Phase 5: the isolated facade sub-model (§8). */
       facade: {
         kitId: string | null;
         seed: number;
         colorwayId: string | null;
-        components: Array<{
+        components: {
           id: string;
           kind: string;
           params: Record<string, unknown>;
-        }>;
+        }[];
       };
     };
   };
@@ -276,12 +276,12 @@ export async function projectModel(
 
 export interface ComplianceReport {
   evaluated: boolean;
-  results: Array<{
+  results: {
     ruleId: string;
     status: string;
     message?: string | null;
     elements?: string[];
-  }>;
+  }[];
 }
 
 /** `GET /projects/:id/compliance` — the same report the chip strip renders. */
@@ -295,4 +295,51 @@ export async function complianceReport(
   });
   await expectOk(`GET /projects/${projectId}/compliance`, response);
   return (await response.json()) as ComplianceReport;
+}
+
+// ---------------------------------------------------------------------------
+// Share links (§13, Phase 9)
+// ---------------------------------------------------------------------------
+
+export interface ShareLink {
+  id: string;
+  projectId: string;
+  sections: string[];
+  canComment: boolean;
+  revoked: boolean;
+  /** Present ONLY on the create response — stored hashed, never shown again. */
+  token: string | null;
+  url: string | null;
+  whatsappUrl: string | null;
+}
+
+/** `POST /projects/:id/share` — mint a scoped viewer token. */
+export async function createShareLink(
+  request: APIRequestContext,
+  token: string,
+  projectId: string,
+  options: { sections: string[]; canComment?: boolean; expiresInDays?: number },
+): Promise<ShareLink> {
+  const response = await request.post(`${apiBase()}/projects/${projectId}/share`, {
+    headers: authHeaders(token),
+    data: {
+      sections: options.sections,
+      canComment: options.canComment ?? true,
+      expiresInDays: options.expiresInDays ?? 7,
+    },
+  });
+  await expectOk(`POST /projects/${projectId}/share`, response);
+  return (await response.json()) as ShareLink;
+}
+
+/** `DELETE /share/:id` — revoke. The §13 promise is that the token dies NOW. */
+export async function revokeShareLink(
+  request: APIRequestContext,
+  token: string,
+  shareLinkId: string,
+): Promise<void> {
+  const response = await request.delete(`${apiBase()}/share/${shareLinkId}`, {
+    headers: authHeaders(token),
+  });
+  await expectOk(`DELETE /share/${shareLinkId}`, response);
 }

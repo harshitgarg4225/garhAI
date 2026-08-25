@@ -60,6 +60,7 @@ import {
   renderJobSchema,
   renderPackSchema,
   renderUploadsSchema,
+  sharedProjectSchema,
   downloadSchema,
   drawingPreferencesSchema,
   reviewTraySchema,
@@ -94,6 +95,7 @@ import {
   type RenderJob,
   type RenderMode,
   type RenderPack,
+  type SharedProject,
   type RenderUploadSlot,
   type RulepackSummary,
   type Session,
@@ -1260,11 +1262,30 @@ export function createApiClient(client: HttpClient = http) {
      * contractor is exactly the leak the separate surface exists to prevent.
      */
     shareViewer: {
-      project: (token: string, opts: CallOptions = {}): Promise<ProjectDetail> =>
+      project: (token: string, opts: CallOptions = {}): Promise<SharedProject> =>
         client.request({
           path: `/share/${encodeURIComponent(token)}`,
           auth: 'none',
-          parse: parser(projectDetailSchema),
+          // sharedProjectSchema, NOT projectDetailSchema: the server answers
+          // with the deliberately narrow SharedProjectOut (name, units, scope)
+          // and the detail parser would reject it.
+          parse: parser(sharedProjectSchema),
+          ...opts,
+        }),
+
+      renders: (token: string, opts: CallOptions = {}): Promise<RenderJob[]> =>
+        client.request({
+          path: `/share/${encodeURIComponent(token)}/renders`,
+          auth: 'none',
+          parse: (data) => z.array(renderJobSchema).parse(data),
+          ...opts,
+        }),
+
+      sheets: (token: string, opts: CallOptions = {}): Promise<SheetSetResponse> =>
+        client.request({
+          path: `/share/${encodeURIComponent(token)}/sheets`,
+          auth: 'none',
+          parse: parser(sheetSetSchema),
           ...opts,
         }),
 

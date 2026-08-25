@@ -306,6 +306,25 @@ export const modelStateSchema = z.object({
 });
 export type ModelState = z.infer<typeof modelStateSchema>;
 
+/**
+ * `GET /share/:token` — the viewer's entry point (`SharedProjectOut`).
+ *
+ * Deliberately narrower than `projectDetailSchema`: the server tells a client
+ * with a link exactly what they were sent — a name, units, the scope — and
+ * nothing about the practice that sent it.
+ */
+export const sharedProjectSchema = z.object({
+  projectName: z.string(),
+  units: z.enum(['ft-in', 'm']).catch('ft-in'),
+  cityPack: z.string().nullable().default(null),
+  sections: z.array(z.string()).default([]),
+  canComment: z.boolean().default(false),
+  expiresAt: isoDateTime.nullable().default(null),
+  designVersionId: z.string().nullable().default(null),
+  updatedAt: isoDateTime.nullable().default(null),
+});
+export type SharedProject = z.infer<typeof sharedProjectSchema>;
+
 // ---------------------------------------------------------------------------
 // The folded document
 // ---------------------------------------------------------------------------
