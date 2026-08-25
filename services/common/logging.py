@@ -101,7 +101,11 @@ def configure_worker_logging(
     processors: list[Any] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
-        structlog.stdlib.add_logger_name,
+        # NOT structlog.stdlib.add_logger_name: that processor reads
+        # ``logger.name``, which only exists on stdlib loggers — with the
+        # PrintLoggerFactory below it raises AttributeError on the first
+        # ``log.info`` and takes the whole worker down at boot. The logger
+        # name is bound in :func:`get_logger` instead.
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.UnicodeDecoder(),
@@ -148,8 +152,13 @@ def configure_worker_logging(
 
 
 def get_logger(name: str | None = None) -> Any:
-    """A bound logger. Safe to call before :func:`configure_worker_logging`."""
-    return structlog.get_logger(name) if name else structlog.get_logger()
+    """A bound logger. Safe to call before :func:`configure_worker_logging`.
+
+    The name is BOUND (``logger=<name>``) rather than derived by
+    ``add_logger_name`` — see the processor-chain note in
+    :func:`configure_worker_logging`.
+    """
+    return structlog.get_logger().bind(logger=name) if name else structlog.get_logger()
 
 
 def bind_job_context(
