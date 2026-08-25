@@ -559,7 +559,7 @@ async def get_compliance(
     except ComplianceUnavailable as exc:
         _log.warning("compliance.unavailable", project_id=str(project_id), error=str(exc))
         return ComplianceOut.not_evaluated(project_id, version, reason=str(exc))
-    return ComplianceOut.live(project_id, payload, pack_versions)
+    return ComplianceOut.live_run(project_id, payload, pack_versions)
 
 
 async def freeze_compliance_report(

@@ -254,13 +254,18 @@ async def test_per_ip_limits_are_per_ip(client: Any, api: str, settings: Setting
 
 
 async def test_solver_jobs_per_hour_is_enforced(
-    client: Any, api: str, firm_a: Any, project_a: Any, settings: Settings
+    client: Any, api: str, session: Any, firm_a: Any, project_a: Any, settings: Settings
 ) -> None:
     """§11: 10 solver jobs an hour per firm on the free tier.
 
     Enqueues real jobs — the worker is not running, so they stay ``queued``, which is
-    exactly the state the UI shows while it waits.
+    exactly the state the UI shows while it waits. The project needs a plot and a
+    brief: without them ``/solve`` refuses with a 409 before anything is enqueued
+    (see ``test_solve_enqueue.py``), and a refused request is not a job.
     """
+    from tests.factories import seed_plot_and_brief
+
+    await seed_plot_and_brief(session, firm_a, project_a.id)
     limit = settings.rate_limit_solver_jobs_per_hour
     accepted = 0
     last: Any = None
@@ -283,9 +288,12 @@ async def test_solver_jobs_per_hour_is_enforced(
 
 
 async def test_rate_limit_headers_are_present_on_success(
-    client: Any, api: str, firm_a: Any, project_a: Any
+    client: Any, api: str, session: Any, firm_a: Any, project_a: Any
 ) -> None:
     """A client cannot back off politely if it cannot see the budget (§13 CORS exposes these)."""
+    from tests.factories import seed_plot_and_brief
+
+    await seed_plot_and_brief(session, firm_a, project_a.id)
     response = await client.post(
         "%s/projects/%s/solve" % (api, project_a.id),
         json={"optionCount": 3},
@@ -301,9 +309,11 @@ async def test_solver_limit_is_per_firm_not_global(
     client: Any, api: str, session: Any, firm_a: Any, firm_b: Any, project_a: Any, settings: Settings
 ) -> None:
     """One firm exhausting its budget must not throttle another firm."""
-    from tests.factories import create_project
+    from tests.factories import create_project, seed_plot_and_brief
 
     project_b = await create_project(session, firm_b, name="Firm B project")
+    await seed_plot_and_brief(session, firm_a, project_a.id)
+    await seed_plot_and_brief(session, firm_b, project_b.id)
 
     for _ in range(settings.rate_limit_solver_jobs_per_hour + 1):
         await client.post(

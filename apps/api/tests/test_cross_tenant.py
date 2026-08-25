@@ -196,7 +196,10 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
         "/projects/{project_id}/renders/client-pack",
         body={
             "shots": [
-                {"slug": "exterior-34-dusk", "preset": "exterior-34", "mode": "explore"}
+                # The preset must be REAL: an unknown one 422s at the schema,
+                # before tenancy runs, and the case would test validation
+                # instead of the cross-tenant 404 it exists for.
+                {"slug": "exterior-34-dusk", "preset": "exterior-34-dusk", "mode": "explore"}
             ]
         },
     ),
@@ -533,7 +536,9 @@ async def test_member_can_still_read_and_write_the_design(
     [
         (None, "unauthenticated"),
         ("Bearer not-a-jwt", "token_invalid"),
-        ("Basic YWRtaW46YWRtaW4=", "unauthenticated"),
+        # A credential that EXISTS but is not a bearer token gets the more
+        # precise code — still 401, still problem+json, no tenant knowledge.
+        ("Basic YWRtaW46YWRtaW4=", "token_invalid"),
     ],
 )
 async def test_unauthenticated_access_is_401(

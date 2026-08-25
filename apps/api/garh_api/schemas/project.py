@@ -419,13 +419,19 @@ class ComplianceOut(ResponseModel):
         )
 
     @classmethod
-    def live(
+    def live_run(
         cls,
         project_id: uuid.UUID,
         payload: dict[str, Any],
         pack_versions: dict[str, Any],
     ) -> "ComplianceOut":
         """An unpersisted run against the current working state.
+
+        Named ``live_run`` rather than ``live`` because the model already has a FIELD
+        called ``live``: pydantic claims every annotated name as a field and strips a
+        same-named classmethod from the class namespace, so ``ComplianceOut.live(...)``
+        raised ``AttributeError`` at request time — a 500 on every project whose rules
+        actually evaluate.
 
         ``report_id``/``created_at``/``design_version_id`` stay null on purpose: there
         is no row, and handing the client a fabricated id would let it think it could

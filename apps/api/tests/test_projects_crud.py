@@ -206,9 +206,18 @@ async def test_plot_and_brief_round_trip(client: Any, api: str, firm_a: Any, pro
     assert brief.json()["data"]["bedrooms"] == 3
     assert brief.json()["vastuMode"] == "advisory"
 
-    # Both wrote ops: the design document and the forms cannot disagree.
+    # Both wrote ops: the design document and the forms cannot disagree. Assert
+    # the SUBSTANCE (a plot op and a brief op landed in the log), not an op
+    # count — the form handlers legitimately skip no-op diffs (northDeg 0 is
+    # already the empty document's value), which a fixed count miscounts.
     head = await client.get("%s/projects/%s/branch" % (api, project_a.id), headers=firm_a.headers)
-    assert head.json()["headIdx"] >= 4, head.json()
+    assert head.json()["headIdx"] >= 1, head.json()
+    log = await client.get(
+        "%s/projects/%s/ops?since=-1&limit=100" % (api, project_a.id), headers=firm_a.headers
+    )
+    op_types = [op["type"] for op in log.json()["ops"]]
+    assert any(t.startswith("plot.") for t in op_types), op_types
+    assert any(t.startswith("brief.") for t in op_types), op_types
 
 
 async def test_plot_rejects_a_float_length(client: Any, api: str, firm_a: Any, project_a: Any) -> None:
@@ -249,9 +258,11 @@ async def test_create_validation_failures_name_the_field(
     assert isinstance(body.get("errors"), list) and body["errors"], body
     fields = {error.get("field", "") for error in body["errors"]}
     assert any(field in name for name in fields), (field, fields)
-    # §13: an error body must not echo the input back (that is how secrets end up in logs).
+    # §13: an error body must not echo the input back (that is how secrets end up
+    # in logs). `code` is pydantic's error TYPE (e.g. "missing"), not input — the
+    # renderer strips the echoing members (input/ctx/url) explicitly.
     for error in body["errors"]:
-        assert set(error) <= {"field", "message"}, error
+        assert set(error) <= {"field", "message", "code"}, error
 
 
 async def test_malformed_json_is_400_not_422(client: Any, api: str, firm_a: Any) -> None:
@@ -265,17 +276,10 @@ async def test_malformed_json_is_400_not_422(client: Any, api: str, firm_a: Any)
     assert problem(response)["code"] == "invalid_request"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "ProjectRepository.create raises RepositoryUsageError for an unknown `units`, and "
-        "that maps to 500 internal_error. Bad client input must never be a 5xx: it pages "
-        "an engineer for a typo and client code retries it. Fix: constrain `units` in "
-        "schemas/project.py to models.PROJECT_UNITS so Pydantic answers 422. Then delete "
-        "this marker."
-    ),
-)
 async def test_unknown_units_is_a_client_error(client: Any, api: str, firm_a: Any) -> None:
+    """Settled: schemas/project.py constrains `units` to models.PROJECT_UNITS, so
+    Pydantic answers 422 — the strict xfail that used to sit here XPASSed on the
+    suite's first full execution and its marker is deleted per its own instruction."""
     response = await client.post(
         "%s/projects" % api,
         json={"name": "Bad units", "units": "cubits"},
@@ -287,14 +291,8 @@ async def test_unknown_units_is_a_client_error(client: Any, api: str, firm_a: An
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Same defect as test_unknown_units_is_a_client_error, for `status`. Constrain it "
-        "to models.PROJECT_STATUSES in schemas/project.py."
-    ),
-)
 async def test_unknown_status_is_a_client_error(client: Any, api: str, firm_a: Any) -> None:
+    """Settled the same way as `units` above: constrained in schemas/project.py, 422."""
     response = await client.post(
         "%s/projects" % api,
         json={"name": "Bad status", "status": "shipped"},

@@ -20,6 +20,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from garh_api.config import Settings, get_settings
+from garh_model import empty_project_doc
 from garh_api.repositories import (
     AuthDirectoryRepository,
     CommentRepository,
@@ -184,6 +185,25 @@ async def append_ops(
     return result
 
 
+async def seed_plot_and_brief(
+    session: AsyncSession, actor: Actor, project_id: uuid.UUID
+) -> None:
+    """The demo plot + brief + storeys, appended as ops, so ``/solve`` has real inputs.
+
+    Reuses the seeder's own op log (30×40 ft Bengaluru, G+1, 3BHK) rather than a
+    hand-typed copy that could drift from what the product seeds. Raw repository
+    append: these ops are valid — the tests that call this are about the routes
+    that *fold* them, not about op validation.
+    """
+    from garh_api.seed.demo import demo_op_log, load_demo_brief
+
+    ops = [
+        NewOp(type=op["type"], payload=op["payload"])
+        for op in demo_op_log(load_demo_brief())
+    ]
+    await append_ops(session, actor, project_id, ops)
+
+
 async def create_version(
     session: AsyncSession,
     actor: Actor,
@@ -205,7 +225,10 @@ async def create_version(
             "atIdx": -1,
             "atSeq": None,
             "stateHash": None,
-            "doc": {},
+            # A REAL empty document, not {}: this snapshot becomes the fold
+            # anchor for every later op append in the test, and the model
+            # loader (rightly) refuses a document with no schemaVersion.
+            "doc": empty_project_doc().to_json(),
         },
     )
     await session.commit()
@@ -264,4 +287,5 @@ __all__ = [
     "create_share_link",
     "create_solver_job",
     "create_version",
+    "seed_plot_and_brief",
 ]

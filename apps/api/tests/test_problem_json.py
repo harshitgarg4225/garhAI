@@ -152,7 +152,10 @@ async def test_422_validation_failed_lists_fields(client: Any, api: str, firm_a:
     body = problem(response)
     assert body["code"] == "validation_failed"
     assert body["errors"], body
-    assert all(set(error) <= {"field", "message"} for error in body["errors"]), body["errors"]
+    # `code` is pydantic's error type slug, not echoed input (§13 stays intact).
+    assert all(set(error) <= {"field", "message", "code"} for error in body["errors"]), body[
+        "errors"
+    ]
 
 
 async def test_422_op_rejected_lists_issues(

@@ -495,3 +495,49 @@ async def test_appending_to_an_unknown_project_is_404(
     )
     assert response.status_code == 404, response.text
     assert problem(response)["code"] == "not_found"
+
+
+# ---------------------------------------------------------------------------
+# 8. Snapshot anchors are conveniences, never a way to brick the write path
+# ---------------------------------------------------------------------------
+
+
+async def test_an_unreadable_snapshot_refolds_from_the_op_log(
+    client: Any, api: str, session: Any, firm_a: Any, project_a: Any
+) -> None:
+    """A snapshot whose inner document will not load must be DROPPED, not fatal.
+
+    Found live: a version row carrying ``doc: {}`` made every later append 500
+    with ``KeyError: 'schemaVersion'`` — the project's whole write path bricked
+    by one bad anchor, even though the op log could rebuild the state exactly.
+    The sequencer now logs ``ops.snapshot_unreadable`` and refolds from the log.
+    """
+    from garh_api.repositories import DesignVersionRepository
+
+    first = await _append(
+        client, api, project_a.id, firm_a.headers, ops=[_north(45)], base_idx=-1
+    )
+    assert first.status_code == 200, first.text
+
+    branch = main_branch(project_a.id)
+    await DesignVersionRepository(session, firm_a.ctx()).create_named(
+        project_a.id,
+        name="corrupt anchor",
+        version_branch=branch,
+        snapshot={
+            "snapshotVersion": 1,
+            "schemaVersion": 1,
+            "versionBranch": str(branch),
+            "atIdx": 0,
+            "atSeq": None,
+            "stateHash": None,
+            "doc": {},  # deliberately unloadable — no schemaVersion inside
+        },
+    )
+    await session.commit()
+
+    second = await _append(
+        client, api, project_a.id, firm_a.headers, ops=[_north(90)], base_idx=0
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["headIdx"] == 1

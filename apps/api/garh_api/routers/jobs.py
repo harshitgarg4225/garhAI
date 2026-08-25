@@ -259,16 +259,31 @@ async def start_solve(
 
     try:
         branch = await active_branch(session, ctx, project_id)
+        # The worker's payload contract (services/solver/handler._parse_params) needs
+        # the plot, the regulatory numbers and the brief — the worker holds no
+        # database, so the API assembles them from the folded document and the rules
+        # engine (see garh_api.solver_enqueue). Built before the job row exists, so a
+        # project that cannot honestly be solved yet gets a 4xx and leaves nothing
+        # behind — never a queued row whose job is doomed at parse.
+        from garh_api.solver_enqueue import build_solve_inputs
+
+        inputs = await build_solve_inputs(
+            session, ctx, project_id, branch, requested_storeys=body.storeys
+        )
         params: dict[str, Any] = {
             "lockedRoomIds": list(body.locked_room_ids),
             "optionCount": body.option_count,
-            "storeys": body.storeys,
+            "storeys": inputs.storeys,
             "versionBranch": str(branch),
         }
         if body.seed is not None:
             params["seed"] = body.seed
         params.update(body.params)
 
+        # The row keeps the request-shaped params only (it is echoed to the UI);
+        # the plot/profile/brief ride on the envelope, and they go in AFTER the
+        # client's extra params so a request body cannot override the server's
+        # compliance numbers — same rule as op 31 discarding client-sent ops.
         job = await SolverJobRepository(session, ctx).enqueue(project_id, params=params)
         # §5.7: a run with locked rooms is a partial re-solve, and the worker takes a
         # different path for it. The kind says so rather than the worker inferring it.
@@ -284,7 +299,12 @@ async def start_solve(
                 actor_user_id=str(ctx.user_id) if ctx.user_id else None,
                 request_id=ctx.request_id,
                 idempotency_key=idempotency_key,
-                payload=params,
+                payload={
+                    **params,
+                    "plot": inputs.plot,
+                    "profile": inputs.profile,
+                    "brief": inputs.brief,
+                },
             )
         )
         await CreditEventRepository(session, ctx).record(

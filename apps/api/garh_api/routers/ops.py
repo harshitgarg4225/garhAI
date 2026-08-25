@@ -565,6 +565,23 @@ async def load_project_state(
         if candidate is not None and candidate.at_idx <= target_idx:
             anchor = candidate
 
+    if anchor is not None:
+        # The snapshot is an ANCHOR, not the source of truth — the op log is.
+        # An inner document this build cannot load (corruption, a future schema)
+        # must not brick every later append with a 500: drop the anchor, say so
+        # loudly, and refold from the log, which has everything.
+        try:
+            engine.from_json(dict(anchor.document))
+        except Exception as exc:  # noqa: BLE001 - any load failure means "no anchor"
+            _log.error(
+                "ops.snapshot_unreadable",
+                project_id=str(project_id),
+                design_version_id=str(anchor_version.id) if anchor_version else None,
+                at_idx=anchor.at_idx,
+                error=str(exc),
+            )
+            anchor = None
+
     if anchor is None:
         document = engine.empty_document()
         anchor_idx = EMPTY_BRANCH_HEAD
