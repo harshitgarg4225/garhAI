@@ -77,3 +77,4 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.recommended.json
+dump.rdb
