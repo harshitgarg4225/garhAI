@@ -76,6 +76,15 @@ test.describe('@smoke Phase 0: login, dashboard, project shell', () => {
     await page.goto(`${APP_URL}/projects/00000000-0000-0000-0000-000000000000/plan`);
     await page.waitForURL(/\/login$/, { timeout: 15_000 });
     await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+
+    // The bounce stores `state.from` on the /login HISTORY ENTRY, and a
+    // same-URL `page.goto('/login')` in the next test is a reload of that
+    // entry — state included. Signing in would then honour this test's
+    // made-up deep link (correct product behaviour: you land where you were
+    // headed, here on an honest "Project not found"), and the login test
+    // would fail on the dashboard assertion. Found the first time this file
+    // ran in order. Navigating away gives the next test a clean entry.
+    await page.goto('about:blank');
   });
 
   test('login with the dev OTP lands on the dashboard', async () => {
@@ -91,7 +100,14 @@ test.describe('@smoke Phase 0: login, dashboard, project shell', () => {
     // Skipped, not failed, when the stack was never seeded: `make seed` is a separate
     // command and "you forgot to seed" should read as that, not as a product bug. CI runs
     // the seed step, so this always executes there.
-    const demoCard = page.getByRole('link', { name: /demo/i }).first();
+    // By the DEMO badge, not by /demo/i on the accessible name: the topbar's
+    // "Garh AI / Studio Demo" home link also matches that regex and sits
+    // earlier in the DOM, so `.first()` was clicking the firm name and going
+    // to `/`. Found the first time this file ran in order.
+    const demoCard = page
+      .getByRole('link')
+      .filter({ has: page.getByText('DEMO', { exact: true }) })
+      .first();
     const seeded = await demoCard.isVisible().catch(() => false);
     test.skip(!seeded, 'No demo project on the dashboard — run `make seed`.');
 
@@ -252,7 +268,7 @@ test.describe('@smoke Phase 0: login, dashboard, project shell', () => {
     await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   });
 
-  test('the whole journey logged no console error', async () => {
+  test('the whole journey logged no console error', () => {
     // A page that renders correctly while throwing on every keystroke is not passing.
     // Vite's dev server emits HMR chatter, so only genuine errors are collected.
     expectNoConsoleErrors(

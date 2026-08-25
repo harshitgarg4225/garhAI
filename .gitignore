@@ -6,6 +6,7 @@
 *.pem
 *.key
 !**/testdata/**/*.pem
+e2e/playwright.local.config.ts
 
 # ─── Node / pnpm ──────────────────────────────────────────────────────────────
 node_modules/

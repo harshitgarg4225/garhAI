@@ -166,7 +166,10 @@ export function ShareViewerPage(): JSX.Element {
   const items: TabItem<ViewerTabKey>[] = granted.map((t) => ({ value: t.key, label: t.label }));
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas">
+    // h-screen, not min-h-screen: the canvas sizes itself with percentage
+    // heights, which only resolve down a chain of DEFINITE heights. The studio
+    // pages inherit that from the app shell; this page is its own shell.
+    <div className="flex h-screen flex-col bg-canvas">
       <header className="flex h-topbar shrink-0 items-center gap-3 border-b border-line bg-surface px-4">
         <h1 className="truncate text-sm font-semibold text-ink">{project.projectName}</h1>
         <Badge tone="neutral">View only</Badge>
@@ -305,7 +308,7 @@ function SharePlanView({
         </div>
       ) : null}
 
-      <div className="relative min-h-[50vh] flex-1">
+      <div className="relative min-h-0 flex-1">
         {status !== 'ready' ? (
           <SkeletonRegion label="Loading the plan" className="absolute inset-0">
             <Skeleton className="h-full w-full" shape="block" />

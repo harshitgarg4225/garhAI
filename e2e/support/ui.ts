@@ -73,7 +73,7 @@ export async function createProjectThroughUi(page: Page, name: string): Promise<
   await page.waitForURL(/\/projects\/[0-9a-f-]{36}\/brief$/, { timeout: 15_000 });
   const projectId = new URL(page.url()).pathname.split('/')[2];
   expect(projectId, 'could not read the project id out of the URL').toBeTruthy();
-  return projectId as string;
+  return projectId!;
 }
 
 /** The six project tabs, as the shell renders them (§12 routing). */
@@ -107,7 +107,15 @@ export function expectNoConsoleErrors(errors: string[]): void {
 export function collectConsoleErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
+    if (message.type() !== 'error') return;
+    // ONE allowlisted line: the boot session probe. A signed-out visitor's
+    // POST /auth/refresh answers 401 BY DESIGN (the refresh credential is an
+    // httpOnly cookie, so "am I signed in?" can only be answered by trying),
+    // and the browser logs every failed fetch as a console error no matter
+    // how gracefully the app handles it. Everything else still fails the run.
+    const url = message.location().url ?? '';
+    if (url.endsWith('/auth/refresh') && /\b401\b/.test(message.text())) return;
+    errors.push(message.text());
   });
   page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
   return errors;
@@ -182,7 +190,7 @@ export async function focusCanvas(page: Page): Promise<void> {
 export async function drawWallChain(
   page: Page,
   startPx: { x: number; y: number },
-  legs: ReadonlyArray<{ dir: Leg; lengthMm: number }>,
+  legs: readonly { dir: Leg; lengthMm: number }[],
 ): Promise<void> {
   await page.keyboard.press('w');
   await page.mouse.move(startPx.x, startPx.y);
@@ -325,7 +333,7 @@ export async function hooksSnapshot(page: Page): Promise<HooksSnapshot> {
     snapshot,
     'window.__garhTestHooks is missing — the app is not a dev build, or the editor page never mounted',
   ).not.toBeNull();
-  return snapshot as HooksSnapshot;
+  return snapshot!;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

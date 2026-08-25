@@ -51,6 +51,19 @@ describe('cn — last wins within a utility group', () => {
     expect(cn('absolute', 'relative')).toBe('relative');
   });
 
+  it('keeps flex sizing, direction and wrap as separate groups', () => {
+    // Regression: one `flex-` group made `flex-col` evict `flex-1`, which
+    // collapsed any flex-1 column passed through a component className — the
+    // share viewer's canvas rendered at height 0 because of it.
+    expect(cn('flex min-h-0 flex-1 flex-col')).toBe('flex min-h-0 flex-1 flex-col');
+    expect(cn('flex-row', 'flex-col')).toBe('flex-col');
+    expect(cn('flex-1', 'flex-none')).toBe('flex-none');
+    expect(cn('flex-wrap', 'flex-nowrap')).toBe('flex-nowrap');
+    // The legacy longhands share their group with the modern names.
+    expect(cn('flex-grow', 'grow-0')).toBe('grow-0');
+    expect(cn('flex-shrink', 'shrink-0')).toBe('shrink-0');
+  });
+
   it('groups sizing longhands separately from each other', () => {
     expect(cn('max-w-md', 'max-w-lg')).toBe('max-w-lg');
     expect(cn('w-full', 'h-9')).toBe('w-full h-9');

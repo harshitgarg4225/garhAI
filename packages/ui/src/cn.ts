@@ -34,7 +34,7 @@ export type ClassValue =
   | undefined
   | false
   | ClassValue[]
-  | { [key: string]: boolean | null | undefined };
+  | Record<string, boolean | null | undefined>;
 
 /**
  * Utility-group table. Order matters: the FIRST prefix that matches wins, so
@@ -42,7 +42,7 @@ export type ClassValue =
  * (`text-` after `text-align` style pseudo-groups, `border-x-` before
  * `border-`). Each entry is `[prefix, groupKey]`.
  */
-const GROUPS: ReadonlyArray<readonly [string, string]> = [
+const GROUPS: readonly (readonly [string, string])[] = [
   // spacing — longhands before shorthands
   ['px-', 'px'],
   ['py-', 'py'],
@@ -116,6 +116,17 @@ const GROUPS: ReadonlyArray<readonly [string, string]> = [
   ['grid-rows-', 'grid-rows'],
   ['col-span-', 'col-span'],
   ['row-span-', 'row-span'],
+  // `flex-*` is FOUR distinct CSS properties, not one group. A single
+  // `['flex-', 'flex']` entry made `flex-col` evict `flex-1` (direction vs
+  // flex sizing), which silently collapsed any flex-1 column passed through a
+  // component's className — found when the share viewer's canvas rendered at
+  // height 0. Longer prefixes first: first match wins.
+  ['flex-row', 'flex-direction'],
+  ['flex-col', 'flex-direction'],
+  ['flex-wrap', 'flex-wrap'],
+  ['flex-nowrap', 'flex-wrap'],
+  ['flex-grow', 'grow'],
+  ['flex-shrink', 'shrink'],
   ['flex-', 'flex'],
   ['basis-', 'basis'],
   ['grow', 'grow'],

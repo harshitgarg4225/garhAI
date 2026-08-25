@@ -139,6 +139,11 @@ function AppBoot(): null {
   const bootstrap = useSessionStore((s) => s.bootstrap);
 
   useEffect(() => {
+    // `/share/:token` is the anonymous client surface (§13): a guest has no
+    // refresh cookie to probe, and a bootstrap result landing AFTER the page
+    // enters share mode would overwrite that session state. Guests boot from
+    // the token alone.
+    if (window.location.pathname.startsWith('/share/')) return;
     void bootstrap();
   }, [bootstrap]);
 

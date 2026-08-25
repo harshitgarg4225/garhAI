@@ -230,7 +230,7 @@ earned on drawings, and no competitor owns this stage.
 
 ---
 
-## Phase 9 — Polish, billing, share ⬜
+## Phase 9 — Polish, billing, share 🟡
 
 Client share links (signed scoped tokens, OTP-lite, pin comments); Razorpay behind
 the provider interface + credit metering; onboarding tour + demo project; empty
@@ -240,6 +240,14 @@ walkthroughs; load test (50 concurrent solver jobs queue gracefully).
 **DoD:** full Playwright happy path — signup → plot → brief → generate → edit →
 copilot → 3D → facade → render(mock) → sheets → PDF+DXF download → share link opens
 read-only; Lighthouse ≥85 on the dashboard; security checklist all ✅.
+
+| Piece | State |
+|---|---|
+| Share API — scoped tokens (stored hashed), anonymous project/model/renders/sheets/comments | ✅ **executed** — pytest + the live share e2e below |
+| `/share/:token` client viewer — plan through the real canvas, renders, sheet list, comments | ✅ **executed** — `pages/share/ShareViewerPage.tsx`; the happy-path share test runs for real against a live stack (create link → anonymous read-only view → comment → revoke kills it) |
+| Happy-path e2e — the share step | ✅ **live**; the other steps remain written-and-skipped with their blocking phase named |
+| Billing | 🟡 mock provider behind `billing_live` flag, by design until Razorpay onboarding |
+| Onboarding tour, §15 delight walkthrough, load test, Lighthouse | ⬜ not started |
 
 ---
 
