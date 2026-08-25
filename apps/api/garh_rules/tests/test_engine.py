@@ -285,6 +285,40 @@ class TestOverrides:
                 }
             )
 
+    def test_a_value_override_changes_the_limit_the_check_runs_against(self) -> None:
+        """The substitution must MOVE the verdict, not just decorate the row.
+
+        The parse/round-trip tests above passed for months while nothing asserted
+        that a substituted limit changes a result — the exact "gate that cannot go
+        red" shape. The default 30x40 plot provides 3000 mm in front; blr's pack
+        value for a plot this size is 1500 mm (pass). Overriding the front setback
+        to 3500 mm must flip that row to FAIL, with the row carrying the overridden
+        limit AND the pack's original for the citation trail.
+        """
+        rule_id = "blr.setback.front.plot.le120"
+
+        clean = report_for(packs=("blr",), profile={"cityPack": "blr"})
+        row = clean.rule(rule_id)
+        assert row is not None and row.status == PASS
+
+        overridden = report_for(
+            packs=("blr",),
+            profile={"cityPack": "blr", "overrides": {"values": {"setbackFrontMm": 3500}}},
+        )
+        row = overridden.rule(rule_id)
+        assert row is not None and row.status == FAIL
+        assert row.limit == 3500
+        assert row.original_limit == 1500
+        # And an override that RELAXES below what the plot provides passes —
+        # both directions, so the assertion cannot be satisfied by a constant.
+        relaxed = report_for(
+            packs=("blr",),
+            profile={"cityPack": "blr", "overrides": {"values": {"setbackFrontMm": 1000}}},
+        )
+        row = relaxed.rule(rule_id)
+        assert row is not None and row.status == PASS
+        assert row.limit == 1000
+
 
 # ---------------------------------------------------------------------------
 # Chip text (§15)

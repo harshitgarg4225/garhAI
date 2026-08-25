@@ -201,7 +201,7 @@ export function RegProfilePanel({ className }: RegProfilePanelProps): JSX.Elemen
                     ? value.cite
                     : `${value.cite} — ${value.citationsBase}`;
               const reason = value.overridden
-                ? 'Your override. This panel uses it and it is recorded in the audit trail; the compliance report still checks against the pack value for now.'
+                ? 'Your override. The compliance report checks against this value and cites the pack value it replaced; the change is recorded in the audit trail.'
                 : `${value.title === '' ? 'From the selected pack' : value.title}.${
                     value.confidence === 'seed'
                       ? ' Seed value — check against the current bye-law before submission.'
@@ -236,8 +236,9 @@ export function RegProfilePanel({ className }: RegProfilePanelProps): JSX.Elemen
       </div>
 
       <p className="mt-3 text-2xs leading-4 text-ink-subtle">
-        Overrides never silence a check. Your numbers are stored and audited, but the compliance
-        report still checks against the pack values until value overrides reach the engine.
+        Overrides never silence a check. The compliance report checks against your number, keeps
+        the pack&rsquo;s original value on the row for the citation trail, and records the change
+        in the audit log.
       </p>
     </PanelSection>
   );
