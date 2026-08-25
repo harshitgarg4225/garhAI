@@ -81,13 +81,16 @@ def setup_layers(document: Any) -> None:
     for spec in LAYERS:
         if spec.name in document.layers:
             continue
-        document.layers.add(
+        # description is set on the created layer, not passed to add():
+        # ezdxf's LayerTable.add() takes no description kwarg (TypeError),
+        # while the Layer object exposes it as a property.
+        layer = document.layers.add(
             name=spec.name,
             color=spec.color,
             linetype=spec.linetype,
             lineweight=spec.lineweight,
-            description=spec.description,
         )
+        layer.description = spec.description
     log.info("drawings.dxf.layers_ready", count=len(LAYERS))
 
 

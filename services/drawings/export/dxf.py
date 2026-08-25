@@ -265,9 +265,14 @@ def _add_text(msp: Any, prim: Text, *, scale_denominator: int) -> None:
             "rotation": float(prim.rotation_deg),
         },
     )
+    # ezdxf 1.x rejects a string here (set_placement asserts the enum), so the
+    # name from _DXF_ALIGN is looked up on TextEntityAlignment at call time —
+    # imported lazily like everything else ezdxf in this module.
+    from ezdxf.enums import TextEntityAlignment
+
     entity.set_placement(
         _model_point(prim.at),
-        align=_DXF_ALIGN[(prim.anchor, prim.baseline)],
+        align=TextEntityAlignment[_DXF_ALIGN[(prim.anchor, prim.baseline)]],
     )
 
 
