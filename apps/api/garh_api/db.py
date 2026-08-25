@@ -54,7 +54,12 @@ def normalise_database_url(url: str) -> str:
     backend = parsed.get_backend_name()
     if backend != "postgresql":
         return url
-    return str(parsed.set(drivername="postgresql+%s" % _DRIVER))
+    # render_as_string(hide_password=False), NOT str(): SQLAlchemy 2's
+    # URL.__str__ masks the password as ``***`` — so every engine built from
+    # this function was literally authenticating with the three-character
+    # password ``***``. Locally the dev stack's trust auth hid it; the first
+    # real deployment surfaced it as an unexplainable auth failure.
+    return parsed.set(drivername="postgresql+%s" % _DRIVER).render_as_string(hide_password=False)
 
 
 def build_async_url(settings: Settings | None = None) -> str:
