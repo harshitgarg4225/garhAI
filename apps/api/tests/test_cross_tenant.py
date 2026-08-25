@@ -176,6 +176,37 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
     Case("GET", "/projects/{project_id}/comments"),
     Case("POST", "/projects/{project_id}/comments", body={"body": "Move the door"}),
     Case("POST", "/comments/{comment_id}/resolve"),
+    # -- copilot (§10) ----------------------------------------------------
+    Case("POST", "/projects/{project_id}/copilot", body={"text": "add a door to the south wall"}),
+    Case(
+        "POST",
+        "/projects/{project_id}/copilot/decision",
+        body={"command": "add a door to the south wall", "outcome": "rejected", "opsCount": 0},
+    ),
+    # -- DXF import (§13 upload pipeline) ---------------------------------
+    # Raw-body upload: the byte ceiling and content sniff run AFTER the
+    # project ownership check, so an empty body still proves the 404.
+    Case("POST", "/projects/{project_id}/import/dxf", query="filename=plot.dxf"),
+    Case("GET", "/import-jobs/{job_id}"),
+    # -- render history / uploads / client packs (§9) ---------------------
+    Case("GET", "/projects/{project_id}/render-history"),
+    Case("POST", "/projects/{project_id}/renders/uploads", body={"count": 1}),
+    Case(
+        "POST",
+        "/projects/{project_id}/renders/client-pack",
+        body={
+            "shots": [
+                {"slug": "exterior-34-dusk", "preset": "exterior-34", "mode": "explore"}
+            ]
+        },
+    ),
+    Case("GET", "/projects/{project_id}/render-packs/{pack_id}"),
+    Case("POST", "/projects/{project_id}/render-packs/{pack_id}/archive"),
+    # -- sheets, the §7 municipal set -------------------------------------
+    Case("GET", "/projects/{project_id}/sheets/summary"),
+    Case("GET", "/projects/{project_id}/sheets/review-tray"),
+    Case("GET", "/projects/{project_id}/sheets/{sheet_id}/annotations"),
+    Case("GET", "/projects/{project_id}/sheets/{sheet_id}/content"),
 )
 
 
@@ -227,6 +258,10 @@ async def estate_a(session: Any, firm_a: Any, project_a: Any, clean_redis: Any) 
         "share_link_id": str(share_link.id),
         "comment_id": str(comment.id),
         "export_job_id": export_job_id,
+        # Packs are addressed under their project, so the ownership check on
+        # project_id is what these cases prove; the pack id itself only needs
+        # to be well-formed.
+        "pack_id": "renderpack-%s" % uuid.uuid4().hex[:12],
     }
 
 

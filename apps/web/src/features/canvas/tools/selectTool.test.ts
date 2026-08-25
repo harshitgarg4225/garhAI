@@ -265,12 +265,15 @@ describe('marquee', () => {
     expect(shape.kind).toBe('marquee');
 
     const response = tool.onPointerUp(ctx, ptr(6500, 4500));
+    // Document order: `finalize()` sorts every element array by id (see
+    // fold.ts "ELEMENT ORDER"), so the marquee reports walls id-sorted —
+    // WE, WN, WS, WW, WSP — not in the fixture's creation order.
     expect(response.selection).toEqual({
       mode: 'replace',
       ids: [
-        FIXTURE_IDS.wallSouth,
         FIXTURE_IDS.wallEast,
         FIXTURE_IDS.wallNorth,
+        FIXTURE_IDS.wallSouth,
         FIXTURE_IDS.wallWest,
         FIXTURE_IDS.wallSpine,
       ],

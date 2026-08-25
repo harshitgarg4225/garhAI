@@ -66,22 +66,27 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
 
 /** Clamp anything the options bar or a typed value could get wrong. */
 function sanitise(patch: Partial<ToolSettings>): Partial<ToolSettings> {
-  const out: Partial<ToolSettings> = { ...patch };
-  if (out.wallThicknessMm !== undefined) {
+  return {
+    ...patch,
     // `roundMm` because this value is copied straight into a `wall.add`
     // payload. Thickness is always positive so the half-up/half-away
     // distinction cannot bite here — using the model's rounder anyway means
     // there is exactly one answer to "how does a float become mm" in the
     // whole canvas, and nobody has to check which one a call site picked.
-    out.wallThicknessMm = Math.min(
-      MAX_TOOL_WALL_THICKNESS_MM,
-      Math.max(1, roundMm(out.wallThicknessMm)),
-    );
-  }
-  if (out.furnitureRotationDeg !== undefined) {
-    out.furnitureRotationDeg = ((Math.round(out.furnitureRotationDeg) % 360) + 360) % 360;
-  }
-  return out;
+    ...(patch.wallThicknessMm === undefined
+      ? {}
+      : {
+          wallThicknessMm: Math.min(
+            MAX_TOOL_WALL_THICKNESS_MM,
+            Math.max(1, roundMm(patch.wallThicknessMm)),
+          ),
+        }),
+    ...(patch.furnitureRotationDeg === undefined
+      ? {}
+      : {
+          furnitureRotationDeg: ((Math.round(patch.furnitureRotationDeg) % 360) + 360) % 360,
+        }),
+  };
 }
 
 export const useToolSettings = create<ToolSettingsState>()((set) => ({

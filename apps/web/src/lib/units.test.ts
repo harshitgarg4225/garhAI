@@ -34,7 +34,10 @@ describe('snapping', () => {
     for (const value of [0, 57, 58, 114, 115, 116, -57, -58, 3457]) {
       const snapped = snapMm(value, SNAP_COARSE_MM);
       expect(isIntMm(snapped), `${value} -> ${snapped}`).toBe(true);
-      expect(snapped % SNAP_COARSE_MM).toBe(0);
+      // Math.abs: IEEE gives `-115 % 115 === -0`, which Object.is separates
+      // from +0. The model contract has no signed zero (the Python mirror's
+      // int 0 is unsigned), so the sign of a zero remainder is noise.
+      expect(Math.abs(snapped % SNAP_COARSE_MM)).toBe(0);
     }
   });
 

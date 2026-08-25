@@ -27,9 +27,8 @@ import { Badge, Button, Card, EmptyState, Icon, Spinner, cn, useToast } from '@g
 import { JobList, PageBody } from '../../components';
 import { AppError } from '../../lib/errors';
 import { api } from '../../lib/api';
-import { toJobVM } from '../../pages/_contracts';
 import { useProjectOutlet } from '../../pages/ProjectShell';
-import { selectJobsFor, useJobsStore } from '../../stores/jobs';
+import { useJobsStore } from '../../stores/jobs';
 import {
   EXPORT_OPTIONS,
   SHEET_KIND_INFO,
@@ -131,12 +130,11 @@ export function SheetsTab(): JSX.Element {
     try {
       const result = await api.sheets.generate(project.id, {});
       if (result.job) {
-        const job = toJobVM(result.job as never);
         useJobsStore.getState().track(project.id, result.job as never);
         toast({
           severity: 'info',
           title: 'Drawing the set',
-          description: `${job.label ?? 'Sheet generation'} started. It updates here as each sheet is drawn.`,
+          description: 'Sheet generation started. It updates here as each sheet is drawn.',
         });
       }
       await reload();

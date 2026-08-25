@@ -1339,7 +1339,9 @@ export function validateModel(doc: ProjectDoc, opts: ValidateModelOptions = {}):
 
   // --- duplicate ids across the whole document
   const seen = new Map<string, number>();
-  const bump = (id: string): void => seen.set(id, (seen.get(id) ?? 0) + 1);
+  const bump = (id: string): void => {
+    seen.set(id, (seen.get(id) ?? 0) + 1);
+  };
   h.storeys.forEach((s) => bump(s.id));
   h.walls.forEach((w) => bump(w.id));
   h.openings.forEach((o) => bump(o.id));
@@ -1436,11 +1438,13 @@ export function validateModel(doc: ProjectDoc, opts: ValidateModelOptions = {}):
   }
   for (const list of byStorey.values()) {
     for (let i = 0; i < list.length; i++) {
+      const wi = list[i]!;
       for (let j = i + 1; j < list.length; j++) {
-        if (overlapsWall({ a: list[i].a, b: list[i].b }, { a: list[j].a, b: list[j].b })) {
+        const wj = list[j]!;
+        if (overlapsWall({ a: wi.a, b: wi.b }, { a: wj.a, b: wj.b })) {
           out.push(
             issue('WALL_DUPLICATE', 'Two walls lie on top of each other.', {
-              elementIds: [list[i].id, list[j].id],
+              elementIds: [wi.id, wj.id],
               fix: 'Delete one of them, or offset it by at least its thickness.',
             }),
           );
@@ -1575,7 +1579,7 @@ export function issuesByCode(
 export function renderIssuesForLlm(issues: readonly ValidationIssue[]): string {
   return issues
     .map((i) => {
-      const parts = [i.code];
+      const parts: string[] = [i.code];
       if (i.field) parts.push(`field=${i.field}`);
       if (i.actual !== undefined && i.actual !== null) parts.push(`actual=${String(i.actual)}`);
       if (i.limit !== undefined && i.limit !== null) parts.push(`limit=${String(i.limit)}`);

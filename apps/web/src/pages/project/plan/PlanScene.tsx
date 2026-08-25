@@ -217,7 +217,7 @@ function MergedLayer({
       // lookup — no arithmetic to get wrong when a wall with three openings
       // contributes four quads and the next wall contributes one.
       const faceIndex = intersection.faceIndex;
-      if (faceIndex === undefined) return null;
+      if (faceIndex === undefined || faceIndex === null) return null;
       const id = ids[faceIndex];
       return id === undefined ? null : { kind, id, storeyId };
     };

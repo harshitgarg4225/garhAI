@@ -273,8 +273,8 @@ describe('rect/L/T union', () => {
       { minX: 0, minY: 0, maxX: 1000, maxY: 3000 },
     ]);
     expect(rings).toHaveLength(1);
-    expect(polygonAreaMm2(rings[0])).toBe(3000 * 1000 + 1000 * 2000);
-    expect(polygonOrientation(rings[0])).toBe('ccw');
+    expect(polygonAreaMm2(rings[0]!)).toBe(3000 * 1000 + 1000 * 2000);
+    expect(polygonOrientation(rings[0]!)).toBe('ccw');
     expect(rings[0]).toHaveLength(6);
   });
 
@@ -284,7 +284,7 @@ describe('rect/L/T union', () => {
       { minX: 1000, minY: 0, maxX: 2000, maxY: 2000 },
     ]);
     expect(rings).toHaveLength(1);
-    expect(polygonAreaMm2(rings[0])).toBe(3000 * 1000 + 1000 * 2000);
+    expect(polygonAreaMm2(rings[0]!)).toBe(3000 * 1000 + 1000 * 2000);
     expect(rings[0]).toHaveLength(8);
   });
 
@@ -294,7 +294,7 @@ describe('rect/L/T union', () => {
       { minX: 1000, minY: 0, maxX: 3000, maxY: 2000 },
     ]);
     expect(rings).toHaveLength(1);
-    expect(polygonAreaMm2(rings[0])).toBe(3000 * 2000);
+    expect(polygonAreaMm2(rings[0]!)).toBe(3000 * 2000);
     expect(rings[0]).toHaveLength(4);
   });
 
@@ -304,7 +304,7 @@ describe('rect/L/T union', () => {
       { minX: 5000, minY: 0, maxX: 8000, maxY: 1000 },
     ]);
     expect(rings).toHaveLength(2);
-    expect(polygonAreaMm2(rings[0])).toBe(3_000_000);
+    expect(polygonAreaMm2(rings[0]!)).toBe(3_000_000);
   });
 
   it('flags a courtyard instead of silently filling it', () => {

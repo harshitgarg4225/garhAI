@@ -208,6 +208,7 @@ export class HttpClient {
 
     const maxTransportRetries = RETRYABLE_METHODS.has(method) ? (options.retry ?? 1) : 0;
     let refreshRetried = false;
+    let refreshGaveUp = false;
     let transportAttempt = 0;
 
     for (;;) {
@@ -251,9 +252,15 @@ export class HttpClient {
         refreshRetried = true;
         const token = await this.refreshOnce();
         if (token) continue;
+        refreshGaveUp = true;
       }
 
-      if (error.isAuthFailure) this.announceAuthLost(error);
+      // When a refresh was attempted and came back empty, `refreshOnce` has
+      // already announced the loss in the branches where the session is
+      // genuinely gone — and deliberately NOT when the refresh merely failed
+      // to reach the server. Announcing here on the original 401 would turn
+      // "offline for a minute" into "signed out" (see the http spec).
+      if (error.isAuthFailure && !refreshGaveUp) this.announceAuthLost(error);
       throw error;
     }
   }

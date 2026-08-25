@@ -32,7 +32,14 @@ default — even though it means a misconfigured deployment throttles rather tha
 over-admits.
 """
 
-from __future__ import annotations
+# NO `from __future__ import annotations` in this module, deliberately.
+# FirmRateLimit / IpRateLimit are callable-CLASS dependencies, and FastAPI
+# resolves a dependency's annotations through `call.__globals__` — which an
+# instance does not have. With postponed evaluation their `response: Response`
+# stays an unresolvable string, FastAPI falls back to treating it as a query
+# parameter, and every router that mounts them dies at import time with
+# `PydanticUndefinedAnnotation: name 'Response' is not defined`. Eager
+# annotations resolve at class-definition time, where Response is in scope.
 
 import os
 import uuid

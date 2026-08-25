@@ -96,7 +96,9 @@ export {
      Phase 7 — by the render gallery, which re-lists when it moves and lets the
      SERVER's `stale` flag drive the §9 banner. See the selector's own note. */
   selectHeadIdx,
-  selectVersionBranch,
+  // Aliased like selectModelPlot/selectModelBrief above: stores/project.ts
+  // exports the same name for the project row's branch string.
+  selectVersionBranch as selectModelVersionBranch,
   selectDiverged,
   selectStoreys,
   selectSaveBadge,

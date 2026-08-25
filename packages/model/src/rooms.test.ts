@@ -54,8 +54,8 @@ describe('half-edge graph', () => {
     const exterior = faces.filter((f) => f.doubledAreaMm2 < 0);
     expect(interior).toHaveLength(1);
     expect(exterior).toHaveLength(1);
-    expect(polygonAreaMm2(interior[0].ring)).toBe(1_000_000);
-    expect(polygonDoubledAreaMm2(exterior[0].ring)).toBe(-2_000_000);
+    expect(polygonAreaMm2(interior[0]!.ring)).toBe(1_000_000);
+    expect(polygonDoubledAreaMm2(exterior[0]!.ring)).toBe(-2_000_000);
   });
 
   it('splits walls at T-junctions', () => {
@@ -81,8 +81,8 @@ describe('roomCandidates', () => {
   it('finds two rooms with clear (inside-face) polygons', () => {
     const { candidates, outline } = roomCandidates(twoRoomWalls());
     expect(candidates).toHaveLength(2);
-    expect(candidates[0].polygon).toEqual(rectPolygon(115, 115, 2943, 3885));
-    expect(candidates[1].polygon).toEqual(rectPolygon(3057, 115, 5885, 3885));
+    expect(candidates[0]!.polygon).toEqual(rectPolygon(115, 115, 2943, 3885));
+    expect(candidates[1]!.polygon).toEqual(rectPolygon(3057, 115, 5885, 3885));
     for (const c of candidates) {
       expect(c.areaMm2).toBe(2828 * 3770);
       expect(c.insetFailed).toBe(false);
@@ -101,7 +101,7 @@ describe('roomCandidates', () => {
   it('finds one room when the spine is removed', () => {
     const { candidates } = roomCandidates(twoRoomWalls().slice(0, 4));
     expect(candidates).toHaveLength(1);
-    expect(candidates[0].polygon).toEqual(rectPolygon(115, 115, 5885, 3885));
+    expect(candidates[0]!.polygon).toEqual(rectPolygon(115, 115, 5885, 3885));
   });
 
   it('finds nothing when the walls do not enclose anything', () => {
@@ -116,7 +116,7 @@ describe('roomCandidates', () => {
     expect(candidates).toHaveLength(1);
     // the spur is removed and the split south wall re-merged before insetting,
     // so the room is exactly what it would be without the stub
-    expect(candidates[0].polygon).toEqual(rectPolygon(115, 115, 5885, 3885));
+    expect(candidates[0]!.polygon).toEqual(rectPolygon(115, 115, 5885, 3885));
   });
 
   it('handles an L-shaped enclosure', () => {
@@ -130,9 +130,9 @@ describe('roomCandidates', () => {
     ];
     const { candidates } = roomCandidates(walls);
     expect(candidates).toHaveLength(1);
-    expect(candidates[0].polygon).toHaveLength(6);
-    expect(candidates[0].areaMm2).toBeGreaterThan(0);
-    expect(candidates[0].insetFailed).toBe(false);
+    expect(candidates[0]!.polygon).toHaveLength(6);
+    expect(candidates[0]!.areaMm2).toBeGreaterThan(0);
+    expect(candidates[0]!.insetFailed).toBe(false);
   });
 });
 
@@ -168,7 +168,7 @@ describe('matchRooms', () => {
     const { candidates } = roomCandidates(twoRoomWalls(4000));
     const matches = matchRooms(candidates, [roomA, roomB]);
     expect(matches.map((m) => m.roomId)).toEqual([roomA.id, roomB.id]);
-    expect(matches[0].jaccard).toBeGreaterThan(DEFAULT_JACCARD_THRESHOLD);
+    expect(matches[0]?.jaccard).toBeGreaterThan(DEFAULT_JACCARD_THRESHOLD);
   });
 
   it('never assigns one existing room to two candidates', () => {
@@ -197,24 +197,24 @@ describe('detectRooms — id preservation is load-bearing', () => {
   it('keeps room ids, types, names and locks when a wall MOVES', () => {
     const detected = detectRooms(twoRoomWalls(), STOREY, []);
     const named: Room[] = [
-      { ...detected.rooms[0], type: 'living', name: 'Living', locked: true },
-      { ...detected.rooms[1], type: 'bedroom_master', name: 'Master', targetAreaMm2: 12_000_000 },
+      { ...detected.rooms[0]!, type: 'living', name: 'Living', locked: true },
+      { ...detected.rooms[1]!, type: 'bedroom_master', name: 'Master', targetAreaMm2: 12_000_000 },
     ];
 
     const after = detectRooms(twoRoomWalls(4000), STOREY, named);
 
     expect(after.rooms).toHaveLength(2);
     expect(after.rooms.map((r) => r.id)).toEqual(named.map((r) => r.id));
-    expect(after.rooms[0].type).toBe('living');
-    expect(after.rooms[0].name).toBe('Living');
-    expect(after.rooms[0].locked).toBe(true);
-    expect(after.rooms[1].type).toBe('bedroom_master');
-    expect(after.rooms[1].targetAreaMm2).toBe(12_000_000);
+    expect(after.rooms[0]!.type).toBe('living');
+    expect(after.rooms[0]!.name).toBe('Living');
+    expect(after.rooms[0]!.locked).toBe(true);
+    expect(after.rooms[1]!.type).toBe('bedroom_master');
+    expect(after.rooms[1]!.targetAreaMm2).toBe(12_000_000);
     expect(after.removedRoomIds).toEqual([]);
 
     // geometry DID change: the living room grew by 1000mm
-    expect(after.rooms[0].polygon).toEqual(rectPolygon(115, 115, 3943, 3885));
-    expect(after.rooms[0].areaMm2).toBe(3828 * 3770);
+    expect(after.rooms[0]!.polygon).toEqual(rectPolygon(115, 115, 3943, 3885));
+    expect(after.rooms[0]!.areaMm2).toBe(3828 * 3770);
   });
 
   it('survives a 100mm nudge without changing a single id', () => {
@@ -231,15 +231,15 @@ describe('detectRooms — id preservation is load-bearing', () => {
   it('reports the id that dies when two rooms genuinely merge', () => {
     const detected = detectRooms(twoRoomWalls(), STOREY, []);
     const named: Room[] = [
-      { ...detected.rooms[0], type: 'living', name: 'Living' },
-      { ...detected.rooms[1], type: 'bedroom', name: 'Bedroom 1' },
+      { ...detected.rooms[0]!, type: 'living', name: 'Living' },
+      { ...detected.rooms[1]!, type: 'bedroom', name: 'Bedroom 1' },
     ];
     // delete the spine: the two rooms become one
     const merged = detectRooms(twoRoomWalls().slice(0, 4), STOREY, named);
     expect(merged.rooms).toHaveLength(1);
-    expect(named.map((r) => r.id)).toContain(merged.rooms[0].id);
+    expect(named.map((r) => r.id)).toContain(merged.rooms[0]!.id);
     expect(merged.removedRoomIds).toHaveLength(1);
-    expect(merged.removedRoomIds[0]).not.toBe(merged.rooms[0].id);
+    expect(merged.removedRoomIds[0]).not.toBe(merged.rooms[0]!.id);
   });
 
   it('ignores walls belonging to another storey', () => {
@@ -258,7 +258,7 @@ describe('detectRooms — id preservation is load-bearing', () => {
   it('reports the bounding walls of each room', () => {
     const { candidates } = roomCandidates(twoRoomWalls());
     const spine: WallId = fixedId('wall', 'WSP');
-    expect(candidates[0].wallIds).toContain(spine);
-    expect(candidates[1].wallIds).toContain(spine);
+    expect(candidates[0]?.wallIds).toContain(spine);
+    expect(candidates[1]?.wallIds).toContain(spine);
   });
 });

@@ -24,6 +24,7 @@ const BED: FurnitureItem = {
   widthMm: 1900,
   depthMm: 1525,
   heightMm: 600,
+  clearanceMm: 0,
   assetUrl: null,
   roomTypes: ['bedroom_master'],
 };

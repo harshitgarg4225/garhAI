@@ -146,13 +146,18 @@ function cutPrism(
   const heightMm = profile.topMm - profile.baseMm;
   if (heightMm <= 0 || profile.polygon.length < 3) return null;
 
+  // `current` is the never-null working solid; `solid` mirrors it only so the
+  // finally can free whatever exists when an exception unwinds. Keeping the
+  // loop on `current` also breaks the type-inference cycle the compiler sees
+  // when `solid = next` feeds `next = solid.subtract(...)`.
   let solid: import('manifold-3d').Manifold | null = null;
   try {
-    solid = Manifold.extrude([toVec2Ring(profile.polygon)], heightMm).translate([
+    let current = Manifold.extrude([toVec2Ring(profile.polygon)], heightMm).translate([
       0,
       0,
       profile.baseMm,
     ]);
+    solid = current;
     for (const cut of cuts) {
       const cutHeight = cut.topMm - cut.baseMm;
       if (cutHeight <= 0 || cut.polygon.length < 3) continue;
@@ -161,13 +166,14 @@ function cutPrism(
         0,
         cut.baseMm,
       ]);
-      const next = solid.subtract(tool);
+      const next = current.subtract(tool);
       tool.delete();
-      solid.delete();
-      solid = next;
+      current.delete();
+      current = next;
+      solid = current;
     }
 
-    const mesh = solid.getMesh();
+    const mesh = current.getMesh();
     const stride = mesh.numProp;
     const triCount = mesh.triVerts.length / 3;
     const positionsMm = new Float32Array(triCount * 9);

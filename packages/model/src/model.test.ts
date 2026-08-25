@@ -100,7 +100,7 @@ describe('lookups on a folded document', () => {
     expect(findStorey(doc.house, FIXTURE_IDS.groundStorey)?.name).toBe('Ground Floor');
     expect(storeyIndex(doc.house, FIXTURE_IDS.groundStorey)).toBe(0);
     expect(findWall(doc.house, FIXTURE_IDS.wallSouth)?.thicknessMm).toBe(230);
-    expect(findRoom(doc.house, doc.house.rooms[0].id)?.storeyId).toBe(FIXTURE_IDS.groundStorey);
+    expect(findRoom(doc.house, doc.house.rooms[0]!.id)?.storeyId).toBe(FIXTURE_IDS.groundStorey);
     expect(findWall(doc.house, fixedId('wall', 'ZZ'))).toBeUndefined();
   });
 

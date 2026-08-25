@@ -307,7 +307,7 @@ export function resolveRegValues(
         title: winner?.rule.title ?? REG_VALUE_META[key].label,
         cite: winner?.rule.cite ?? null,
         citationsBase: pack.citations_base,
-        confidence: winner?.confidence ?? pack.confidenceDefault,
+        confidence: winner?.rule.confidence ?? pack.confidenceDefault,
         overridden: true,
       };
       continue;

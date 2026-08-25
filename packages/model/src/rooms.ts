@@ -110,16 +110,18 @@ export function buildHalfEdgeGraph(walls: readonly WallLike[]): HalfEdgeGraph {
   let nonIntegralCrossings = 0;
   const splitPoints: Pt[][] = segs.map((s) => [s.seg.a, s.seg.b]);
   for (let i = 0; i < segs.length; i++) {
+    const si = segs[i]!;
     for (let j = i + 1; j < segs.length; j++) {
-      const r = segmentIntersection(segs[i].seg, segs[j].seg);
+      const sj = segs[j]!;
+      const r = segmentIntersection(si.seg, sj.seg);
       if (r.kind === 'point') {
         if (!r.exact) nonIntegralCrossings += 1;
-        if (pointOnSegment(r.point, segs[i].seg)) splitPoints[i].push(r.point);
-        if (pointOnSegment(r.point, segs[j].seg)) splitPoints[j].push(r.point);
+        if (pointOnSegment(r.point, si.seg)) splitPoints[i]!.push(r.point);
+        if (pointOnSegment(r.point, sj.seg)) splitPoints[j]!.push(r.point);
       } else if (r.kind === 'collinear') {
         for (const p of [r.overlap.a, r.overlap.b]) {
-          if (pointOnSegment(p, segs[i].seg)) splitPoints[i].push(p);
-          if (pointOnSegment(p, segs[j].seg)) splitPoints[j].push(p);
+          if (pointOnSegment(p, si.seg)) splitPoints[i]!.push(p);
+          if (pointOnSegment(p, sj.seg)) splitPoints[j]!.push(p);
         }
       }
     }
@@ -147,11 +149,11 @@ export function buildHalfEdgeGraph(walls: readonly WallLike[]): HalfEdgeGraph {
   }
   const edgeByKey = new Map<string, EdgeRec>();
   for (let i = 0; i < segs.length; i++) {
-    const s = segs[i];
-    const ordered = orderAlong(s.seg, splitPoints[i]);
+    const s = segs[i]!;
+    const ordered = orderAlong(s.seg, splitPoints[i]!);
     for (let k = 0; k + 1 < ordered.length; k++) {
-      const u = nodeOf(ordered[k]);
-      const v = nodeOf(ordered[k + 1]);
+      const u = nodeOf(ordered[k]!);
+      const v = nodeOf(ordered[k + 1]!);
       if (u === v) continue;
       const key = u < v ? `${String(u)}-${String(v)}` : `${String(v)}-${String(u)}`;
       const prev = edgeByKey.get(key);
@@ -192,11 +194,11 @@ export function buildHalfEdgeGraph(walls: readonly WallLike[]): HalfEdgeGraph {
 
   // --- 5. CCW-sorted outgoing lists
   const outgoing: number[][] = nodes.map(() => []);
-  for (const he of halfEdges) outgoing[he.from].push(he.id);
+  for (const he of halfEdges) outgoing[he.from]!.push(he.id);
   for (let n = 0; n < outgoing.length; n++) {
-    const origin = nodes[n];
-    outgoing[n].sort((x, y) => {
-      const c = compareAngleAround(origin, nodes[halfEdges[x].to], nodes[halfEdges[y].to]);
+    const origin = nodes[n]!;
+    outgoing[n]!.sort((x, y) => {
+      const c = compareAngleAround(origin, nodes[halfEdges[x]!.to]!, nodes[halfEdges[y]!.to]!);
       return c !== 0 ? c : x - y;
     });
   }
@@ -206,16 +208,16 @@ export function buildHalfEdgeGraph(walls: readonly WallLike[]): HalfEdgeGraph {
   // with the face interior on the left. (Verified on a unit square in the tests.)
   const positionInOutgoing = new Map<number, number>();
   for (let n = 0; n < outgoing.length; n++) {
-    outgoing[n].forEach((heId, pos) => positionInOutgoing.set(heId, pos));
+    outgoing[n]!.forEach((heId, pos) => positionInOutgoing.set(heId, pos));
   }
   for (const he of halfEdges) {
     const list = outgoing[he.to];
     const twinPos = positionInOutgoing.get(he.twin);
-    if (twinPos === undefined || list.length === 0) {
+    if (list === undefined || twinPos === undefined || list.length === 0) {
       he.next = he.twin;
       continue;
     }
-    he.next = list[(twinPos - 1 + list.length) % list.length];
+    he.next = list[(twinPos - 1 + list.length) % list.length]!;
   }
 
   return { nodes, halfEdges, outgoing, nonIntegralCrossings };
@@ -276,13 +278,13 @@ export function planarFaces(graph: HalfEdgeGraph): PlanarFace[] {
       guard += 1;
       visited.add(cursor);
       ids.push(cursor);
-      cursor = halfEdges[cursor].next;
+      cursor = halfEdges[cursor]!.next;
       if (cursor < 0) break;
     }
     if (ids.length < 3) continue;
-    const ring = ids.map((id) => nodes[halfEdges[id].from]);
-    const insetMm = ids.map((id) => Math.floor(halfEdges[id].thicknessMm / 2));
-    const wallIds = Array.from(new Set(ids.map((id) => halfEdges[id].wallId)));
+    const ring = ids.map((id) => nodes[halfEdges[id]!.from]!);
+    const insetMm = ids.map((id) => Math.floor(halfEdges[id]!.thicknessMm / 2));
+    const wallIds = Array.from(new Set(ids.map((id) => halfEdges[id]!.wallId)));
     faces.push({
       index: faces.length,
       halfEdgeIds: ids,
@@ -313,8 +315,8 @@ function dropSpurs(entries: RingEntry[]): RingEntry[] {
     changed = false;
     for (let i = 0; i < list.length; i++) {
       const n = list.length;
-      const a = list[i];
-      const c = list[(i + 2) % n];
+      const a = list[i]!;
+      const c = list[(i + 2) % n]!;
       if (ptEq(a.pt, c.pt)) {
         a.dist = c.dist;
         const drop = new Set([(i + 1) % n, (i + 2) % n]);
@@ -335,9 +337,9 @@ function mergeCollinear(entries: RingEntry[]): RingEntry[] {
     changed = false;
     for (let i = 0; i < list.length; i++) {
       const n = list.length;
-      const prev = list[(i - 1 + n) % n];
-      const cur = list[i];
-      const next = list[(i + 1) % n];
+      const prev = list[(i - 1 + n) % n]!;
+      const cur = list[i]!;
+      const next = list[(i + 1) % n]!;
       if (cross(prev.pt, cur.pt, next.pt) === 0) {
         prev.dist = Math.max(prev.dist, cur.dist);
         list = list.filter((_, idx) => idx !== i);
@@ -409,7 +411,7 @@ export function roomCandidates(
       }
       continue;
     }
-    const entries: RingEntry[] = face.ring.map((p, i) => ({ pt: p, dist: face.insetMm[i] }));
+    const entries: RingEntry[] = face.ring.map((p, i) => ({ pt: p, dist: face.insetMm[i]! }));
     const simplified = mergeCollinear(dropSpurs(entries));
     if (simplified.length < 3) continue;
     const ring = simplified.map((e) => e.pt);
@@ -441,7 +443,7 @@ export function roomCandidates(
   if (outer) {
     const entries: RingEntry[] = outer.ring.map((p, i) => ({
       pt: p,
-      dist: outer.insetMm[i],
+      dist: outer.insetMm[i]!,
     }));
     const simplified = mergeCollinear(dropSpurs(entries));
     if (simplified.length >= 3) {
@@ -461,7 +463,7 @@ export function roomCandidates(
 function reverseEdgeAligned(distances: readonly number[]): number[] {
   const n = distances.length;
   const out: number[] = [];
-  for (let i = 0; i < n; i++) out.push(distances[(((n - 2 - i) % n) + n) % n]);
+  for (let i = 0; i < n; i++) out.push(distances[(((n - 2 - i) % n) + n) % n]!);
   return out;
 }
 
@@ -505,10 +507,10 @@ export function matchRooms(
   }
   const pairs: Pair[] = [];
   for (let ci = 0; ci < candidates.length; ci++) {
-    const cand = candidates[ci];
+    const cand = candidates[ci]!;
     const cb = bbox(cand.polygon);
     for (let ei = 0; ei < existing.length; ei++) {
-      const room = existing[ei];
+      const room = existing[ei]!;
       if (room.polygon.length < 3) continue;
       const rb = bbox(room.polygon);
       if (cb.maxX < rb.minX || rb.maxX < cb.minX || cb.maxY < rb.minY || rb.maxY < cb.minY) continue;
@@ -521,12 +523,12 @@ export function matchRooms(
   pairs.sort((a, b) => {
     if (a.j !== b.j) return b.j - a.j;
     if (a.inter !== b.inter) return b.inter - a.inter;
-    const ka = existingKeys[a.ei];
-    const kb = existingKeys[b.ei];
+    const ka = existingKeys[a.ei]!;
+    const kb = existingKeys[b.ei]!;
     if (ka !== kb) return ka < kb ? -1 : 1;
     if (a.ci !== b.ci) return a.ci - b.ci;
-    const ida = existing[a.ei].id;
-    const idb = existing[b.ei].id;
+    const ida = existing[a.ei]!.id;
+    const idb = existing[b.ei]!.id;
     return ida < idb ? -1 : ida > idb ? 1 : 0;
   });
 
@@ -545,7 +547,7 @@ export function matchRooms(
     const pair = matched.get(ci);
     out.push({
       candidateIndex: ci,
-      roomId: pair ? existing[pair.ei].id : null,
+      roomId: pair ? existing[pair.ei]!.id : null,
       jaccard: pair ? pair.j : 0,
     });
   }
@@ -594,7 +596,7 @@ export function detectRooms(
   const matchedIds = new Set<string>();
 
   for (const match of matches) {
-    const cand = candidates[match.candidateIndex];
+    const cand = candidates[match.candidateIndex]!;
     const prior = match.roomId === null ? undefined : priorById.get(match.roomId);
     if (prior) {
       matchedIds.add(prior.id);

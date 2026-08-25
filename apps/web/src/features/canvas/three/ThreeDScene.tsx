@@ -196,7 +196,7 @@ function BucketMesh({ bucket, house, rooms, materialColors }: BucketMeshProps): 
     const targets = bucket.faceTargets;
     return (intersection: Intersection): PickTarget | null => {
       const faceIndex = intersection.faceIndex;
-      if (faceIndex === undefined) return null;
+      if (faceIndex === undefined || faceIndex === null) return null;
       return targets[faceIndex] ?? null;
     };
   }, [bucket, rooms]);

@@ -21,13 +21,14 @@
     // imports here are extensionless, so the workspace base config must use
     // "moduleResolution": "bundler" (or "node10") — see the contract note in
     // the package README section of the model core hand-off.
-    "resolveJsonModule": true,
-
-    // Integer-mm geometry is index-heavy (shoelace sums, half-edge walks, ring
-    // offsets). With noUncheckedIndexedAccess every `poly[i]` would need a
-    // non-null assertion, which adds noise without catching a real bug class in
-    // loops that are provably in-bounds. Turned off HERE ONLY, deliberately.
-    "noUncheckedIndexedAccess": false
+    //
+    // NOTE: an earlier revision disabled noUncheckedIndexedAccess "HERE ONLY".
+    // That opt-out never actually held: apps/web and packages/ui compile this
+    // package as source under THEIR tsconfigs, so the strict base flags were
+    // re-applied to every file anyway. The code now complies with the base
+    // config's flags (provably in-bounds ring indexing uses `!`), and the
+    // override is gone so the package is checked the same way everywhere.
+    "resolveJsonModule": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules"]

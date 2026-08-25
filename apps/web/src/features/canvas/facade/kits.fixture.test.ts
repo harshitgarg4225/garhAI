@@ -10,14 +10,19 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
 import { colorwayById, FACADE_KITS, kitById } from './kits';
 
-const FIXTURE_PATH = fileURLToPath(
-  new URL('../../../../../../fixtures/catalog/facade-kits.json', import.meta.url),
+// NOT `new URL(rel, import.meta.url)`: Vite statically rewrites that idiom
+// into an `/@fs/` http asset URL, which `fileURLToPath` then rejects under
+// the jsdom environment. Converting to a path first dodges the rewrite.
+const FIXTURE_PATH = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../../../../fixtures/catalog/facade-kits.json',
 );
 
 describe('kit definitions mirror the fixture catalogue', () => {

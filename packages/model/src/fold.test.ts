@@ -23,7 +23,7 @@ import {
   tryFold,
   wallLengthMm,
 } from './fold';
-import { polygonAreaMm2, rectPolygon } from './geometry';
+import { polygonAreaMm2, polygonKey, rectPolygon } from './geometry';
 import { emptyProjectDoc } from './model';
 import type { GroupId } from './ids';
 import { DEFAULTS, ROOM_TYPES } from './model';
@@ -198,7 +198,19 @@ describe('fold determinism', () => {
     const rest = ops.filter((o) => o.type !== 'wall.add');
     const forward = replay([...rest, ...walls]);
     const backward = replay([...rest, ...walls.slice().reverse()]);
-    expect(docHash(backward)).toBe(docHash(forward));
+    // Room IDENTITY is deliberately path-dependent: matchRooms keeps a
+    // surviving room's id across edits (the undo-integrity contract in
+    // rooms.ts), so a different wall order can hand the same final face a
+    // different birth id. Everything else must be byte-identical, so compare
+    // with each room id neutralised to its polygon's canonical key.
+    const neutralised = (doc: ProjectDoc): string => {
+      let json = canonicalJson(doc);
+      for (const room of doc.house.rooms) {
+        json = json.replaceAll(room.id, `room@${polygonKey(room.polygon)}`);
+      }
+      return json;
+    };
+    expect(neutralised(backward)).toBe(neutralised(forward));
   });
 
   it('derives rooms, slabs and levels rather than trusting the op stream', () => {
@@ -207,9 +219,9 @@ describe('fold determinism', () => {
     expect(doc.house.rooms.every((r) => r.storeyId === FIXTURE_IDS.groundStorey)).toBe(true);
     expect(doc.house.rooms.map((r) => r.areaMm2)).toEqual([2828 * 3770, 2828 * 3770]);
     expect(doc.house.slabs).toHaveLength(1);
-    expect(doc.house.slabs[0].polygon).toEqual(rectPolygon(-115, -115, 6115, 4115));
+    expect(doc.house.slabs[0]!.polygon).toEqual(rectPolygon(-115, -115, 6115, 4115));
     expect(doc.house.levels.fflPerStoreyMm).toEqual([DEFAULTS.plinthMm]);
-    expect(doc.house.storeys[0].level.fflMm).toBe(DEFAULTS.plinthMm);
+    expect(doc.house.storeys[0]?.level.fflMm).toBe(DEFAULTS.plinthMm);
   });
 
   it('keeps element arrays sorted by id', () => {
@@ -342,7 +354,7 @@ function expectRoundTrip(doc: ProjectDoc, op: Op, opts: { expectChange?: boolean
 
 describe('every op has a working inverse', () => {
   const base = richDoc();
-  const roomId = base.house.rooms[0].id;
+  const roomId = base.house.rooms[0]!.id;
 
   const cases: [string, Op][] = [
     [
@@ -367,7 +379,12 @@ describe('every op has a working inverse', () => {
     ['storey.remove', { type: 'storey.remove', payload: { index: 0 } }],
     [
       'storey.set_height',
-      { type: 'storey.set_height', payload: { storeyId: FIXTURE_IDS.groundStorey, heightMm: 3200 } },
+      // 3010, not a bigger jump: the base doc's stair is 18 × 167 = 3006mm,
+      // and the op taxonomy says "stairs re-check" on a height change — a
+      // height outside the ±10mm rise tolerance is REJECTED with
+      // STAIR_RISE_MISMATCH (deliberately; the fix hint names the riser to
+      // use). The round-trip needs a height the standing stair tolerates.
+      { type: 'storey.set_height', payload: { storeyId: FIXTURE_IDS.groundStorey, heightMm: 3010 } },
     ],
     [
       'wall.add',
@@ -675,8 +692,8 @@ describe('destructive inverses restore room metadata where the id survives', () 
     let doc = makeTwoRoomPlan();
     const [a, b] = doc.house.rooms;
     doc = applyGroup(doc, [
-      { type: 'room.assign', payload: { roomId: a.id, type: 'living', name: 'Living' } },
-      { type: 'room.assign', payload: { roomId: b.id, type: 'kitchen', name: 'Kitchen' } },
+      { type: 'room.assign', payload: { roomId: a!.id, type: 'living', name: 'Living' } },
+      { type: 'room.assign', payload: { roomId: b!.id, type: 'kitchen', name: 'Kitchen' } },
     ]).model;
     const before = docHash(doc);
 
@@ -845,7 +862,7 @@ describe('UndoStack', () => {
               type: 'wall.set_thickness',
               payload: {
                 wallId: FIXTURE_IDS.wallSpine,
-                thicknessMm: [115, 150, 230][rand(3)],
+                thicknessMm: [115, 150, 230][rand(3)]!,
               },
             },
           ];
@@ -855,7 +872,7 @@ describe('UndoStack', () => {
             {
               type: 'room.assign',
               payload: {
-                roomId: rooms[rand(rooms.length)].id,
+                roomId: rooms[rand(rooms.length)]!.id,
                 type: ROOM_TYPES[rand(ROOM_TYPES.length)] as RoomType,
               },
             },
@@ -873,7 +890,7 @@ describe('UndoStack', () => {
           ops = [
             {
               type: 'opening.resize',
-              payload: { openingId: FIXTURE_IDS.doorMain, widthMm: [750, 900, 1050][rand(3)] },
+              payload: { openingId: FIXTURE_IDS.doorMain, widthMm: [750, 900, 1050][rand(3)]! },
             },
           ];
           break;
@@ -929,9 +946,9 @@ describe('derived reads', () => {
     const doc = makeTwoRoomPlan();
     const locked = fold(doc, {
       type: 'room.assign',
-      payload: { roomId: doc.house.rooms[0].id, type: 'living', locked: true },
+      payload: { roomId: doc.house.rooms[0]!.id, type: 'living', locked: true },
     }).model;
-    expect(lockedRoomIds(locked)).toEqual([doc.house.rooms[0].id]);
+    expect(lockedRoomIds(locked)).toEqual([doc.house.rooms[0]!.id]);
   });
 
   it('computes a stair footprint for slab cut-outs', () => {
@@ -997,7 +1014,7 @@ describe('tryFold', () => {
       payload: { wallId: fixedId('wall', 'NOPE') },
     });
     expect(outcome.ok).toBe(false);
-    if (!outcome.ok) expect(outcome.issues[0].code).toBe('WALL_UNKNOWN');
+    if (!outcome.ok) expect(outcome.issues[0]?.code).toBe('WALL_UNKNOWN');
   });
 
   it('returns the folded model on success', () => {

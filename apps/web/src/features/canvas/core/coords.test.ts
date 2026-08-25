@@ -93,7 +93,10 @@ describe('rounding: half away from zero, symmetric', () => {
 
   it('is exactly antisymmetric, so the north flip introduces no bias', () => {
     for (const mm of [0.5, 1.5, 2.5, 114.5, -0.5, 1e-9, 1234.5]) {
-      expect(worldToMmScalar(mm / 1000)).toBe(-worldToMmScalar(-mm / 1000));
+      // `+ 0` folds the negated side's -0 into +0: roundMm normalises zeros
+      // (no signed zero in the model contract), so `-f(-x)` at a zero result
+      // is -0 while `f(x)` is +0 — same number, different IEEE sign bit.
+      expect(worldToMmScalar(mm / 1000)).toBe(-worldToMmScalar(-mm / 1000) + 0);
     }
   });
 
@@ -124,7 +127,9 @@ describe('snapping', () => {
 
   it('is symmetric across zero at every boundary', () => {
     for (const v of [1, 57, 57.5, 58, 114, 115, 116, 1_000_000]) {
-      expect(snapMm(v, SNAP_COARSE_MM)).toBe(-snapMm(-v, SNAP_COARSE_MM));
+      // `+ 0` folds the negated side's -0 into +0 — see the antisymmetry
+      // spec above for why the zero's sign bit is not part of the contract.
+      expect(snapMm(v, SNAP_COARSE_MM)).toBe(-snapMm(-v, SNAP_COARSE_MM) + 0);
     }
   });
 

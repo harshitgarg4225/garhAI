@@ -319,8 +319,16 @@ export const useJobsStore = create<JobsState>()((set, get) => ({
   },
 
   startSheets: async (projectId, input = {}) => {
-    const job = await api.sheets.generate(projectId, input);
-    get().track(projectId, job, () => api.sheets.generate(projectId, input));
+    // `generate` answers the whole SheetSetOut — the current sheets PLUS the
+    // new job — so the tab can keep showing yesterday's set while today's is
+    // drawn. The store tracks only the job half. No retry closure: see the
+    // note on startRender for why sheets cannot be retried.
+    const result = await api.sheets.generate(projectId, input);
+    const job = result.job;
+    if (job === null || job === undefined) {
+      throw new Error('Sheet generation did not return a job to track.');
+    }
+    get().track(projectId, job);
     return toJobDTO(job);
   },
 

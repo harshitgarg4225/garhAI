@@ -63,7 +63,7 @@ describe('derivedId (rooms and slabs)', () => {
       expect(ID_PATTERN.test(id)).toBe(true);
       const ulid = parseId(id).ulid;
       expect(ulid).toHaveLength(26);
-      expect('01234567'.includes(ulid[0])).toBe(true);
+      expect('01234567'.includes(ulid[0]!)).toBe(true);
       for (const ch of ulid) expect(CROCKFORD32.includes(ch)).toBe(true);
     }
   });

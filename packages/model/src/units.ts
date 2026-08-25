@@ -60,11 +60,22 @@ export function roundHalfAwayFromZero(x: number): number {
   if (!Number.isFinite(x)) {
     throw new RangeError(`roundHalfAwayFromZero: not a finite number (${String(x)})`);
   }
-  return x >= 0 ? Math.floor(x + 0.5) : -Math.floor(-x + 0.5);
+  // `+ 0` normalises the negative branch's -0 to +0: Python's int 0 has no
+  // sign, so a -0 here would be a mirror divergence `Object.is` can see.
+  return x >= 0 ? Math.floor(x + 0.5) : -Math.floor(-x + 0.5) + 0;
 }
 
 /** Alias used at call sites where "this value becomes integer mm" is the point. */
 export const roundMm = roundHalfAwayFromZero;
+
+/**
+ * Apply a parsed sign to a rounded magnitude. The `+ 0` folds `-1 * 0` back
+ * to unsigned zero — "-0.4mm" must parse to the same 0 the Python mirror
+ * returns, and `Object.is` in the golden-pair spec can see the difference.
+ */
+function applySign(sign: number, mm: number): number {
+  return sign * mm + 0;
+}
 
 /** True when `v` is a value we are willing to store as a length/coordinate. */
 export function isIntMm(v: unknown): v is number {
@@ -101,8 +112,11 @@ export function normaliseLengthInput(raw: string): string {
     .replace(/[\u00a0\u2000-\u200a\u202f\u205f\u3000]/g, ' ')
     // U+2212 MINUS SIGN, U+2013 EN DASH, U+2014 EM DASH
     .replace(/[\u2212\u2013\u2014]/g, '-')
-    // thousands separators, only when a digit follows
-    .replace(/(\d),(?=\d)/g, '$1');
+    // Thousands separators: a comma preceded by a digit-or-comma and followed
+    // by a digit. The comma in the left context is what turns "3,,800" into
+    // "3,800" — still comma-carrying, so the parser rejects it as the golden
+    // reject list requires — instead of leaving the double comma untouched.
+    .replace(/(?<=[\d,]),(?=\d)/g, '');
   s = s.trim().replace(/\s+/g, ' ').toLowerCase();
   return s;
 }
@@ -186,7 +200,7 @@ export function parseLengthMm(raw: string, defaultUnit: 'mm' | 'ft-in' | 'm' = '
     const inchText = (ftIn[2] ?? '').trim();
     const inches = inchText === '' ? 0 : parseMixedNumber(inchText);
     if (inches === null) throw new UnitParseError(raw, `cannot read inches part "${inchText}"`);
-    return sign * roundMm((feet * 12 + inches) * MM_PER_INCH);
+    return applySign(sign, roundMm((feet * 12 + inches) * MM_PER_INCH));
   }
 
   // --- 2. inches only with the " mark: 6", 6 1/2"
@@ -194,7 +208,7 @@ export function parseLengthMm(raw: string, defaultUnit: 'mm' | 'ft-in' | 'm' = '
     const inchText = s.slice(0, -1).trim();
     const inches = parseMixedNumber(inchText);
     if (inches === null) throw new UnitParseError(raw, `cannot read inches "${inchText}"`);
-    return sign * roundMm(inches * MM_PER_INCH);
+    return applySign(sign, roundMm(inches * MM_PER_INCH));
   }
 
   // --- 3. "12 ft 6 in" / "12 feet 6 inches"
@@ -203,34 +217,34 @@ export function parseLengthMm(raw: string, defaultUnit: 'mm' | 'ft-in' | 'm' = '
     const feet = Number(ftInWords[1]);
     const inches = parseMixedNumber(ftInWords[2]);
     if (inches === null) throw new UnitParseError(raw, `cannot read inches "${ftInWords[2]}"`);
-    return sign * roundMm((feet * 12 + inches) * MM_PER_INCH);
+    return applySign(sign, roundMm((feet * 12 + inches) * MM_PER_INCH));
   }
 
   // --- 4. number + unit word: 3.8m, 3800mm, 12 ft, 4 yd, 150 in
   const withUnit = /^([0-9]*\.?[0-9]+(?:\s+[0-9]+\/[0-9]+)?)\s*([a-z]+)$/.exec(s);
   if (withUnit) {
-    const factor = unitFactor(withUnit[2]);
+    const factor = unitFactor(withUnit[2]!);
     if (factor === null) throw new UnitParseError(raw, `unknown unit "${withUnit[2]}"`);
-    const n = parseMixedNumber(withUnit[1]);
+    const n = parseMixedNumber(withUnit[1]!);
     if (n === null) throw new UnitParseError(raw, `cannot read number "${withUnit[1]}"`);
-    return sign * roundMm(n * factor);
+    return applySign(sign, roundMm(n * factor));
   }
 
   // --- 5. dash shorthand "12-6" == 12'-6" (integers only, no unit marks)
   const dash = /^([0-9]+)\s*-\s*([0-9]+(?:\s+[0-9]+\/[0-9]+)?|[0-9]+\/[0-9]+)$/.exec(s);
   if (dash) {
     const feet = Number(dash[1]);
-    const inches = parseMixedNumber(dash[2]);
+    const inches = parseMixedNumber(dash[2]!);
     if (inches === null) throw new UnitParseError(raw, `cannot read inches "${dash[2]}"`);
-    return sign * roundMm((feet * 12 + inches) * MM_PER_INCH);
+    return applySign(sign, roundMm((feet * 12 + inches) * MM_PER_INCH));
   }
 
   // --- 6. bare number / bare fraction -> defaultUnit
   const bare = parseMixedNumber(s);
   if (bare !== null) {
-    if (defaultUnit === 'mm') return sign * roundMm(bare);
-    if (defaultUnit === 'm') return sign * roundMm(bare * MM_PER_METRE);
-    return sign * roundMm(bare * MM_PER_FOOT); // 'ft-in': a bare number is feet
+    if (defaultUnit === 'mm') return applySign(sign, roundMm(bare));
+    if (defaultUnit === 'm') return applySign(sign, roundMm(bare * MM_PER_METRE));
+    return applySign(sign, roundMm(bare * MM_PER_FOOT)); // 'ft-in': a bare number is feet
   }
 
   throw new UnitParseError(raw, 'unrecognised format');

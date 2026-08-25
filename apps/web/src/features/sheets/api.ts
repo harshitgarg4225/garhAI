@@ -145,7 +145,9 @@ export const EXPORT_OPTIONS: ReadonlyArray<{
 // ---------------------------------------------------------------------------
 
 export function fetchSheetSet(projectId: string, version?: string | null): Promise<SheetSetResponse> {
-  return api.sheets.list(projectId, { version: version ?? undefined });
+  // Conditional spread: exactOptionalPropertyTypes forbids an explicit
+  // `version: undefined` — absent and undefined are different things here.
+  return api.sheets.list(projectId, version === undefined ? {} : { version });
 }
 
 export function fetchSheetSummary(projectId: string): Promise<SheetSetSummaryResponse> {

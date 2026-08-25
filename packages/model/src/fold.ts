@@ -125,8 +125,8 @@ export function compareCodePoints(a: string, b: string): number {
   const cb = Array.from(b);
   const n = Math.min(ca.length, cb.length);
   for (let i = 0; i < n; i++) {
-    const pa = ca[i].codePointAt(0) ?? 0;
-    const pb = cb[i].codePointAt(0) ?? 0;
+    const pa = ca[i]!.codePointAt(0) ?? 0;
+    const pb = cb[i]!.codePointAt(0) ?? 0;
     if (pa !== pb) return pa < pb ? -1 : 1;
   }
   if (ca.length !== cb.length) return ca.length < cb.length ? -1 : 1;
@@ -161,7 +161,7 @@ function canonicalString(s: string, path: string): string {
       if (next < 0xdc00 || next > 0xdfff) {
         throw new CanonicalJsonError('Lone high surrogate in string', path);
       }
-      out += s[i] + s[i + 1];
+      out += s[i]! + s[i + 1]!;
       i++;
       continue;
     }
@@ -252,6 +252,7 @@ export function applyMergePatch(target: JsonObject, patch: JsonObject): JsonObje
   const out: JsonObject = { ...target };
   for (const key of Object.keys(patch)) {
     const pv = patch[key];
+    if (pv === undefined) continue;
     if (pv === null) {
       delete out[key];
       continue;
@@ -551,7 +552,12 @@ export function fold(model: ProjectDoc, op: Op, options: FoldOptions = {}): Fold
 
   if (options.validateResult !== false) {
     const touched = draft.touchedStoreys.size > 0 ? Array.from(draft.touchedStoreys) : undefined;
-    const issues = validateModel(next, { storeyIds: touched, includeWarnings: false });
+    // Conditional spread: exactOptionalPropertyTypes forbids an explicit
+    // `storeyIds: undefined` — absent and undefined are different things here.
+    const issues = validateModel(next, {
+      includeWarnings: false,
+      ...(touched === undefined ? {} : { storeyIds: touched }),
+    });
     if (issues.length > 0) throw new OpRejectedError(op.type, issues);
   }
 
@@ -883,8 +889,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'storey.set_height': {
       const idx = draft.storeys.findIndex((s) => s.id === op.payload.storeyId);
-      if (idx < 0) break;
       const prev = draft.storeys[idx];
+      if (!prev) break;
       push({
         type: 'storey.set_height',
         payload: { storeyId: prev.id, heightMm: prev.heightMm },
@@ -911,8 +917,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'wall.move': {
       const idx = draft.walls.findIndex((w) => w.id === op.payload.wallId);
-      if (idx < 0) break;
       const prev = draft.walls[idx];
+      if (!prev) break;
       push({ type: 'wall.move', payload: { wallId: prev.id, a: prev.a, b: prev.b } });
       draft.walls[idx] = { ...prev, a: op.payload.a, b: op.payload.b };
       dirty(draft, prev.storeyId);
@@ -920,8 +926,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'wall.split': {
       const idx = draft.walls.findIndex((w) => w.id === op.payload.wallId);
-      if (idx < 0) break;
       const wall = draft.walls[idx];
+      if (!wall) break;
       const splitPt = pointAlongSeg({ a: wall.a, b: wall.b }, op.payload.atMm);
       const movedOpenings = draft.openings.filter(
         (o) => o.wallId === wall.id && o.offsetMm >= op.payload.atMm,
@@ -947,8 +953,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'wall.delete': {
       const idx = draft.walls.findIndex((w) => w.id === op.payload.wallId);
-      if (idx < 0) break;
       const wall = draft.walls[idx];
+      if (!wall) break;
       const hosted = draft.openings.filter((o) => o.wallId === wall.id);
       if (wantInverse) {
         inverse.push({
@@ -978,8 +984,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'wall.set_thickness': {
       const idx = draft.walls.findIndex((w) => w.id === op.payload.wallId);
-      if (idx < 0) break;
       const prev = draft.walls[idx];
+      if (!prev) break;
       push({
         type: 'wall.set_thickness',
         payload: { wallId: prev.id, thicknessMm: prev.thicknessMm },
@@ -1008,8 +1014,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'opening.move': {
       const idx = draft.openings.findIndex((o) => o.id === op.payload.openingId);
-      if (idx < 0) break;
       const prev = draft.openings[idx];
+      if (!prev) break;
       push({
         type: 'opening.move',
         payload: { openingId: prev.id, offsetMm: prev.offsetMm, wallId: prev.wallId },
@@ -1025,8 +1031,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'opening.resize': {
       const idx = draft.openings.findIndex((o) => o.id === op.payload.openingId);
-      if (idx < 0) break;
       const prev = draft.openings[idx];
+      if (!prev) break;
       push({
         type: 'opening.resize',
         payload: {
@@ -1047,8 +1053,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'opening.flip': {
       const idx = draft.openings.findIndex((o) => o.id === op.payload.openingId);
-      if (idx < 0) break;
       const prev = draft.openings[idx];
+      if (!prev) break;
       push({ type: 'opening.flip', payload: { openingId: prev.id, swing: prev.swing } });
       draft.openings[idx] = { ...prev, swing: op.payload.swing };
       touchWall(draft, prev.wallId);
@@ -1056,8 +1062,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'opening.delete': {
       const idx = draft.openings.findIndex((o) => o.id === op.payload.openingId);
-      if (idx < 0) break;
       const prev = draft.openings[idx];
+      if (!prev) break;
       push({ type: 'opening.add', payload: openingAddPayload(prev) });
       touchWall(draft, prev.wallId);
       draft.openings.splice(idx, 1);
@@ -1071,8 +1077,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     // ---------------------------------------------------------------- rooms
     case 'room.assign': {
       const idx = draft.rooms.findIndex((r) => r.id === op.payload.roomId);
-      if (idx < 0) break;
       const prev = draft.rooms[idx];
+      if (!prev) break;
       push({
         type: 'room.assign',
         payload: {
@@ -1095,8 +1101,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'room.set_target': {
       const idx = draft.rooms.findIndex((r) => r.id === op.payload.roomId);
-      if (idx < 0) break;
       const prev = draft.rooms[idx];
+      if (!prev) break;
       push({
         type: 'room.set_target',
         payload: {
@@ -1135,8 +1141,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'stair.edit': {
       const idx = draft.stairs.findIndex((s) => s.id === op.payload.stairId);
-      if (idx < 0) break;
       const prev = draft.stairs[idx];
+      if (!prev) break;
       const patch = op.payload.patch;
       if (wantInverse) {
         const invPatch: {
@@ -1175,8 +1181,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'stair.delete': {
       const idx = draft.stairs.findIndex((s) => s.id === op.payload.stairId);
-      if (idx < 0) break;
       const prev = draft.stairs[idx];
+      if (!prev) break;
       push({ type: 'stair.add', payload: stairAddPayload(prev) });
       draft.stairs.splice(idx, 1);
       markStoreyAboveDirty(draft, prev.storeyId);
@@ -1197,6 +1203,7 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
         push({ type: 'column.set', payload: { action: 'delete', id: column.id } });
       } else if (op.payload.action === 'move' && idx >= 0) {
         const prev = draft.columns[idx];
+        if (!prev) break;
         push({
           type: 'column.set',
           payload: { action: 'move', id: prev.id, pt: prev.pt, sizeMm: prev.sizeMm },
@@ -1208,6 +1215,7 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
         };
       } else if (op.payload.action === 'delete' && idx >= 0) {
         const prev = draft.columns[idx];
+        if (!prev) break;
         push({
           type: 'column.set',
           payload: {
@@ -1238,6 +1246,7 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
         push({ type: 'furniture.set', payload: { action: 'delete', id: item.id } });
       } else if (op.payload.action === 'transform' && idx >= 0) {
         const prev = draft.furniture[idx];
+        if (!prev) break;
         push({
           type: 'furniture.set',
           payload: {
@@ -1254,6 +1263,7 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
         };
       } else if (op.payload.action === 'delete' && idx >= 0) {
         const prev = draft.furniture[idx];
+        if (!prev) break;
         push({
           type: 'furniture.set',
           payload: {
@@ -1287,6 +1297,7 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
         push({ type: 'balcony.set', payload: { action: 'delete', id: balcony.id } });
       } else if (op.payload.action === 'edit' && idx >= 0) {
         const prev = draft.balconies[idx];
+        if (!prev) break;
         push({
           type: 'balcony.set',
           payload: {
@@ -1309,6 +1320,7 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
         };
       } else if (op.payload.action === 'delete' && idx >= 0) {
         const prev = draft.balconies[idx];
+        if (!prev) break;
         push({
           type: 'balcony.set',
           payload: {
@@ -1367,8 +1379,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     }
     case 'facade.edit_component': {
       const idx = draft.facade.components.findIndex((c) => c.id === op.payload.componentId);
-      if (idx < 0) break;
       const prev = draft.facade.components[idx];
+      if (!prev) break;
       push({
         type: 'facade.edit_component',
         payload: {
@@ -1386,8 +1398,8 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
     case 'material.assign': {
       const idx = draft.materials.findIndex((m) => m.id === op.payload.id);
       if (op.payload.materialId === null) {
-        if (idx < 0) break;
         const prev = draft.materials[idx];
+        if (!prev) break;
         push({
           type: 'material.assign',
           payload: { id: prev.id, target: prev.target, materialId: prev.materialId },
@@ -1397,6 +1409,7 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
       }
       if (idx >= 0) {
         const prev = draft.materials[idx];
+        if (!prev) break;
         push({
           type: 'material.assign',
           payload: { id: prev.id, target: prev.target, materialId: prev.materialId },
@@ -1479,6 +1492,7 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
         push({ type: 'annotation.set', payload: { action: 'delete', id: annotation.id } });
       } else if (op.payload.action === 'edit' && idx >= 0) {
         const prev = draft.annotations[idx];
+        if (!prev) break;
         push({
           type: 'annotation.set',
           payload: {
@@ -1502,6 +1516,7 @@ function applyOp(draft: Draft, op: Op, inverse: Op[], wantInverse: boolean): voi
         };
       } else if (op.payload.action === 'delete' && idx >= 0) {
         const prev = draft.annotations[idx];
+        if (!prev) break;
         push({
           type: 'annotation.set',
           payload: {
@@ -1543,7 +1558,7 @@ function markStoreyAboveDirty(draft: Draft, storeyId: StoreyId): void {
   const idx = draft.storeys.findIndex((s) => s.id === storeyId);
   draft.touchedStoreys.add(storeyId);
   if (idx >= 0 && idx + 1 < draft.storeys.length) {
-    dirty(draft, draft.storeys[idx + 1].id);
+    dirty(draft, draft.storeys[idx + 1]!.id);
   }
 }
 
@@ -1656,7 +1671,7 @@ export function applyGroup(
   }
   const inverse: Op[] = [];
   for (let i = inverses.length - 1; i >= 0; i--) {
-    for (const invOp of inverses[i]) {
+    for (const invOp of inverses[i]!) {
       inverse.push(groupId === undefined ? invOp : ({ ...invOp, groupId } as Op));
     }
   }

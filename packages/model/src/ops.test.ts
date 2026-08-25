@@ -137,7 +137,7 @@ describe('ops.schema.json is in lockstep with OP_CATALOG', () => {
     const keys = Object.keys(defs).filter((k) => k !== 'OpMeta');
     expect(keys.sort()).toEqual([...OP_TYPES].sort());
     for (const key of keys) {
-      expect(defs[key].properties.type.const).toBe(key);
+      expect(defs[key]!.properties.type.const).toBe(key);
     }
   });
 
@@ -188,7 +188,7 @@ describe('common.schema.json enums are in lockstep with the TS constants', () =>
   ];
 
   it.each(cases)('%s', (name, values) => {
-    expect(defs[name].enum).toEqual([...values]);
+    expect(defs[name]?.enum).toEqual([...values]);
   });
 
   it('labels every room type for the UI', () => {
@@ -203,6 +203,6 @@ describe('validation-issue.schema.json is in lockstep with the codes', () => {
     const { VALIDATION_CODES } = await import('./validate');
     const schema = readSchema('validation-issue.schema.json');
     const defs = schema.$defs as Record<string, { enum?: string[] }>;
-    expect(defs.ValidationCode.enum).toEqual([...VALIDATION_CODES]);
+    expect(defs.ValidationCode?.enum).toEqual([...VALIDATION_CODES]);
   });
 });

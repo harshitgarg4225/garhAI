@@ -253,7 +253,8 @@ export function pointAtLengthMm(from: Pt, to: Pt, lengthMm: number): Pt {
 export function ndcFromPointer(clientX: number, clientY: number, rect: DOMRectReadOnly): Ndc {
   const x = ((clientX - rect.left) / rect.width) * 2 - 1;
   // Browser Y grows downwards, NDC Y grows upwards. This is the only flip.
-  const y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+  // `+ 0` normalises the centre pixel's -0 to +0.
+  const y = -(((clientY - rect.top) / rect.height) * 2 - 1) + 0;
   return { x, y };
 }
 
@@ -261,7 +262,8 @@ export function ndcFromPointer(clientX: number, clientY: number, rect: DOMRectRe
 export function ndcFromPixel(px: PixelPoint, size: ViewportSizePx): Ndc {
   return {
     x: (px.x / size.width) * 2 - 1,
-    y: -((px.y / size.height) * 2 - 1),
+    // `+ 0` normalises the centre pixel's -0 to +0.
+    y: -((px.y / size.height) * 2 - 1) + 0,
   };
 }
 

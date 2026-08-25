@@ -39,7 +39,10 @@ import type { IconName } from './icons';
 // Input — plain text/email/etc.
 // ---------------------------------------------------------------------------
 
-export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className'> {
+// 'prefix' is also omitted: the global RDFa attribute types it as `string`,
+// and this prop is a ReactNode pinned inside the field, not that attribute.
+export interface InputProps
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'prefix'> {
   invalid?: boolean | undefined;
   iconLeft?: IconName | undefined;
   /** Static text pinned inside the right edge, e.g. "mm" or "sq ft". */

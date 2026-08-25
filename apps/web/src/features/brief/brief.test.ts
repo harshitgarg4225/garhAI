@@ -252,7 +252,7 @@ describe('setBriefField', () => {
     const data: JsonObject = { rooms: [{ type: 'bath_wc', count: 2 }], storeys: 2 };
     const next = setBriefField(data, 'brief.rooms.bath_wc.count', 3);
     expect(next).not.toBeNull();
-    expect(roomCount((next as { rooms: RoomRequest[] }).rooms, 'bath_wc')).toBe(3);
+    expect(roomCount((next as unknown as { rooms: RoomRequest[] }).rooms, 'bath_wc')).toBe(3);
     // Untouched fields survive.
     expect((next as JsonObject)['storeys']).toBe(2);
   });
@@ -280,7 +280,7 @@ describe('canonicaliseParsedData', () => {
         { type: 'bedroom_master', count: 1 },
       ],
     });
-    const rooms = out['rooms'] as RoomRequest[];
+    const rooms = out['rooms'] as unknown as RoomRequest[];
     expect(rooms).toHaveLength(3);
     expect(rooms[0]?.type).toBe('bedroom_master');
     expect(rooms.every((r) => r.count === 1)).toBe(true);

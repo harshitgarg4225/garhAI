@@ -12,6 +12,7 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
@@ -76,8 +77,12 @@ describe('surfaceGroupOf', () => {
 // ---------------------------------------------------------------------------
 
 function loadFixtureCatalogue(): MaterialItem[] {
-  const path = fileURLToPath(
-    new URL('../../../../../../fixtures/catalog/materials.json', import.meta.url),
+  // NOT `new URL(rel, import.meta.url)`: Vite statically rewrites that idiom
+  // into an `/@fs/` http asset URL, which `fileURLToPath` then rejects under
+  // the jsdom environment. Converting to a path first dodges the rewrite.
+  const path = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    '../../../../../../fixtures/catalog/materials.json',
   );
   const raw = JSON.parse(readFileSync(path, 'utf8')) as unknown[];
   return raw.map((item) => materialItemSchema.parse(item));

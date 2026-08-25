@@ -181,7 +181,7 @@ export function derivedId<T extends ElementType>(type: T, key: string): Id<T> {
   let out = '';
   for (let i = 0; i < 26; i++) {
     let v = 0;
-    for (let b = 0; b < 5; b++) v = v * 2 + bits[i * 5 + b];
+    for (let b = 0; b < 5; b++) v = v * 2 + bits[i * 5 + b]!;
     out += CROCKFORD32[v];
   }
   return `${type}_${out}`;
@@ -223,8 +223,9 @@ export function tryParseId(value: unknown): ParsedId | null {
   if (!m) return null;
   const type = m[1];
   const ulidPart = m[2];
+  if (type === undefined || ulidPart === undefined) return null;
   if (!ELEMENT_TYPE_SET.has(type)) return null;
-  if (!ULID_FIRST_CHARS.includes(ulidPart[0])) return null;
+  if (!ULID_FIRST_CHARS.includes(ulidPart[0]!)) return null;
   return { type: type as ElementType, ulid: ulidPart, raw: value };
 }
 

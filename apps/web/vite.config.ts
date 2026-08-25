@@ -27,7 +27,8 @@
 import { fileURLToPath } from 'node:url';
 
 import react from '@vitejs/plugin-react';
-import { defineConfig, loadEnv } from 'vitest/config';
+import { loadEnv } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 /** `apps/web/` — this file's directory. `__dirname` does not exist in ESM. */
 const appDir = fileURLToPath(new URL('.', import.meta.url));
@@ -86,7 +87,9 @@ export default defineConfig(({ mode }) => {
       // The browser connects to the HMR socket directly from the host, so it
       // needs its own published port rather than tunnelling through 5173.
       hmr: { port: hmrPort, clientPort: hmrPort },
-      watch: usePolling ? { usePolling: true, interval: 300 } : undefined,
+      // null, not undefined: Vite types watch as `WatchOptions | null`, and
+      // exactOptionalPropertyTypes rejects an explicit undefined.
+      watch: usePolling ? { usePolling: true, interval: 300 } : null,
       fs: {
         // The workspace packages live outside `root`.
         allow: [repoRoot],

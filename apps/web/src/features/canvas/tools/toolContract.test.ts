@@ -41,6 +41,7 @@ const SOFA: FurnitureItem = {
   widthMm: 1800,
   depthMm: 850,
   heightMm: 800,
+  clearanceMm: 0,
   assetUrl: null,
   roomTypes: [],
 };

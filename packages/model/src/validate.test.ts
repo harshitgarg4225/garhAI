@@ -42,8 +42,8 @@ describe('op shape validation', () => {
   });
 
   it('rejects a non-object op or payload', () => {
-    expect(validateOpShape('nope')[0].code).toBe('OP_PAYLOAD_NOT_OBJECT');
-    expect(validateOpShape({ type: 'wall.delete', payload: 3 })[0].code).toBe(
+    expect(validateOpShape('nope')[0]?.code).toBe('OP_PAYLOAD_NOT_OBJECT');
+    expect(validateOpShape({ type: 'wall.delete', payload: 3 })[0]?.code).toBe(
       'OP_PAYLOAD_NOT_OBJECT',
     );
   });
@@ -69,14 +69,14 @@ describe('op shape validation', () => {
       payload: { patch: { budget: { perSqft: 1850.5 } } },
     });
     expect(issues.map((i) => i.code)).toContain('OP_FIELD_NOT_INT');
-    expect(issues[0].field).toBe('payload.patch.budget.perSqft');
+    expect(issues[0]?.field).toBe('payload.patch.budget.perSqft');
   });
 
   it('names the missing field', () => {
     const issues = validateOpShape({ type: 'wall.delete', payload: {} });
-    expect(issues[0].code).toBe('OP_FIELD_MISSING');
-    expect(issues[0].field).toBe('payload.wallId');
-    expect(issues[0].fix).toBeDefined();
+    expect(issues[0]?.code).toBe('OP_FIELD_MISSING');
+    expect(issues[0]?.field).toBe('payload.wallId');
+    expect(issues[0]?.fix).toBeDefined();
   });
 
   it('rejects an id of the wrong namespace', () => {
@@ -84,8 +84,8 @@ describe('op shape validation', () => {
       type: 'wall.delete',
       payload: { wallId: FIXTURE_IDS.doorMain },
     });
-    expect(issues[0].code).toBe('OP_FIELD_BAD_ID');
-    expect(issues[0].limit).toBe('wall_<ulid>');
+    expect(issues[0]?.code).toBe('OP_FIELD_BAD_ID');
+    expect(issues[0]?.limit).toBe('wall_<ulid>');
   });
 
   it('rejects a bad enum with the legal values in the message', () => {
@@ -93,8 +93,8 @@ describe('op shape validation', () => {
       type: 'opening.flip',
       payload: { openingId: FIXTURE_IDS.doorMain, swing: 'sideways' },
     });
-    expect(issues[0].code).toBe('OP_FIELD_BAD_ENUM');
-    expect(issues[0].message).toContain('in-left');
+    expect(issues[0]?.code).toBe('OP_FIELD_BAD_ENUM');
+    expect(issues[0]?.message).toContain('in-left');
   });
 
   it('rejects a self-intersecting polygon', () => {
@@ -109,7 +109,7 @@ describe('op shape validation', () => {
         ],
       },
     });
-    expect(issues[0].code).toBe('OP_FIELD_BAD_POLYGON');
+    expect(issues[0]?.code).toBe('OP_FIELD_BAD_POLYGON');
   });
 
   it('accepts an empty boundary polygon (the clear/undo form)', () => {
@@ -119,9 +119,9 @@ describe('op shape validation', () => {
   it('requires at least one field on opening.resize and levels.set', () => {
     expect(
       validateOpShape({ type: 'opening.resize', payload: { openingId: FIXTURE_IDS.doorMain } })[0]
-        .code,
+        ?.code,
     ).toBe('OP_FIELD_MISSING');
-    expect(validateOpShape({ type: 'levels.set', payload: {} })[0].code).toBe('OP_FIELD_MISSING');
+    expect(validateOpShape({ type: 'levels.set', payload: {} })[0]?.code).toBe('OP_FIELD_MISSING');
   });
 });
 
@@ -208,8 +208,8 @@ describe('the §3 fold invariants', () => {
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) {
       const issue = outcome.issues[0];
-      expect(issue.limit).toBe('565..5435');
-      expect(issue.fix).toContain('565');
+      expect(issue?.limit).toBe('565..5435');
+      expect(issue?.fix).toContain('565');
     }
   });
 
@@ -285,7 +285,7 @@ describe('the §3 fold invariants', () => {
       },
     });
     expect(outcome.ok).toBe(false);
-    if (!outcome.ok) expect(outcome.issues[0].fix).toContain('167');
+    if (!outcome.ok) expect(outcome.issues[0]?.fix).toContain('167');
   });
 
   it('rooms must be closed', () => {
@@ -295,7 +295,7 @@ describe('the §3 fold invariants', () => {
       house: {
         ...doc.house,
         rooms: doc.house.rooms.map((r, i) =>
-          i === 0 ? { ...r, polygon: [r.polygon[0], r.polygon[1]] } : r,
+          i === 0 ? { ...r, polygon: [r.polygon[0]!, r.polygon[1]!] } : r,
         ),
       },
     };
@@ -305,7 +305,7 @@ describe('the §3 fold invariants', () => {
 
   it('flags duplicate element ids', () => {
     const doc = makeTwoRoomPlan();
-    const wall = doc.house.walls[0];
+    const wall = doc.house.walls[0]!;
     const dup = { ...doc, house: { ...doc.house, walls: [...doc.house.walls, wall] } };
     expect(validateModel(dup).map((i) => i.code)).toContain('DUPLICATE_ELEMENT_ID');
   });
@@ -446,12 +446,12 @@ describe('rejection reasons are usable by the copilot', () => {
     expect(outcome.ok).toBe(false);
     if (outcome.ok) return;
     const issue = outcome.issues[0];
-    expect(issue.code).toBe('OPENING_OUT_OF_WALL');
-    expect(issue.field).toBe('payload.widthMm');
-    expect(issue.actual).toBe(6000);
-    expect(issue.limit).toBe(5770);
-    expect(issue.fix).toContain('5770');
-    expect(issue.elementIds).toHaveLength(1);
+    expect(issue?.code).toBe('OPENING_OUT_OF_WALL');
+    expect(issue?.field).toBe('payload.widthMm');
+    expect(issue?.actual).toBe(6000);
+    expect(issue?.limit).toBe(5770);
+    expect(issue?.fix).toContain('5770');
+    expect(issue?.elementIds).toHaveLength(1);
   });
 
   it('renders one compact line per issue for the self-correction pass', () => {
@@ -475,7 +475,7 @@ describe('rejection reasons are usable by the copilot', () => {
       expect(e).toBeInstanceOf(OpRejectedError);
       const err = e as OpRejectedError;
       expect(err.opType).toBe('wall.delete');
-      expect(err.issues[0].code).toBe('WALL_UNKNOWN');
+      expect(err.issues[0]?.code).toBe('WALL_UNKNOWN');
       expect(err.message).toContain('WALL_UNKNOWN');
     }
   });

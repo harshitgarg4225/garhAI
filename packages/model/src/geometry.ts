@@ -166,12 +166,13 @@ export function segNormalOffset(s: Seg, lengthMm: number): Pt {
 
 export function bbox(points: readonly Pt[]): Bbox {
   if (points.length === 0) throw new RangeError('bbox of empty point list');
-  let minX = points[0].x;
-  let minY = points[0].y;
+  const first = points[0]!;
+  let minX = first.x;
+  let minY = first.y;
   let maxX = minX;
   let maxY = minY;
   for (let i = 1; i < points.length; i++) {
-    const p = points[i];
+    const p = points[i]!;
     if (p.x < minX) minX = p.x;
     if (p.y < minY) minY = p.y;
     if (p.x > maxX) maxX = p.x;
@@ -222,8 +223,8 @@ export function polygonDoubledAreaMm2(poly: Polygon): number {
   if (n < 3) return 0;
   let sum = 0;
   for (let i = 0; i < n; i++) {
-    const p = poly[i];
-    const q = poly[(i + 1) % n];
+    const p = poly[i]!;
+    const q = poly[(i + 1) % n]!;
     sum += p.x * q.y - q.x * p.y;
   }
   return sum;
@@ -259,7 +260,7 @@ export function ensureCcw(poly: Polygon): Pt[] {
 export function polygonCentroid(poly: Polygon): Pt {
   const n = poly.length;
   if (n === 0) throw new RangeError('centroid of empty polygon');
-  if (n === 1) return { x: poly[0].x, y: poly[0].y };
+  if (n === 1) return { x: poly[0]!.x, y: poly[0]!.y };
   const doubled = polygonDoubledAreaMm2(poly);
   if (doubled === 0) {
     // degenerate (collinear) — fall back to the vertex mean
@@ -274,8 +275,8 @@ export function polygonCentroid(poly: Polygon): Pt {
   let cx = 0;
   let cy = 0;
   for (let i = 0; i < n; i++) {
-    const p = poly[i];
-    const q = poly[(i + 1) % n];
+    const p = poly[i]!;
+    const q = poly[(i + 1) % n]!;
     const f = p.x * q.y - q.x * p.y;
     cx += (p.x + q.x) * f;
     cy += (p.y + q.y) * f;
@@ -287,7 +288,7 @@ export function polygonCentroid(poly: Polygon): Pt {
 export function polygonPerimeterMm(poly: Polygon): number {
   let total = 0;
   for (let i = 0; i < poly.length; i++) {
-    total += distMm(poly[i], poly[(i + 1) % poly.length]);
+    total += distMm(poly[i]!, poly[(i + 1) % poly.length]!);
   }
   return total;
 }
@@ -296,7 +297,7 @@ export function polygonPerimeterMm(poly: Polygon): number {
 export function polygonEdges(poly: Polygon): Seg[] {
   const out: Seg[] = [];
   for (let i = 0; i < poly.length; i++) {
-    out.push({ a: poly[i], b: poly[(i + 1) % poly.length] });
+    out.push({ a: poly[i]!, b: poly[(i + 1) % poly.length]! });
   }
   return out;
 }
@@ -323,8 +324,8 @@ export function pointInPolygon(p: Pt, poly: Polygon): PointInPolygon {
   if (n < 3) return 'outside';
   let inside = false;
   for (let i = 0; i < n; i++) {
-    const a = poly[i];
-    const b = poly[(i + 1) % n];
+    const a = poly[i]!;
+    const b = poly[(i + 1) % n]!;
     if (pointOnSegment(p, { a, b })) return 'boundary';
     // upward/downward crossing of the horizontal ray y = p.y going +X
     if (a.y <= p.y ? b.y > p.y : b.y <= p.y) {
@@ -355,7 +356,7 @@ export function polygonIsSimple(poly: Polygon): boolean {
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
       const adjacent = j === i + 1 || (i === 0 && j === n - 1);
-      const r = segmentIntersection(edges[i], edges[j]);
+      const r = segmentIntersection(edges[i]!, edges[j]!);
       if (adjacent) {
         // Adjacent edges legitimately touch at their shared vertex, and three
         // collinear vertices (a redundant point on a straight run) are legal.
@@ -381,16 +382,16 @@ export function polygonIsClosedRing(poly: Polygon): boolean {
 export function dedupeCollinear(poly: Polygon): Pt[] {
   const pts: Pt[] = [];
   for (const p of poly) {
-    if (pts.length === 0 || !ptEq(pts[pts.length - 1], p)) pts.push(p);
+    if (pts.length === 0 || !ptEq(pts[pts.length - 1]!, p)) pts.push(p);
   }
-  while (pts.length > 1 && ptEq(pts[0], pts[pts.length - 1])) pts.pop();
+  while (pts.length > 1 && ptEq(pts[0]!, pts[pts.length - 1]!)) pts.pop();
   if (pts.length < 3) return pts;
   const out: Pt[] = [];
   const n = pts.length;
   for (let i = 0; i < n; i++) {
-    const prev = pts[(i - 1 + n) % n];
-    const cur = pts[i];
-    const next = pts[(i + 1) % n];
+    const prev = pts[(i - 1 + n) % n]!;
+    const cur = pts[i]!;
+    const next = pts[(i + 1) % n]!;
     if (cross(prev, cur, next) !== 0) out.push(cur);
   }
   // fully collinear input collapses to nothing — return the deduped points
@@ -407,8 +408,8 @@ export function removeSpurs(ring: Polygon): Pt[] {
   while (changed && pts.length >= 3) {
     changed = false;
     for (let i = 0; i < pts.length; i++) {
-      const prev = pts[(i - 1 + pts.length) % pts.length];
-      const next = pts[(i + 1) % pts.length];
+      const prev = pts[(i - 1 + pts.length) % pts.length]!;
+      const next = pts[(i + 1) % pts.length]!;
       if (ptEq(prev, next)) {
         // drop pts[i] and one of the duplicates
         const dropA = i;
@@ -432,7 +433,7 @@ export function polygonsCongruent(a: Polygon, b: Polygon): boolean {
       let ok = true;
       for (let i = 0; i < n; i++) {
         const j = dir === 1 ? (off + i) % n : (((off - i) % n) + n) % n;
-        if (!ptEq(a[i], b[j])) {
+        if (!ptEq(a[i]!, b[j]!)) {
           ok = false;
           break;
         }
@@ -455,10 +456,10 @@ export function canonicalRing(poly: Polygon): Pt[] {
   if (ccw.length === 0) return [];
   let best = 0;
   for (let i = 1; i < ccw.length; i++) {
-    if (comparePt(ccw[i], ccw[best]) < 0) best = i;
+    if (comparePt(ccw[i]!, ccw[best]!) < 0) best = i;
   }
   const rotated: Pt[] = [];
-  for (let i = 0; i < ccw.length; i++) rotated.push(ccw[(best + i) % ccw.length]);
+  for (let i = 0; i < ccw.length; i++) rotated.push(ccw[(best + i) % ccw.length]!);
   return rotated;
 }
 
@@ -501,8 +502,11 @@ export function segmentIntersection(s1: Seg, s2: Seg): SegIntersection {
   const straddle2 = (d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0);
 
   if (straddle1 && straddle2) {
-    const den = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
-    const t = d3 / den;
+    // Parameter along s1: p1 and p2 sit at signed distances d1 and d2 from
+    // the line through s2 (opposite signs under the straddle test, so the
+    // denominator cannot be zero), and the crossing is where the signed
+    // distance interpolates to zero.
+    const t = d1 / (d1 - d2);
     const xNum = p1.x + t * (p2.x - p1.x);
     const yNum = p1.y + t * (p2.y - p1.y);
     const point = ptRound(xNum, yNum);
@@ -630,7 +634,7 @@ export function offsetPolygon(poly: Polygon, distancesMm: readonly number[]): Pt
     );
   }
   for (let i = 0; i < n; i++) {
-    if (ptEq(poly[i], poly[(i + 1) % n])) return null; // zero-length edge
+    if (ptEq(poly[i]!, poly[(i + 1) % n]!)) return null; // zero-length edge
   }
   // Work CCW (inward = left normal). Reversing the ring reverses the edge order
   // too: edge i of the reversed ring is edge (n-1-i) of the original.
@@ -646,8 +650,8 @@ export function offsetPolygon(poly: Polygon, distancesMm: readonly number[]): Pt
   }
   const lines: Line[] = [];
   for (let i = 0; i < n; i++) {
-    const a = source[i];
-    const b = source[(i + 1) % n];
+    const a = source[i]!;
+    const b = source[(i + 1) % n]!;
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const len = Math.sqrt(dx * dx + dy * dy);
@@ -661,8 +665,8 @@ export function offsetPolygon(poly: Polygon, distancesMm: readonly number[]): Pt
 
   const out: Pt[] = [];
   for (let i = 0; i < n; i++) {
-    const l1 = lines[(i - 1 + n) % n];
-    const l2 = lines[i];
+    const l1 = lines[(i - 1 + n) % n]!;
+    const l2 = lines[i]!;
     const d1x = l1.bx - l1.ax;
     const d1y = l1.by - l1.ay;
     const d2x = l2.bx - l2.ax;
@@ -671,6 +675,20 @@ export function offsetPolygon(poly: Polygon, distancesMm: readonly number[]): Pt
     if (den === 0) return null; // consecutive edges parallel after dedupeCollinear => degenerate
     const t = ((l2.ax - l1.ax) * d2y - (l2.ay - l1.ay) * d2x) / den;
     out.push(ptRound(l1.ax + d1x * t, l1.ay + d1y * t));
+  }
+
+  // A too-deep offset pushes opposite edges through each other, and the naive
+  // consecutive-line intersections then trace an inside-out ring that can come
+  // back CCW again (a double flip — the uniform 600 inset of a 1000 square).
+  // Orientation alone cannot see that; edge DIRECTION can. Every surviving
+  // result edge must still run the way its source edge does — a reversed one
+  // means the offset collapsed it.
+  for (let i = 0; i < n; i++) {
+    const a = out[i]!;
+    const b = out[(i + 1) % n]!;
+    const sa = source[i]!;
+    const sb = source[(i + 1) % n]!;
+    if ((b.x - a.x) * (sb.x - sa.x) + (b.y - a.y) * (sb.y - sa.y) < 0) return null;
   }
 
   const cleaned = dedupeCollinear(out);
@@ -687,7 +705,7 @@ export function offsetPolygon(poly: Polygon, distancesMm: readonly number[]): Pt
 function reverseEdgeDistances(distancesMm: readonly number[]): number[] {
   const n = distancesMm.length;
   const out: number[] = [];
-  for (let i = 0; i < n; i++) out.push(distancesMm[(((n - 2 - i) % n) + n) % n]);
+  for (let i = 0; i < n; i++) out.push(distancesMm[(((n - 2 - i) % n) + n) % n]!);
   return out;
 }
 
@@ -758,10 +776,10 @@ function buildCoverageGrid(rects: readonly Bbox[]): CoverageGrid | null {
   for (let ix = 0; ix < xs.length - 1; ix++) {
     const col: boolean[] = new Array<boolean>(Math.max(0, ys.length - 1)).fill(false);
     for (let iy = 0; iy < ys.length - 1; iy++) {
-      const cx = xs[ix];
-      const cy = ys[iy];
+      const cx = xs[ix]!;
+      const cy = ys[iy]!;
       for (const r of valid) {
-        if (r.minX <= cx && xs[ix + 1] <= r.maxX && r.minY <= cy && ys[iy + 1] <= r.maxY) {
+        if (r.minX <= cx && xs[ix + 1]! <= r.maxX && r.minY <= cy && ys[iy + 1]! <= r.maxY) {
           col[iy] = true;
           break;
         }
@@ -777,7 +795,7 @@ function traceCoverageRings(grid: CoverageGrid): { rings: Pt[][]; holes: number 
   const nx = xs.length - 1;
   const ny = ys.length - 1;
   const isCovered = (ix: number, iy: number): boolean =>
-    ix >= 0 && iy >= 0 && ix < nx && iy < ny && covered[ix][iy];
+    ix >= 0 && iy >= 0 && ix < nx && iy < ny && covered[ix]![iy]!;
 
   // Collect boundary edges as directed segments so the covered region is on the
   // LEFT of each edge (=> CCW outer rings, CW hole rings).
@@ -791,10 +809,10 @@ function traceCoverageRings(grid: CoverageGrid): { rings: Pt[][]; holes: number 
   for (let ix = 0; ix < nx; ix++) {
     for (let iy = 0; iy < ny; iy++) {
       if (!isCovered(ix, iy)) continue;
-      const x0 = xs[ix];
-      const x1 = xs[ix + 1];
-      const y0 = ys[iy];
-      const y1 = ys[iy + 1];
+      const x0 = xs[ix]!;
+      const x1 = xs[ix + 1]!;
+      const y0 = ys[iy]!;
+      const y1 = ys[iy + 1]!;
       if (!isCovered(ix, iy - 1)) pushEdge(pt(x0, y0), pt(x1, y0)); // bottom, →
       if (!isCovered(ix + 1, iy)) pushEdge(pt(x1, y0), pt(x1, y1)); // right, ↑
       if (!isCovered(ix, iy + 1)) pushEdge(pt(x1, y1), pt(x0, y1)); // top, ←
@@ -813,7 +831,7 @@ function traceCoverageRings(grid: CoverageGrid): { rings: Pt[][]; holes: number 
       if (!list || list.length === 0) break;
       const next = list.shift() as Pt;
       if (list.length === 0) edges.delete(ptKey(current));
-      if (ptEq(next, ring[0])) {
+      if (ptEq(next, ring[0]!)) {
         current = next;
         break;
       }
@@ -844,7 +862,7 @@ export function triangulate(poly: Polygon): Triangle[] {
   const ring = ensureCcw(dedupeCollinear(poly));
   const n = ring.length;
   if (n < 3) return [];
-  if (n === 3) return [[ring[0], ring[1], ring[2]]];
+  if (n === 3) return [[ring[0]!, ring[1]!, ring[2]!]];
   const idx: number[] = [];
   for (let i = 0; i < n; i++) idx.push(i);
   const out: Triangle[] = [];
@@ -853,17 +871,17 @@ export function triangulate(poly: Polygon): Triangle[] {
     guard += 1;
     let clipped = false;
     for (let i = 0; i < idx.length; i++) {
-      const iPrev = idx[(i - 1 + idx.length) % idx.length];
-      const iCur = idx[i];
-      const iNext = idx[(i + 1) % idx.length];
-      const a = ring[iPrev];
-      const b = ring[iCur];
-      const c = ring[iNext];
+      const iPrev = idx[(i - 1 + idx.length) % idx.length]!;
+      const iCur = idx[i]!;
+      const iNext = idx[(i + 1) % idx.length]!;
+      const a = ring[iPrev]!;
+      const b = ring[iCur]!;
+      const c = ring[iNext]!;
       if (cross(a, b, c) <= 0) continue; // reflex or collinear for CCW ring
       let contains = false;
       for (const j of idx) {
         if (j === iPrev || j === iCur || j === iNext) continue;
-        if (pointInTriangle(ring[j], a, b, c)) {
+        if (pointInTriangle(ring[j]!, a, b, c)) {
           contains = true;
           break;
         }
@@ -876,7 +894,7 @@ export function triangulate(poly: Polygon): Triangle[] {
     }
     if (!clipped) break; // non-simple input; bail with what we have
   }
-  if (idx.length === 3) out.push([ring[idx[0]], ring[idx[1]], ring[idx[2]]]);
+  if (idx.length === 3) out.push([ring[idx[0]!]!, ring[idx[1]!]!, ring[idx[2]!]!]);
   return out;
 }
 
@@ -901,8 +919,8 @@ function clipHalfPlane(poly: readonly Ptf[], a: Pt, b: Pt): Ptf[] {
   const out: Ptf[] = [];
   const n = poly.length;
   for (let i = 0; i < n; i++) {
-    const cur = poly[i];
-    const next = poly[(i + 1) % n];
+    const cur = poly[i]!;
+    const next = poly[(i + 1) % n]!;
     const sc = side(cur);
     const sn = side(next);
     if (sc >= 0) out.push(cur);
@@ -919,8 +937,8 @@ function shoelaceAbs(poly: readonly Ptf[]): number {
   if (n < 3) return 0;
   let sum = 0;
   for (let i = 0; i < n; i++) {
-    const p = poly[i];
-    const q = poly[(i + 1) % n];
+    const p = poly[i]!;
+    const q = poly[(i + 1) % n]!;
     sum += p.x * q.y - q.x * p.y;
   }
   return Math.abs(sum) / 2;

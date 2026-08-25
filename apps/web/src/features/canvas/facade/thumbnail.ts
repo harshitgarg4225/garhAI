@@ -19,6 +19,7 @@
 
 import {
   derivedId,
+  roundMm,
   segmentLengthMm,
   SCHEMA_VERSION,
   type FacadeComponent,
@@ -132,7 +133,9 @@ export function elevationSpec(
     const centreY = host.a.y + ((host.b.y - host.a.y) / hostLen) * o.offsetMm;
     const along = (centreX - frontage.a.x) * frame.dirX + (centreY - frontage.a.y) * frame.dirY;
     rects.push({
-      x: along - o.widthMm / 2,
+      // roundMm: `along` is a float projection and widthMm/2 can be a half —
+      // the spec goes through canonicalJson, which rejects non-integers.
+      x: roundMm(along - o.widthMm / 2),
       y: storey.level.fflMm + o.sillMm,
       w: o.widthMm,
       h: o.heightMm,
@@ -152,10 +155,12 @@ export function elevationSpec(
       if (out < -frame.halfThicknessMm - 100 || out > ELEVATION_DEPTH_WINDOW_MM) continue;
       const along = relX * frame.dirX + relY * frame.dirY;
       projected.push({
-        x: along - box.lenMm / 2,
-        y: box.baseElevMm,
-        w: box.lenMm,
-        h: box.heightMm,
+        // roundMm on every field that passes through a float projection or a
+        // halving — the spec is canonicalJson'd, which rejects non-integers.
+        x: roundMm(along - box.lenMm / 2),
+        y: roundMm(box.baseElevMm),
+        w: roundMm(box.lenMm),
+        h: roundMm(box.heightMm),
         fill: box.colorHex,
         out,
       });

@@ -503,7 +503,9 @@ function PlanEditor(): JSX.Element {
       // semantics a 2D select-tool click lands in (shift toggles). This is
       // the "vice versa" half of the 2D↔3D selection contract.
       if (!is2dRef.current) {
-        if (hit.id === null || hit.kind === null) {
+        // 'empty' and a null id travel together on a PickHit, but the type
+        // system needs the kind check spelled out to narrow SelectionHit.
+        if (hit.id === null || hit.kind === 'empty') {
           useSelectionStore.getState().clear();
           return;
         }
@@ -559,7 +561,7 @@ function PlanEditor(): JSX.Element {
 
   const handleHover = useCallback((hit: PickHit | null) => {
     useSelectionStore.getState().setHoverHit(
-      hit === null || hit.id === null
+      hit === null || hit.id === null || hit.kind === 'empty'
         ? null
         : { kind: hit.kind, id: hit.id, storeyId: hit.storeyId, pointMm: hit.pointMm },
     );

@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { applyGroup, FIXTURE_IDS, makeTwoRoomPlanWithOpenings } from '@garh/model';
+import { applyGroup, FIXTURE_IDS, fixedId, makeTwoRoomPlanWithOpenings } from '@garh/model';
 
 import { inspectorSelection, type InspectorField } from './fields';
 
@@ -43,7 +43,11 @@ describe('inspectorSelection', () => {
   });
 
   it('says so when the selection has been pruned out from under it', () => {
-    const s = inspectorSelection(house, ['wall_01J0000000000000000000GON'], { display });
+    // fixedId, not a hand-typed literal: a pruned id is still a WELL-FORMED
+    // wall id that resolves to nothing. (A malformed one — the literal this
+    // spec used to hold was a character short — fails idType and lands in the
+    // mixed branch instead, which tests the wrong thing.)
+    const s = inspectorSelection(house, [fixedId('wall', 'GON')], { display });
     expect(s.count).toBe(0);
     expect(s.title).toMatch(/gone/i);
   });

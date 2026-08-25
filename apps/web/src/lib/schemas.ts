@@ -867,8 +867,10 @@ export const sheetSetSchema = z.object({
   projectId: id,
   designVersionId: z.string().nullable().default(null),
   sheets: z.array(sheetSchema).default([]),
-  /** The queued generation job, present only on the `generate` response. */
-  job: z.unknown().nullable().default(null),
+  /** The queued generation job, present only on the `generate` response.
+   *  Typed as the export-job row (mirrors `SheetSetOut.job: ExportJobOut`)
+   *  so the jobs store can track it without a cast. */
+  job: exportJobSchema.nullable().default(null),
   generatedAt: isoDateTime.nullable().default(null),
 });
 export type SheetSetResponse = z.infer<typeof sheetSetSchema>;

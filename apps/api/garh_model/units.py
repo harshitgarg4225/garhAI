@@ -198,7 +198,9 @@ _UNICODE_SPACES = re.compile("[\u00a0\u2000-\u200a\u202f\u205f\u3000]")
 # U+2212 MINUS SIGN, U+2013 EN DASH, U+2014 EM DASH
 _UNICODE_MINUS = re.compile("[\u2212\u2013\u2014]")
 # thousands separators, only when a digit follows
-_THOUSANDS = re.compile("([0-9]),(?=[0-9])")
+# Mirror of the TS regex: comma preceded by digit-or-comma, followed by a
+# digit — see packages/model/src/units.ts normaliseLengthInput.
+_THOUSANDS = re.compile("(?<=[0-9,]),(?=[0-9])")
 _WHITESPACE_RUN = re.compile(r"\s+")
 
 
@@ -215,7 +217,7 @@ def normalise_length_input(raw: str) -> str:
     s = _DOUBLE_PRIMES.sub('"', s)
     s = _UNICODE_SPACES.sub(" ", s)
     s = _UNICODE_MINUS.sub("-", s)
-    s = _THOUSANDS.sub(r"\1", s)
+    s = _THOUSANDS.sub("", s)
     return _WHITESPACE_RUN.sub(" ", s.strip()).lower()
 
 
