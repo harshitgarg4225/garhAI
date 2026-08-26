@@ -20,7 +20,7 @@
  * `LineSegments`, and every pick is one instanced mesh in the core's registry.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@react-three/drei';
 import { BufferAttribute, BufferGeometry, Matrix4, PlaneGeometry, Quaternion, Vector3 } from 'three';
 import type { InstancedMesh, Object3D } from 'three';
@@ -271,51 +271,61 @@ export function RoomTagLayer({
       />
 
       {/* One container; `useScreenScale` walks its children. See the note in
-          `render/screenScale.ts` on why per-label registration leaks. */}
+          `render/screenScale.ts` on why per-label registration leaks.
+
+          The `<Suspense>` is load-bearing, not tidiness: `<Text>` suspends on
+          the font, and an uncaught suspension is re-thrown by the `<Canvas>`
+          into the DOM tree, where the route-level boundary hides the whole
+          plan tab — forever, when the font file is missing, because troika's
+          load-error path never calls back. Full write-up in
+          `DimensionLayer.tsx`; contained here, a broken font costs the label
+          TEXT only, while leader lines and click targets stay live. */}
       <group ref={scale.ref}>
-        {items.map((item, index) => {
-          const isHighlighted = highlighted.has(item.tag.roomId);
-          const dim = item.placed.kind === 'overflow';
-          return (
-            <group
-              key={item.tag.roomId}
-              ref={(node) => {
-                labelRefs.current[index] = node;
-              }}
-            >
-              <Text
-                font={fontUrl}
-                fontSize={LABEL_FONT_SIZE_LOCAL * style.nameFontPx}
-                position={[0, (style.areaFontPx + style.lineGapPx) / 2, 0]}
-                anchorX="center"
-                anchorY="middle"
-                color={isHighlighted ? brandColor : inkColor}
-                fillOpacity={dim ? 0.55 : 1}
-                renderOrder={ROOM_LABEL_RENDER_ORDER + 1}
-                material-depthTest={false}
-                material-depthWrite={false}
+        <Suspense fallback={null}>
+          {items.map((item, index) => {
+            const isHighlighted = highlighted.has(item.tag.roomId);
+            const dim = item.placed.kind === 'overflow';
+            return (
+              <group
+                key={item.tag.roomId}
+                ref={(node) => {
+                  labelRefs.current[index] = node;
+                }}
               >
-                {item.tag.nameText}
-              </Text>
-              <Text
-                font={fontUrl}
-                fontSize={LABEL_FONT_SIZE_LOCAL * style.areaFontPx}
-                position={[0, -(style.nameFontPx + style.lineGapPx) / 2, 0]}
-                anchorX="center"
-                anchorY="middle"
-                color={inkColor}
-                fillOpacity={dim ? 0.45 : 0.75}
-                renderOrder={ROOM_LABEL_RENDER_ORDER + 1}
-                material-depthTest={false}
-                material-depthWrite={false}
-              >
-                {item.tag.targetText === null
-                  ? item.tag.areaText
-                  : `${item.tag.areaText} · target ${item.tag.targetText}`}
-              </Text>
-            </group>
-          );
-        })}
+                <Text
+                  font={fontUrl}
+                  fontSize={LABEL_FONT_SIZE_LOCAL * style.nameFontPx}
+                  position={[0, (style.areaFontPx + style.lineGapPx) / 2, 0]}
+                  anchorX="center"
+                  anchorY="middle"
+                  color={isHighlighted ? brandColor : inkColor}
+                  fillOpacity={dim ? 0.55 : 1}
+                  renderOrder={ROOM_LABEL_RENDER_ORDER + 1}
+                  material-depthTest={false}
+                  material-depthWrite={false}
+                >
+                  {item.tag.nameText}
+                </Text>
+                <Text
+                  font={fontUrl}
+                  fontSize={LABEL_FONT_SIZE_LOCAL * style.areaFontPx}
+                  position={[0, -(style.nameFontPx + style.lineGapPx) / 2, 0]}
+                  anchorX="center"
+                  anchorY="middle"
+                  color={inkColor}
+                  fillOpacity={dim ? 0.45 : 0.75}
+                  renderOrder={ROOM_LABEL_RENDER_ORDER + 1}
+                  material-depthTest={false}
+                  material-depthWrite={false}
+                >
+                  {item.tag.targetText === null
+                    ? item.tag.areaText
+                    : `${item.tag.areaText} · target ${item.tag.targetText}`}
+                </Text>
+              </group>
+            );
+          })}
+        </Suspense>
       </group>
     </group>
   );

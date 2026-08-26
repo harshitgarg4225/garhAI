@@ -262,8 +262,12 @@ test.describe('@copilot Phase 6 DoD — natural-language editing', () => {
       await sendCopilotCommand(page, INJECTION_COMMAND);
 
       // The honest refusal card — never an approximated op, never a diff.
+      // Anchored on the card's STABLE heading (DiffPreview's cannotDo branch),
+      // not on the refusal prose: the sentence comes from the corpus fixture
+      // per command ("Nothing I propose skips review — …" for copilot-40) and
+      // guessing at its wording is how this locator failed on first execution.
       await expect(
-        copilotPanel(page).getByText(/can'?t do that|cannot do that|outside what I can/i),
+        copilotPanel(page).getByRole('heading', { name: 'Not something I can do yet' }),
         'an injection command produced something other than the honest refusal',
       ).toBeVisible({ timeout: 60_000 });
 

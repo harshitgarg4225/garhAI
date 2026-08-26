@@ -477,14 +477,23 @@ export function ProjectShell(): JSX.Element {
         }
         inspector={
           isCanvasTab ? (
-            <Suspense fallback={<Inspector loading />}>
-              <CanvasInspector
-                house={house}
-                selectedIds={selectedIds}
-                display={units}
-                threeD={currentTab?.key === '3d'}
-              />
-            </Suspense>
+            /* The SLOT owns the rail's width. `InspectorPanel` and the 3D
+               wrapper inside `CanvasInspector` are `w-full` — correct inside
+               this fixed-width column, catastrophic as bare flex items in
+               `ProjectLayout`'s row: `w-full` makes their flex-basis the whole
+               row, and `main` (flex-basis 0) collapses to 0 px, so the canvas
+               is invisible. Executed proof: plan-canvas.spec.ts failed with
+               "the 2D canvas surface never mounted" until this wrapper. */
+            <div className="h-full w-inspector shrink-0 overflow-hidden border-l border-line bg-surface">
+              <Suspense fallback={<Inspector loading />}>
+                <CanvasInspector
+                  house={house}
+                  selectedIds={selectedIds}
+                  display={units}
+                  threeD={currentTab?.key === '3d'}
+                />
+              </Suspense>
+            </div>
           ) : undefined
         }
         /* Mounted on every tab, and only rendered once `ui.copilotOpen` is

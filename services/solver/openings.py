@@ -77,6 +77,10 @@ NUDGE_MM = 115
 CIRCULATION_ROOM_TYPES = frozenset({"passage", "lobby", "foyer", "staircase"})
 #: In compact Indian plans the living room is the de-facto distributor.
 FALLBACK_CIRCULATION_TYPES = frozenset({"living", "living_dining"})
+#: Service voids: slab cutouts, not rooms you walk into. They get ventilators
+#: (a bath vents INTO a shaft), never a door — demanding one would discard every
+#: layout whose shaft is correctly sized at one grid cell.
+SERVICE_VOID_TYPES = frozenset({"shaft", "duct", "void"})
 
 _HABITABLE_TYPES = frozenset(
     {
@@ -358,23 +362,45 @@ def place_doors(
                     changed = True
 
     doors: List[OpeningSpec] = []
-    pending = sorted(k for k in rooms if k not in reached)
+    pending = sorted(
+        k for k, r in rooms.items() if k not in reached and r.room_type not in SERVICE_VOID_TYPES
+    )
     # Pass 1: door from circulation. Pass 2+: en-suite chaining off reached rooms.
+    #: room key → why its last attempt failed, for the honest discard message.
+    unfit: Dict[str, str] = {}
     progress = True
     while pending and progress:
         progress = False
         still_pending: List[str] = []
         for key in pending:
-            serving = _best_serving_span(network, key, reached, circulation)
-            if serving is None:
+            spans = _serving_spans(network, key, reached, circulation)
+            if not spans:
                 still_pending.append(key)
                 continue
-            door = _place_room_door(layout, network, occ, key, serving, limits, door_height_mm)
+            door = _place_room_door(layout, network, occ, key, spans, limits, door_height_mm)
+            if door is None:
+                # No span fits TODAY; a room reached in a later round may open a
+                # new, wider span, so this is retryable — not yet a discard.
+                width = door_width_for(rooms[key].room_type, limits)
+                longest = max(s.hi - s.lo for s in spans)
+                unfit[key] = "a %dmm door into %r does not fit any of its %d shared span(s) (longest %dmm)" % (
+                    width, key, len(spans), longest,
+                )
+                still_pending.append(key)
+                continue
             doors.append(door)
             reached.add(key)
+            unfit.pop(key, None)
             progress = True
         pending = still_pending
     if pending:
+        blocked = [key for key in pending if key in unfit]
+        if blocked:
+            raise OpeningError(
+                "DOOR_DOES_NOT_FIT",
+                "; ".join(unfit[key] for key in blocked) + ".",
+                detail="storey %d" % layout.storey_index,
+            )
         raise OpeningError(
             "UNREACHABLE_ROOM",
             "No door path reaches: %s." % ", ".join(pending),
@@ -461,13 +487,21 @@ def _place_main_door(
     )
 
 
-def _best_serving_span(
+def _serving_spans(
     network: WallNetwork,
     room_key: str,
     reached: set,
     circulation: set,
-) -> Optional[AdjacencySpan]:
-    """Longest usable shared span with a reached room; circulation rooms first."""
+) -> List[AdjacencySpan]:
+    """Every usable shared span with a reached room, best first: circulation
+    rooms before en-suite chaining, longest span first, ties by wall then start.
+
+    A LIST, not the single best: the §5.2 frontage constraint guarantees one
+    door-sized span exists, but occupancy (an earlier door on the same wall) or
+    the 115mm snap can pinch the best span — falling through to the next honest
+    candidate is placement preference, giving up is a discard. First execution
+    of the pipeline showed exactly that failure.
+    """
 
     def usable(span: AdjacencySpan) -> Optional[Tuple[int, AdjacencySpan]]:
         other = span.high_room if span.low_room == room_key else span.low_room
@@ -483,10 +517,8 @@ def _best_serving_span(
             continue
         rank, s = entry
         candidates.append((rank, -(s.hi - s.lo), s.wall_index, s.lo, s))
-    if not candidates:
-        return None
     candidates.sort(key=lambda c: c[:4])
-    return candidates[0][4]
+    return [c[4] for c in candidates]
 
 
 def door_width_for(room_type: str, limits: NbcOpeningLimits) -> int:
@@ -503,38 +535,41 @@ def _place_room_door(
     network: WallNetwork,
     occ: _WallOccupancy,
     room_key: str,
-    span: AdjacencySpan,
+    spans: Sequence[AdjacencySpan],
     limits: NbcOpeningLimits,
     door_height_mm: int,
-) -> OpeningSpec:
+) -> Optional[OpeningSpec]:
+    """The room's door on the first span (in preference order) it fits.
+
+    ``None`` when no span can take it — the caller decides whether that is
+    retryable (more rooms may be reached later) or a typed discard.
+    """
     room = layout.room(room_key)
     width = door_width_for(room.room_type, limits)
-    wall = network.wall(span.wall_index)
-    lo_l, hi_l = _span_local(wall, span.lo, span.hi)
-    offset = _fit_opening(wall, occ, span.wall_index, lo_l, hi_l, width)
-    if offset is None:
-        raise OpeningError(
-            "DOOR_DOES_NOT_FIT",
-            "A %dmm door into %r does not fit its %dmm shared wall span."
-            % (width, room_key, hi_l - lo_l),
-        )
-    occ.claim(span.wall_index, offset - width // 2, offset + (width - width // 2))
     centre = ((room.x1 + room.x2) // 2, (room.y1 + room.y2) // 2)
-    swing = "in-left" if _room_side_is_left(wall, centre) else "in-right"
-    other = span.high_room if span.low_room == room_key else span.low_room
-    role = "bath" if room.room_type in _BATH_TYPES else "internal"
-    return OpeningSpec(
-        wall_index=span.wall_index,
-        kind="door",
-        width_mm=width,
-        height_mm=door_height_mm,
-        sill_mm=0,
-        offset_mm=offset,
-        swing=swing,
-        room_key=room_key,
-        role=role,
-        from_key=other,
-    )
+    for span in spans:
+        wall = network.wall(span.wall_index)
+        lo_l, hi_l = _span_local(wall, span.lo, span.hi)
+        offset = _fit_opening(wall, occ, span.wall_index, lo_l, hi_l, width)
+        if offset is None:
+            continue
+        occ.claim(span.wall_index, offset - width // 2, offset + (width - width // 2))
+        swing = "in-left" if _room_side_is_left(wall, centre) else "in-right"
+        other = span.high_room if span.low_room == room_key else span.low_room
+        role = "bath" if room.room_type in _BATH_TYPES else "internal"
+        return OpeningSpec(
+            wall_index=span.wall_index,
+            kind="door",
+            width_mm=width,
+            height_mm=door_height_mm,
+            sill_mm=0,
+            offset_mm=offset,
+            swing=swing,
+            room_key=room_key,
+            role=role,
+            from_key=other,
+        )
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -764,6 +799,7 @@ __all__ = [
     "NbcOpeningLimits",
     "OpeningError",
     "OpeningSpec",
+    "SERVICE_VOID_TYPES",
     "VENT_HEIGHT_MM",
     "VENT_SILL_MM",
     "WALL_END_MARGIN_MM",

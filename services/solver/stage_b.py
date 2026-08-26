@@ -638,6 +638,192 @@ def stage_b_refine(
         return None
 
 
+# ---------------------------------------------------------------------------
+# house fragment → §4 ops (the pipeline's ``placements_to_ops`` body)
+# ---------------------------------------------------------------------------
+
+
+def _empty_house_json(schema_version: int, defaults: Any, city_pack: str) -> Dict[str, Any]:
+    """The empty HouseModel the op list folds onto — every collection present,
+    levels at the model defaults (the same DEFAULTS :func:`refine` built with)."""
+    return {
+        "schemaVersion": schema_version,
+        "storeys": [],
+        "walls": [],
+        "openings": [],
+        "rooms": [],
+        "stairs": [],
+        "slabs": [],
+        "columns": [],
+        "furniture": [],
+        "facade": {"kitId": None, "seed": 0, "colorwayId": None, "components": []},
+        "materials": [],
+        "levels": {
+            "plinthMm": defaults.plinth_mm,
+            "fflPerStoreyMm": [],
+            "sillDefaultMm": defaults.sill_default_mm,
+            "lintelDefaultMm": defaults.lintel_default_mm,
+            "parapetMm": defaults.parapet_mm,
+        },
+        "balconies": [],
+        "meta": {"unitsDisplay": "ft-in", "regProfileRef": city_pack, "briefRef": None},
+    }
+
+
+def house_to_ops(
+    house: Mapping[str, Any], params: SolveParams
+) -> Tuple[Dict[str, Any], ...]:
+    """Express a refined house fragment as the §4 op list that rebuilds it.
+
+    The list is **proven to fold before it is returned**: every op is applied, in
+    dependency order, to an empty project document through the real
+    ``garh_model.fold`` — the same code path ``solver.apply_option`` runs — so an
+    op list that leaves this function cannot be rejected later for a reason the
+    worker could have caught. That fold is also where the ``room.assign`` ids come
+    from: rooms are *derived* from walls (§4), so their ids are whatever the
+    detection pass mints, matched back to this fragment's rooms by polygon
+    overlap. A detected room the fragment cannot account for stays ``unassigned``
+    — visible in the editor, never guessed at — and is logged.
+
+    Deterministic: ops are emitted in the fragment's own storage order (which
+    :func:`refine` fixed), detected rooms are visited sorted by id, and every id
+    is either the fragment's or a fold-derived one.
+    """
+    from services.solver.repair import ensure_model_importable
+
+    ensure_model_importable()
+    from garh_model.fold import fold
+    from garh_model.geometry import Pt as MPt, polygon_intersection_area_mm2
+    from garh_model.model import DEFAULTS, ProjectDoc, SCHEMA_VERSION
+
+    ops: List[Dict[str, Any]] = []
+    for index, storey in enumerate(house.get("storeys") or []):
+        payload: Dict[str, Any] = {
+            "id": storey["id"],
+            "index": index,
+            "heightMm": int(storey["heightMm"]),
+        }
+        if storey.get("name"):
+            payload["name"] = str(storey["name"])
+        ops.append({"type": "storey.add", "payload": payload})
+    for wall in house.get("walls") or []:
+        ops.append(
+            {
+                "type": "wall.add",
+                "payload": {
+                    "id": wall["id"],
+                    "storeyId": wall["storeyId"],
+                    "a": {"x": int(wall["a"]["x"]), "y": int(wall["a"]["y"])},
+                    "b": {"x": int(wall["b"]["x"]), "y": int(wall["b"]["y"])},
+                    "thicknessMm": int(wall["thicknessMm"]),
+                    "kind": str(wall["kind"]),
+                    "loadBearing": bool(wall.get("loadBearing")),
+                },
+            }
+        )
+    for opening in house.get("openings") or []:
+        ops.append(
+            {
+                "type": "opening.add",
+                "payload": {
+                    "id": opening["id"],
+                    "wallId": opening["wallId"],
+                    "kind": str(opening["kind"]),
+                    "widthMm": int(opening["widthMm"]),
+                    "heightMm": int(opening["heightMm"]),
+                    "sillMm": int(opening["sillMm"]),
+                    "offsetMm": int(opening["offsetMm"]),
+                    "swing": str(opening["swing"]),
+                },
+            }
+        )
+    for stair in house.get("stairs") or []:
+        stair_payload: Dict[str, Any] = {
+            "id": stair["id"],
+            "storeyId": stair["storeyId"],
+            "kind": str(stair["kind"]),
+            "origin": {"x": int(stair["origin"]["x"]), "y": int(stair["origin"]["y"])},
+            "direction": str(stair["direction"]),
+            "riserMm": int(stair["riserMm"]),
+            "treadMm": int(stair["treadMm"]),
+            "widthMm": int(stair["widthMm"]),
+            "risersCount": int(stair["risersCount"]),
+        }
+        if stair.get("landing") is not None:
+            stair_payload["landing"] = {
+                "widthMm": int(stair["landing"]["widthMm"]),
+                "depthMm": int(stair["landing"]["depthMm"]),
+            }
+        ops.append({"type": "stair.add", "payload": stair_payload})
+
+    # -- prove the geometry ops fold, and harvest the derived room ids --------
+    from services.solver.repair import wrap_project_doc
+
+    doc = ProjectDoc.from_json(
+        wrap_project_doc(
+            _empty_house_json(
+                int(house.get("schemaVersion", SCHEMA_VERSION)),
+                DEFAULTS,
+                params.profile.city_pack,
+            ),
+            params,
+        )
+    )
+    for op_json in ops:
+        doc = fold(doc, op_json, compute_inverse=False).model
+
+    fragment_rooms = list(house.get("rooms") or [])
+    rings_by_storey: Dict[str, List[Tuple[Dict[str, Any], List[MPt]]]] = {}
+    for room in fragment_rooms:
+        rings_by_storey.setdefault(str(room["storeyId"]), []).append(
+            (room, [MPt(int(p["x"]), int(p["y"])) for p in room["polygon"]])
+        )
+
+    room_ops: List[Dict[str, Any]] = []
+    for detected in sorted(doc.house.rooms, key=lambda r: (r.storey_id, r.id)):
+        detected_ring = [MPt(p.x, p.y) for p in detected.polygon]
+        best: Optional[Dict[str, Any]] = None
+        best_overlap = 0
+        for room, ring in rings_by_storey.get(detected.storey_id, []):
+            overlap = polygon_intersection_area_mm2(ring, detected_ring)
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best = room
+        if best is None:
+            # A room the walls close but the fragment never placed: leaving it
+            # unassigned is visible in the editor; assigning a guessed type is not.
+            log.warning(
+                "solver.ops.room_unmatched",
+                room_id=detected.id,
+                storey_id=detected.storey_id,
+                area_mm2=detected.area_mm2,
+            )
+            continue
+        assign: Dict[str, Any] = {"roomId": detected.id, "type": str(best["type"])}
+        if best.get("name"):
+            assign["name"] = str(best["name"])
+        if best.get("locked"):
+            assign["locked"] = True
+        room_ops.append({"type": "room.assign", "payload": assign})
+        target_area = best.get("targetAreaMm2")
+        # A brief that never stated a target parses to 0 — "no target", not
+        # "target zero"; the op's own validation (>= 1) agrees.
+        if target_area is not None and int(target_area) > 0:
+            room_ops.append(
+                {
+                    "type": "room.set_target",
+                    "payload": {
+                        "roomId": detected.id,
+                        "targetAreaMm2": int(target_area),
+                    },
+                }
+            )
+    for op_json in room_ops:
+        doc = fold(doc, op_json, compute_inverse=False).model
+    ops.extend(room_ops)
+    return tuple(ops)
+
+
 __all__ = [
     "CUTOUT_ROOM_TYPES",
     "STAIR_RISE_TOLERANCE_MM",
@@ -646,6 +832,7 @@ __all__ = [
     "StairLimits",
     "edge_outward_compass",
     "entry_outward",
+    "house_to_ops",
     "load_stair_limits",
     "plan_stair",
     "refine",

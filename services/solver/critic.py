@@ -97,13 +97,23 @@ def circulation_percent(
 ) -> int:
     """Circulation as an integer percent of the footprint. **Implemented.**
 
-    Circulation is whatever the rooms do not occupy — §5.6 gates on this directly, so
-    it is computed rather than estimated.
+    Circulation is the footprint the rooms do not occupy PLUS the rooms whose whole
+    job is circulation (:data:`CIRCULATION_ROOM_TYPES`). The second term is not
+    optional: stage A's tiling contract represents passages and stair wells AS
+    placements, so a plan that reaches here fully tiled has zero unoccupied
+    footprint — counting only the remainder would report 0% for every real
+    candidate and silently disable the §5.6 cap, the exact failure mode of the
+    ground-floor-denominator bug this repo already shipped once.
     """
     if footprint_mm2 <= 0:
         return 0
     occupied = sum(placement.area_mm2 for placement in placements)
-    circulation = max(0, footprint_mm2 - occupied)
+    explicit = sum(
+        placement.area_mm2
+        for placement in placements
+        if placement.room_type in CIRCULATION_ROOM_TYPES
+    )
+    circulation = max(0, footprint_mm2 - occupied) + explicit
     return min(100, (circulation * 100) // footprint_mm2)
 
 
@@ -539,12 +549,41 @@ def critique(
     )
 
 
+def evaluate_compliance(
+    model: Mapping[str, Any], params: SolveParams
+) -> tuple[Mapping[str, Any], ...]:
+    """§5.4 hard-rule pass: run the garh_rules engine over a stage-B model. Rows out.
+
+    Delegates to ``garh_api.compliance.evaluate_document`` — the SAME projection and
+    engine call the compliance panel and the area statement use, because two sources
+    of truth for FAR is a liability bug in a product selling citable compliance.
+    The document wrapper is :func:`services.solver.repair.wrap_project_doc`, so the
+    plot, north, roads and Vastu mode all come from the solve params rather than
+    from defaults that would quietly turn rules ``not_applicable``.
+
+    Raises rather than returning an empty row set when the engine or the packs are
+    unavailable: a compliance pass that silently checks nothing would wave every
+    candidate through the §5.6 hard-rule gate.
+    """
+    from services.solver.repair import ensure_model_importable, wrap_project_doc
+
+    ensure_model_importable()
+    from garh_api.compliance import evaluate_document
+
+    overrides = dict(params.profile.overrides) if params.profile.overrides else None
+    payload, _pack_versions = evaluate_document(
+        wrap_project_doc(model, params), overrides=overrides
+    )
+    return tuple(payload.get("results") or ())
+
+
 __all__ = [
     "CIRCULATION_ROOM_TYPES",
     "COMPONENT_WEIGHTS",
     "PHASE",
     "WET_TYPES",
     "circulation_percent",
+    "evaluate_compliance",
     "shared_edge_mm",
     "composite_score",
     "critique",

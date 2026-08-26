@@ -95,7 +95,7 @@ import {
   drawWallChain,
   focusCanvas,
   inspector,
-  signInThroughUi,
+  adoptApiSession,
   type CanvasBox,
 } from '../support/ui';
 
@@ -187,7 +187,7 @@ test.describe('@canvas Phase 4 DoD — the 2D editor', () => {
         -1,
       );
 
-      await signInThroughUi(page, email);
+      await adoptApiSession(page, request);
       await page.goto(`${APP_URL}/projects/${ctx.projectId}/plan`);
       await expect(
         page.getByRole('toolbar', { name: 'Drawing tools' }),
@@ -206,12 +206,17 @@ test.describe('@canvas Phase 4 DoD — the 2D editor', () => {
         x: ctx.box.x + ctx.box.width / 2 - toPx(ctx, OUTER_W_MM) / 2,
         y: ctx.box.y + ctx.box.height / 2 + toPx(ctx, OUTER_H_MM) / 2,
       };
-      await drawWallChain(ctx.page, start, [
-        { dir: 'right', lengthMm: OUTER_W_MM },
-        { dir: 'up', lengthMm: OUTER_H_MM },
-        { dir: 'left', lengthMm: OUTER_W_MM },
-        { dir: 'down', lengthMm: OUTER_H_MM },
-      ]);
+      await drawWallChain(
+        ctx.page,
+        start,
+        [
+          { dir: 'right', lengthMm: OUTER_W_MM },
+          { dir: 'up', lengthMm: OUTER_H_MM },
+          { dir: 'left', lengthMm: OUTER_W_MM },
+          { dir: 'down', lengthMm: OUTER_H_MM },
+        ],
+        { mmPerPx: ctx.mmPerPx },
+      );
 
       await expectWalls(ctx, 4, 'the four walls of the chain should have reached the server');
       await expectRooms(
@@ -227,7 +232,9 @@ test.describe('@canvas Phase 4 DoD — the 2D editor', () => {
         x: ctx.box.x + ctx.box.width / 2 - toPx(ctx, OUTER_W_MM) / 2 + toPx(ctx, DIVIDER_X_MM),
         y: ctx.box.y + ctx.box.height / 2 + toPx(ctx, OUTER_H_MM) / 2,
       };
-      await drawWallChain(ctx.page, start, [{ dir: 'up', lengthMm: OUTER_H_MM }]);
+      await drawWallChain(ctx.page, start, [{ dir: 'up', lengthMm: OUTER_H_MM }], {
+        mmPerPx: ctx.mmPerPx,
+      });
 
       await expectWalls(ctx, 5, 'the divider should have reached the server');
       await expectRooms(ctx, 2, 'the divider should have split the rectangle into two rooms');
@@ -240,12 +247,17 @@ test.describe('@canvas Phase 4 DoD — the 2D editor', () => {
       expect(areas[1], 'the right room should be over it').toBeGreaterThan(NBC_HABITABLE_MIN_MM2);
 
       // "All ops sync" — the server's log, not the browser's optimistic copy.
+      // SIX, not five: the log is append-only, so the calibration wall's
+      // `wall.add` is still in it — its undo appended an inverse rather than
+      // erasing history. The five walls standing are the fold's answer
+      // (asserted above); the log's answer is every wall ever drawn.
       const log = await opsSince(request, token, ctx.projectId, -1);
       const wallAdds = log.ops.filter((op) => op.type === 'wall.add');
-      expect(wallAdds.length, 'every drawn wall should be a `wall.add` in the op log').toBe(5);
+      expect(wallAdds.length, 'every drawn wall should be a `wall.add` in the op log').toBe(6);
 
       // §12: a chain is ONE undo group, so one ⌘Z removes the whole room.
-      const chainGroups = new Set(wallAdds.slice(0, 4).map((op) => op.groupId ?? ''));
+      // Skip index 0 — that is the calibration wall, its own group.
+      const chainGroups = new Set(wallAdds.slice(1, 5).map((op) => op.groupId ?? ''));
       expect(
         chainGroups.size,
         'the four walls of one chain should share a group id',
@@ -393,6 +405,16 @@ async function calibrate(ctx: Ctx): Promise<void> {
   // Low and left, well away from where the plan will be drawn, so a snap to
   // this wall's endpoints cannot perturb the rectangle.
   const from = { x: ctx.box.x + ctx.box.width * 0.18, y: ctx.box.y + ctx.box.height * 0.86 };
+
+  // §12 `view.fit` FIRST, deliberately. The fit-on-open pass races model
+  // hydration: executed runs saw the same arrangement open at 1:75 on one run
+  // and 1:2000 on the next. Calibration would faithfully measure either — but
+  // at 1:2000 the whole 6.9 m rectangle is 17 px, every click lands inside
+  // MIN_WALL_LENGTH of the last, and the tool (correctly) reads them as
+  // "finish". Fitting to the 12 m plot pins the scale to a workable band and
+  // makes the measurement below deterministic.
+  await ctx.page.keyboard.press('0');
+  await ctx.page.waitForTimeout(400);
 
   const before = await projectModel(ctx.request, ctx.token, ctx.projectId);
   const wallsBefore = before.model.house.walls.length;

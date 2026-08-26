@@ -1,36 +1,25 @@
-"""§5.2 / §5.3 — CP-SAT topology and refinement. **Phase 3 implements the bodies.**
+"""§5.2 / §5.3 — CP-SAT topology and refinement. **Phase 3: the bodies are live.**
 
 Every stage is a named, typed, individually testable function with its full signature
-and contract written down. The bodies that need OR-Tools raise
-``NotImplementedError`` naming Phase 3 rather than returning plausible-looking
-placeholder geometry: a stub that returns a fake plan would sail through the pipeline,
-the gates and the golden files, and the first honest signal would be an architect
-looking at a wrong drawing.
+and contract written down. The bodies here are THIN ADAPTERS onto the real
+implementations — :mod:`services.solver.stairs`, :mod:`services.solver.stage_a`,
+:mod:`services.solver.stage_b` — which own the geometry, the CP-SAT model and their
+own tests. Nothing is duplicated here: forking even a slice of stage logic into this
+module would give the pipeline a second source of truth for the same plan.
 
-Phase 3's job is to fill in three functions here. The envelope (§5.1) is already real
-in :mod:`services.solver.envelope`, and the critic's composite, the diversity filter and
-the §5.6 gates are already real in their own modules — so when these three land, the
-pipeline is complete rather than half-wired.
+The real modules are imported lazily inside each body, for two reasons that both
+bite if ignored:
 
-Implementation notes for whoever picks this up, drawn from §5.2/§5.3:
-
-* Stage A is a ``CpModel`` per stair candidate: interval vars per room in x and y,
-  ``add_no_overlap_2d``, sizes bounded by the brief, aspect ratio 1:1-1:2.2 for
-  habitable rooms and 1:3 for baths/stores. Solve them in parallel and keep the best.
-* The objective is a weighted sum: target-area deviation, adjacency satisfaction,
-  circulation area, external-face bonus, Vastu score (advisory), compactness.
-  ``num_search_workers=8``, 15s per stair candidate — both already in ``WorkerSettings``.
-* L/T plots are handled as a bounding rectangle with the void cells forced empty, which
-  is why :func:`grid_envelope` returns a mask rather than a plain size.
-* Stage B snaps to the 115mm module, dedupes shared walls (two rooms sharing an edge get
-  ONE wall) and inserts openings; it must run the model invariants and either repair a
-  candidate by one module or discard it.
+* ``stage_b`` imports :class:`Candidate` from this module at import time, so a
+  module-top import the other way is a cycle;
+* ``stage_a`` needs ``ortools`` only when it actually solves, so this module still
+  imports cleanly (and :func:`grid_envelope` still runs) on a bare interpreter.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from services.solver.geometry import Polygon, Pt, bbox, point_in_polygon
 from services.solver.types import (
@@ -115,15 +104,13 @@ def enumerate_stair_anchors(
 ) -> tuple[StairAnchor, ...]:
     """§5.2 "stairs first": 3-6 candidate staircase positions, best-first.
 
-    Deferred to %s. Placing a stair well needs the entry point, the circulation spine
-    and the per-storey repeat check — all of which are stage-A concerns. Guessing here
-    would fix the single most consequential decision in the plan before the solver has
-    a say in it.
-    """ % PHASE
-    raise NotImplementedError(
-        "enumerate_stair_anchors is implemented in %s. Envelope derivation (§5.1) and "
-        "the coarse grid are already available to build on." % PHASE
-    )
+    Delegates to :func:`services.solver.stairs.enumerate_stair_candidates` — pure
+    integer geometry with NBC-sized dogleg wells read from the pack; the priors
+    (entry side first, corners over midpoints, Vastu bonus) live there.
+    """
+    from services.solver import stairs
+
+    return stairs.enumerate_stair_candidates(envelope, params, limit=limit)
 
 
 def stage_a_topology(
@@ -131,19 +118,31 @@ def stage_a_topology(
     params: SolveParams,
     anchor: StairAnchor,
     *,
-    time_budget_seconds: int,
-    num_search_workers: int = 8,
+    profile: Any = None,
+    relaxed: bool = False,
+    time_budget_seconds: Optional[int] = None,
+    num_search_workers: Optional[int] = None,
 ) -> Candidate | None:
     """§5.2 stage A: CP-SAT room topology on the 300mm module.
 
     Returns ``None`` when the model is infeasible for this stair anchor — an expected
     outcome, not an error, since the pipeline tries several anchors.
 
-    Deferred to %s (needs ``ortools``).
-    """ % PHASE
-    raise NotImplementedError(
-        "stage_a_topology is implemented in %s. It builds a CpModel with interval vars "
-        "per room, add_no_overlap_2d, and the §5.2 weighted objective." % PHASE
+    Delegates to :func:`services.solver.stage_a.stage_a_topology` (needs ``ortools``),
+    which accepts both calling generations: the pipeline's ``profile``/``relaxed``
+    keywords and the legacy ``time_budget_seconds``/``num_search_workers`` pair —
+    the latter only applies when no ``profile`` is given.
+    """
+    from services.solver import stage_a
+
+    return stage_a.stage_a_topology(
+        grid,
+        params,
+        anchor,
+        profile=profile,
+        relaxed=relaxed,
+        time_budget_seconds=time_budget_seconds,
+        num_search_workers=num_search_workers,
     )
 
 
@@ -155,26 +154,36 @@ def stage_b_refine(
     Returns the folded model document, or ``None`` when the candidate could not be
     repaired into a valid one (§5.3: "auto-repair trivial violations … else discard").
 
-    Deferred to %s.
-    """ % PHASE
-    raise NotImplementedError(
-        "stage_b_refine is implemented in %s. It snaps coordinates to the 115mm module, "
-        "dedupes shared walls (115mm internal / 230mm external), and inserts doors and "
-        "windows per §5.3." % PHASE
-    )
+    Delegates to :func:`services.solver.stage_b.stage_b_refine` (ortools-free), which
+    logs every discard with its typed code before returning ``None``.
+    """
+    from services.solver import stage_b
+
+    return stage_b.stage_b_refine(candidate, params, envelope)
 
 
 def placements_to_ops(
-    placements: Sequence[RoomPlacement], params: SolveParams
+    placements: Sequence[RoomPlacement],
+    params: SolveParams,
+    *,
+    model: Optional[Mapping[str, Any]] = None,
 ) -> tuple[Mapping[str, Any], ...]:
     """Express a refined layout as §4 ops — the only way the solver touches the model.
 
-    Deferred to %s, alongside stage B, because the op list is derived from the wall
-    network that stage B builds rather than from the coarse placements.
-    """ % PHASE
-    raise NotImplementedError(
-        "placements_to_ops is implemented in %s, together with stage_b_refine." % PHASE
-    )
+    Delegates to :func:`services.solver.stage_b.house_to_ops`. The ops are derived
+    from the wall network stage B built (``model``), NOT from the coarse
+    ``placements`` — the parameter stays for the ``BuildOpsFn`` contract, but a call
+    without the stage-B document is a caller bug, and inventing walls from coarse
+    rectangles here would fork stage B's geometry.
+    """
+    if model is None:
+        raise ValueError(
+            "placements_to_ops needs the stage-B model document (model=...): the op "
+            "list is derived from the refined wall network, not the coarse placements."
+        )
+    from services.solver import stage_b
+
+    return tuple(stage_b.house_to_ops(model, params))
 
 
 __all__ = [

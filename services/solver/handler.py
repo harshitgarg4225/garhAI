@@ -137,6 +137,7 @@ def _parse_params(payload: Mapping[str, Any], *, kind: str) -> SolveParams:
         )
 
     return SolveParams(
+        brief_data=_parse_brief_data(brief.get("data")),
         plot_polygon=polygon,
         edges=edges,
         profile=profile,
@@ -150,6 +151,28 @@ def _parse_params(payload: Mapping[str, Any], *, kind: str) -> SolveParams:
         seed=_int(payload.get("seed", 0), "seed", 0, 2**31 - 1),
         target_option_count=_int(payload.get("optionCount", 3), "optionCount", 1, 5),
     )
+
+
+#: The only ``brief.data`` keys a solve payload may carry: the declarations the
+#: §5.4 rules pass reads (``garh_api.compliance.build_evaluation_context``).
+#: An allowlist by design — brief free text stays out of worker payloads (§13).
+_BRIEF_DATA_KEYS = ("carParking", "dwellingUnits", "rainwaterHarvesting")
+
+
+def _parse_brief_data(raw: Any) -> Mapping[str, Any]:
+    if not isinstance(raw, Mapping):
+        return {}
+    out: dict[str, Any] = {}
+    for key in _BRIEF_DATA_KEYS:
+        if key not in raw:
+            continue
+        value = raw[key]
+        if key == "rainwaterHarvesting":
+            if isinstance(value, bool):
+                out[key] = value
+        elif isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            out[key] = value
+    return out
 
 
 def _parse_polygon(raw: Any) -> Any:

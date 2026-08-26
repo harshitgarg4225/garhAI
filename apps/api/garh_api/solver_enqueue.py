@@ -151,6 +151,9 @@ async def build_solve_inputs(
         "vastuMode": str(brief_doc.get("vastuMode") or "advisory"),
         "rooms": rooms,
     }
+    declarations = _brief_declarations(brief_data)
+    if declarations:
+        brief["data"] = declarations
 
     return SolveInputs(
         plot=_plot_payload(boundary, plot_doc, areas),
@@ -230,6 +233,20 @@ def _room_requests(brief_data: Mapping[str, Any]) -> list[dict[str, Any]]:
                 entry["storeyIndex"] = int(raw["storey"])
             requests.append(entry)
     return requests
+
+
+#: Brief declarations the worker's §5.4 rules pass reads (parking, RWH, dwelling
+#: units — ``build_evaluation_context``'s brief inputs). An allowlist, mirrored
+#: by ``services.solver.handler._parse_brief_data``: the worker checks the same
+#: declarations the compliance panel does, and brief free text never rides a
+#: worker payload (§13).
+_BRIEF_DECLARATION_KEYS = ("carParking", "dwellingUnits", "rainwaterHarvesting")
+
+
+def _brief_declarations(brief_data: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        key: brief_data[key] for key in _BRIEF_DECLARATION_KEYS if key in brief_data
+    }
 
 
 def _resolve_storeys(

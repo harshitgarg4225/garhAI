@@ -38,7 +38,7 @@
  * opaque on purpose: nothing outside this module parses it.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Text } from '@react-three/drei';
 import { BufferAttribute, BufferGeometry, Matrix4, PlaneGeometry, Quaternion, Vector3 } from 'three';
 import type { InstancedMesh, LineSegments, Object3D } from 'three';
@@ -416,36 +416,52 @@ export function DimensionLayer({
         One container for every label. `useScreenScale` walks its children on
         each camera commit — see the note there on why a per-label registration
         leaks under React 18's callback-ref contract.
+
+        THE SUSPENSE BOUNDARY IS LOAD-BEARING. drei's `<Text>` suspends until
+        troika has loaded the label font. An uncaught suspension does not stop
+        at the scene: `@react-three/fiber`'s `<Canvas>` re-throws it into the
+        DOM tree, where the nearest boundary is the ROUTE-level one — which
+        then hides the ENTIRE plan tab (`display: none !important`) until the
+        font resolves. And with `inter-medium.woff` missing (the documented
+        asset blocker), troika 0.49's font-load error path never invokes its
+        callback, so "until" is FOREVER — the comment in `overlayMaterials.ts`
+        used to claim troika falls back gracefully; execution proved it does
+        not. Executed proof: plan-canvas.spec.ts went blank ~1.4 s after the
+        first room closed, and every later pointer event landed on the tab
+        skeleton. Caught here, a slow or broken font costs the LABELS only —
+        lines, ticks and pick targets are outside the boundary and stay live.
       */}
       <group ref={scale.ref}>
-        {items.map((item, index) => (
-          <group
-            key={item.segment.id}
-            ref={(node) => {
-              labelRefs.current[index] = node;
-            }}
-          >
-            <Text
-              font={fontUrl}
-              fontSize={LABEL_FONT_SIZE_LOCAL}
-              anchorX="center"
-              anchorY="bottom"
-              color={
-                item.segment.id === activeSegmentId
-                  ? materials.dimensionActive.color.getStyle()
-                  : materials.dimensionLine.color.getStyle()
-              }
-              renderOrder={DIMENSION_RENDER_ORDER + 1}
-              // Coplanar with the plan in an orthographic top view, so depth
-              // testing can only z-fight. `renderOrder` does the ordering,
-              // which is what the core's layer table says overlays should do.
-              material-depthTest={false}
-              material-depthWrite={false}
+        <Suspense fallback={null}>
+          {items.map((item, index) => (
+            <group
+              key={item.segment.id}
+              ref={(node) => {
+                labelRefs.current[index] = node;
+              }}
             >
-              {item.text}
-            </Text>
-          </group>
-        ))}
+              <Text
+                font={fontUrl}
+                fontSize={LABEL_FONT_SIZE_LOCAL}
+                anchorX="center"
+                anchorY="bottom"
+                color={
+                  item.segment.id === activeSegmentId
+                    ? materials.dimensionActive.color.getStyle()
+                    : materials.dimensionLine.color.getStyle()
+                }
+                renderOrder={DIMENSION_RENDER_ORDER + 1}
+                // Coplanar with the plan in an orthographic top view, so depth
+                // testing can only z-fight. `renderOrder` does the ordering,
+                // which is what the core's layer table says overlays should do.
+                material-depthTest={false}
+                material-depthWrite={false}
+              >
+                {item.text}
+              </Text>
+            </group>
+          ))}
+        </Suspense>
       </group>
     </group>
   );

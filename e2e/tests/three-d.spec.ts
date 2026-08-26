@@ -70,7 +70,7 @@ import {
   hooksSnapshot,
   inspector,
   selectViaHooks,
-  signInThroughUi,
+  adoptApiSession,
   statusChip3d,
   toggleViewWithTab,
 } from '../support/ui';
@@ -139,7 +139,7 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
         -1,
       );
 
-      await signInThroughUi(page, email);
+      await adoptApiSession(page, request);
       await page.goto(`${APP_URL}/projects/${projectId}/plan`);
       await expect(page.locator('[data-garh-canvas="plan"]')).toBeVisible({ timeout: 20_000 });
     });
@@ -147,13 +147,54 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
     await test.step('draw the plan in 2D — every wall through the real tools', async () => {
       const box = await canvasBox(page);
       await focusCanvasKeyboard(page);
+
+      // Minimal calibration, the plan-canvas trick: fit, draw ONE wall across a
+      // known pixel run, read its mm length off the server, undo. Without the
+      // derived scale a multi-leg chain's pointer falls metres behind its typed
+      // anchor and the tool (correctly) refuses the whole chain — this spec's
+      // first execution committed zero walls exactly that way.
+      await page.keyboard.press('0');
+      await page.waitForTimeout(400);
+      const RUN_PX = 240;
+      const calibFrom = { x: box.x + box.width * 0.15, y: box.y + box.height * 0.85 };
+      await page.keyboard.press('w');
+      await page.mouse.move(calibFrom.x, calibFrom.y);
+      await page.mouse.click(calibFrom.x, calibFrom.y);
+      await page.mouse.move(calibFrom.x + RUN_PX, calibFrom.y, { steps: 6 });
+      await page.mouse.click(calibFrom.x + RUN_PX, calibFrom.y);
+      await page.keyboard.press('Enter');
+      await expect
+        .poll(
+          async () => (await projectModel(request, token, projectId)).model.house.walls.length,
+          { timeout: SYNC_TIMEOUT_MS, message: 'the calibration wall never reached the server' },
+        )
+        .toBe(1);
+      const calib = await projectModel(request, token, projectId);
+      const calibWall = calib.model.house.walls[0]!;
+      const mmPerPx =
+        Math.hypot(calibWall.b.x - calibWall.a.x, calibWall.b.y - calibWall.a.y) / RUN_PX;
+      await page.keyboard.press(
+        `${process.platform === 'darwin' ? 'Meta' : 'Control'}+z`,
+      );
+      await expect
+        .poll(
+          async () => (await projectModel(request, token, projectId)).model.house.walls.length,
+          { timeout: SYNC_TIMEOUT_MS, message: 'undo should have removed the calibration wall' },
+        )
+        .toBe(0);
+
       const start = { x: box.x + box.width * 0.35, y: box.y + box.height * 0.65 };
-      await drawWallChain(page, start, [
-        { dir: 'right', lengthMm: OUTER_W_MM },
-        { dir: 'up', lengthMm: OUTER_H_MM },
-        { dir: 'left', lengthMm: OUTER_W_MM },
-        { dir: 'down', lengthMm: OUTER_H_MM },
-      ]);
+      await drawWallChain(
+        page,
+        start,
+        [
+          { dir: 'right', lengthMm: OUTER_W_MM },
+          { dir: 'up', lengthMm: OUTER_H_MM },
+          { dir: 'left', lengthMm: OUTER_W_MM },
+          { dir: 'down', lengthMm: OUTER_H_MM },
+        ],
+        { mmPerPx },
+      );
       await page.keyboard.press('v'); // select tool — later corner clicks must not draw
 
       await expect

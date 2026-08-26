@@ -126,9 +126,18 @@ export function disposeOverlayMaterials(): void {
  *   TODO(integrator): add `apps/web/public/fonts/inter-medium.woff` (Inter is
  *   SIL OFL — permitted) and keep this constant pointing at it.
  *
- * Until it exists, troika logs a load failure and falls back to its bundled
- * default, so development is not blocked — but the fallback is the network
- * path, and shipping without the file is a CSP bug, not a cosmetic one.
+ * Until it exists there is NO graceful fallback — an earlier version of this
+ * note claimed troika falls back to a bundled default, and execution proved
+ * it wrong. troika 0.49's `doLoadFont` error path (a 404, or Vite's SPA
+ * fallback serving index.html as font bytes) only logs; the load callback
+ * never fires, `preloadFont` never completes, and drei's `<Text>` suspends
+ * FOREVER. Left uncaught, that suspension is re-thrown by the R3F `<Canvas>`
+ * into the DOM tree and the route-level boundary hides the entire plan tab
+ * (found executed: plan-canvas.spec.ts's drawing well went blank the moment
+ * the first room label mounted). The label layers therefore wrap every
+ * `<Text>` in their own `<Suspense fallback={null}>` — a broken font costs
+ * label text only, never the editor. Shipping without the file is still a
+ * CSP bug, not a cosmetic one, and `make asset-audit` keeps saying so.
  */
 export const LABEL_FONT_URL = '/fonts/inter-medium.woff';
 

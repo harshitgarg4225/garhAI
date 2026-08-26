@@ -147,7 +147,14 @@ def wrap_project_doc(house: Mapping[str, Any], params: SolveParams) -> Dict[str,
             "regProfile": {"cityPack": params.profile.city_pack, "overrides": {}},
             "source": "solver",
         },
-        "brief": {"data": {}, "vastuMode": params.vastu_mode, "completeness": 0},
+        "brief": {
+            # The allowlisted declarations the rules read (carParking, RWH,
+            # dwellingUnits) — so the §5.4 pass sees the same brief facts the
+            # compliance panel does instead of defaulting them all to zero.
+            "data": dict(params.brief_data),
+            "vastuMode": params.vastu_mode,
+            "completeness": 0,
+        },
         "house": {k: v for k, v in house.items() if not k.startswith("solver")},
         "annotations": [],
     }

@@ -10,7 +10,9 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "rootDir": ".",
+    /* No `rootDir`: support/api.ts imports `@garh/model` (the fold the specs
+     * verify server ops against), and rootDir "." refuses sources outside e2e/.
+     * Nothing is emitted, so rootDir buys nothing here. */
     "types": ["node"],
     /* DOM is in `lib` because `page.evaluate(() => ...)` bodies are typed as
      * browser code (they reference `document`, `performance`, `PerformanceEntry`)

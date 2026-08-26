@@ -106,6 +106,10 @@ class SolveParams:
     seed: int = 0
     target_option_count: int = 3
     time_budget_seconds: int = 15
+    #: Brief declarations the §5.4 rules pass reads but no geometry uses —
+    #: ``carParking``, ``rainwaterHarvesting``, ``dwellingUnits``. An allowlist,
+    #: never the whole brief: free brief text must not ride worker payloads (§13).
+    brief_data: Mapping[str, Any] = field(default_factory=dict)
 
     def plot_area_mm2(self) -> int:
         from services.solver.geometry import area_mm2

@@ -44,6 +44,7 @@ from services.common.logging import get_logger
 from services.solver import gates
 from services.solver.diversity import select_diverse, signature, signature_summary
 from services.solver.envelope import derive_envelope
+from services.solver.program import CIRCULATION_TYPES
 from services.solver.stages import Candidate, GridSpec, grid_envelope
 from services.solver.types import (
     BuildableEnvelope,
@@ -57,6 +58,12 @@ from services.solver.types import (
 )
 
 log = get_logger("solver.pipeline")
+
+#: Placement types whose area stage A already counts in ``circulation_area_mm2``
+#: (mirrors ``ProgramRoom.is_circulation``): the passage/foyer/lobby set plus the
+#: stair well. Used to keep the footprint arithmetic below honest across both
+#: stage-A generations.
+_CIRCULATION_PLACEMENT_TYPES = frozenset(CIRCULATION_TYPES) | {"staircase"}
 
 
 # ---------------------------------------------------------------------------
@@ -715,7 +722,20 @@ async def _refine_and_score(
         if context.placements_augment is not None:
             placements = context.placements_augment(placements)
         occupied = sum(placement.area_mm2 for placement in placements)
-        footprint = occupied + max(0, candidate.circulation_area_mm2)
+        # Stage A's tiling contract (§5.2) makes circulation rooms placements, so
+        # their area is already inside `occupied` and `circulation_area_mm2` merely
+        # reports it again as the §5.2 metric. Only the portion NOT represented as
+        # a placement (test fakes, older stage-A generations) still adds on top —
+        # adding all of it would double-count every real candidate's passages and
+        # quietly shrink the §5.6 circulation percentage.
+        placed_circulation = sum(
+            placement.area_mm2
+            for placement in placements
+            if placement.room_type in _CIRCULATION_PLACEMENT_TYPES
+        )
+        footprint = occupied + max(
+            0, candidate.circulation_area_mm2 - placed_circulation
+        )
         breakdown = stage_set.critique(placements, params, envelope, footprint)
         ops = tuple(
             dict(op) for op in stage_set.build_ops(placements, params, model=model)

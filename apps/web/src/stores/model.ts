@@ -247,6 +247,18 @@ function stampOps(ops: readonly Op[], groupId: string): Op[] {
   });
 }
 
+/**
+ * Remove the `clientOpId` stamps so `stampOps` mints fresh ones. Used by
+ * `redo` — see the note there. `groupId` is left alone; `dispatch` replaces it
+ * anyway.
+ */
+function stripClientOpIds(ops: readonly Op[]): Op[] {
+  return ops.map((op) => {
+    const { clientOpId: _drop, ...rest } = op as Op & { clientOpId?: string };
+    return rest as Op;
+  });
+}
+
 /** Every element id in a document — for pruning a stale selection. */
 function collectElementIds(doc: ProjectDoc): Set<string> {
   const ids = new Set<string>();
@@ -566,7 +578,14 @@ export const useModelStore = create<ModelState>()((set, get) => ({
 
     set({ redoStack: s.redoStack.slice(0, -1) });
 
-    const result = get().dispatch(entry.ops, {
+    // A redo is a NEW write, not a retry of the old one: the ops in the entry
+    // still carry the `clientOpId`s under which they were ORIGINALLY applied,
+    // and re-sending those makes the server's idempotency layer answer with
+    // the original applied entries while appending nothing. Executed proof:
+    // redo's POST /ops returned the old idx and the op log did not grow — the
+    // browser showed the walls back while the server (and every reload) did
+    // not have them. Stripping the ids makes `stampOps` mint fresh ones.
+    const result = get().dispatch(stripClientOpIds(entry.ops), {
       label: entry.label,
       source: 'manual',
       recordHistory: false,

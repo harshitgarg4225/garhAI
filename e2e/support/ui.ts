@@ -15,7 +15,7 @@
  * than inventing a hook.
  */
 
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import { APP_URL } from './env';
 
 /** The dev-only panel that shows the OTP when no mail provider is configured. */
@@ -57,6 +57,26 @@ export async function signInThroughUi(page: Page, email: string): Promise<void> 
   await page.getByLabel('Verification code').fill(code);
 
   // Landing on the dashboard is the assertion that the session took.
+  await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 15_000 });
+}
+
+/**
+ * Enter the app with a session ARRANGED over the API — no OTP screen.
+ *
+ * For specs whose subject is not the login UI (the canvas, 3D, renders): the
+ * account was just created with `signUpFirm(request, …)`, whose verify left the
+ * refresh cookie in the REQUEST context's jar — and whose OTP issue also
+ * started the 60s per-email resend cooldown, so `signInThroughUi` a second
+ * later is answered 429 and the spec dies in its arrangement. Found on the
+ * canvas specs' first execution. Copying the cookie jar into the browser
+ * context lets the app's own bootstrap (`POST /auth/refresh`) mint the access
+ * token — the product's real returning-user path, with zero login UI driven.
+ * The login UI keeps its coverage in the @smoke suite.
+ */
+export async function adoptApiSession(page: Page, request: APIRequestContext): Promise<void> {
+  const state = await request.storageState();
+  await page.context().addCookies(state.cookies);
+  await page.goto(`${APP_URL}/`);
   await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 15_000 });
 }
 
@@ -186,11 +206,26 @@ export async function focusCanvas(page: Page): Promise<void> {
  * `legs` are walked in order from `startPx`; each is a direction plus a length
  * in millimetres. The chain is ended with Enter, so the whole rectangle is ONE
  * op group and therefore ONE undo — which is what the DoD's undo step asserts.
+ *
+ * THE POINTER MUST TRACK THE ANCHOR. When Enter places a typed 6900 mm
+ * segment, the chain's real anchor jumps 6900 mm — while a pointer that only
+ * nudged 80 px is now metres BEHIND it. The wall tool derives the next leg's
+ * ortho direction from `pointer − anchor` (`wallTool.resolve`), so a stale
+ * pointer makes every subsequent leg point back along the previous one; the
+ * legs overlap collinearly and `validateCommit` rightly refuses the whole
+ * chain — zero ops reach the server and nothing on screen says why to a
+ * headless run. (Found executed: the first real run of `plan-canvas.spec.ts`
+ * committed nothing.) So when the caller knows `mmPerPx` — and after
+ * `calibrate()` it always does — each leg advances the pointer by its true
+ * pixel length; the typed value still makes the geometry exact. The 80 px
+ * nudge remains only for callers without a scale, and is only safe for
+ * SINGLE-leg chains.
  */
 export async function drawWallChain(
   page: Page,
   startPx: { x: number; y: number },
   legs: readonly { dir: Leg; lengthMm: number }[],
+  opts: { mmPerPx?: number } = {},
 ): Promise<void> {
   await page.keyboard.press('w');
   await page.mouse.move(startPx.x, startPx.y);
@@ -199,9 +234,11 @@ export async function drawWallChain(
   let cursor = { ...startPx };
   for (const leg of legs) {
     const vector = LEG_VECTOR[leg.dir];
+    const advancePx =
+      opts.mmPerPx === undefined ? DIRECTION_NUDGE_PX : leg.lengthMm / opts.mmPerPx;
     cursor = {
-      x: cursor.x + vector.dx * DIRECTION_NUDGE_PX,
-      y: cursor.y + vector.dy * DIRECTION_NUDGE_PX,
+      x: cursor.x + vector.dx * advancePx,
+      y: cursor.y + vector.dy * advancePx,
     };
     // Two moves: the first wakes the tool out of `idle`, the second is the one
     // the ortho constraint reads. One move can be coalesced away by the rAF

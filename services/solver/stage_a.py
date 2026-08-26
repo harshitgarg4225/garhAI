@@ -167,6 +167,69 @@ def _ceil_div(numerator: int, denominator: int) -> int:
     return -(-numerator // denominator)
 
 
+def min_frontage_cells(
+    required_mm: int,
+    *,
+    module_mm: int = COARSE_MODULE_MM,
+    fine_mm: int = 115,
+) -> int:
+    """Smallest coarse-cell span whose WORST-CASE §5.3 fine-snap survivor is still
+    ``required_mm``. Pure and exact — no safety-factor guessing.
+
+    Stage B snaps every coordinate to the 115mm module (same origin as this
+    grid), so a coarse span of ``c`` cells can shrink: 900mm → 805mm is real and
+    killed every first-execution candidate whose bath frontage was the naive
+    ``ceil(900/300)`` cells. The snap pattern repeats every lcm(module, fine)
+    mm, so scanning one period gives the exact worst case for each ``c``.
+    """
+    if required_mm <= 0:
+        return 1
+    from services.solver.walls import snap_mm  # ortools-free; lazy keeps cycles out
+
+    period = _lcm(module_mm, fine_mm) // module_mm
+    for cells in range(1, 65):
+        worst = min(
+            snap_mm(module_mm * (k + cells)) - snap_mm(module_mm * k)
+            for k in range(period)
+        )
+        if worst >= required_mm:
+            return cells
+    raise ValueError(
+        "no coarse span up to 64 cells guarantees %dmm after the %dmm snap"
+        % (required_mm, fine_mm)
+    )
+
+
+def _lcm(a: int, b: int) -> int:
+    from math import gcd
+
+    return a * b // gcd(a, b)
+
+
+def snap_loss_table(
+    max_cells: int, *, module_mm: int = COARSE_MODULE_MM, fine_mm: int = 115
+) -> Tuple[int, ...]:
+    """``table[c]`` = worst mm a ``c``-cell dimension can LOSE to the §5.3 snap.
+
+    Same arithmetic as :func:`min_frontage_cells`, tabulated so the CP model can
+    look it up per size variable (``AddElement``): a 9-cell room (2700mm) can
+    come out of the 115mm snap at 2645mm, and a clear-width bound that ignores
+    that 55mm ships rooms the critic then fails on ``nbc.room.*.width.min`` —
+    execution find, not speculation.
+    """
+    from services.solver.walls import snap_mm
+
+    period = _lcm(module_mm, fine_mm) // module_mm
+    table = [0]
+    for cells in range(1, max_cells + 1):
+        worst = min(
+            snap_mm(module_mm * (k + cells)) - snap_mm(module_mm * k)
+            for k in range(period)
+        )
+        table.append(cells * module_mm - worst)
+    return tuple(table)
+
+
 @dataclass(frozen=True)
 class RoomBounds:
     """One program room converted to exact cell bounds (module = 300mm)."""
@@ -342,6 +405,13 @@ class _StoreyProblem:
     zone_bands: Optional[Dict[str, Tuple[int, int, int, int]]] = None
     vastu_mode: str = "advisory"
     north_deg: int = 0
+    #: Per-room minimum door-frontage cells (room key → cells), sized from the
+    #: pack's door widths + end margins + the 115mm snap worst case. ``None`` ⇒
+    #: the flat DOOR_FRONTAGE_MM fallback (older callers, unit fixtures).
+    door_cells_by_key: Optional[Mapping[str, int]] = None
+    #: Minimum cells of the entry room's side ON the entry boundary — the main
+    #: door (pack width + margins + snap) must fit that external span. 0 ⇒ off.
+    entry_frontage_cells: int = 0
 
 
 @dataclass
@@ -535,6 +605,98 @@ def add_tiling(
     model.Add(sum(vars_.area for _, vars_ in sorted(room_vars.items())) == footprint["net"])
 
 
+#: walls.clear_polygon's exact insets: 230 on a footprint-boundary side; the
+#: internal 115 wall splits 58 to the low (left/bottom) room and 57 to the high.
+_INSET_EXTERNAL_MM = 230
+_INSET_INTERNAL_LOW_MM = 58
+_INSET_INTERNAL_HIGH_MM = 57
+
+
+def add_clear_bounds(
+    model: Any,
+    room_vars: Dict[str, _RoomVars],
+    footprint: Dict[str, Any],
+    problem: _StoreyProblem,
+    *,
+    module_mm: int = COARSE_MODULE_MM,
+) -> None:
+    """§5.4 checks CLEAR geometry — room polygons inside the wall faces — so the
+    walls must be priced into the model, not discovered at the critic.
+
+    First execution proved the gap: every candidate met its gross minima and
+    every candidate failed ``nbc.room.*.area.min``/``width.min`` once stage B's
+    insets (230mm on external sides, 57/58 on internal) ate the clear polygon.
+    The insets here mirror :func:`services.solver.walls.clear_polygon` exactly,
+    and each dimension is first discounted by :func:`snap_loss_table` — the
+    worst the 115mm snap can take off it. Sides along an L-notch void read as
+    internal though stage B will treat them as external — those rare candidates
+    still die honestly at the critic.
+    """
+    losses = snap_loss_table(max(problem.cols, problem.rows), module_mm=module_mm)
+    for key in sorted(room_vars):
+        vars_ = room_vars[key]
+        room = vars_.bounds.room
+        if vars_.bounds.fixed_rect is not None or room.room_type == "shaft":
+            continue
+        min_width = room.min_width_mm
+        min_area = room.min_area_mm2
+        if min_width <= 0 and min_area <= 0:
+            continue
+        prefix = "clr.%s" % key
+        on_side: Dict[str, Any] = {}
+        for side, (room_edge, fp_edge) in (
+            ("W", (vars_.x1, footprint["fx1"])),
+            ("E", (vars_.x2, footprint["fx2"])),
+            ("S", (vars_.y1, footprint["fy1"])),
+            ("N", (vars_.y2, footprint["fy2"])),
+        ):
+            literal = model.NewBoolVar("%s.on%s" % (prefix, side))
+            # An EQUIVALENCE, unlike add_external_face's one-way literals: the
+            # inset arithmetic needs "not on the boundary" to be a fact too.
+            model.Add(room_edge == fp_edge).OnlyEnforceIf(literal)
+            model.Add(room_edge != fp_edge).OnlyEnforceIf(literal.Not())
+            on_side[side] = literal
+
+        internal_axis = _INSET_INTERNAL_LOW_MM + _INSET_INTERNAL_HIGH_MM
+        extra_low = _INSET_EXTERNAL_MM - _INSET_INTERNAL_LOW_MM
+        extra_high = _INSET_EXTERNAL_MM - _INSET_INTERNAL_HIGH_MM
+        max_loss = max(losses)
+        loss_w = model.NewIntVar(0, max_loss, "%s.lossw" % prefix)
+        model.AddElement(vars_.w, list(losses), loss_w)
+        loss_h = model.NewIntVar(0, max_loss, "%s.lossh" % prefix)
+        model.AddElement(vars_.h, list(losses), loss_h)
+        clear_w = model.NewIntVar(1, problem.cols * module_mm, "%s.w" % prefix)
+        clear_h = model.NewIntVar(1, problem.rows * module_mm, "%s.h" % prefix)
+        model.Add(
+            clear_w
+            == vars_.w * module_mm
+            - loss_w
+            - internal_axis
+            - extra_low * on_side["W"]
+            - extra_high * on_side["E"]
+        )
+        model.Add(
+            clear_h
+            == vars_.h * module_mm
+            - loss_h
+            - internal_axis
+            - extra_low * on_side["S"]
+            - extra_high * on_side["N"]
+        )
+        if min_width > 0:
+            # Least clear width = min(clear_w, clear_h) for a rectangle.
+            model.Add(clear_w >= min_width)
+            model.Add(clear_h >= min_width)
+        if min_area > 0:
+            clear_area = model.NewIntVar(
+                1,
+                (problem.cols * module_mm) * (problem.rows * module_mm),
+                "%s.area" % prefix,
+            )
+            model.AddMultiplicationEquality(clear_area, [clear_w, clear_h])
+            model.Add(clear_area >= min_area)
+
+
 def _touch_literals(
     model: Any,
     a: _RoomVars,
@@ -670,6 +832,14 @@ def add_external_face(
         vars_ = room_vars[key]
         room = vars_.bounds.room
         if room.room_type == "shaft":
+            if vars_.bounds.fixed_rect is None:
+                # A free shaft goes on the footprint boundary: that is where a
+                # plumbing shaft vents, and a one-cell rectangle floating in the
+                # interior forces a pinwheel of rooms around it that the exact
+                # tiling then has to solve — boundary placement cuts the search
+                # dramatically (execution find).
+                shaft_literals = _boundary_literals(model, vars_, footprint, "ext.%s" % key)
+                model.AddBoolOr([shaft_literals[side] for side in ("W", "E", "S", "N")])
             continue
         literals = _boundary_literals(model, vars_, footprint, "ext.%s" % key)
         ordered = [literals[side] for side in ("W", "E", "S", "N")]
@@ -835,6 +1005,7 @@ def add_circulation(
     has no circulation rooms at all (the program synthesises one, so this is a bug
     guard, not a normal path)."""
     door_cells = max(1, _ceil_div(DOOR_FRONTAGE_MM, module_mm))
+    per_room = problem.door_cells_by_key or {}
     distributors = {
         key
         for key, vars_ in room_vars.items()
@@ -852,12 +1023,16 @@ def add_circulation(
         vars_ = room_vars[key]
         if key in distributors or vars_.bounds.room.room_type == "shaft":
             continue
+        # The serving span must survive stage B: the room's own door width plus
+        # end margins plus the 115mm snap, not the bare §5.2 frontage figure —
+        # a 900mm coarse span snaps as low as 805mm, under ANY legal door.
+        serve_cells = max(door_cells, per_room.get(key, 0))
         reachable: List[Any] = []
         serving = sorted(distributors | (fallback - {key}))
         for other in serving:
             reachable.extend(
                 _touch_literals(
-                    model, vars_, room_vars[other], door_cells,
+                    model, vars_, room_vars[other], serve_cells,
                     "circ.%s-%s" % (key, other), problem.rows, problem.cols,
                 )
             )
@@ -889,6 +1064,13 @@ def add_circulation(
             key = entry_candidates[0]
             literals = _boundary_literals(model, room_vars[key], footprint, "entry.%s" % key)
             model.Add(literals[problem.entry_side] == 1)
+            if problem.entry_frontage_cells > 0:
+                # The main door lands on this room's external span on the entry
+                # side, so the side ALONG that boundary must carry it (§5.3 main
+                # door width + margins, snap-proofed like the serving spans).
+                entry_vars = room_vars[key]
+                along = entry_vars.w if problem.entry_side in ("N", "S") else entry_vars.h
+                model.Add(along >= problem.entry_frontage_cells)
 
     circulation_keys = sorted(
         key
@@ -898,6 +1080,13 @@ def add_circulation(
     if not circulation_keys:
         return None
     circulation_area = sum(room_vars[key].area for key in circulation_keys)
+    # §5.6's circulation cap is a HARD gate — a candidate over it is dead on
+    # arrival, so spending the budget on one is waste. In-model it also stops
+    # the tiling slack from parking in the passage (execution find: 24% and
+    # 27% circulation candidates, every one gate-rejected).
+    from services.solver.gates import MAX_CIRCULATION_PERCENT
+
+    model.Add(100 * circulation_area <= MAX_CIRCULATION_PERCENT * footprint["net"])
     excess = model.NewIntVar(0, problem.cols * problem.rows * 100, "circ.excess")
     model.Add(
         excess
@@ -1004,6 +1193,7 @@ def _solve_storey(
     add_size_bounds(model, room_vars, problem)
     footprint = add_footprint(model, room_vars, problem)
     add_tiling(model, room_vars, footprint)
+    add_clear_bounds(model, room_vars, footprint, problem, module_mm=module_mm)
     add_required_adjacencies(model, room_vars, problem, module_mm=module_mm)
 
     objective = _Objective(penalties=[], rewards=[])
@@ -1176,6 +1366,28 @@ def stage_a_topology(
     for note in entry_notes:
         log.info("solver.stage_a.entry_note", note=note)
 
+    # Door-frontage floors, from the SAME pack rows stage B's door placement
+    # reads — so the serving span this model guarantees is one a door provably
+    # fits after the 115mm snap (width + 2×115 end margins, snap worst case).
+    from services.solver.openings import (
+        WALL_END_MARGIN_MM,
+        door_width_for,
+        load_nbc_limits,
+    )
+
+    opening_limits = load_nbc_limits(root=rulepack_root)
+    door_cells_by_key: Dict[str, int] = {}
+    for room in program.rooms:
+        if not room.packed or room.is_circulation or room.room_type == "shaft":
+            continue
+        width = door_width_for(room.room_type, opening_limits)
+        door_cells_by_key[room.key] = min_frontage_cells(
+            width + 2 * WALL_END_MARGIN_MM, module_mm=module_mm
+        )
+    entry_frontage_cells = min_frontage_cells(
+        opening_limits.door_main_min_mm + 2 * WALL_END_MARGIN_MM, module_mm=module_mm
+    )
+
     budgets = split_time_budget(
         getattr(profile, "time_budget_seconds", None), program.storeys
     )
@@ -1204,6 +1416,8 @@ def stage_a_topology(
             zone_bands=bands,
             vastu_mode=program.vastu_mode,
             north_deg=params.north_deg,
+            door_cells_by_key=door_cells_by_key,
+            entry_frontage_cells=entry_frontage_cells,
         )
         if not problem.rooms:
             log.info(
@@ -1291,6 +1505,7 @@ __all__ = [
     "add_adjacency_wishes",
     "add_area_targets",
     "add_circulation",
+    "add_clear_bounds",
     "add_compactness",
     "add_external_face",
     "add_footprint",
@@ -1305,6 +1520,7 @@ __all__ = [
     "build_objective",
     "entry_grid_side",
     "layouts_for",
+    "min_frontage_cells",
     "minimum_cells_needed",
     "mm_rect_to_cells",
     "net_footprint_cap_cells",
