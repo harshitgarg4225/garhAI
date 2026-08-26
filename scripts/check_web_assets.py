@@ -84,14 +84,10 @@ ALLOWED_MISSING = {
 #
 # An entry here is a debt, not a dispensation. Delete it the moment the file
 # lands; a stale entry is itself reported as a failure below.
-KNOWN_GAPS = {
-    "/fonts/inter-medium.woff": (
-        "Phase 4 canvas label font. Not committed: Inter is OFL-1.1 and the binary "
-        "has to be fetched from https://github.com/rsms/inter/releases by a human. "
-        "See apps/web/public/fonts/README.md. RELEASE BLOCKER — every dimension "
-        "and room name on the plan depends on it."
-    ),
-}
+#: Empty since 2026-08-26: inter-medium.woff (the last entry) landed — fetched
+#: from the rsms/inter v3.19 GitHub release (OFL-1.1; licence text ships in the
+#: release archive). New gaps get an entry here, never a silent pass.
+KNOWN_GAPS: dict[str, str] = {}
 
 STRING_LITERAL = re.compile(r"""['"`](/[A-Za-z0-9_\-./@]+)['"`]""")
 # `href="/x.svg"` and friends in plain HTML.

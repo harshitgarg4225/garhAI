@@ -124,10 +124,10 @@ DECISIONS.md         every deviation and every dependency, with reasons
    ci.yml triggers only on pushes to `main` and all work lives on a feature
    branch — zero workflow runs — and the lint/typecheck jobs would be red
    (ruff/eslint mechanical debt, mypy never run in anger).
-2. **`apps/web/public/fonts/inter-medium.woff` is missing.** OFL-1.1, a human
-   must fetch it. Without it every dimension and room label renders in a fallback
-   face — or not at all, since the CSP blocks the CDN. `make asset-audit` reports
-   it as a release blocker on every run rather than letting it ship silently.
+2. **The Inter label font LANDED (2026-08-26).** Fetched from the rsms/inter
+   v3.19 GitHub release with its OFL-1.1 licence text beside it; `make
+   asset-audit` runs clean with zero known gaps for the first time. Canvas and
+   sheet labels now render in the real face.
 3. **The rule-pack values are seeds, not law.** Every value is marked
    `"confidence": "seed"` and needs review by empaneled local architects per city
    before anyone submits a drawing to a municipality. The UI surfaces citation
