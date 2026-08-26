@@ -381,6 +381,80 @@ def entry_grid_side(params: SolveParams, program: RoomProgram) -> Tuple[str, Tup
     return road_side, ()
 
 
+#: walls.clear_polygon's exact insets: 230 on a footprint-boundary side; the
+#: internal 115 wall splits 58 to the low (left/bottom) room and 57 to the high.
+_INSET_EXTERNAL_MM = 230
+_INSET_INTERNAL_LOW_MM = 58
+_INSET_INTERNAL_HIGH_MM = 57
+
+
+#: Insets one axis pays in walls.clear_polygon terms: both sides internal
+#: (57 + 58), or the worst typical case of one external + one internal side.
+_AXIS_INSET_INTERNAL_MM = _INSET_INTERNAL_LOW_MM + _INSET_INTERNAL_HIGH_MM
+_AXIS_INSET_TYPICAL_MM = _INSET_EXTERNAL_MM + _INSET_INTERNAL_LOW_MM
+
+
+def _clear_mm(
+    cells: int, losses: Tuple[int, ...], *, inset_mm: int = _AXIS_INSET_TYPICAL_MM
+) -> int:
+    """Clear mm of a dimension of ``cells``: gross − worst snap loss − insets."""
+    cells = max(1, min(cells, len(losses) - 1))
+    return cells * COARSE_MODULE_MM - losses[cells] - inset_mm
+
+
+def _cells_for_clear(clear_needed_mm: int, floor_cells: int, losses: Tuple[int, ...]) -> int:
+    cells = max(1, floor_cells)
+    while cells < len(losses) - 1 and _clear_mm(cells, losses) < clear_needed_mm:
+        cells += 1
+    return cells
+
+
+def gross_min_dims(bounds: RoomBounds, losses: Tuple[int, ...]) -> Tuple[int, int]:
+    """Smallest (depth, width) cells whose CLEAR geometry satisfies the room's
+    minimum width and minimum area. Pure — shared by the hint, the footprint
+    candidates and the multi-storey net floor, so they cannot disagree."""
+    min_w = max(1, bounds.room.min_width_mm)
+    min_a = max(1, bounds.room.min_area_mm2)
+    depth = _cells_for_clear(min_w, bounds.min_side_cells, losses)
+    width = _cells_for_clear(
+        max(min_w, _ceil_div(min_a, max(1, _clear_mm(depth, losses)))),
+        bounds.min_side_cells,
+        losses,
+    )
+    while width > 2 * depth and depth < len(losses) - 1:  # keep rooms squarish
+        depth += 1
+        width = _cells_for_clear(
+            max(min_w, _ceil_div(min_a, max(1, _clear_mm(depth, losses)))),
+            bounds.min_side_cells,
+            losses,
+        )
+    return depth, width
+
+
+def storey_min_net_cells(rooms: Sequence[RoomBounds], losses: Tuple[int, ...]) -> int:
+    """The smallest net footprint (cells) that could carry one storey's program,
+    CLEAR minima included. Fixed rects count exactly; free solids count their
+    :func:`gross_min_dims` area; circulation counts its raw minimum.
+
+    Why this exists: §5.2 solves the ground first and FIXES its footprint for
+    every storey above, but the ground brief can justify a smaller footprint
+    than the upper program needs — first execution of the demo brief proved
+    every upper storey infeasible that way. The ground model takes the MAX of
+    this over all storeys as a net floor.
+    """
+    total = 0
+    for bounds in rooms:
+        if bounds.fixed_rect is not None:
+            x1, y1, x2, y2 = bounds.fixed_rect
+            total += (x2 - x1) * (y2 - y1)
+        elif bounds.room.is_circulation or bounds.room.room_type == "shaft":
+            total += max(1, bounds.min_area_cells)
+        else:
+            depth, width = gross_min_dims(bounds, losses)
+            total += depth * width
+    return total
+
+
 def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]:
     """A greedy two-band layout used as a CP-SAT solution HINT. Pure, integer cells.
 
@@ -412,35 +486,7 @@ def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]
     # inset (230 + 58). Sizing bands from raw targets under-provisions every
     # room and produced provably-infeasible footprints (execution find).
     losses = snap_loss_table(max(problem.cols, problem.rows))
-    typical_inset = _INSET_EXTERNAL_MM + _INSET_INTERNAL_LOW_MM
-
-    def clear_mm(cells: int) -> int:
-        cells = max(1, min(cells, len(losses) - 1))
-        return cells * COARSE_MODULE_MM - losses[cells] - typical_inset
-
-    def cells_for_clear(clear_needed_mm: int, floor_cells: int) -> int:
-        cells = max(1, floor_cells)
-        while cells < len(losses) - 1 and clear_mm(cells) < clear_needed_mm:
-            cells += 1
-        return cells
-
-    def gross_dims(bounds: RoomBounds) -> Tuple[int, int]:
-        """(depth, width) cells satisfying min clear width AND min clear area."""
-        min_w = max(1, bounds.room.min_width_mm)
-        min_a = max(1, bounds.room.min_area_mm2)
-        depth = cells_for_clear(min_w, bounds.min_side_cells)
-        width = cells_for_clear(
-            max(min_w, _ceil_div(min_a, max(1, clear_mm(depth)))), bounds.min_side_cells
-        )
-        while width > 2 * depth and depth < len(losses) - 1:  # keep rooms squarish
-            depth += 1
-            width = cells_for_clear(
-                max(min_w, _ceil_div(min_a, max(1, clear_mm(depth)))),
-                bounds.min_side_cells,
-            )
-        return depth, width
-
-    dims = {b.key: gross_dims(b) for b in solids}
+    dims = {b.key: gross_min_dims(b, losses) for b in solids}
     band_a: List[RoomBounds] = []
     band_b: List[RoomBounds] = []
     area_a = area_b = 0
@@ -461,9 +507,10 @@ def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]
             min_w = max(1, b.room.min_width_mm)
             min_a = max(1, b.room.min_area_mm2)
             out_w.append(
-                cells_for_clear(
-                    max(min_w, _ceil_div(min_a, max(1, clear_mm(depth)))),
+                _cells_for_clear(
+                    max(min_w, _ceil_div(min_a, max(1, _clear_mm(depth, losses)))),
                     b.min_side_cells,
+                    losses,
                 )
             )
         return out_w
@@ -614,6 +661,9 @@ class _StoreyProblem:
     #: Minimum cells of the entry room's side ON the entry boundary — the main
     #: door (pack width + margins + snap) must fit that external span. 0 ⇒ off.
     entry_frontage_cells: int = 0
+    #: Net-footprint floor (cells): max over ALL storeys of the storey's minimum
+    #: program (§5.2 multi-floor: the ground footprint is every storey's). 0 ⇒ off.
+    net_floor_cells: int = 0
 
 
 @dataclass
@@ -782,6 +832,10 @@ def add_footprint(
     else:
         model.Add(net == farea)
     model.Add(net <= problem.net_cap_cells)
+    if problem.net_floor_cells > 0:
+        # §5.2 multi-floor: this rectangle is EVERY storey's footprint, so it
+        # must carry the largest storey's minimum program, not just this one's.
+        model.Add(net >= min(problem.net_floor_cells, problem.net_cap_cells))
 
     stair_vars = room_vars.get(_stair_key(problem))
     if stair_vars is not None and problem.stair_side and problem.footprint_fixed is None:
@@ -807,13 +861,6 @@ def add_tiling(
     model.Add(sum(vars_.area for _, vars_ in sorted(room_vars.items())) == footprint["net"])
 
 
-#: walls.clear_polygon's exact insets: 230 on a footprint-boundary side; the
-#: internal 115 wall splits 58 to the low (left/bottom) room and 57 to the high.
-_INSET_EXTERNAL_MM = 230
-_INSET_INTERNAL_LOW_MM = 58
-_INSET_INTERNAL_HIGH_MM = 57
-
-
 def add_clear_bounds(
     model: Any,
     room_vars: Dict[str, _RoomVars],
@@ -828,13 +875,21 @@ def add_clear_bounds(
     First execution proved the gap: every candidate met its gross minima and
     every candidate failed ``nbc.room.*.area.min``/``width.min`` once stage B's
     insets (230mm on external sides, 57/58 on internal) ate the clear polygon.
-    The insets here mirror :func:`services.solver.walls.clear_polygon` exactly,
-    and each dimension is first discounted by :func:`snap_loss_table` — the
-    worst the 115mm snap can take off it. Sides along an L-notch void read as
-    internal though stage B will treat them as external — those rare candidates
-    still die honestly at the critic.
+
+    The bound is :func:`_clear_mm` per dimension — gross minus the worst 115mm
+    snap loss minus one external + one internal inset — looked up by a pure
+    table over the size variable, NO boundary literals. Deliberately so, twice
+    over: an earlier equivalence-literal formulation (exact per-side insets)
+    made probing blow up and presolve mis-prove instances infeasible, and this
+    table is the SAME arithmetic the hint, the footprint candidates and the
+    multi-storey net floor use, so the four cannot disagree. The approximation
+    is conservative for interior rooms (they get 173mm of bonus clear) and
+    optimistic only for a room spanning the footprint wall-to-wall — that rare
+    candidate still dies honestly at the critic.
     """
     losses = snap_loss_table(max(problem.cols, problem.rows), module_mm=module_mm)
+    clear_table = [_clear_mm(c, losses) if c else 0 for c in range(len(losses))]
+    lo, hi = min(clear_table), max(clear_table)
     for key in sorted(room_vars):
         vars_ = room_vars[key]
         room = vars_.bounds.room
@@ -845,56 +900,16 @@ def add_clear_bounds(
         if min_width <= 0 and min_area <= 0:
             continue
         prefix = "clr.%s" % key
-        on_side: Dict[str, Any] = {}
-        for side, (room_edge, fp_edge) in (
-            ("W", (vars_.x1, footprint["fx1"])),
-            ("E", (vars_.x2, footprint["fx2"])),
-            ("S", (vars_.y1, footprint["fy1"])),
-            ("N", (vars_.y2, footprint["fy2"])),
-        ):
-            literal = model.NewBoolVar("%s.on%s" % (prefix, side))
-            # An EQUIVALENCE, unlike add_external_face's one-way literals: the
-            # inset arithmetic needs "not on the boundary" to be a fact too.
-            model.Add(room_edge == fp_edge).OnlyEnforceIf(literal)
-            model.Add(room_edge != fp_edge).OnlyEnforceIf(literal.Not())
-            on_side[side] = literal
-
-        internal_axis = _INSET_INTERNAL_LOW_MM + _INSET_INTERNAL_HIGH_MM
-        extra_low = _INSET_EXTERNAL_MM - _INSET_INTERNAL_LOW_MM
-        extra_high = _INSET_EXTERNAL_MM - _INSET_INTERNAL_HIGH_MM
-        max_loss = max(losses)
-        loss_w = model.NewIntVar(0, max_loss, "%s.lossw" % prefix)
-        model.AddElement(vars_.w, list(losses), loss_w)
-        loss_h = model.NewIntVar(0, max_loss, "%s.lossh" % prefix)
-        model.AddElement(vars_.h, list(losses), loss_h)
-        clear_w = model.NewIntVar(1, problem.cols * module_mm, "%s.w" % prefix)
-        clear_h = model.NewIntVar(1, problem.rows * module_mm, "%s.h" % prefix)
-        model.Add(
-            clear_w
-            == vars_.w * module_mm
-            - loss_w
-            - internal_axis
-            - extra_low * on_side["W"]
-            - extra_high * on_side["E"]
-        )
-        model.Add(
-            clear_h
-            == vars_.h * module_mm
-            - loss_h
-            - internal_axis
-            - extra_low * on_side["S"]
-            - extra_high * on_side["N"]
-        )
+        clear_w = model.NewIntVar(lo, hi, "%s.w" % prefix)
+        model.AddElement(vars_.w, clear_table, clear_w)
+        clear_h = model.NewIntVar(lo, hi, "%s.h" % prefix)
+        model.AddElement(vars_.h, clear_table, clear_h)
         if min_width > 0:
             # Least clear width = min(clear_w, clear_h) for a rectangle.
             model.Add(clear_w >= min_width)
             model.Add(clear_h >= min_width)
         if min_area > 0:
-            clear_area = model.NewIntVar(
-                1,
-                (problem.cols * module_mm) * (problem.rows * module_mm),
-                "%s.area" % prefix,
-            )
+            clear_area = model.NewIntVar(1, max(1, hi) * max(1, hi), "%s.area" % prefix)
             model.AddMultiplicationEquality(clear_area, [clear_w, clear_h])
             model.Add(clear_area >= min_area)
 
@@ -1657,6 +1672,22 @@ def stage_a_topology(
         getattr(profile, "time_budget_seconds", None), program.storeys
     )
 
+    # §5.2 multi-floor: the ground footprint is fixed for every storey above, so
+    # it must be able to carry the LARGEST storey's minimum program. Without
+    # this floor the demo brief solved a compact ground floor and then proved
+    # every upper storey infeasible against it (execution find).
+    net_floor = 0
+    if program.storeys > 1:
+        floor_losses = snap_loss_table(max(cols, rows))
+        for index in range(program.storeys):
+            net_floor = max(
+                net_floor,
+                storey_min_net_cells(
+                    _bounds_for_storey(program, index, stair_rect, None, module_mm),
+                    floor_losses,
+                ),
+            )
+
     solutions: List[_StoreySolution] = []
     footprint_fixed: Optional[Tuple[int, int, int, int]] = None
     shaft_fixed: Optional[Tuple[int, int, int, int]] = None
@@ -1683,6 +1714,7 @@ def stage_a_topology(
             north_deg=params.north_deg,
             door_cells_by_key=door_cells_by_key,
             entry_frontage_cells=entry_frontage_cells,
+            net_floor_cells=net_floor,
         )
         if not problem.rooms:
             log.info(
@@ -1781,8 +1813,12 @@ __all__ = [
     "add_tiling",
     "add_vastu_zones",
     "add_wet_cluster",
+    "band_hint",
     "bounds_for",
     "build_objective",
+    "footprint_candidates",
+    "gross_min_dims",
+    "storey_min_net_cells",
     "entry_grid_side",
     "layouts_for",
     "min_frontage_cells",
