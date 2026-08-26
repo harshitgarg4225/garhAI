@@ -294,15 +294,22 @@ export function statusChip3d(page: Page): Locator {
 }
 
 /**
- * Focus the canvas surface WITHOUT a click. The container carries
- * `tabIndex={0}` exactly so it can own the keyboard, and a focusing CLICK
- * would have side effects that depend on what happens to be docked under the
- * pointer (the facade panel sits top-left in 3D, the tool options bar in 2D)
- * or under the drawing (a 3D click is a selection). Needed because Tab
- * (view.toggle) is canvas-scoped and pressing a panel button moves focus out.
+ * Focus the canvas surface WITHOUT a click. A focusing CLICK would have side
+ * effects that depend on what happens to be docked under the pointer (the
+ * facade panel sits top-left in 3D, the tool options bar in 2D) or under the
+ * drawing (a 3D click is a selection). Needed because Tab (view.toggle) is
+ * canvas-scoped and pressing a panel button moves focus out.
+ *
+ * The focus target is the `role="application"` surface INSIDE the marker, not
+ * `[data-garh-canvas]` itself: the marker is an ancestor div the page mounts
+ * for `closest()`-based scoping and carries no `tabIndex`, so `.focus()` on it
+ * silently does nothing — executed proof: three-d.spec's Tab fell through to
+ * the browser's focus traversal and landed on the skip link. `CanvasRoot`'s
+ * application div is the element that owns the keyboard (`tabIndex={0}`), and
+ * focus inside it is what makes canvas-scoped bindings live.
  */
 export async function focusCanvasKeyboard(page: Page): Promise<void> {
-  await canvas(page).focus();
+  await canvas(page).getByRole('application').focus();
 }
 
 /**

@@ -9,8 +9,12 @@
  * `navigation: viewMode === '2d'` to `useCanvasControls` and hand this hook
  * the same wrapper element. Running both would double-handle the wheel (a
  * dolly per hook per notch). This hook takes no pointer events away from
- * tools: Phase 5's 3D view has no drawing tools, so left-drag is free to
+ * tools: Phase 5's 3D view has no drawing tools, so left-DRAG is free to
  * orbit; when 3D tools arrive, the same `enabled` flag hands left-drag back.
+ * A left CLICK is not this hook's either — pointer capture waits for the
+ * press to cross `DRAG_SLOP_PX`, so `useCanvasControls`' click detection
+ * still fires and the page's 3D click-to-select keeps working (see the
+ * capture note at the drag handlers).
  *
  * GESTURES (superset of the core hook's 3D set, so muscle memory holds):
  *   left-drag / middle-drag   orbit (orbit mode) · look around (walk mode)
@@ -69,6 +73,14 @@ export interface Nav3dApi {
   /** Frame the whole building. Returns false when there is nothing to frame. */
   readonly fitToBuilding: () => boolean;
 }
+
+/**
+ * How far a press may wander and still be a click, in CSS pixels. Matches
+ * `CLICK_SLOP_PX` in `core/useCanvasControls.ts` — it must not be SMALLER,
+ * or there would be presses the click path calls a click while this hook has
+ * already captured the pointer away from it (see the capture note below).
+ */
+const DRAG_SLOP_PX = 4;
 
 const WALK_KEYS: Readonly<Record<string, 'f' | 'b' | 'l' | 'r'>> = {
   KeyW: 'f',
@@ -139,7 +151,20 @@ export function useNav3d(element: HTMLElement | null, options: Nav3dOptions): Na
     resizeObserver?.observe(element);
 
     // ── drag: orbit / look / pan ─────────────────────────────────────────
+    //
+    // The pointer is NOT captured on the press. Capturing on `pointerdown`
+    // retargets every later event for that pointer at THIS element, so the
+    // inner canvas container (`useCanvasControls`, one level down) never sees
+    // the `pointerup` — its click detection dies, and with it the page's 3D
+    // click-to-select branch. Found executed: `core.pick` at the building's
+    // centre returned the wall while a real mouse click selected nothing, and
+    // three-d.spec's "click on sky/ground clears" saw the selection survive.
+    // So a press becomes a drag only once it crosses DRAG_SLOP_PX; a press
+    // that ends inside the slop was a click, and it stays the click path's.
     let dragPointerId: number | null = null;
+    let dragging = false;
+    let downX = 0;
+    let downY = 0;
     let lastX = 0;
     let lastY = 0;
 
@@ -147,15 +172,27 @@ export function useNav3d(element: HTMLElement | null, options: Nav3dOptions): Na
       if (event.button !== 0 && event.button !== 1) return;
       refreshRect();
       dragPointerId = event.pointerId;
+      dragging = false;
+      downX = event.clientX;
+      downY = event.clientY;
       lastX = event.clientX;
       lastY = event.clientY;
-      element.setPointerCapture(event.pointerId);
-      element.style.cursor = 'grabbing';
       event.preventDefault();
     };
 
     const onPointerMove = (event: PointerEvent): void => {
       if (dragPointerId !== event.pointerId) return;
+      if (!dragging) {
+        if (Math.hypot(event.clientX - downX, event.clientY - downY) <= DRAG_SLOP_PX) return;
+        dragging = true;
+        element.setPointerCapture(event.pointerId);
+        element.style.cursor = 'grabbing';
+        // Deltas restart here: folding the slop distance into the first step
+        // would make every orbit open with a visible jump.
+        lastX = event.clientX;
+        lastY = event.clientY;
+        return;
+      }
       const dx = event.clientX - lastX;
       const dy = event.clientY - lastY;
       lastX = event.clientX;
@@ -174,6 +211,7 @@ export function useNav3d(element: HTMLElement | null, options: Nav3dOptions): Na
     const endDrag = (event: PointerEvent): void => {
       if (dragPointerId !== event.pointerId) return;
       dragPointerId = null;
+      dragging = false;
       element.style.cursor = '';
       if (element.hasPointerCapture(event.pointerId)) {
         element.releasePointerCapture(event.pointerId);

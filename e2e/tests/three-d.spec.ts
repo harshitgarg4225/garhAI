@@ -304,11 +304,22 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
       expect((await hooksSnapshot(page)).selectedIds, 'a click on sky/ground clears').toEqual([]);
 
       const box = await canvasBox(page);
+      // The entry fit frames the FULL building extent — BOTH storeys — and the
+      // first floor has no walls yet, so the built massing sits in the UPPER
+      // half of the frame with empty headroom above centre-screen. (Executed:
+      // probes clustered at 0.5–0.65 of the height all landed on the ground
+      // mat and honestly cleared the selection four times over.) The fan
+      // therefore sweeps the centre column from above centre downwards; one
+      // hit is all the assertion needs.
       const probes = [
+        { x: box.x + box.width / 2, y: box.y + box.height * 0.42 },
+        { x: box.x + box.width / 2, y: box.y + box.height * 0.35 },
+        { x: box.x + box.width / 2, y: box.y + box.height * 0.5 },
         { x: box.x + box.width / 2, y: box.y + box.height * 0.55 },
         { x: box.x + box.width / 2, y: box.y + box.height * 0.65 },
         { x: box.x + box.width * 0.42, y: box.y + box.height * 0.6 },
         { x: box.x + box.width * 0.58, y: box.y + box.height * 0.5 },
+        { x: box.x + box.width * 0.58, y: box.y + box.height * 0.4 },
       ];
       let picked: readonly string[] = [];
       for (const probe of probes) {

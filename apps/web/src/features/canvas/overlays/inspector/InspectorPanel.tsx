@@ -22,9 +22,9 @@
  * thickened at once is one undo step, not five.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useId } from 'react';
 
-import { Button, Chip, LengthInput, Select, cn } from '@garh/ui';
+import { Button, Chip, Field, LengthInput, SelectField, cn } from '@garh/ui';
 
 import type { HouseModel, Op, UnitsDisplay } from '@garh/model';
 
@@ -124,6 +124,10 @@ function FieldRow({
   display: UnitsDisplay;
   onDispatch: (ops: readonly Op[], label: string) => void;
 }): JSX.Element {
+  // For the toggle row's explicit label/hint wiring. Unconditional — hooks
+  // must run on every render path, including the readonly early return.
+  const toggleId = useId();
+
   const commit = (next: number | string | boolean): void => {
     onDispatch(field.build(next), field.undoLabel);
   };
@@ -199,32 +203,38 @@ function FieldRow({
         />
       );
 
+    // Enum and text rows go through the @garh/ui `Field` scaffold, the same
+    // as `LengthInput`. An earlier version hand-rolled a wrapping `<label>`
+    // with the hint (and, for selects, the option text) INSIDE it — which
+    // made the hint part of the control's accessible name. That is exactly
+    // the "re-typed and half-forgotten" wiring `Field`'s header warns about,
+    // and it was found executed: plan-canvas.spec.ts's `getByLabel('Type')`
+    // matched the NAME input too, because its hint says "…use the room type
+    // as the label". Labels name, hints describe (`aria-describedby`).
     case 'enum':
       return (
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-ink-muted">{field.label}</span>
-          <Select
-            value={typeof field.value === 'string' ? field.value : ''}
-            onValueChange={(value) => commit(value)}
-            options={(field.options ?? []).map((option) => ({
-              value: option.value,
-              label: option.label,
-            }))}
-            {...(field.mixed ? { placeholder: 'Mixed' } : {})}
-          />
-          {field.hint === undefined ? null : (
-            <span className="mt-0.5 block text-2xs leading-tight text-ink-subtle">{field.hint}</span>
-          )}
-        </label>
+        <SelectField
+          label={field.label}
+          hint={field.hint}
+          value={typeof field.value === 'string' ? field.value : ''}
+          onValueChange={(value) => commit(value)}
+          options={(field.options ?? []).map((option) => ({
+            value: option.value,
+            label: option.label,
+          }))}
+          {...(field.mixed ? { placeholder: 'Mixed' } : {})}
+        />
       );
 
     case 'toggle':
       return (
-        <label className="flex items-start gap-2">
+        <div className="flex items-start gap-2">
           <input
+            id={toggleId}
             type="checkbox"
             className="garh-focus-ring mt-0.5 h-4 w-4 rounded-sm border-line-strong"
             checked={field.value === true}
+            aria-describedby={field.hint === undefined ? undefined : `${toggleId}-hint`}
             // `indeterminate` is a DOM property, not an attribute, so React
             // cannot set it declaratively — the ref is the only way to show a
             // mixed selection honestly instead of picking one of the two.
@@ -234,9 +244,16 @@ function FieldRow({
             onChange={(e) => commit(e.target.checked)}
           />
           <span>
-            <span className="block text-xs font-medium text-ink">{field.label}</span>
+            <label htmlFor={toggleId} className="block text-xs font-medium text-ink">
+              {field.label}
+            </label>
             {field.hint === undefined ? null : (
-              <span className="block text-2xs leading-tight text-ink-subtle">{field.hint}</span>
+              <span
+                id={`${toggleId}-hint`}
+                className="block text-2xs leading-tight text-ink-subtle"
+              >
+                {field.hint}
+              </span>
             )}
           </span>
           {field.mixed ? (
@@ -244,7 +261,7 @@ function FieldRow({
               Mixed
             </Chip>
           ) : null}
-        </label>
+        </div>
       );
 
     default:
@@ -258,6 +275,10 @@ function FieldRow({
  * Uncontrolled between commits: a controlled input bound to the document would
  * fight the user's typing every time an unrelated op landed, and this panel is
  * open while the solver, the copilot and another tab can all be writing.
+ *
+ * Structured through `Field` so the label names the control and the hint is
+ * `aria-describedby` — see the note on the enum row for the bug the wrapping-
+ * label version caused.
  */
 function TextRow({
   label,
@@ -273,39 +294,39 @@ function TextRow({
   onCommit: (raw: string) => void;
 }): JSX.Element {
   return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium text-ink-muted">{label}</span>
-      <input
-        type="text"
-        // `key` on the incoming value: when the model changes underneath, the
-        // row remounts with the new value instead of showing a stale draft.
-        key={initial}
-        defaultValue={initial}
-        placeholder={placeholder}
-        autoComplete="off"
-        spellCheck={false}
-        className={cn(
-          'garh-focus-ring h-8 w-full rounded-md border border-line-strong bg-surface px-2',
-          'text-sm text-ink garh-nums',
-        )}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            onCommit(e.currentTarget.value);
-            e.currentTarget.blur();
-          } else if (e.key === 'Escape') {
-            e.preventDefault();
-            e.currentTarget.value = initial;
-            e.currentTarget.blur();
-          }
-        }}
-        onBlur={(e) => {
-          if (e.target.value !== initial) onCommit(e.target.value);
-        }}
-      />
-      {hint === undefined ? null : (
-        <span className="mt-0.5 block text-2xs leading-tight text-ink-subtle">{hint}</span>
+    <Field label={label} hint={hint}>
+      {({ id, describedBy }) => (
+        <input
+          id={id}
+          type="text"
+          // `key` on the incoming value: when the model changes underneath, the
+          // row remounts with the new value instead of showing a stale draft.
+          key={initial}
+          defaultValue={initial}
+          placeholder={placeholder}
+          autoComplete="off"
+          spellCheck={false}
+          aria-describedby={describedBy}
+          className={cn(
+            'garh-focus-ring h-8 w-full rounded-md border border-line-strong bg-surface px-2',
+            'text-sm text-ink garh-nums',
+          )}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onCommit(e.currentTarget.value);
+              e.currentTarget.blur();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              e.currentTarget.value = initial;
+              e.currentTarget.blur();
+            }
+          }}
+          onBlur={(e) => {
+            if (e.target.value !== initial) onCommit(e.target.value);
+          }}
+        />
       )}
-    </label>
+    </Field>
   );
 }

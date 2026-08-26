@@ -381,6 +381,208 @@ def entry_grid_side(params: SolveParams, program: RoomProgram) -> Tuple[str, Tup
     return road_side, ()
 
 
+def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]:
+    """A greedy two-band layout used as a CP-SAT solution HINT. Pure, integer cells.
+
+    First execution showed the honest model — exact tiling + clear-geometry
+    minima + the §5.6 circulation cap — takes CP-SAT 5-25s to find ANY solution,
+    which blows the 15s/candidate budget on a coin flip. A hint repairs that:
+    rooms split into two horizontal bands with the circulation strip filling the
+    lower one, each room sized near its target. The hint does NOT need to be
+    feasible (CP-SAT repairs it); it needs to be in the right neighbourhood.
+
+    Returns cell rects per room key plus ``__footprint__``; empty when the
+    storey has no free rooms to hint.
+    """
+    free = [b for b in problem.rooms if b.fixed_rect is None]
+    fixed = [b for b in problem.rooms if b.fixed_rect is not None]
+    solids = sorted(
+        (b for b in free if not b.room.is_circulation and b.room.room_type != "shaft"),
+        key=lambda b: (-b.target_area_cells, b.key),
+    )
+    passages = sorted(
+        (b for b in free if b.room.is_circulation), key=lambda b: b.key
+    )
+    shafts = [b for b in free if b.room.room_type == "shaft"]
+    if not solids:
+        return {}
+
+    # CLEAR-geometry-aware sizing: a dimension's usable width is its gross mm
+    # minus the worst 115mm-snap loss minus one external + one internal wall
+    # inset (230 + 58). Sizing bands from raw targets under-provisions every
+    # room and produced provably-infeasible footprints (execution find).
+    losses = snap_loss_table(max(problem.cols, problem.rows))
+    typical_inset = _INSET_EXTERNAL_MM + _INSET_INTERNAL_LOW_MM
+
+    def clear_mm(cells: int) -> int:
+        cells = max(1, min(cells, len(losses) - 1))
+        return cells * COARSE_MODULE_MM - losses[cells] - typical_inset
+
+    def cells_for_clear(clear_needed_mm: int, floor_cells: int) -> int:
+        cells = max(1, floor_cells)
+        while cells < len(losses) - 1 and clear_mm(cells) < clear_needed_mm:
+            cells += 1
+        return cells
+
+    def gross_dims(bounds: RoomBounds) -> Tuple[int, int]:
+        """(depth, width) cells satisfying min clear width AND min clear area."""
+        min_w = max(1, bounds.room.min_width_mm)
+        min_a = max(1, bounds.room.min_area_mm2)
+        depth = cells_for_clear(min_w, bounds.min_side_cells)
+        width = cells_for_clear(
+            max(min_w, _ceil_div(min_a, max(1, clear_mm(depth)))), bounds.min_side_cells
+        )
+        while width > 2 * depth and depth < len(losses) - 1:  # keep rooms squarish
+            depth += 1
+            width = cells_for_clear(
+                max(min_w, _ceil_div(min_a, max(1, clear_mm(depth)))),
+                bounds.min_side_cells,
+            )
+        return depth, width
+
+    dims = {b.key: gross_dims(b) for b in solids}
+    band_a: List[RoomBounds] = []
+    band_b: List[RoomBounds] = []
+    area_a = area_b = 0
+    for bounds in solids:  # largest first, to the emptier band — keeps widths close
+        d, w = dims[bounds.key]
+        if area_a <= area_b:
+            band_a.append(bounds)
+            area_a += d * w
+        else:
+            band_b.append(bounds)
+            area_b += d * w
+    depth_a = max(dims[b.key][0] for b in band_a)
+    depth_b = max((dims[b.key][0] for b in band_b), default=max(4, depth_a // 2))
+
+    def widths(band: List[RoomBounds], depth: int) -> List[int]:
+        out_w: List[int] = []
+        for b in band:
+            min_w = max(1, b.room.min_width_mm)
+            min_a = max(1, b.room.min_area_mm2)
+            out_w.append(
+                cells_for_clear(
+                    max(min_w, _ceil_div(min_a, max(1, clear_mm(depth)))),
+                    b.min_side_cells,
+                )
+            )
+        return out_w
+    widths_a = widths(band_a, depth_a)
+    widths_b = widths(band_b, depth_b)
+    passage_w = 4  # one door-frontage strip; the model corrects the exact width
+    width = max(sum(widths_a), sum(widths_b) + (passage_w if passages else 0) + len(shafts))
+    width = min(width, problem.cols)
+    depth_total = min(depth_a + depth_b, problem.rows)
+
+    # Anchor at the stair when there is one (the footprint is flush with the
+    # side its well hugs); clamp so the hinted footprint stays on the grid.
+    x0 = y0 = 0
+    if problem.footprint_fixed is not None:
+        x0, y0 = problem.footprint_fixed[0], problem.footprint_fixed[1]
+        width = problem.footprint_fixed[2] - x0
+        depth_total = problem.footprint_fixed[3] - y0
+    elif fixed:
+        rect = fixed[0].fixed_rect
+        assert rect is not None
+        x0 = max(0, min(rect[0], problem.cols - width))
+        y0 = max(0, min(rect[1], problem.rows - depth_total))
+
+    # Band B (service rooms + the passage strip + the corner shaft) sits LOW —
+    # against the entry side and any south-edge stair anchor; band A above it.
+    out: Dict[str, Tuple[int, int, int, int]] = {}
+    y_split = y0 + max(1, depth_total - depth_a)
+    y_top = y0 + depth_total
+    cursor = x0
+    for bounds, w in zip(band_b, widths_b):
+        out[bounds.key] = (cursor, y0, min(cursor + w, x0 + width), y_split)
+        cursor = min(cursor + w, x0 + width - 1)
+    remaining = max(1, x0 + width - cursor - len(shafts))
+    for bounds in passages:  # the passage strip absorbs the rest of band B
+        out[bounds.key] = (cursor, y0, min(cursor + remaining, x0 + width), y_split)
+        cursor = min(cursor + remaining, x0 + width - 1)
+    for bounds in shafts:  # one cell in the footprint's SE corner
+        out[bounds.key] = (x0 + width - 1, y0, x0 + width, min(y0 + 1, y_top))
+    cursor = x0
+    for bounds, w in zip(band_a, widths_a):
+        out[bounds.key] = (cursor, y_split, min(cursor + w, x0 + width), y_top)
+        cursor = min(cursor + w, x0 + width - 1)
+    out["__footprint__"] = (x0, y0, x0 + width, y_top)
+    return out
+
+
+def _isqrt_ceil(value: int) -> int:
+    from math import isqrt
+
+    root = isqrt(value)
+    return root if root * root == value else root + 1
+
+
+def footprint_candidates(problem: "_StoreyProblem") -> Tuple[Tuple[int, int, int, int], ...]:
+    """Deterministic FIXED footprint rectangles for the ground-storey solve.
+
+    Why fix the footprint at all: with free footprint edges, the exact-tiling
+    equality plus the clear-geometry equivalences turn a six-room storey into a
+    model CP-SAT could not crack in 60s single-worker (execution find, log in
+    hand) — while upper storeys, which always solve against a FIXED footprint,
+    were never the problem. So the ground floor now works like the uppers: try
+    a few deterministic rectangles sized from the program (target areas grossed
+    up by the §5.2 circulation target, shaped by the same two-band arithmetic
+    the hint uses), flush with the stair anchor. The free-footprint model stays
+    as the fallback when every candidate is infeasible, so no generality is
+    lost — only the slow path is demoted.
+
+    Every candidate satisfies the §5.6 arithmetic precondition
+    ``82·net ≤ 100·Σ(non-circulation max areas)`` — a rectangle that fails it
+    would force circulation over the hard cap before the solve even starts.
+    """
+    hint = band_hint(problem)
+    if not hint:
+        return ()
+    x0, y0, x1, y1 = hint["__footprint__"]
+    base_w, base_d = x1 - x0, y1 - y0
+
+    total_min = minimum_cells_needed(problem.rooms)
+    solid_max = 0
+    for bounds in problem.rooms:
+        if bounds.fixed_rect is not None:
+            continue  # the stair well is circulation; fixed shafts count nothing
+        if bounds.room.is_circulation:
+            continue
+        grid_area = problem.cols * problem.rows
+        solid_max += bounds.max_area_cells if bounds.max_area_cells > 0 else grid_area
+    net_hi = (100 * solid_max) // 82 if solid_max else problem.net_cap_cells
+    net_hi = min(net_hi, problem.net_cap_cells)
+
+    out: List[Tuple[int, int, int, int]] = []
+    seen: Dict[Tuple[int, int, int, int], bool] = {}
+    for dw, dd in ((0, 0), (1, 0), (0, 1), (2, 1), (1, 2), (3, 2)):
+        width = min(problem.cols, base_w + dw)
+        depth = min(problem.rows, base_d + dd)
+        net = width * depth
+        if net < total_min or net > net_hi:
+            continue
+        fx0 = max(0, min(x0, problem.cols - width))
+        fy0 = max(0, min(y0, problem.rows - depth))
+        rect = (fx0, fy0, fx0 + width, fy0 + depth)
+        # A fixed footprint must contain the fixed stair well, or the two
+        # fixed rectangles contradict each other before the model exists.
+        contains_fixed = all(
+            b.fixed_rect is None
+            or (
+                rect[0] <= b.fixed_rect[0]
+                and rect[1] <= b.fixed_rect[1]
+                and b.fixed_rect[2] <= rect[2]
+                and b.fixed_rect[3] <= rect[3]
+            )
+            for b in problem.rooms
+        )
+        if not contains_fixed or rect in seen:
+            continue
+        seen[rect] = True
+        out.append(rect)
+    return tuple(out)
+
+
 # ---------------------------------------------------------------------------
 # the CP-SAT model — every constraint family is its own small builder (§16)
 # ---------------------------------------------------------------------------
@@ -832,14 +1034,13 @@ def add_external_face(
         vars_ = room_vars[key]
         room = vars_.bounds.room
         if room.room_type == "shaft":
-            if vars_.bounds.fixed_rect is None:
-                # A free shaft goes on the footprint boundary: that is where a
-                # plumbing shaft vents, and a one-cell rectangle floating in the
-                # interior forces a pinwheel of rooms around it that the exact
-                # tiling then has to solve — boundary placement cuts the search
-                # dramatically (execution find).
-                shaft_literals = _boundary_literals(model, vars_, footprint, "ext.%s" % key)
-                model.AddBoolOr([shaft_literals[side] for side in ("W", "E", "S", "N")])
+            # No placement constraint: under the exact-tiling contract a small
+            # shaft can only exist where its neighbours' edges align (the
+            # interior "pinwheel" pattern), and pinning it to the boundary or a
+            # corner makes that alignment IMPOSSIBLE with normal-sized rooms —
+            # a first-execution find that turned every model infeasible. The
+            # shaft's elastic bounds (see _bounds_for_storey) are what make it
+            # tileable; the wet-cluster objective pulls it to the baths.
             continue
         literals = _boundary_literals(model, vars_, footprint, "ext.%s" % key)
         ordered = [literals[side] for side in ("W", "E", "S", "N")]
@@ -1207,6 +1408,26 @@ def _solve_storey(
     add_compactness(model, footprint, problem, objective)
     total = build_objective(model, objective, problem)
 
+    # Solution hint (see band_hint): repairs first-feasible time from 5-25s to
+    # sub-second on realistic programs. Hints are advisory — CP-SAT repairs or
+    # abandons them — so a poor hint costs nothing but the milliseconds it took.
+    hints = band_hint(problem)
+    if hints:
+        fx1, fy1, fx2, fy2 = hints.pop("__footprint__")
+        if problem.footprint_fixed is None:
+            model.AddHint(footprint["fx1"], fx1)
+            model.AddHint(footprint["fy1"], fy1)
+            model.AddHint(footprint["fx2"], fx2)
+            model.AddHint(footprint["fy2"], fy2)
+        for key, (hx1, hy1, hx2, hy2) in sorted(hints.items()):
+            vars_ = room_vars.get(key)
+            if vars_ is None or vars_.bounds.fixed_rect is not None:
+                continue
+            model.AddHint(vars_.x1, hx1)
+            model.AddHint(vars_.y1, hy1)
+            model.AddHint(vars_.w, max(1, hx2 - hx1))
+            model.AddHint(vars_.h, max(1, hy2 - hy1))
+
     solver = cp_model.CpSolver()
     _apply_profile(solver, profile, params, time_budget_seconds)
 
@@ -1270,6 +1491,38 @@ def _solve_storey(
     )
 
 
+def _solve_storey_via_candidates(
+    problem: _StoreyProblem,
+    params: SolveParams,
+    profile: Any,
+    budget: Optional[int],
+    grid_origin: Pt,
+    module_mm: int,
+) -> Optional[_StoreySolution]:
+    """Free-footprint model first, deterministic fixed rectangles as the rescue.
+
+    The free model with the elastic shaft finds solutions in seconds; it gets
+    two thirds of the storey budget. When it times out UNKNOWN, the fixed
+    rectangles from :func:`footprint_candidates` — each a far easier model —
+    spend the rest. Order is deterministic; the first feasible solution wins.
+    """
+    if problem.footprint_fixed is not None:
+        return _solve_storey(problem, params, profile, budget, grid_origin, module_mm)
+    main_budget = None if budget is None else max(2, (budget * 2) // 3)
+    solution = _solve_storey(problem, params, profile, main_budget, grid_origin, module_mm)
+    if solution is not None:
+        return solution
+    rects = footprint_candidates(problem)
+    if rects:
+        per_rect = None if budget is None else max(2, (budget - (main_budget or 0)) // len(rects))
+        for rect in rects:
+            fixed = replace(problem, footprint_fixed=rect)
+            solution = _solve_storey(fixed, params, profile, per_rect, grid_origin, module_mm)
+            if solution is not None:
+                return solution
+    return None
+
+
 def _bounds_for_storey(
     program: RoomProgram,
     storey_index: int,
@@ -1286,7 +1539,19 @@ def _bounds_for_storey(
             if shaft_rect is not None:
                 bounds = replace(bounds, fixed_rect=shaft_rect)
             else:
-                bounds = replace(bounds, min_side_cells=1, min_area_cells=1, max_area_cells=1)
+                # ELASTIC, not 1×1. A 1×1 cell among normal-sized rectangles can
+                # only tile as a four-room pinwheel — CP-SAT burned whole budgets
+                # hunting for one (execution find). Letting the shaft stretch to
+                # a slim light-well strip (up to 12 cells ≈ 1.1m², aspect ≤ 6)
+                # lets it fill a column end like any other room; oversize is
+                # bounded and a real Indian ventilation shaft is this size.
+                bounds = replace(
+                    bounds,
+                    min_side_cells=1,
+                    min_area_cells=1,
+                    max_area_cells=12,
+                    max_aspect_x100=600,
+                )
         out.append(bounds)
     return tuple(out)
 
@@ -1424,7 +1689,7 @@ def stage_a_topology(
                 "solver.stage_a.empty_storey", storey=storey_index, anchor=anchor.id
             )
             return None
-        solution = _solve_storey(
+        solution = _solve_storey_via_candidates(
             problem, params, profile, budgets[storey_index], grid_origin, module_mm
         )
         if solution is None:
