@@ -22,7 +22,7 @@
  *    the field explains the formats that do work.
  */
 
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
 import {
   formatIndianNumber,
@@ -185,6 +185,20 @@ export function LengthInput({
   const [error, setError] = useState<string | undefined>(undefined);
   const [editing, setEditing] = useState(false);
 
+  /**
+   * Enter and Escape both end by calling `blur()`, and the blur handler also
+   * commits — that is the pattern for "commit on blur OR Enter". But the blur
+   * those keys trigger fires SYNCHRONOUSLY, before React has re-rendered with
+   * the freshly-committed `valueMm`, so the blur commit compares against a
+   * stale closure and fires a SECOND time. Found executed by three-d.spec.ts:
+   * one Enter in the thickness field wrote `wall.set_thickness` twice — two
+   * ops, two undo entries — so the first ⌘Z "reverted" to the value just
+   * typed. Escape was worse: `setText` is deferred, so its blur committed the
+   * exact text the key was meant to discard. The flag marks a blur the key
+   * handler already resolved, and that blur commits nothing.
+   */
+  const skipBlurCommit = useRef(false);
+
   // Re-sync when the model changes underneath us (undo, copilot, solver apply)
   // — but never while the user is mid-edit, which would eat their keystrokes.
   useEffect(() => {
@@ -265,17 +279,23 @@ export function LengthInput({
           }}
           onBlur={(e) => {
             setEditing(false);
+            if (skipBlurCommit.current) {
+              skipBlurCommit.current = false;
+              return;
+            }
             commit(e.target.value);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
               commit(e.currentTarget.value);
+              skipBlurCommit.current = true;
               e.currentTarget.blur();
             } else if (e.key === 'Escape') {
               e.preventDefault();
               setText(displayText(valueMm, display));
               setError(undefined);
+              skipBlurCommit.current = true;
               e.currentTarget.blur();
             }
           }}

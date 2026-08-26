@@ -137,7 +137,7 @@ unit tests per constraint builder.
 
 ---
 
-## Phase 4 — 2D editor canvas 🟡 (executed 2026-08-25/26: strict tsc + 36 canvas suites green, walls/undo/redo/chips through the real tools against the live server; open: the drawing well renders blank in headless GL — under investigation — and the DoD perf numbers)
+## Phase 4 — 2D editor canvas ✅ (DoD e2e GREEN 2026-08-26: plan-canvas.spec passes end to end — typed-length walls, one-group undo/redo, bye-law chip appears and clears, room click → inspector. The "blank canvas" was a permanently-suspended troika <Text> from the missing Inter font hiding the whole tab via the route Suspense — label layers now have their own boundary. Open: DoD perf numbers (needs a solver-seeded G+2), visual baseline)
 
 Orthographic Three.js scene sharing one scene graph and one hit-testing system with
 3D; tools select/wall/door/window/stair/balcony/measure; 115mm snap default;
@@ -168,7 +168,7 @@ payload field the canvas emits matches `ops.schema.json`.
 
 ---
 
-## Phase 5 — 3D + facades 🟡 (2026-08-25: 201 unit tests + strict tsc executed, 3D tab mounts under the smoke console gate; the DoD e2e has started but not yet run to completion)
+## Phase 5 — 3D + facades ✅ (DoD e2e GREEN 2026-08-26: three-d.spec passes — extrusion, 2D↔3D selection through the one picker (fixed: pointer capture on press was eating clicks), kit apply + component edit with walls byte-identical, sun scrub frozen-op proof, <100ms incremental rebuild. Open: visual baseline (font + CI-minted screenshot), Manifold-holes annotation-only)
 
 Extrude storeys, cut openings (Manifold), slabs/parapet/mumty/OHT; 2D↔3D synced
 selection; orbit/walk; sun widget (NOAA solar position, city-centroid lat/long);
