@@ -467,19 +467,29 @@ function unknownJob(jobId: string): AppError {
 // Selectors
 // ---------------------------------------------------------------------------
 
+/**
+ * Stable empty list. `?? []` here minted a FRESH array identity on every store
+ * read, and `useSyncExternalStore` treats an unstable snapshot as a change —
+ * an infinite re-render loop ("Maximum update depth exceeded") on any project
+ * whose jobs entry has not hydrated yet. Latent since authorship: nothing
+ * MOUNTED `useSolverJob` until the options overlay landed, so the selector had
+ * never executed inside React (bug pattern #4, the selector edition).
+ */
+const NO_JOBS: readonly JobDTO[] = [];
+
 export const selectJobsFor =
   (projectId: string) =>
   (s: JobsState): readonly JobDTO[] =>
-    s.byProject[projectId] ?? [];
+    s.byProject[projectId] ?? NO_JOBS;
 
 export const selectActiveJobsFor =
   (projectId: string) =>
   (s: JobsState): readonly JobDTO[] =>
-    (s.byProject[projectId] ?? []).filter((j) => !isTerminal(j.status));
+    (s.byProject[projectId] ?? NO_JOBS).filter((j) => !isTerminal(j.status));
 
 export const selectHasActiveJob =
   (projectId: string) =>
   (s: JobsState): boolean =>
-    (s.byProject[projectId] ?? []).some((j) => !isTerminal(j.status));
+    (s.byProject[projectId] ?? NO_JOBS).some((j) => !isTerminal(j.status));
 
 export const selectJobsError = (s: JobsState): ProblemDetail | null => s.error;

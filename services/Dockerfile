@@ -40,6 +40,11 @@ RUN apt-get update \
         libgomp1 \
         libgl1 \
         libglib2.0-0 \
+        # The §7 vector PDF set: export/pdf.py refuses to ship without a real
+        # SVG→PDF converter (a rasterised fake would be rejected by a
+        # municipality). First execution of the export failed exactly here.
+        librsvg2-bin \
+        qpdf \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
