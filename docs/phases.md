@@ -15,9 +15,30 @@ UI in Phase 2).
 > [`phase-0-verification.md`](./phase-0-verification.md) and
 > [`phase-2-verification.md`](./phase-2-verification.md) are the ledgers.
 
+> **Execution update, 2026-08-25/26.** The paragraph above is now history: the
+> repository was executed end to end under its real toolchain (Node 22, pnpm 9,
+> Python 3.11, Postgres 16, Redis, headless Chromium; moto stands in for minio)
+> and deployed — an 8-service Railway stack runs this code in production
+> containers. Executed and green: 1,923 api+rules+model Python tests, 369
+> services tests, 1,579 JS unit tests, strict `tsc`, the production Vite build,
+> the @smoke e2e journey (login → demo project → six tabs → DXF round trip →
+> sign-out, 20 passed), the copilot e2e walk, the §13 share-link journey, and
+> the full Phase-8 drawings pipeline (9 municipal sheets from a live project;
+> the floor-plan DXF passes `ezdxf.audit()` with 0 errors). First execution
+> also surfaced and fixed real defects the traces missed — the sequencer's
+> password-masking DB URL, a failure reporter that itself failed (jobs stuck
+> "running" forever), a live-compliance 500 from a pydantic name collision, the
+> shared `cn()` class merger silently deleting `flex-1`, and a solve enqueue
+> whose payload no worker could parse. Still not executed: `docker compose up`
+> verbatim, CI on GitHub (never triggered; its lint/mypy jobs would be red),
+> the real LLM/render providers, and the CP-SAT solver's first full options run
+> (wired, in progress). Per-phase rows below are being promoted as ledgers
+> catch up; where a row still says "never executed", check this note's date
+> against the row's.
+
 ---
 
-## Phase 0 — Scaffold & foundations 🟡 (code complete, DoD unverified)
+## Phase 0 — Scaffold & foundations 🟡 (DoD executed 2026-08-25 — smoke e2e, auth, tenancy, migrations on live Postgres; still open: `docker compose up` verbatim, CI on GitHub)
 
 Monorepo per §1; compose stack; CI; DB migrations (§2 DDL); auth (email+OTP, JWT);
 firms/users/projects CRUD; tenancy repository layer; seed script.
@@ -60,7 +81,7 @@ fixes and its gaps are in
 
 ---
 
-## Phase 1 — Model core + op engine 🟡
+## Phase 1 — Model core + op engine ✅ (executed 2026-08-25: TS⇄Python state hashes match on the golden corpus, property tests, sequencer + optimistic store; only the 1,000-op soak numeral is shorter than written — 200-op TS / 25×20 hypothesis runs)
 
 Model document (§3), op taxonomy (§4), fold/replay, op validation, undo/redo,
 version snapshots, provenance. Server op sequencer + optimistic client store.
@@ -75,7 +96,7 @@ tests. Everything downstream rides on both.
 
 ---
 
-## Phase 2 — Plot, brief, rules engine 🟡 (code complete; fixtures EXECUTED, UI unrendered)
+## Phase 2 — Plot, brief, rules engine ✅ (executed 2026-08-25 in a real browser: rule preset flip, brief parse chips, plot quick-start, DXF import round trip; value-override substitution verdict-tested 2026-08-26)
 
 Plot boundary editor, DXF boundary import, regulatory profiles + rules engine + 3
 city packs + Vastu (§6), brief form + completeness meter, LLM brief-parse behind the
@@ -104,7 +125,7 @@ UI — **traced**. The browser-path clauses stay open until the toolchain exists
 
 ---
 
-## Phase 3 — Layout solver ⬜
+## Phase 3 — Layout solver 🟡 (2026-08-26: solve enqueue contract fixed, real CP-SAT stages wired and solving; stage-B refinement still discards all candidates — first green options run in progress)
 
 §5 exactly: envelope derivation, stair/circulation pre-placement, CP-SAT stage A,
 refinement stage B, door/window auto-placement, critic scoring, diversity, partial
@@ -116,7 +137,7 @@ unit tests per constraint builder.
 
 ---
 
-## Phase 4 — 2D editor canvas 🟡 (code complete; **nothing has ever run**)
+## Phase 4 — 2D editor canvas 🟡 (executed 2026-08-25/26: strict tsc + 36 canvas suites green, walls/undo/redo/chips through the real tools against the live server; open: the drawing well renders blank in headless GL — under investigation — and the DoD perf numbers)
 
 Orthographic Three.js scene sharing one scene graph and one hit-testing system with
 3D; tools select/wall/door/window/stair/balcony/measure; 115mm snap default;
@@ -147,7 +168,7 @@ payload field the canvas emits matches `ops.schema.json`.
 
 ---
 
-## Phase 5 — 3D + facades 🟡 (code complete; **nothing has ever run**)
+## Phase 5 — 3D + facades 🟡 (2026-08-25: 201 unit tests + strict tsc executed, 3D tab mounts under the smoke console gate; the DoD e2e has started but not yet run to completion)
 
 Extrude storeys, cut openings (Manifold), slabs/parapet/mumty/OHT; 2D↔3D synced
 selection; orbit/walk; sun widget (NOAA solar position, city-centroid lat/long);
@@ -214,7 +235,7 @@ env flag; renders carry a version id; concurrent job limit and queue UI states w
 
 ---
 
-## Phase 8 — Drawings + exports ⬜ (the moat)
+## Phase 8 — Drawings + exports 🟡 (the moat — core pipeline EXECUTED 2026-08-25: live project → 9 municipal sheets, 17 dim chains sum exactly, DXF passes ezdxf.audit with 0 errors; open: PDF/glTF/PNG export paths, review tray, goldens)
 
 §7 exactly: sheet model, auto-dimensioning engine, the 6 municipal sheets, title
 block editor, annotation anchoring with a review tray after solver re-runs; exports —

@@ -29,14 +29,17 @@ If it is green, the proven core is intact. Run it after every change.
 
 ## The honest state of this repository
 
-**~180k lines. Almost none of it has ever executed.** The machine it was built on
-had no Node, no pnpm, no Docker, and Python 3.9 where the playbook wants 3.11.
-That single fact explains the shape of everything here.
+**Updated 2026-08-26 — the "never executed" era is over.** The repository now runs
+under its real toolchain (Node 22, pnpm 9, Python 3.11, Postgres 16, Redis,
+headless Chromium) and is deployed as an 8-service Railway stack built from these
+Dockerfiles. The original state — ~180k lines authored on a machine with no Node,
+no Docker, Python 3.9 — still explains the code's shape and its bug pattern
+(below), but the split has moved:
 
 | | |
 |---|---|
-| **Genuinely executed** | The rules engine (5 packs, 118 rules, 238 fixtures). The copilot validation loop (40-command corpus, 46 containment checks). The solver's ortools-free half (envelope, furniture fit, critic, gates). The auto-dimensioning core if Phase 8 finished. |
-| **Written, never run** | Every line of TypeScript (~120k) — never compiled, never rendered. The CP-SAT solver stage A (`services/solver/stage_a.py`, 1,314 lines, needs OR-Tools). Every Docker and Postgres path. All DXF output (needs `ezdxf`). |
+| **Executed and green** | 1,923 api+rules+model Python tests, 369 services tests, 1,579 JS unit tests, strict `tsc`, the production Vite build. In a real browser against a live stack: the @smoke journey (login → demo project → six tabs → DXF import round trip → sign-out), the copilot DoD walk, the §13 share-link journey. The full Phase-8 drawings pipeline: a live project produced 9 municipal sheets and the DXF passes `ezdxf.audit()` with 0 errors. |
+| **Still never run (or red)** | `docker compose up` verbatim (Railway proves the images, not the compose wiring). CI on GitHub — zero workflow runs; its ruff/eslint/mypy jobs would be red (thousands of mechanical lint errors, mypy debt). The real Anthropic/render providers (mock-only so far; keys are a launch gate). The CP-SAT solver's first full options run — the stages are wired and reach real CP-SAT solves, but stage-B refinement still discards all candidates (in progress). The visual-regression suite (blocked on the Inter font + a CI-minted baseline). |
 
 `docs/phase-*-verification.md` is one ledger per phase, each splitting its claims
 into **EXECUTED / TRACED / UNVERIFIED** with the exact command that would settle
@@ -117,8 +120,10 @@ DECISIONS.md         every deviation and every dependency, with reasons
 
 ## Known blockers, named plainly
 
-1. **`pnpm-lock.yaml` does not exist.** Six CI jobs fail at their first step.
-   `make lockfile` on a machine with Node.
+1. **CI has never fired.** `pnpm-lock.yaml` exists now (settled 2026-08-25), but
+   ci.yml triggers only on pushes to `main` and all work lives on a feature
+   branch — zero workflow runs — and the lint/typecheck jobs would be red
+   (ruff/eslint mechanical debt, mypy never run in anger).
 2. **`apps/web/public/fonts/inter-medium.woff` is missing.** OFL-1.1, a human
    must fetch it. Without it every dimension and room label renders in a fallback
    face — or not at all, since the CSP blocks the CDN. `make asset-audit` reports
