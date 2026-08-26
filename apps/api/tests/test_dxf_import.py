@@ -430,3 +430,46 @@ async def test_failed_import_carries_worker_copy(client, api, firm_a, project_a)
     assert body["status"] == "failed"
     assert "closed boundary" in body["error"]
     assert "export again" in body["error"]
+
+
+async def test_idempotent_replay_returns_the_stored_job_for_free(
+    client, api, firm_a, project_a, settings, clean_redis
+) -> None:
+    """Same Idempotency-Key twice → the SAME job back, nothing re-done.
+
+    The route answers a replay BEFORE charging the rate-limit slot and before
+    buffering the body (routers/imports.py — the mobile-data §15 rationale).
+    The phase-2 ledger cited this test before it existed; the branch had never
+    executed until it was written.
+    """
+    key = "e2e-replay-0001"
+    first = await client.post(
+        "%s/projects/%s/import/dxf" % (api, project_a.id),
+        headers={**firm_a.headers, "Idempotency-Key": key},
+        files=_upload_files(),
+    )
+    assert first.status_code == 202, first.text
+    job_id = first.json()["id"]
+
+    queued_before = len(clean_redis.lrange(settings.queue_drawings, 0, -1))
+
+    second = await client.post(
+        "%s/projects/%s/import/dxf" % (api, project_a.id),
+        headers={**firm_a.headers, "Idempotency-Key": key},
+        files=_upload_files(),
+    )
+    assert second.status_code in (200, 202), second.text
+    assert second.json()["id"] == job_id, "a replay must return the stored job"
+
+    # Nothing re-enqueued, so nothing re-uploaded and no worker re-run.
+    queued_after = len(clean_redis.lrange(settings.queue_drawings, 0, -1))
+    assert queued_after == queued_before
+
+    # A DIFFERENT key is a new request and mints a new job.
+    third = await client.post(
+        "%s/projects/%s/import/dxf" % (api, project_a.id),
+        headers={**firm_a.headers, "Idempotency-Key": "e2e-replay-0002"},
+        files=_upload_files(),
+    )
+    assert third.status_code == 202, third.text
+    assert third.json()["id"] != job_id
