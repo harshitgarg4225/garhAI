@@ -259,10 +259,18 @@ def _envelope_edges(polygon: Sequence[Tuple[int, int]]) -> List[Tuple[int, Tuple
 
 
 def _well_dims_for_side(side: str, long_mm: int, short_mm: int) -> Tuple[int, int]:
-    """(dx, dy) with the LONG dimension parallel to the hugged edge."""
+    """(dx, dy) with the SHORT dimension parallel to the hugged edge.
+
+    Perpendicular, not parallel, after first execution: the axis NORMAL to the
+    hugged edge carries an external wall (230mm inset) while the along-edge axis
+    is usually internal (57/58), so putting the tight 1800mm well width on the
+    internal axis is what lets the stair room's CLEAR polygon still hold the
+    dogleg without growing a cell. It also steals less boundary frontage from
+    daylit rooms — the flight runs into the plan, not along the facade.
+    """
     if side in ("N", "S"):
-        return (long_mm, short_mm)
-    return (short_mm, long_mm)
+        return (short_mm, long_mm)
+    return (long_mm, short_mm)
 
 
 def well_rect_for(

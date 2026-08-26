@@ -64,11 +64,16 @@ KITCHEN_DINING_SHARED_EDGE_MM = 900
 #: 800mm door + 115mm jambs; 900 keeps it on the coarse module).
 DOOR_FRONTAGE_MM = 900
 
-#: Rooms may shrink to 3/4 of target (never below the NBC floor) and grow to 7/5 —
+#: Rooms may shrink to 3/4 of target (never below the NBC floor) and grow to 8/5 —
 #: the growth headroom is what lets the exact-tiling model absorb slack into rooms
 #: instead of corridors. Integer ratios, applied with integer arithmetic.
+#: 8/5 rather than the earlier 7/5 is an execution find: on the demo brief the
+#: upper storey must tile the ground footprint EXACTLY, and at 7/5 the integer-
+#: achievable room maxima left only passage areas no legal rectangle has —
+#: every upper storey proved infeasible. Oversize is still §5.6's problem to
+#: judge, not the packer's.
 MIN_FRACTION_OF_TARGET = (3, 4)
-MAX_FRACTION_OF_TARGET = (7, 5)
+MAX_FRACTION_OF_TARGET = (8, 5)
 
 #: ``garh_model.model.Storey`` default (storey_height_mm = 3000).
 DEFAULT_STOREY_HEIGHT_MM = 3000

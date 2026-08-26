@@ -402,36 +402,57 @@ def _clear_mm(
     return cells * COARSE_MODULE_MM - losses[cells] - inset_mm
 
 
-def _cells_for_clear(clear_needed_mm: int, floor_cells: int, losses: Tuple[int, ...]) -> int:
+def _cells_for_clear(
+    clear_needed_mm: int,
+    floor_cells: int,
+    losses: Tuple[int, ...],
+    *,
+    inset_mm: int = _AXIS_INSET_TYPICAL_MM,
+) -> int:
     cells = max(1, floor_cells)
-    while cells < len(losses) - 1 and _clear_mm(cells, losses) < clear_needed_mm:
+    while (
+        cells < len(losses) - 1
+        and _clear_mm(cells, losses, inset_mm=inset_mm) < clear_needed_mm
+    ):
         cells += 1
     return cells
 
 
-def gross_min_dims(bounds: RoomBounds, losses: Tuple[int, ...]) -> Tuple[int, int]:
+def gross_min_dims(
+    bounds: RoomBounds,
+    losses: Tuple[int, ...],
+    *,
+    inset_mm: int = _AXIS_INSET_TYPICAL_MM,
+) -> Tuple[int, int]:
     """Smallest (depth, width) cells whose CLEAR geometry satisfies the room's
     minimum width and minimum area. Pure — shared by the hint, the footprint
     candidates and the multi-storey net floor, so they cannot disagree."""
     min_w = max(1, bounds.room.min_width_mm)
     min_a = max(1, bounds.room.min_area_mm2)
-    depth = _cells_for_clear(min_w, bounds.min_side_cells, losses)
+    depth = _cells_for_clear(min_w, bounds.min_side_cells, losses, inset_mm=inset_mm)
     width = _cells_for_clear(
-        max(min_w, _ceil_div(min_a, max(1, _clear_mm(depth, losses)))),
+        max(min_w, _ceil_div(min_a, max(1, _clear_mm(depth, losses, inset_mm=inset_mm)))),
         bounds.min_side_cells,
         losses,
+        inset_mm=inset_mm,
     )
     while width > 2 * depth and depth < len(losses) - 1:  # keep rooms squarish
         depth += 1
         width = _cells_for_clear(
-            max(min_w, _ceil_div(min_a, max(1, _clear_mm(depth, losses)))),
+            max(min_w, _ceil_div(min_a, max(1, _clear_mm(depth, losses, inset_mm=inset_mm)))),
             bounds.min_side_cells,
             losses,
+            inset_mm=inset_mm,
         )
     return depth, width
 
 
-def storey_min_net_cells(rooms: Sequence[RoomBounds], losses: Tuple[int, ...]) -> int:
+def storey_min_net_cells(
+    rooms: Sequence[RoomBounds],
+    losses: Tuple[int, ...],
+    *,
+    inset_mm: int = _AXIS_INSET_INTERNAL_MM,
+) -> int:
     """The smallest net footprint (cells) that could carry one storey's program,
     CLEAR minima included. Fixed rects count exactly; free solids count their
     :func:`gross_min_dims` area; circulation counts its raw minimum.
@@ -441,6 +462,13 @@ def storey_min_net_cells(rooms: Sequence[RoomBounds], losses: Tuple[int, ...]) -
     than the upper program needs — first execution of the demo brief proved
     every upper storey infeasible that way. The ground model takes the MAX of
     this over all storeys as a net floor.
+
+    The default inset is the INTERNAL one — the same arithmetic
+    :func:`add_clear_bounds` enforces — and that match is load-bearing: sizing
+    the floor at the typical external inset overshot the model's own minima by
+    ~90 cells on the demo brief, forced the ground to swallow the entire
+    envelope, and left every storey an exact-tiling knife edge the room maxima
+    could not close (execution find, again).
     """
     total = 0
     for bounds in rooms:
@@ -450,7 +478,7 @@ def storey_min_net_cells(rooms: Sequence[RoomBounds], losses: Tuple[int, ...]) -
         elif bounds.room.is_circulation or bounds.room.room_type == "shaft":
             total += max(1, bounds.min_area_cells)
         else:
-            depth, width = gross_min_dims(bounds, losses)
+            depth, width = gross_min_dims(bounds, losses, inset_mm=inset_mm)
             total += depth * width
     return total
 
@@ -650,6 +678,17 @@ class _StoreyProblem:
     stair_side: Optional[str] = None
     entry_side: Optional[str] = None
     footprint_fixed: Optional[Tuple[int, int, int, int]] = None
+    #: §5.2 multi-floor continuity, relaxed to CONTAINMENT: the storey's own
+    #: footprint rectangle must lie inside this one (the ground's). Demanding
+    #: equality made upper storeys tile the ground's exact cell count around
+    #: inherited fixed rects — brittle to the point of constant infeasibility
+    #: (execution find); stage B only needs each storey's own rooms to tile
+    #: each storey's own outline, and the stair-side flush keeps that wall line
+    #: shared. ``None`` when there is no storey below.
+    footprint_within: Optional[Tuple[int, int, int, int]] = None
+    #: The mirror bound: this storey's footprint must CONTAIN this rectangle
+    #: (it is a storey BELOW an already-solved, more constrained one).
+    footprint_contains: Optional[Tuple[int, int, int, int]] = None
     shaft_fixed_rect: Optional[Tuple[int, int, int, int]] = None
     zone_bands: Optional[Dict[str, Tuple[int, int, int, int]]] = None
     vastu_mode: str = "advisory"
@@ -661,9 +700,23 @@ class _StoreyProblem:
     #: Minimum cells of the entry room's side ON the entry boundary — the main
     #: door (pack width + margins + snap) must fit that external span. 0 ⇒ off.
     entry_frontage_cells: int = 0
+    #: Per-room CLEAR floors (room key → (min clear area mm², min clear width
+    #: mm)) — the PACK's numbers, which are what the §5.4 critic hard-fails on.
+    #: The brief's own min width/area stay GROSS domain floors (a brief's
+    #: "3.0m bedroom" is a wall-to-wall wish; the code's 2.4m is clear) —
+    #: enforcing brief numbers as clear made a standard 30×40ft brief
+    #: arithmetically impossible (execution find). ``None`` ⇒ fall back to the
+    #: room's own minima (unit-test callers).
+    clear_floor_by_key: Optional[Mapping[str, Tuple[int, int]]] = None
     #: Net-footprint floor (cells): max over ALL storeys of the storey's minimum
     #: program (§5.2 multi-floor: the ground footprint is every storey's). 0 ⇒ off.
     net_floor_cells: int = 0
+    #: Net-footprint ceiling (cells) for the LEAD storey of a multi-storey solve.
+    #: Without it the first-solved storey sprawls to the whole envelope (its
+    #: objective tolerates the first feasible sprawl the budget finds), and every
+    #: other storey then has to tile the full grid EXACTLY — proven infeasible
+    #: repeatedly on the demo brief. 0 ⇒ off.
+    net_ceiling_cells: int = 0
 
 
 @dataclass
@@ -783,11 +836,23 @@ def add_footprint(
         fy1 = model.NewIntVar(gy1, gy1, "f.y1")
         fx2 = model.NewIntVar(gx2, gx2, "f.x2")
         fy2 = model.NewIntVar(gy2, gy2, "f.y2")
+    elif problem.footprint_within is not None:
+        wx1, wy1, wx2, wy2 = problem.footprint_within
+        fx1 = model.NewIntVar(wx1, wx2, "f.x1")
+        fy1 = model.NewIntVar(wy1, wy2, "f.y1")
+        fx2 = model.NewIntVar(wx1, wx2, "f.x2")
+        fy2 = model.NewIntVar(wy1, wy2, "f.y2")
     else:
         fx1 = model.NewIntVar(0, problem.cols, "f.x1")
         fy1 = model.NewIntVar(0, problem.rows, "f.y1")
         fx2 = model.NewIntVar(0, problem.cols, "f.x2")
         fy2 = model.NewIntVar(0, problem.rows, "f.y2")
+    if problem.footprint_contains is not None:
+        cx1, cy1, cx2, cy2 = problem.footprint_contains
+        model.Add(fx1 <= cx1)
+        model.Add(fy1 <= cy1)
+        model.Add(fx2 >= cx2)
+        model.Add(fy2 >= cy2)
     fw = model.NewIntVar(1, problem.cols, "f.w")
     fh = model.NewIntVar(1, problem.rows, "f.h")
     model.Add(fx2 == fx1 + fw)
@@ -836,6 +901,8 @@ def add_footprint(
         # §5.2 multi-floor: this rectangle is EVERY storey's footprint, so it
         # must carry the largest storey's minimum program, not just this one's.
         model.Add(net >= min(problem.net_floor_cells, problem.net_cap_cells))
+    if problem.net_ceiling_cells > 0:
+        model.Add(net <= problem.net_ceiling_cells)
 
     stair_vars = room_vars.get(_stair_key(problem))
     if stair_vars is not None and problem.stair_side and problem.footprint_fixed is None:
@@ -877,41 +944,75 @@ def add_clear_bounds(
     insets (230mm on external sides, 57/58 on internal) ate the clear polygon.
 
     The bound is :func:`_clear_mm` per dimension — gross minus the worst 115mm
-    snap loss minus one external + one internal inset — looked up by a pure
-    table over the size variable, NO boundary literals. Deliberately so, twice
-    over: an earlier equivalence-literal formulation (exact per-side insets)
-    made probing blow up and presolve mis-prove instances infeasible, and this
-    table is the SAME arithmetic the hint, the footprint candidates and the
-    multi-storey net floor use, so the four cannot disagree. The approximation
-    is conservative for interior rooms (they get 173mm of bonus clear) and
-    optimistic only for a room spanning the footprint wall-to-wall — that rare
-    candidate still dies honestly at the critic.
+    snap loss minus the INTERNAL wall insets (57 + 58) — looked up by a pure
+    table over the size variable, NO boundary literals. Three deliberate calls
+    live here:
+
+    * no per-side boundary literals: an earlier equivalence formulation (exact
+      insets per side) made CP-SAT probing blow up and mis-prove instances
+      infeasible in presolve;
+    * internal insets, not the external 230: taxing BOTH axes for a wall only
+      one side of one axis carries turned a knife-edge brief (the demo!) from
+      tight to arithmetically impossible. A room that ends up sized to the bone
+      ON its external axis can still come up ~170mm short of clear width there
+      — and the §5.4 critic discards exactly that candidate, which is the
+      critic's job; the model's job is only to never propose a room that no
+      wall arrangement could save;
+    * the same :func:`snap_loss_table` the frontage floors use, so a dimension
+      that survives the model also survives the §5.3 snap.
     """
     losses = snap_loss_table(max(problem.cols, problem.rows), module_mm=module_mm)
-    clear_table = [_clear_mm(c, losses) if c else 0 for c in range(len(losses))]
-    lo, hi = min(clear_table), max(clear_table)
+    internal_table = [
+        _clear_mm(c, losses, inset_mm=_AXIS_INSET_INTERNAL_MM) if c else 0
+        for c in range(len(losses))
+    ]
+    typical_table = [
+        _clear_mm(c, losses, inset_mm=_AXIS_INSET_TYPICAL_MM) if c else 0
+        for c in range(len(losses))
+    ]
+    lo = min(min(internal_table), min(typical_table))
+    hi = max(max(internal_table), max(typical_table))
     for key in sorted(room_vars):
         vars_ = room_vars[key]
         room = vars_.bounds.room
         if vars_.bounds.fixed_rect is not None or room.room_type == "shaft":
             continue
-        min_width = room.min_width_mm
-        min_area = room.min_area_mm2
+        if problem.clear_floor_by_key is not None:
+            min_area, min_width = problem.clear_floor_by_key.get(key, (0, 0))
+        else:
+            min_width = room.min_width_mm
+            min_area = room.min_area_mm2
         if min_width <= 0 and min_area <= 0:
             continue
         prefix = "clr.%s" % key
-        clear_w = model.NewIntVar(lo, hi, "%s.w" % prefix)
-        model.AddElement(vars_.w, clear_table, clear_w)
-        clear_h = model.NewIntVar(lo, hi, "%s.h" % prefix)
-        model.AddElement(vars_.h, clear_table, clear_h)
+        cw_int = model.NewIntVar(lo, hi, "%s.wi" % prefix)
+        model.AddElement(vars_.w, internal_table, cw_int)
+        ch_int = model.NewIntVar(lo, hi, "%s.hi" % prefix)
+        model.AddElement(vars_.h, internal_table, ch_int)
         if min_width > 0:
-            # Least clear width = min(clear_w, clear_h) for a rectangle.
-            model.Add(clear_w >= min_width)
-            model.Add(clear_h >= min_width)
+            # Least clear width = min of the two dims; the internal table is the
+            # optimistic reading of each — a width sized to the bone on its
+            # external axis is the critic's catch, by design.
+            model.Add(cw_int >= min_width)
+            model.Add(ch_int >= min_width)
         if min_area > 0:
-            clear_area = model.NewIntVar(1, max(1, hi) * max(1, hi), "%s.area" % prefix)
-            model.AddMultiplicationEquality(clear_area, [clear_w, clear_h])
-            model.Add(clear_area >= min_area)
+            # A boundary room carries the external inset on exactly ONE axis in
+            # the typical case, but WHICH axis is the solver's choice — so the
+            # area must clear the floor under BOTH orderings (internal×typical
+            # and typical×internal). min(A1, A2) ≥ floor ⇔ both ≥ floor: exact
+            # for one-external-axis rooms, optimistic only for a corner room,
+            # whose shortfall the §5.4 critic still catches.
+            cw_typ = model.NewIntVar(lo, hi, "%s.wt" % prefix)
+            model.AddElement(vars_.w, typical_table, cw_typ)
+            ch_typ = model.NewIntVar(lo, hi, "%s.ht" % prefix)
+            model.AddElement(vars_.h, typical_table, ch_typ)
+            bound = max(1, hi) * max(1, hi)
+            area_a = model.NewIntVar(-bound, bound, "%s.area_a" % prefix)
+            model.AddMultiplicationEquality(area_a, [cw_int, ch_typ])
+            model.Add(area_a >= min_area)
+            area_b = model.NewIntVar(-bound, bound, "%s.area_b" % prefix)
+            model.AddMultiplicationEquality(area_b, [cw_typ, ch_int])
+            model.Add(area_b >= min_area)
 
 
 def _touch_literals(
@@ -1049,13 +1150,17 @@ def add_external_face(
         vars_ = room_vars[key]
         room = vars_.bounds.room
         if room.room_type == "shaft":
-            # No placement constraint: under the exact-tiling contract a small
-            # shaft can only exist where its neighbours' edges align (the
-            # interior "pinwheel" pattern), and pinning it to the boundary or a
-            # corner makes that alignment IMPOSSIBLE with normal-sized rooms —
-            # a first-execution find that turned every model infeasible. The
-            # shaft's elastic bounds (see _bounds_for_storey) are what make it
-            # tileable; the wet-cluster objective pulls it to the baths.
+            if vars_.bounds.fixed_rect is None:
+                # An ELASTIC shaft goes on the footprint boundary. Sequencing
+                # matters, learned twice over: a FIXED-size shaft cannot tile on
+                # a boundary at all (its neighbours' edges can never align), but
+                # an elastic strip on an edge tiles like any slim room — while
+                # an INTERIOR shaft, elastic or not, forces a four-room pinwheel
+                # that the storey above, inheriting the position, then fails.
+                # Boundary + elastic is the one combination that works on both
+                # storeys — and it is where a ventilation shaft vents anyway.
+                shaft_literals = _boundary_literals(model, vars_, footprint, "ext.%s" % key)
+                model.AddBoolOr([shaft_literals[side] for side in ("W", "E", "S", "N")])
             continue
         literals = _boundary_literals(model, vars_, footprint, "ext.%s" % key)
         ordered = [literals[side] for side in ("W", "E", "S", "N")]
@@ -1405,6 +1510,17 @@ def _solve_storey(
 
     model = cp_model.CpModel()
     room_vars = add_room_variables(model, problem)
+    if problem.shaft_fixed_rect is not None:
+        # Vertical duct continuity: this storey's shaft must CONTAIN the rect
+        # the storey below chose — the duct passes through — while keeping its
+        # own elastic shape (equality re-created the pinwheel trap upstairs).
+        sx1, sy1, sx2, sy2 = problem.shaft_fixed_rect
+        for vars_ in room_vars.values():
+            if vars_.bounds.room.room_type == "shaft" and vars_.bounds.fixed_rect is None:
+                model.Add(vars_.x1 <= sx1)
+                model.Add(vars_.y1 <= sy1)
+                model.Add(vars_.x2 >= sx2)
+                model.Add(vars_.y2 >= sy2)
     add_no_overlap(model, room_vars, problem)
     add_size_bounds(model, room_vars, problem)
     footprint = add_footprint(model, room_vars, problem)
@@ -1523,6 +1639,18 @@ def _solve_storey_via_candidates(
     """
     if problem.footprint_fixed is not None:
         return _solve_storey(problem, params, profile, budget, grid_origin, module_mm)
+    if problem.net_ceiling_cells > 0:
+        # Lead-storey sizing is an ESCALATION, not a guess: the tight ceiling
+        # keeps the frame compact when the estimate is right, and a wrong
+        # estimate costs one retry instead of an infeasible anchor.
+        ceilings = (problem.net_ceiling_cells, (problem.net_ceiling_cells * 5) // 4, 0)
+        per = None if budget is None else max(2, budget // len(ceilings))
+        for ceiling in ceilings:
+            attempt = replace(problem, net_ceiling_cells=ceiling)
+            solution = _solve_storey(attempt, params, profile, per, grid_origin, module_mm)
+            if solution is not None:
+                return solution
+        return None
     main_budget = None if budget is None else max(2, (budget * 2) // 3)
     solution = _solve_storey(problem, params, profile, main_budget, grid_origin, module_mm)
     if solution is not None:
@@ -1551,22 +1679,22 @@ def _bounds_for_storey(
         if room.room_type == "staircase" and stair_rect is not None:
             bounds = replace(bounds, fixed_rect=stair_rect)
         elif room.room_type == "shaft":
-            if shaft_rect is not None:
-                bounds = replace(bounds, fixed_rect=shaft_rect)
-            else:
-                # ELASTIC, not 1×1. A 1×1 cell among normal-sized rectangles can
-                # only tile as a four-room pinwheel — CP-SAT burned whole budgets
-                # hunting for one (execution find). Letting the shaft stretch to
-                # a slim light-well strip (up to 12 cells ≈ 1.1m², aspect ≤ 6)
-                # lets it fill a column end like any other room; oversize is
-                # bounded and a real Indian ventilation shaft is this size.
-                bounds = replace(
-                    bounds,
-                    min_side_cells=1,
-                    min_area_cells=1,
-                    max_area_cells=12,
-                    max_aspect_x100=600,
-                )
+            # ELASTIC on every storey, never 1×1 and never inherited as a fixed
+            # rect. A 1×1 cell among normal-sized rectangles can only tile as a
+            # four-room pinwheel — CP-SAT burned whole budgets hunting for one —
+            # and freezing the ground's exact strip upstairs re-created the same
+            # trap around whatever shape the ground picked (both execution
+            # finds). Up to 12 cells ≈ 1.1m², aspect ≤ 6: a slim light-well
+            # strip that fills a column end like any other room. Vertical duct
+            # continuity is a CONTAINMENT constraint over the storey below's
+            # rect (``_StoreyProblem.shaft_fixed_rect``), added in the model.
+            bounds = replace(
+                bounds,
+                min_side_cells=1,
+                min_area_cells=1,
+                max_area_cells=12,
+                max_aspect_x100=600,
+            )
         out.append(bounds)
     return tuple(out)
 
@@ -1628,8 +1756,34 @@ def stage_a_topology(
             DEFAULT_STOREY_HEIGHT_MM, root=rulepack_root
         )
         well_mm = stairs_mod.well_rect_for(anchor, envelope, stair=dogleg, module_mm=module_mm)
-        stair_rect = mm_rect_to_cells(well_mm, grid_origin, module_mm=module_mm)
+        base_rect = mm_rect_to_cells(well_mm, grid_origin, module_mm=module_mm)
         stair_side = stairs_mod.edge_outward_side(envelope.polygon, anchor.edge_index)
+        # The stair room's CLEAR polygon — inside the wall faces, after the
+        # 115mm snap — must still hold the dogleg. Sizing the room to the bare
+        # well let stage B discard every candidate with STAIR_DOES_NOT_FIT
+        # (a 2700×1800 room clears only ~2358×1553 — execution find), so the
+        # cell rect grows by the per-axis insets and snap loss up front: the
+        # axis NORMAL to the hugged edge carries the external wall (230+58),
+        # the along-edge axis its internal walls (57+58) — except at a corner
+        # anchor, whose along-edge end can be external too.
+        stair_losses = snap_loss_table(max(cols, rows), module_mm=module_mm)
+        along_inset = (
+            _AXIS_INSET_INTERNAL_MM if anchor.id.endswith("-mid") else _AXIS_INSET_TYPICAL_MM
+        )
+        if stair_side in ("N", "S"):
+            inset_x, inset_y = along_inset, _AXIS_INSET_TYPICAL_MM
+        else:
+            inset_x, inset_y = _AXIS_INSET_TYPICAL_MM, along_inset
+        need_x = _cells_for_clear(
+            well_mm[2] - well_mm[0], 1, stair_losses, inset_mm=inset_x
+        )
+        need_y = _cells_for_clear(
+            well_mm[3] - well_mm[1], 1, stair_losses, inset_mm=inset_y
+        )
+        # Keep the flush edge where the anchor put it; clamp the free corner.
+        sx1 = max(0, min(base_rect[0], cols - need_x))
+        sy1 = max(0, min(base_rect[1], rows - need_y))
+        stair_rect = (sx1, sy1, sx1 + need_x, sy1 + need_y)
         if not (
             0 <= stair_rect[0] < stair_rect[2] <= cols
             and 0 <= stair_rect[1] < stair_rect[3] <= rows
@@ -1668,33 +1822,61 @@ def stage_a_topology(
         opening_limits.door_main_min_mm + 2 * WALL_END_MARGIN_MM, module_mm=module_mm
     )
 
+    # CLEAR floors come from the PACK — the numbers the §5.4 critic hard-fails
+    # on. Brief widths/areas remain gross domain floors (see the field comment).
+    from services.solver.program import load_room_minima
+
+    minima = load_room_minima(rulepack_root)
+    clear_floor_by_key: Dict[str, Tuple[int, int]] = {}
+    for room in program.rooms:
+        if not room.packed or room.room_type == "shaft":
+            continue
+        nbc_area, nbc_width, _cite = minima.floor_for(room.room_type)
+        if room.is_circulation:
+            # No pack row for a passage/foyer; the §5.3 playbook's 900mm least
+            # width is the clear floor. NOT the room's own min_width_mm — for a
+            # brief-authored foyer that is a gross wish, and promoting it to a
+            # clear bound re-tightened the model (execution find).
+            nbc_area, nbc_width = 0, max(nbc_width, DOOR_FRONTAGE_MM)
+        if nbc_area > 0 or nbc_width > 0:
+            clear_floor_by_key[room.key] = (nbc_area, nbc_width)
+
     budgets = split_time_budget(
         getattr(profile, "time_budget_seconds", None), program.storeys
     )
 
-    # §5.2 multi-floor: the ground footprint is fixed for every storey above, so
-    # it must be able to carry the LARGEST storey's minimum program. Without
-    # this floor the demo brief solved a compact ground floor and then proved
-    # every upper storey infeasible against it (execution find).
-    net_floor = 0
-    if program.storeys > 1:
-        floor_losses = snap_loss_table(max(cols, rows))
-        for index in range(program.storeys):
-            net_floor = max(
-                net_floor,
-                storey_min_net_cells(
-                    _bounds_for_storey(program, index, stair_rect, None, module_mm),
-                    floor_losses,
-                ),
-            )
+    # §5.2 multi-floor, generalised by execution: solve the MOST CONSTRAINED
+    # storey first — it defines the frame — then grow downward and shrink
+    # upward. Ground-first repeatedly picked footprints the upper program could
+    # not tile (and a net-floor patch just moved the contradiction); with the
+    # tight storey leading, every storey below merely has to CONTAIN its
+    # rectangle (easy: lower storeys hold the small flexible rooms) and every
+    # storey above fits WITHIN the one below it. The stair rect, the stair-side
+    # flush and the duct-containment carry the §5.2 continuity.
+    floor_losses = snap_loss_table(max(cols, rows))
+    min_net_by_storey = {
+        index: storey_min_net_cells(
+            _bounds_for_storey(program, index, stair_rect, None, module_mm),
+            floor_losses,
+        )
+        for index in range(program.storeys)
+    }
+    solve_order = sorted(
+        range(program.storeys), key=lambda i: (-min_net_by_storey[i], i)
+    )
 
-    solutions: List[_StoreySolution] = []
-    footprint_fixed: Optional[Tuple[int, int, int, int]] = None
-    shaft_fixed: Optional[Tuple[int, int, int, int]] = None
-    for storey_index in range(program.storeys):
+    solutions: Dict[int, _StoreySolution] = {}
+    shaft_core: Optional[Tuple[int, int, int, int]] = None
+    for position, storey_index in enumerate(solve_order):
+        below = max(
+            (j for j in solutions if j < storey_index), default=None
+        )
+        above = min(
+            (j for j in solutions if j > storey_index), default=None
+        )
         problem = _StoreyProblem(
             storey_index=storey_index,
-            rooms=_bounds_for_storey(program, storey_index, stair_rect, shaft_fixed, module_mm),
+            rooms=_bounds_for_storey(program, storey_index, stair_rect, None, module_mm),
             cols=cols,
             rows=rows,
             voids=voids,
@@ -1707,14 +1889,27 @@ def stage_a_topology(
             ),
             stair_side=stair_side,
             entry_side=entry if storey_index == 0 else None,
-            footprint_fixed=footprint_fixed,
-            shaft_fixed_rect=shaft_fixed,
+            footprint_within=solutions[below].footprint if below is not None else None,
+            footprint_contains=solutions[above].footprint if above is not None else None,
+            # No HARD cross-storey shaft link: transplanting the lead storey's
+            # shaft rect provably killed the follower (execution find), and the
+            # §5.4 critic already scores duct alignment softly via
+            # ``score_plumbing_stack`` — soft is the design's own lever here.
+            shaft_fixed_rect=None,
             zone_bands=bands,
             vastu_mode=program.vastu_mode,
             north_deg=params.north_deg,
             door_cells_by_key=door_cells_by_key,
             entry_frontage_cells=entry_frontage_cells,
-            net_floor_cells=net_floor,
+            clear_floor_by_key=clear_floor_by_key,
+            # The lead storey of a multi-storey solve is kept close to its own
+            # minimum program (110%); see the field comment. Later storeys are
+            # sized by their containment relations instead.
+            net_ceiling_cells=(
+                (min_net_by_storey[storey_index] * 11) // 10
+                if position == 0 and program.storeys > 1
+                else 0
+            ),
         )
         if not problem.rooms:
             log.info(
@@ -1722,7 +1917,7 @@ def stage_a_topology(
             )
             return None
         solution = _solve_storey_via_candidates(
-            problem, params, profile, budgets[storey_index], grid_origin, module_mm
+            problem, params, profile, budgets[position], grid_origin, module_mm
         )
         if solution is None:
             log.info(
@@ -1732,21 +1927,22 @@ def stage_a_topology(
                 relaxed=relaxed,
             )
             return None
-        solutions.append(solution)
-        if storey_index == 0:
-            # §5.2 multi-floor: fix stair + shafts + external walls, solve uppers.
-            footprint_fixed = solution.footprint
-            shaft_fixed = solution.shaft_rect
+        solutions[storey_index] = solution
+        if shaft_core is None:
+            # The lead storey's shaft is the duct core every other storey's
+            # shaft must contain (vertical plumbing continuity).
+            shaft_core = solution.shaft_rect
 
     cell_area = module_mm * module_mm
     placements: List[RoomPlacement] = []
-    for solution in solutions:
-        placements.extend(solution.placements)
+    for storey_index in sorted(solutions):
+        placements.extend(solutions[storey_index].placements)
+    ordered = [solutions[index] for index in sorted(solutions)]
     return Candidate(
         stair_anchor=anchor,
         placements=tuple(placements),
-        circulation_area_mm2=sum(s.circulation_cells for s in solutions) * cell_area,
-        objective=sum(s.objective for s in solutions),
+        circulation_area_mm2=sum(s.circulation_cells for s in ordered) * cell_area,
+        objective=sum(s.objective for s in ordered),
     )
 
 
