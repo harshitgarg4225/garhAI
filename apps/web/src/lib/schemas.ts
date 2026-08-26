@@ -421,21 +421,96 @@ export type Job = z.infer<typeof jobSchema>;
  * One SSE frame from `/solver-jobs/:id/events` or `/render-jobs/:id/events`.
  * Field-for-field `garh_api.queue.ProgressEvent.to_dict()`.
  */
-export const progressEventSchema = z.object({
-  eventVersion: z.number().int().default(1),
-  jobId: z.string(),
-  jobKind: z.string(),
-  seq: z.number().int().default(0),
-  at: z.string(),
+/** The server's own worker-event→status table (`garh_api.queue._EVENT_STATUS`). */
+const PROGRESS_EVENT_STATUS: Readonly<Record<string, (typeof JOB_STATUSES)[number]>> = {
+  queued: 'queued',
+  started: 'running',
+  stage: 'running',
+  progress: 'running',
+  artifact: 'running',
+  warning: 'running',
+  retrying: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed',
+  dead_lettered: 'failed',
+  cancelled: 'cancelled',
+};
+const PROGRESS_TERMINAL_TYPES = new Set(['succeeded', 'failed', 'cancelled', 'dead_lettered']);
+
+/**
+ * One SSE `progress` frame, EXACTLY as `garh_api.queue.ProgressEvent.encode()`
+ * puts it on the wire: the WORKER's vocabulary — `type` / `percent` / `tsMs` —
+ * not the job row's `status` / `progress` / `at`. The first version of this
+ * schema was written against a server method that does not exist, and its
+ * `.catch('running')` + `.default(false)` dressed every real event as a
+ * non-terminal "running" — so no browser could ever see a job finish, and no
+ * test could go red. Found the first time a browser actually consumed the
+ * stream (the options theater sat on "Waiting in the queue…" while the worker
+ * logged `job.succeeded`). The transform derives the row vocabulary every
+ * consumer speaks, using the server's own type→status table above.
+ */
+export const progressEventSchema = z
+  .object({
+    schemaVersion: z.number().int().default(1),
+    jobId: z.string(),
+    type: z.string(),
+    seq: z.number().int().default(0),
+    tsMs: z.number().int().default(0),
+    /** Stable machine token the UI maps to §15's staged copy. */
+    stage: z.string().nullable().default(null),
+    message: z.string().nullable().default(null),
+    percent: z.number().int().min(0).max(100).nullable().default(null),
+    data: z.record(z.unknown()).default({}),
+  })
+  .transform((raw) => ({
+    eventVersion: raw.schemaVersion,
+    jobId: raw.jobId,
+    jobKind: typeof raw.data.kind === 'string' ? raw.data.kind : '',
+    seq: raw.seq,
+    at: new Date(raw.tsMs).toISOString(),
+    status: PROGRESS_EVENT_STATUS[raw.type] ?? ('running' as const),
+    progress: raw.percent ?? 0,
+    stage: raw.stage,
+    message: raw.message,
+    data: raw.data,
+    terminal: PROGRESS_TERMINAL_TYPES.has(raw.type),
+  }));
+export type ProgressEvent = z.infer<typeof progressEventSchema>;
+
+/**
+ * The stream's opening `state` frame is the JOB ROW, not a worker event — it
+ * is how a client that connects after the job finished still learns the
+ * outcome. It used to fail the progress parse and be dropped silently, which
+ * left late connectors (and every reconnect) stuck on their last known state.
+ */
+const sseStateFrameSchema = z.object({
+  id: z.string(),
+  kind: z.string().default(''),
   status: z.enum(JOB_STATUSES).catch('running'),
   progress: z.number().int().min(0).max(100).default(0),
-  /** Stable machine token the UI maps to §15's staged copy. */
   stage: z.string().nullable().default(null),
-  message: z.string().nullable().default(null),
-  data: z.record(z.unknown()).default({}),
-  terminal: z.boolean().default(false),
+  error: z.string().nullable().default(null),
+  updatedAt: isoDateTime.nullable().default(null),
 });
-export type ProgressEvent = z.infer<typeof progressEventSchema>;
+
+export function progressEventFromState(data: unknown): ProgressEvent | null {
+  const row = sseStateFrameSchema.safeParse(data);
+  if (!row.success) return null;
+  const { status } = row.data;
+  return {
+    eventVersion: 1,
+    jobId: row.data.id,
+    jobKind: row.data.kind,
+    seq: 0,
+    at: row.data.updatedAt ?? new Date(0).toISOString(),
+    status,
+    progress: row.data.progress,
+    stage: row.data.stage,
+    message: row.data.error,
+    data: row.data.error === null ? {} : { message: row.data.error },
+    terminal: status === 'succeeded' || status === 'failed' || status === 'cancelled',
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Renders (§9) — Phase 7

@@ -96,3 +96,5 @@ export {
   solverJobDetailSchema,
 } from './types';
 export type { MiniPlan, PlanOption, SolveOutcome, SolverJobDetail } from './types';
+export { OptionsOverlay } from './OptionsOverlay';
+export type { OptionsOverlayProps } from './OptionsOverlay';

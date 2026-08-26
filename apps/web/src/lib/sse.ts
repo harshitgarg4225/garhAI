@@ -25,7 +25,12 @@
 
 import { AppError, ERROR_CODES, problemToAppError } from './errors';
 import { http } from './http';
-import { progressEventSchema, type JobKind, type ProgressEvent } from './schemas';
+import {
+  progressEventFromState,
+  progressEventSchema,
+  type JobKind,
+  type ProgressEvent,
+} from './schemas';
 
 /** Path of the SSE endpoint for each job kind (§11). */
 const EVENT_PATHS: Readonly<Record<JobKind, (jobId: string) => string>> = {
@@ -185,7 +190,14 @@ export function subscribeJobEvents(options: JobEventOptions): () => void {
           buffer = rest;
 
           for (const frame of frames) {
-            const parsed = safeParseEvent(frame.data);
+            // The opening `state` frame is the JOB ROW (how a late connector
+            // learns a finished job's outcome); everything else is a worker
+            // progress event. They are different wire shapes — parsing the row
+            // as a progress event used to fail silently and drop the outcome.
+            const parsed =
+              frame.event === 'state'
+                ? safeParseState(frame.data)
+                : safeParseEvent(frame.data);
             if (!parsed) continue;
             // Dedupe across a reconnect replay.
             if (parsed.seq > 0 && parsed.seq <= lastSeq) continue;
@@ -228,6 +240,14 @@ function safeParseEvent(data: string): ProgressEvent | null {
   try {
     const parsed = progressEventSchema.safeParse(JSON.parse(data));
     return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeParseState(data: string): ProgressEvent | null {
+  try {
+    return progressEventFromState(JSON.parse(data));
   } catch {
     return null;
   }

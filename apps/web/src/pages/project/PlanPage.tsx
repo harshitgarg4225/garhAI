@@ -134,6 +134,7 @@ import {
   useDimensionEditing,
   type DimensionHandleIndex,
 } from '../../features/canvas/overlays';
+import { OptionsOverlay } from '../../features/options';
 import {
   ToolHud,
   ToolOptionsBar,
@@ -227,6 +228,8 @@ function PlanEditor(): JSX.Element {
   const keyboardEnabled = useUiStore(selectKeyboardEnabled);
   const activeTool = useUiStore((s) => s.activeTool);
   const canvasFocus = useUiStore((s) => s.canvasFocus);
+  const optionsOpen = useUiStore((s) => s.optionsOpen);
+  const setOptionsOpen = useUiStore((s) => s.setOptionsOpen);
 
   const is2d = viewMode === '2d';
   // Pointer handlers read the mode through a ref: their identity must not
@@ -801,6 +804,21 @@ function PlanEditor(): JSX.Element {
       </CanvasRoot>
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
+      {/* The §5.5 options surface — the dashboard's stage map routes the
+          `options` stage HERE, and this overlay is that mount. Opened by the
+          top bar's Generate (which also starts the solve); apply lands ops on
+          the canvas underneath and closing returns to the drawing as-is. */}
+      {optionsOpen ? (
+        <OptionsOverlay
+          projectId={project.id}
+          plotOutline={plotBoundary}
+          briefReady={
+            plotBoundary.length >= 3 && (project.progress?.briefCompleteness ?? 0) > 0
+          }
+          onClose={() => setOptionsOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -316,7 +316,8 @@ async function postBinary<T>(
 
 /** Turn a zod schema into the `parse` callback `HttpClient` expects. */
 function parser<S extends z.ZodTypeAny>(schema: S): (data: unknown) => z.infer<S> {
-  return (data: unknown) => schema.parse(data);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- ZodTypeAny.parse is `any` by zod's own typing; the schema itself is the runtime proof of the shape.
+  return (data: unknown) => schema.parse(data) as z.infer<S>;
 }
 
 function pageParser<S extends z.ZodTypeAny>(schema: S): (data: unknown) => Page<z.infer<S>> {
@@ -1012,7 +1013,7 @@ export function createApiClient(client: HttpClient = http) {
           sheetSize?: string;
           dimToJamb?: boolean | null;
           titleBlock?: Record<string, unknown> | null;
-          revisions?: ReadonlyArray<Record<string, unknown>> | null;
+          revisions?: readonly Record<string, unknown>[] | null;
           formats?: string[];
         } = {},
         opts: CallOptions = {},
@@ -1182,8 +1183,13 @@ export function createApiClient(client: HttpClient = http) {
         client.request({
           method: 'POST',
           path: projectPath(projectId, '/share'),
+          // TOP-LEVEL fields, exactly as ShareLinkCreateIn reads them. The
+          // earlier nested `{scope: {...}}` shape 422'd on every call (the
+          // server forbids extra members, §13) — this method had simply never
+          // been executed. The e2e share helper pins the working shape.
           body: {
-            scope: { sections: input.sections, canComment: input.canComment ?? false },
+            sections: input.sections,
+            canComment: input.canComment ?? false,
             expiresInDays: input.expiresInDays,
           },
           parse: parser(shareLinkSchema),

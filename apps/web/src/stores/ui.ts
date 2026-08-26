@@ -128,6 +128,9 @@ export interface UiState {
   inspectorOpen: boolean;
   complianceStripOpen: boolean;
   copilotOpen: boolean;
+  /** The §5.5 options overlay on the Plan tab — opened by Generate. */
+  optionsOpen: boolean;
+  setOptionsOpen: (open: boolean) => void;
 
   /** Global keyboard-map switch. A focus-trapped dialog turns it off. */
   keyboardEnabled: boolean;
@@ -240,6 +243,8 @@ export const useUiStore = create<UiState>()((set, get) => ({
   inspectorOpen: true,
   complianceStripOpen: true,
   copilotOpen: false,
+  optionsOpen: false,
+  setOptionsOpen: (open) => set({ optionsOpen: open }),
 
   keyboardEnabled: true,
   toolKeysActive: false,

@@ -63,6 +63,9 @@ import type { ShareSection } from '../components';
 /* The panel itself is lazy (below); only the `/` handler is eager, and it is a
    ~60-line module whose whole dependency list is the ui store. */
 import { copilotFocusHandler } from '../features/copilot/focus';
+import { useSolverJob } from '../features/options';
+import { api } from '../lib/api';
+import { AppError } from '../lib/errors';
 import { useKeyboardMap, type CommandHandlers } from '../lib/keymap';
 import { useJobsStore } from '../stores/jobs';
 import { useModelStore, selectCanRedo, selectCanUndo } from '../stores/model';
@@ -212,6 +215,12 @@ export function ProjectShell(): JSX.Element {
   const [shareUrl, setShareUrl] = useState<string | undefined>(undefined);
   const [shareExpiresAt, setShareExpiresAt] = useState<string | undefined>(undefined);
   const [creatingShare, setCreatingShare] = useState(false);
+  /** The created link's id — what revoke needs; the URL alone cannot revoke. */
+  const [shareId, setShareId] = useState<string | undefined>(undefined);
+  const [revokingShare, setRevokingShare] = useState(false);
+
+  const solver = useSolverJob(projectId);
+  const setOptionsOpen = useUiStore((s) => s.setOptionsOpen);
 
   useEffect(() => {
     if (projectId === '') return;
@@ -362,15 +371,31 @@ export function ProjectShell(): JSX.Element {
   };
 
   function handleGenerate(): void {
-    // The solver lands in Phase 3. Saying so is better than a button that
-    // appears to work; the toast carries the next useful action.
-    toast({
-      severity: 'info',
-      title: 'Plan generation arrives in Phase 3',
-      description:
-        'The brief and plot you enter now feed straight into it — nothing you do here is throwaway.',
-      action: { label: 'Open the brief', onClick: () => navigate(`/projects/${project?.id}/brief`) },
-    });
+    // The options surface lives on the Plan tab (the dashboard's stage map has
+    // always said so); Generate takes you there, opens it, and starts a solve
+    // unless one is already running — the theater picks the job up either way.
+    if (currentTab?.key !== 'plan' && currentTab?.key !== '3d') {
+      navigate(`/projects/${projectId}/plan`);
+    }
+    setOptionsOpen(true);
+    if (!solver.isRunning) {
+      solver.generate().catch((err: unknown) => {
+        const error = AppError.from(err);
+        toast({
+          severity: 'fail',
+          title: "Couldn't start generating",
+          description: error.message,
+          // The two 409s here are actionable (no plot boundary / no brief
+          // rooms) and the fix lives on a specific tab; anything else retries.
+          action:
+            error.code === 'no_brief_rooms'
+              ? { label: 'Open the brief', onClick: () => navigate(`/projects/${projectId}/brief`) }
+              : error.code === 'no_plot_boundary'
+                ? { label: 'Draw the plot', onClick: () => navigate(`/projects/${projectId}/plan`) }
+                : { label: 'Try again', onClick: () => handleGenerate() },
+        });
+      });
+    }
   }
 
   async function handleCreateShare(input: {
@@ -380,16 +405,17 @@ export function ProjectShell(): JSX.Element {
   }): Promise<void> {
     setCreatingShare(true);
     try {
-      // Share-link creation is a Phase 9 API. Until it exists we are explicit
-      // rather than inventing a URL that would 404 for the client.
-      void input;
-      toast({
-        severity: 'info',
-        title: 'Client share links arrive in Phase 9',
-        description:
-          'The scope options you picked are exactly what the link will carry when it ships.',
+      const link = await api.share.create(projectId, {
+        sections: input.sections,
+        canComment: input.canComment,
+        expiresInDays: input.expiryDays,
       });
-      setShareOpen(false);
+      // The token appears exactly once (§13 — stored hashed, never shown
+      // again), so the dialog STAYS OPEN showing the URL for the architect to
+      // copy or WhatsApp; closing it early would lose the link forever.
+      setShareId(link.id);
+      setShareUrl(link.url ?? undefined);
+      setShareExpiresAt(link.expiresAt ?? undefined);
     } catch (err) {
       const problem = toProblem(err);
       toast({
@@ -400,6 +426,32 @@ export function ProjectShell(): JSX.Element {
       });
     } finally {
       setCreatingShare(false);
+    }
+  }
+
+  async function handleRevokeShare(): Promise<void> {
+    if (shareId === undefined) return;
+    setRevokingShare(true);
+    try {
+      await api.share.revoke(shareId);
+      setShareId(undefined);
+      setShareUrl(undefined);
+      setShareExpiresAt(undefined);
+      toast({
+        severity: 'pass',
+        title: 'Link revoked',
+        description: 'It stopped working the moment you clicked — anyone holding it sees a dead link.',
+      });
+    } catch (err) {
+      const problem = toProblem(err);
+      toast({
+        severity: 'fail',
+        title: "Couldn't revoke the link",
+        description: problem.message,
+        action: { label: 'Try again', onClick: () => void handleRevokeShare() },
+      });
+    } finally {
+      setRevokingShare(false);
     }
   }
 
@@ -541,10 +593,8 @@ export function ProjectShell(): JSX.Element {
         expiresAt={shareExpiresAt}
         creating={creatingShare}
         onCreate={(input) => void handleCreateShare(input)}
-        onRevoke={() => {
-          setShareUrl(undefined);
-          setShareExpiresAt(undefined);
-        }}
+        onRevoke={() => void handleRevokeShare()}
+        revoking={revokingShare}
       />
 
       {/* `loading` is surfaced only as a quiet re-fetch hint; the shell itself
