@@ -305,6 +305,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r /tmp/requirements-all.txt
 
+      - name: Install PDF tools (the §7 vector export refuses to fake it)
+        # Mirrors services/Dockerfile: rsvg-convert converts, qpdf merges. The
+        # runner ships librsvg but not qpdf, so without this the drawings
+        # export test exercises the real "no merge tool" refusal instead of
+        # the real conversion.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends librsvg2-bin qpdf
+
       - name: Generate a test JWT keypair
         # RS256 is not optional for the auth tests, and a keypair minted per run
         # means no key material is ever committed (§13).
@@ -414,6 +421,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+
+      - name: Install PDF tools (the §7 vector export refuses to fake it)
+        # Mirrors services/Dockerfile: rsvg-convert converts, qpdf merges. The
+        # runner ships librsvg but not qpdf, so without this the drawings
+        # export test exercises the real "no merge tool" refusal instead of
+        # the real conversion.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends librsvg2-bin qpdf
 
       - name: Install python dependencies
         run: |

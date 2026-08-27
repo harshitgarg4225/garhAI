@@ -67,8 +67,8 @@ ml = [
 ]
 
 dev = [
-  "pytest==8.3.3",                 # MIT
-  "pytest-asyncio==0.24.0",        # Apache-2.0
+  "pytest==9.0.3",                 # MIT
+  "pytest-asyncio==1.4.0",         # Apache-2.0
   "hypothesis==6.112.2",           # MPL-2.0
   "ruff==0.6.9",                   # MIT
   "mypy==1.11.2",                  # MIT

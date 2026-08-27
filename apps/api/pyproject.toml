@@ -22,7 +22,7 @@ dependencies = [
   "pydantic-settings==2.5.2",      # MIT
   "psycopg[binary]==3.2.3",        # LGPL-3.0 (driver, dynamically linked; not app code)
   "redis==5.1.1",                  # MIT
-  "pyjwt[crypto]==2.9.0",          # MIT (RS256 needs the crypto extra)
+  "pyjwt[crypto]==2.13.0",         # MIT (RS256 needs the crypto extra)
   "sse-starlette==2.1.3",          # BSD-3
   "structlog==24.4.0",             # Apache-2.0 / MIT dual
   "httpx==0.27.2",                 # BSD-3
@@ -32,8 +32,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest==8.3.3",                 # MIT
-  "pytest-asyncio==0.24.0",        # Apache-2.0
+  "pytest==9.0.3",                 # MIT
+  "pytest-asyncio==1.4.0",         # Apache-2.0
   "hypothesis==6.112.2",           # MPL-2.0
   "ruff==0.6.9",                   # MIT
   "mypy==1.11.2",                  # MIT
