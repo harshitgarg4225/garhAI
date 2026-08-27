@@ -225,3 +225,28 @@ def test_redacted_config_hides_every_secret(monkeypatch: Any) -> None:
     blob = repr(dump)
     assert "not-a-real-key" not in blob
     assert "live-secret" not in blob
+
+
+def test_cors_origins_accept_the_documented_comma_form(monkeypatch: Any) -> None:
+    """compose and .env.example pass CORS_ALLOW_ORIGINS as a comma list.
+
+    pydantic-settings json.loads() env values for complex fields BEFORE any
+    validator, so without ``NoDecode`` the comma form crashed the API at boot —
+    found by the first `docker compose up` ever executed (CI run 9, 2026-08-27),
+    one run after the workers' identical RENDER_MODEL_ALLOWLIST crash.
+    """
+    settings = _settings_from(
+        monkeypatch,
+        APP_ENV="dev",
+        CORS_ALLOW_ORIGINS="https://a.example, https://b.example",
+    )
+    assert settings.cors_allow_origins == ("https://a.example", "https://b.example")
+
+
+def test_cors_origins_still_accept_the_json_form(monkeypatch: Any) -> None:
+    settings = _settings_from(
+        monkeypatch,
+        APP_ENV="dev",
+        CORS_ALLOW_ORIGINS='["https://c.example"]',
+    )
+    assert settings.cors_allow_origins == ("https://c.example",)

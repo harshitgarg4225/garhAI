@@ -16,10 +16,10 @@ Usage::
 from __future__ import annotations
 
 import functools
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 Environment = Literal["dev", "test", "staging", "prod"]
 LlmProvider = Literal["mock", "anthropic"]
@@ -171,7 +171,12 @@ class Settings(BaseSettings):
     sentry_traces_sample_rate: float = Field(default=0.1, ge=0.0, le=1.0)
 
     # -- web --------------------------------------------------------------
-    cors_allow_origins: tuple[str, ...] = ("http://localhost:5173",)
+    #: ``NoDecode``: pydantic-settings json.loads() env values for complex fields
+    #: BEFORE validators, so the comma form compose and .env.example document
+    #: crashed the API at boot the first time `docker compose up` ran (CI run 9)
+    #: — the same failure the workers' RENDER_MODEL_ALLOWLIST had one run
+    #: earlier. The validator below is the single decoder (comma or JSON array).
+    cors_allow_origins: Annotated[tuple[str, ...], NoDecode] = ("http://localhost:5173",)
 
     # ------------------------------------------------------------------
     # validators
@@ -191,6 +196,11 @@ class Settings(BaseSettings):
     @classmethod
     def _split_origins(cls, value: Any) -> Any:
         if isinstance(value, str):
+            text = value.strip()
+            if text.startswith("["):
+                import json
+
+                return tuple(json.loads(text))
             return tuple(part.strip() for part in value.split(",") if part.strip())
         return value
 
