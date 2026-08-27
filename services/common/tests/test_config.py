@@ -143,3 +143,27 @@ def test_heartbeat_is_well_inside_the_visibility_timeout(pristine_env: None) -> 
 def test_retry_backoff_cap_is_not_below_the_base(pristine_env: None) -> None:
     settings = WorkerSettings(_env_file=None)  # type: ignore[call-arg]
     assert settings.queue_retry_backoff_max_seconds >= settings.queue_retry_backoff_seconds
+
+
+def test_render_model_allowlist_accepts_the_documented_comma_form(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """docker-compose.yml and .env.example both pass the allowlist as a comma list.
+
+    pydantic-settings json.loads() env values for complex fields at the SOURCE
+    level, before any validator — so without ``NoDecode`` the comma form crashed
+    the worker at boot with a JSONDecodeError. The first `docker compose up`
+    ever executed (CI run 7, 2026-08-27) found it; every environment before
+    that either left the variable unset or never booted a worker at all.
+    """
+    monkeypatch.setenv("RENDER_MODEL_ALLOWLIST", "vendor/model-a, vendor/model-b")
+    settings = WorkerSettings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.render_model_allowlist == ("vendor/model-a", "vendor/model-b")
+
+
+def test_render_model_allowlist_still_accepts_the_json_form(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RENDER_MODEL_ALLOWLIST", '["vendor/model-c"]')
+    settings = WorkerSettings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.render_model_allowlist == ("vendor/model-c",)

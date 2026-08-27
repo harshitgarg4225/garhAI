@@ -19,7 +19,7 @@ dependencies = [
   "sqlalchemy[asyncio]==2.0.35",   # MIT
   "alembic==1.13.3",               # MIT
   "pydantic==2.9.2",               # MIT
-  "pydantic-settings==2.5.2",      # MIT
+  "pydantic-settings==2.15.0",     # MIT
   "psycopg[binary]==3.2.3",        # LGPL-3.0 (driver, dynamically linked; not app code)
   "redis==5.1.1",                  # MIT
   "pyjwt[crypto]==2.13.0",         # MIT (RS256 needs the crypto extra)

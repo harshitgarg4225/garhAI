@@ -155,6 +155,9 @@ def _install_pydantic() -> bool:
 
     pyds.BaseSettings = _BaseSettings  # type: ignore[attr-defined]
     pyds.SettingsConfigDict = dict  # type: ignore[attr-defined]
+    # An annotation marker on the real library; inert here — Annotated metadata
+    # is never inspected by the stubbed BaseSettings.
+    pyds.NoDecode = type("NoDecode", (), {})  # type: ignore[attr-defined]
     sys.modules["pydantic_settings"] = pyds
     return True
 

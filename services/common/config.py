@@ -16,10 +16,10 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 Environment = Literal["dev", "test", "staging", "prod"]
 LlmProvider = Literal["mock", "anthropic"]
@@ -133,7 +133,12 @@ class WorkerSettings(BaseSettings):
     render_concurrency_per_firm: int = Field(default=4, ge=1, le=64)
     render_model_id: str = "stabilityai/stable-diffusion-xl-base-1.0"
     #: LEGAL GUARD (§9). Weights outside this list are refused at load time.
-    render_model_allowlist: tuple[str, ...] = (
+    #: ``NoDecode``: without it pydantic-settings json.loads() any env value for a
+    #: complex field BEFORE the comma-split validator can run — the exact crash the
+    #: first `docker compose up` in CI produced, since compose's
+    #: RENDER_MODEL_ALLOWLIST is the comma form .env.example documents. The
+    #: validator below is the single decoder (comma list or JSON array).
+    render_model_allowlist: Annotated[tuple[str, ...], NoDecode] = (
         "stabilityai/stable-diffusion-xl-base-1.0",
         "black-forest-labs/FLUX.1-schnell",
         "Qwen/Qwen-Image",
@@ -191,6 +196,13 @@ class WorkerSettings(BaseSettings):
     @classmethod
     def _split_allowlist(cls, value: Any) -> Any:
         if isinstance(value, str):
+            text = value.strip()
+            if text.startswith("["):
+                # Someone fed the JSON form pydantic-settings used to demand;
+                # honour it rather than splitting a JSON array on commas.
+                import json
+
+                return tuple(json.loads(text))
             return tuple(part.strip() for part in value.split(",") if part.strip())
         return value
 

@@ -29,7 +29,7 @@ dependencies = [
   "redis==5.1.1",                  # MIT           queue + progress pub/sub
   "structlog==24.4.0",             # Apache-2.0/MIT JSON worker logs (§18)
   "pydantic==2.9.2",               # MIT           typed job payloads
-  "pydantic-settings==2.5.2",      # MIT           12-factor worker config (§18)
+  "pydantic-settings==2.15.0",     # MIT           12-factor worker config (§18)
   "httpx==0.27.2",                 # BSD-3         presigned blob IO + Anthropic Messages API
   "python-ulid==2.7.0",            # MIT           element ids the solver mints
   "ortools==9.15.6755",            # Apache-2.0    CP-SAT layout engine (§5)
