@@ -169,7 +169,19 @@ def _env_example_entries() -> List[Tuple[str, str]]:
             continue
         match = ENV_LINE.match(line)
         if match:
-            entries.append((match.group(1), match.group(2)))
+            name, value = match.group(1), match.group(2)
+            # python-dotenv keeps a trailing comment as the VALUE when the value
+            # itself is empty — `SENTRY_DSN=   # blank = off` parses as the
+            # comment text, which crashed both workers the first time
+            # `docker compose up` copied this file to `.env` (CI run 8,
+            # 2026-08-27). Comments on empty-valued lines go on their own line.
+            if value.strip().startswith("#"):
+                raise SystemExit(
+                    "env-audit: %s in .env.example has an inline comment on an "
+                    "empty value; python-dotenv reads the comment AS the value. "
+                    "Move the comment to its own line." % name
+                )
+            entries.append((name, value))
     return entries
 
 
@@ -196,11 +208,20 @@ def main(argv: Iterable[str] = ()) -> int:
     read_by_code = api_names | worker_names | direct
 
     # A line may be annotated "NOT READ" — an accepted, explained placeholder.
+    # The annotation counts on the assignment line itself OR on the comment
+    # line directly above it (empty-valued lines cannot carry inline comments:
+    # python-dotenv would read the comment as the value — see
+    # _env_example_entries).
     annotated_not_read: Set[str] = set()
+    previous = ""
     for line in raw.splitlines():
         match = ENV_LINE.match(line)
-        if match and "NOT READ" in line.upper():
+        if match and (
+            "NOT READ" in line.upper()
+            or (previous.lstrip().startswith("#") and "NOT READ" in previous.upper())
+        ):
             annotated_not_read.add(match.group(1))
+        previous = line
 
     unexplained = sorted(
         name
