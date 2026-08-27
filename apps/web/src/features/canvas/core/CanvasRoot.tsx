@@ -51,6 +51,7 @@ import {
 import { CanvasCore, CanvasCoreContext } from './context';
 import { refreshCanvasTheme, watchCanvasTheme } from './materials';
 import { useCanvasControls, type CanvasControlsCallbacks } from './useCanvasControls';
+import { useOverlayPointerGuard } from './useOverlayPointerGuard';
 
 export interface CanvasRootProps extends CanvasControlsCallbacks {
   /** `'2d'` orthographic plan, `'3d'` perspective. Wire to `ui.viewMode`. */
@@ -106,6 +107,10 @@ export function CanvasRoot({
 }: CanvasRootProps): JSX.Element {
   const core = useMemo(() => new CanvasCore(), []);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
+  // The DOM overlay wrapper, so its pointer events can be kept out of the
+  // canvas tools below it (useOverlayPointerGuard explains why this must be a
+  // native listener on this exact element).
+  const [overlayEl, setOverlayEl] = useState<HTMLDivElement | null>(null);
 
   // Props the core reads on every pointer event. Mirrored onto the mutable core
   // rather than held in state: nothing should re-render because the snap module
@@ -146,6 +151,11 @@ export function CanvasRoot({
     hover,
     ...callbacks,
   });
+
+  // Must come after the controls hook: both listen on elements in the same
+  // subtree, and this one's whole job is to stop events before they reach the
+  // container the controls listen on.
+  useOverlayPointerGuard(overlayEl);
 
   return (
     <div
@@ -195,7 +205,11 @@ export function CanvasRoot({
       {/* DOM overlay: HUD, chips, readouts. Outside the GL context on purpose —
           text in the DOM is accessible, selectable and free. */}
       {overlay === undefined ? null : (
-        <div className="pointer-events-none absolute inset-0">{overlay}</div>
+        // The guard below is why a click on a panel button no longer also drops
+        // a wall point on the drawing behind it (see useOverlayPointerGuard).
+        <div ref={setOverlayEl} className="pointer-events-none absolute inset-0">
+          {overlay}
+        </div>
       )}
     </div>
   );
