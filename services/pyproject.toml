@@ -32,9 +32,9 @@ dependencies = [
   "pydantic-settings==2.5.2",      # MIT           12-factor worker config (§18)
   "httpx==0.27.2",                 # BSD-3         presigned blob IO + Anthropic Messages API
   "python-ulid==2.7.0",            # MIT           element ids the solver mints
-  "ortools==9.11.4210",            # Apache-2.0    CP-SAT layout engine (§5)
+  "ortools==9.15.6755",            # Apache-2.0    CP-SAT layout engine (§5)
   "ezdxf==1.3.4",                  # MIT           DXF export + audit (§7)
-  "pillow==10.4.0",                # MIT-CMU/HPND  MockRenderProvider compositor (§9)
+  "pillow==12.3.0",                # MIT-CMU/HPND  MockRenderProvider compositor (§9)
   "sentry-sdk==2.68.1",            # MIT           error tracking (§18) — imported lazily; inert unless SENTRY_DSN is set
 ]
 

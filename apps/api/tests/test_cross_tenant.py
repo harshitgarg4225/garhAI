@@ -323,10 +323,35 @@ async def test_cross_tenant_access_is_404(
 # ---------------------------------------------------------------------------
 
 
+def _walk_routes(app: Any) -> list[Any]:
+    """Flatten the route table across fastapi versions.
+
+    fastapi ≤0.115 flattened ``include_router`` into ``app.routes``; 0.141 keeps
+    lazy ``_IncludedRouter`` wrappers there instead, whose children only surface
+    via ``effective_candidates()``. Walk both shapes — this guard going quietly
+    empty is precisely what ``test_the_route_table_is_not_trivially_small``
+    exists to catch (and did, on the 0.141 upgrade).
+    """
+    out: list[Any] = []
+    stack = list(app.routes)
+    while stack:
+        item = stack.pop()
+        children = getattr(item, "routes", None)
+        if children:
+            stack.extend(children)
+            continue
+        candidates = getattr(item, "effective_candidates", None)
+        if callable(candidates):
+            stack.extend(candidates())
+            continue
+        out.append(item)
+    return out
+
+
 def _tenant_scoped_routes(app: Any) -> set[tuple[str, str]]:
     """Every ``(method, path)`` on the app that carries a tenant-scoped path parameter."""
     found: set[tuple[str, str]] = set()
-    for route in app.routes:
+    for route in _walk_routes(app):
         path = getattr(route, "path", None)
         methods = getattr(route, "methods", None)
         if not path or not methods:

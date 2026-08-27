@@ -14,7 +14,7 @@ authors = [{ name = "Garh AI" }]
 # Runtime deps. Versions are PINNED exactly — the workspace must stay self-consistent.
 # License gate (see references/market-research-and-oss-licenses.md): Apache/MIT/BSD/MPL only.
 dependencies = [
-  "fastapi==0.115.0",              # MIT
+  "fastapi==0.141.1",              # MIT
   "uvicorn[standard]==0.31.0",     # BSD-3
   "sqlalchemy[asyncio]==2.0.35",   # MIT
   "alembic==1.13.3",               # MIT
