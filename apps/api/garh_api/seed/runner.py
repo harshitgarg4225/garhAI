@@ -271,6 +271,50 @@ def _firm_settings_patch(catalog: CatalogBundle, rulepacks: RulepackRegistry) ->
     }
 
 
+async def _demo_seed_is_stale(
+    op_repo: OpRepository,
+    project_id: uuid.UUID,
+    branch: uuid.UUID,
+    brief: demo_data.DemoBrief,
+) -> bool:
+    """Is this op log a PREVIOUS seed's untouched output that today's seed disagrees with?
+
+    Two conditions, both required:
+
+    1. Every op is seed-authored: ``source == "system"`` and a ``seed-*`` client op id.
+       One human op — any source, any id — and the answer is ``False`` forever; a demo
+       someone has edited is theirs, stale brief or not.
+    2. The stored ``(type, payload)`` sequence differs from what today's seed would
+       author. Compared through a JSON normalisation so JSONB round-tripping (key
+       order) cannot manufacture a difference. The authored list is deterministic —
+       fixture element ids, no expansion (`dispatch_ops` expands only
+       ``solver.apply_option``, which the seed does not author) — so equality here is
+       exact, and a spurious ``True`` would reseed on every boot.
+
+    This is what lets an already-deployed environment heal when the seed's demo
+    content improves (2026-08-27: the provably-infeasible 16-room brief → the
+    solver-feasible 3BHK) without an operator running ``--reset-demo`` by hand.
+    """
+    ops = await op_repo.list_since(project_id, branch, limit=10_000)
+    if not ops:
+        return False
+    for op in ops:
+        if op.source != "system" or not (op.client_op_id or "").startswith("seed-"):
+            return False
+
+    authored = demo_data.demo_op_log(brief)
+    storey_ids = list(demo_data.demo_storey_ids())
+    authored.extend(demo_data.solved_plan_ops(storey_ids=storey_ids))
+    authored.extend(demo_data.facade_ops(storey_ids=storey_ids))
+
+    def norm(seq: list[tuple[str, Any]]) -> str:
+        return json.dumps(seq, sort_keys=True, default=str)
+
+    stored = norm([(op.type, op.payload) for op in ops])
+    todays = norm([(str(op["type"]), op["payload"]) for op in authored])
+    return stored != todays
+
+
 async def _seed_demo_project(
     session: AsyncSession,
     ctx: TenantCtx,
@@ -317,6 +361,28 @@ async def _seed_demo_project(
 
     branch = await active_branch(session, ctx, project.id)
     head_idx = await op_repo.head_idx(project.id, branch)
+
+    if head_idx >= 0 and await _demo_seed_is_stale(op_repo, project.id, branch, brief):
+        # The op log is EXACTLY a previous seed's output — no human op has ever
+        # landed — and it differs from what today's seed authors. That is a stale
+        # demo (e.g. the pre-2026-08-26 infeasible 16-room brief), and leaving it
+        # gives every first-time visitor a Generate that honestly returns zero
+        # options. Rebuilding is safe precisely because nobody has touched it;
+        # one user-authored op and this branch is never taken again.
+        await projects.delete(project.id)
+        _log.warning("seed.demo_project_stale_reseeded", project_id=str(project.id))
+        project = await projects.create(
+            name=demo_data.DEMO_PROJECT_NAME,
+            status=demo_data.DEMO_PROJECT_STATUS,
+            units=demo_data.DEMO_UNITS,
+            city_pack=demo_data.DEMO_CITY_PACK,
+            architect_of_record=ctx.user_id,
+            demo=True,
+        )
+        result.steps["demoProject"] = RECREATED
+        result.project_id = project.id
+        branch = await active_branch(session, ctx, project.id)
+        head_idx = await op_repo.head_idx(project.id, branch)
 
     if head_idx >= 0:
         # Already seeded (or edited by a user). Appending again would duplicate the plot

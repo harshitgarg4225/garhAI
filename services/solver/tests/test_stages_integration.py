@@ -20,7 +20,6 @@ Two kinds of assertion, per the repo rule that a gate must be able to go red:
 from __future__ import annotations
 
 import asyncio
-from dataclasses import replace
 from typing import Any
 
 import pytest
