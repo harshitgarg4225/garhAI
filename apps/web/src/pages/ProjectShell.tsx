@@ -63,10 +63,12 @@ import type { ShareSection } from '../components';
 /* The panel itself is lazy (below); only the `/` handler is eager, and it is a
    ~60-line module whose whole dependency list is the ui store. */
 import { copilotFocusHandler } from '../features/copilot/focus';
+import { CommentsPanel, useComments } from '../features/comments';
 import { useSolverJob } from '../features/options';
 import { api } from '../lib/api';
 import { AppError } from '../lib/errors';
 import { useKeyboardMap, type CommandHandlers } from '../lib/keymap';
+import { selectCollabUsers, useCollabStore } from '../stores/collab';
 import { useJobsStore } from '../stores/jobs';
 import { useModelStore, selectCanRedo, selectCanUndo } from '../stores/model';
 import { useProjectStore } from '../stores/project';
@@ -77,6 +79,7 @@ import { cityLabel, configurationLabel, toJobVM } from './_contracts';
 import type { ProjectDTO } from './_contracts';
 import { useCopilotDecisionLog } from './useCopilotDecisionLog';
 import { useLiveCompliance } from './useLiveCompliance';
+import { useProjectCollab } from './useProjectCollab';
 
 /**
  * The canvas inspector is lazy on purpose.
@@ -163,6 +166,7 @@ export function ProjectShell(): JSX.Element {
   const { toast } = useToast();
 
   const firm = useSessionStore((s) => s.firm);
+  const currentUserId = useSessionStore((s) => s.user?.id ?? null);
   const project = useProjectStore((s) => s.current);
   const loading = useProjectStore((s) => s.loading);
   const error = useProjectStore((s) => s.error);
@@ -221,6 +225,22 @@ export function ProjectShell(): JSX.Element {
 
   const solver = useSolverJob(projectId);
   const setOptionsOpen = useUiStore((s) => s.setOptionsOpen);
+
+  // Live collaboration: the SSE subscription lives exactly as long as this
+  // shell (the hook tears it down on unmount/project switch), presence feeds
+  // the top bar, and remote op frames debounce into `model.pull()`.
+  useProjectCollab(projectId);
+  const collabUsers = useCollabStore(selectCollabUsers);
+  /** Teammates only — your own avatar in the top bar tells you nothing. */
+  const presence = useMemo(
+    () => collabUsers.filter((u) => u.userId !== currentUserId),
+    [collabUsers, currentUserId],
+  );
+
+  // Comments: ONE hook instance, here, so the top-bar badge and the panel can
+  // never disagree about the unresolved count.
+  const comments = useComments(projectId);
+  const [commentsOpen, setCommentsOpen] = useState(false);
 
   useEffect(() => {
     if (projectId === '') return;
@@ -499,6 +519,10 @@ export function ProjectShell(): JSX.Element {
             }}
             copilotOpen={copilotOpen}
             onCopilotToggle={() => togglePanel('copilot')}
+            presence={presence}
+            commentsOpen={commentsOpen}
+            onCommentsToggle={() => setCommentsOpen((v) => !v)}
+            unresolvedCommentCount={comments.unresolvedCount}
             onShare={() => setShareOpen(true)}
             onGenerate={handleGenerate}
             generateLabel="Generate plans"
@@ -555,9 +579,28 @@ export function ProjectShell(): JSX.Element {
            "rename bedroom 2 to guest bedroom" is a fair ask while reading the
            compliance list, and Apply goes through the model store either way. */
         copilot={
-          <Suspense fallback={null}>
-            <CopilotPanel />
-          </Suspense>
+          /* The slot is "panels docked outermost right"; comments share it
+             with the copilot because they coexist the same way the inspector
+             and copilot do — you resolve a client's note about the wall the
+             copilot just proposed moving. Both render null while closed. */
+          <>
+            <CommentsPanel
+              open={commentsOpen}
+              onClose={() => setCommentsOpen(false)}
+              comments={comments.comments}
+              loading={comments.loading}
+              error={comments.error}
+              unresolvedCount={comments.unresolvedCount}
+              busy={comments.busy}
+              resolvingId={comments.resolvingId}
+              onRefresh={() => void comments.refresh()}
+              onAdd={comments.add}
+              onResolve={(id) => void comments.resolve(id)}
+            />
+            <Suspense fallback={null}>
+              <CopilotPanel />
+            </Suspense>
+          </>
         }
         complianceStrip={
           <ComplianceStrip

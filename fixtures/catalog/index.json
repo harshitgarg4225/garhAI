@@ -6,7 +6,7 @@
     {
       "name": "furniture.json",
       "shape": "array of CatalogItemOut (garh_api/routers/catalog.py)",
-      "count": 45,
+      "count": 229,
       "minimum": 30,
       "requiredKeys": [
         "id",
@@ -22,7 +22,7 @@
     {
       "name": "materials.json",
       "shape": "array of MaterialOut",
-      "count": 31,
+      "count": 97,
       "minimum": 20,
       "requiredKeys": ["id", "name", "category", "surfaceGroups"]
     },

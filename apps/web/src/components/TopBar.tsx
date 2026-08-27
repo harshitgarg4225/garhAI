@@ -16,6 +16,8 @@ import type { UnitsDisplay } from '@garh/model';
 import { Badge, Button, IconButton, ShortcutHint, Tooltip, cn } from '@garh/ui';
 import { AutosaveBadge } from './AutosaveBadge';
 import type { SaveState } from './AutosaveBadge';
+import { PresenceChips } from './PresenceChips';
+import type { PresenceUser } from './PresenceChips';
 import { UnitsToggle } from './UnitsToggle';
 
 export interface StoreyTab {
@@ -58,6 +60,18 @@ export interface TopBarProps {
   copilotOpen?: boolean | undefined;
   onCopilotToggle?: (() => void) | undefined;
 
+  /**
+   * Teammates in this project right now, already filtered of the signed-in
+   * user. Empty/omitted renders nothing — presence is ambient, never a gap.
+   */
+  presence?: readonly PresenceUser[] | undefined;
+
+  /** Toggle the comments panel. Omit to leave the button out entirely. */
+  onCommentsToggle?: (() => void) | undefined;
+  commentsOpen?: boolean | undefined;
+  /** Unresolved-comment count for the button's badge. 0 hides the badge. */
+  unresolvedCommentCount?: number | undefined;
+
   onShare?: (() => void) | undefined;
   onGenerate?: (() => void) | undefined;
   generateLabel?: string | undefined;
@@ -90,6 +104,10 @@ export function TopBar({
   onRedo,
   copilotOpen = false,
   onCopilotToggle,
+  presence,
+  onCommentsToggle,
+  commentsOpen = false,
+  unresolvedCommentCount = 0,
   onShare,
   onGenerate,
   generateLabel = 'Generate plans',
@@ -264,6 +282,39 @@ export function TopBar({
             />
           </Tooltip>
         )}
+
+        {onCommentsToggle === undefined ? null : (
+          <Tooltip delayMs={400} content={commentsOpen ? 'Hide comments' : 'Comments'}>
+            {/* The wrapper exists for the count bubble; Tooltip's
+                aria-describedby lands on it and the button keeps its own
+                count-aware label, so a screen reader hears one control. */}
+            <span className="relative inline-flex">
+              <IconButton
+                label={
+                  unresolvedCommentCount > 0
+                    ? `Comments — ${unresolvedCommentCount} open`
+                    : 'Comments'
+                }
+                icon="message"
+                size="sm"
+                pressed={commentsOpen}
+                onClick={onCommentsToggle}
+              />
+              {unresolvedCommentCount > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-brand px-1 text-2xs font-semibold leading-none text-brand-fg ring-2 ring-surface"
+                >
+                  {unresolvedCommentCount > 9 ? '9+' : unresolvedCommentCount}
+                </span>
+              ) : null}
+            </span>
+          </Tooltip>
+        )}
+
+        {/* Ambient presence sits beside Share — the two social affordances
+            together, per the §12 top-bar reading order. */}
+        {presence !== undefined && presence.length > 0 ? <PresenceChips users={presence} /> : null}
 
         {onShare === undefined ? null : (
           <Button variant="secondary" size="sm" iconLeft="share" onClick={onShare}>

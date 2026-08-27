@@ -609,5 +609,2434 @@
       "wc"
     ],
     "clearanceMm": 0
+  },
+  {
+    "id": "bed-double",
+    "name": "Double bed",
+    "category": "bed",
+    "widthMm": 1370,
+    "depthMm": 1900,
+    "heightMm": 600,
+    "roomTypes": [
+      "bedroom",
+      "guest_bedroom"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bed-queen-storage",
+    "name": "Queen bed with storage",
+    "category": "bed",
+    "widthMm": 1525,
+    "depthMm": 1900,
+    "heightMm": 650,
+    "roomTypes": [
+      "bedroom",
+      "bedroom_master"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bed-king-storage",
+    "name": "King bed with storage",
+    "category": "bed",
+    "widthMm": 1830,
+    "depthMm": 2000,
+    "heightMm": 650,
+    "roomTypes": [
+      "bedroom_master"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bed-single-storage",
+    "name": "Single bed with storage",
+    "category": "bed",
+    "widthMm": 900,
+    "depthMm": 1900,
+    "heightMm": 650,
+    "roomTypes": [
+      "bedroom",
+      "guest_bedroom"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bed-single-trundle",
+    "name": "Trundle bed",
+    "category": "bed",
+    "widthMm": 950,
+    "depthMm": 1900,
+    "heightMm": 550,
+    "roomTypes": [
+      "bedroom",
+      "guest_bedroom"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "bed-queen-poster",
+    "name": "Four-poster queen bed",
+    "category": "bed",
+    "widthMm": 1600,
+    "depthMm": 2000,
+    "heightMm": 2100,
+    "roomTypes": [
+      "bedroom_master"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bed-diwan",
+    "name": "Diwan bed",
+    "category": "bed",
+    "widthMm": 1050,
+    "depthMm": 1950,
+    "heightMm": 500,
+    "roomTypes": [
+      "living",
+      "guest_bedroom",
+      "bedroom"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bed-bunk-study",
+    "name": "Bunk bed with study desk",
+    "category": "bed",
+    "widthMm": 1000,
+    "depthMm": 2000,
+    "heightMm": 1750,
+    "roomTypes": [
+      "bedroom"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "bed-folding",
+    "name": "Folding bed (single)",
+    "category": "bed",
+    "widthMm": 800,
+    "depthMm": 1850,
+    "heightMm": 400,
+    "roomTypes": [
+      "guest_bedroom",
+      "store",
+      "servant_room"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bed-wall-folding",
+    "name": "Wall-folding bed",
+    "category": "bed",
+    "widthMm": 1600,
+    "depthMm": 450,
+    "heightMm": 2150,
+    "roomTypes": [
+      "bedroom",
+      "study",
+      "guest_bedroom"
+    ],
+    "clearanceMm": 2000
+  },
+  {
+    "id": "cot-wooden",
+    "name": "Wooden cot",
+    "category": "bed",
+    "widthMm": 900,
+    "depthMm": 1850,
+    "heightMm": 500,
+    "roomTypes": [
+      "bedroom",
+      "guest_bedroom",
+      "servant_room"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "charpai",
+    "name": "Charpai (woven cot)",
+    "category": "bed",
+    "widthMm": 900,
+    "depthMm": 1850,
+    "heightMm": 450,
+    "roomTypes": [
+      "servant_room",
+      "terrace",
+      "porch"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "bed-toddler",
+    "name": "Toddler bed",
+    "category": "bed",
+    "widthMm": 750,
+    "depthMm": 1450,
+    "heightMm": 500,
+    "roomTypes": [
+      "bedroom"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "baby-crib",
+    "name": "Baby crib",
+    "category": "bed",
+    "widthMm": 700,
+    "depthMm": 1300,
+    "heightMm": 900,
+    "roomTypes": [
+      "bedroom",
+      "bedroom_master"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "baby-cradle",
+    "name": "Baby cradle (jhoola)",
+    "category": "bed",
+    "widthMm": 550,
+    "depthMm": 950,
+    "heightMm": 850,
+    "roomTypes": [
+      "bedroom",
+      "bedroom_master"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "sofa-1seat",
+    "name": "Sofa (1 seat)",
+    "category": "seating",
+    "widthMm": 950,
+    "depthMm": 900,
+    "heightMm": 800,
+    "roomTypes": [
+      "living",
+      "living_dining"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "sofa-3seat-compact",
+    "name": "Sofa (3 seat, compact)",
+    "category": "seating",
+    "widthMm": 1950,
+    "depthMm": 850,
+    "heightMm": 800,
+    "roomTypes": [
+      "living",
+      "living_dining"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "sofa-l-left",
+    "name": "L-shaped sofa (left chaise)",
+    "category": "seating",
+    "widthMm": 2700,
+    "depthMm": 1650,
+    "heightMm": 800,
+    "roomTypes": [
+      "living",
+      "living_dining"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "sofa-l-right",
+    "name": "L-shaped sofa (right chaise)",
+    "category": "seating",
+    "widthMm": 2700,
+    "depthMm": 1650,
+    "heightMm": 800,
+    "roomTypes": [
+      "living",
+      "living_dining"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "recliner-1seat",
+    "name": "Recliner (1 seat)",
+    "category": "seating",
+    "widthMm": 950,
+    "depthMm": 950,
+    "heightMm": 1050,
+    "roomTypes": [
+      "living",
+      "bedroom_master"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "recliner-2seat",
+    "name": "Recliner sofa (2 seat)",
+    "category": "seating",
+    "widthMm": 1600,
+    "depthMm": 950,
+    "heightMm": 1050,
+    "roomTypes": [
+      "living"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "sofa-cum-bed",
+    "name": "Sofa-cum-bed",
+    "category": "seating",
+    "widthMm": 1900,
+    "depthMm": 900,
+    "heightMm": 800,
+    "roomTypes": [
+      "living",
+      "guest_bedroom",
+      "study"
+    ],
+    "clearanceMm": 1200
+  },
+  {
+    "id": "sofa-wooden-3seat",
+    "name": "Wooden sofa (3 seat)",
+    "category": "seating",
+    "widthMm": 1850,
+    "depthMm": 800,
+    "heightMm": 850,
+    "roomTypes": [
+      "living",
+      "living_dining"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "sofa-wooden-1seat",
+    "name": "Wooden sofa (1 seat)",
+    "category": "seating",
+    "widthMm": 750,
+    "depthMm": 800,
+    "heightMm": 850,
+    "roomTypes": [
+      "living"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "accent-chair",
+    "name": "Accent chair",
+    "category": "seating",
+    "widthMm": 700,
+    "depthMm": 750,
+    "heightMm": 800,
+    "roomTypes": [
+      "living",
+      "bedroom_master",
+      "foyer"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "lounge-chair",
+    "name": "Lounge chair",
+    "category": "seating",
+    "widthMm": 750,
+    "depthMm": 850,
+    "heightMm": 950,
+    "roomTypes": [
+      "living",
+      "study",
+      "balcony"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "rocking-chair",
+    "name": "Rocking chair",
+    "category": "seating",
+    "widthMm": 650,
+    "depthMm": 950,
+    "heightMm": 1000,
+    "roomTypes": [
+      "living",
+      "balcony",
+      "bedroom_master"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "easy-chair-aaram",
+    "name": "Easy chair (aaram kursi)",
+    "category": "seating",
+    "widthMm": 650,
+    "depthMm": 1100,
+    "heightMm": 950,
+    "roomTypes": [
+      "porch",
+      "balcony",
+      "terrace",
+      "living"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "dining-chair-arm",
+    "name": "Dining chair with arms",
+    "category": "seating",
+    "widthMm": 550,
+    "depthMm": 550,
+    "heightMm": 900,
+    "roomTypes": [
+      "dining",
+      "living_dining"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "office-chair",
+    "name": "Office chair",
+    "category": "seating",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 1000,
+    "roomTypes": [
+      "study"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "visitor-chair",
+    "name": "Visitor chair",
+    "category": "seating",
+    "widthMm": 550,
+    "depthMm": 550,
+    "heightMm": 850,
+    "roomTypes": [
+      "study",
+      "living",
+      "lobby"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "chair-outdoor",
+    "name": "Outdoor chair",
+    "category": "seating",
+    "widthMm": 550,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "balcony",
+      "terrace",
+      "porch"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "chair-moulded",
+    "name": "Moulded plastic chair",
+    "category": "seating",
+    "widthMm": 550,
+    "depthMm": 550,
+    "heightMm": 850,
+    "roomTypes": [
+      "terrace",
+      "porch",
+      "servant_room",
+      "store"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "chair-kids",
+    "name": "Kids chair",
+    "category": "seating",
+    "widthMm": 350,
+    "depthMm": 350,
+    "heightMm": 550,
+    "roomTypes": [
+      "bedroom",
+      "study"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "bar-stool",
+    "name": "Bar stool",
+    "category": "seating",
+    "widthMm": 400,
+    "depthMm": 400,
+    "heightMm": 750,
+    "roomTypes": [
+      "kitchen",
+      "dining",
+      "living_dining"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "stool-wooden",
+    "name": "Wooden stool",
+    "category": "seating",
+    "widthMm": 400,
+    "depthMm": 400,
+    "heightMm": 450,
+    "roomTypes": [
+      "kitchen",
+      "utility",
+      "living"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "pouffe",
+    "name": "Pouffe",
+    "category": "seating",
+    "widthMm": 450,
+    "depthMm": 450,
+    "heightMm": 400,
+    "roomTypes": [
+      "living",
+      "bedroom_master",
+      "dress"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "bean-bag",
+    "name": "Bean bag (XL)",
+    "category": "seating",
+    "widthMm": 850,
+    "depthMm": 850,
+    "heightMm": 900,
+    "roomTypes": [
+      "living",
+      "bedroom",
+      "study"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "bench-dining",
+    "name": "Dining bench",
+    "category": "seating",
+    "widthMm": 1350,
+    "depthMm": 400,
+    "heightMm": 450,
+    "roomTypes": [
+      "dining",
+      "living_dining"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bench-foyer",
+    "name": "Foyer bench",
+    "category": "seating",
+    "widthMm": 1000,
+    "depthMm": 400,
+    "heightMm": 450,
+    "roomTypes": [
+      "foyer",
+      "lobby",
+      "passage"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "window-seat",
+    "name": "Window seat",
+    "category": "seating",
+    "widthMm": 1200,
+    "depthMm": 450,
+    "heightMm": 450,
+    "roomTypes": [
+      "bedroom",
+      "living",
+      "study"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "floor-seating-baithak",
+    "name": "Floor seating (baithak set)",
+    "category": "seating",
+    "widthMm": 1800,
+    "depthMm": 900,
+    "heightMm": 300,
+    "roomTypes": [
+      "living"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "swing-single",
+    "name": "Single-seat swing",
+    "category": "seating",
+    "widthMm": 900,
+    "depthMm": 700,
+    "heightMm": 1900,
+    "roomTypes": [
+      "balcony",
+      "terrace",
+      "porch"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "dining-2",
+    "name": "Dining table (2 seat)",
+    "category": "table",
+    "widthMm": 800,
+    "depthMm": 800,
+    "heightMm": 750,
+    "roomTypes": [
+      "dining",
+      "living_dining",
+      "kitchen"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "dining-round-4",
+    "name": "Round dining table (4 seat)",
+    "category": "table",
+    "widthMm": 1050,
+    "depthMm": 1050,
+    "heightMm": 750,
+    "roomTypes": [
+      "dining",
+      "living_dining"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "dining-round-6",
+    "name": "Round dining table (6 seat)",
+    "category": "table",
+    "widthMm": 1350,
+    "depthMm": 1350,
+    "heightMm": 750,
+    "roomTypes": [
+      "dining"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "dining-wall-folding",
+    "name": "Wall-folding dining table",
+    "category": "table",
+    "widthMm": 900,
+    "depthMm": 600,
+    "heightMm": 750,
+    "roomTypes": [
+      "kitchen",
+      "dining",
+      "utility"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "side-table",
+    "name": "Side table",
+    "category": "table",
+    "widthMm": 500,
+    "depthMm": 500,
+    "heightMm": 550,
+    "roomTypes": [
+      "living",
+      "bedroom",
+      "balcony"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "teapoy",
+    "name": "Teapoy",
+    "category": "table",
+    "widthMm": 600,
+    "depthMm": 450,
+    "heightMm": 500,
+    "roomTypes": [
+      "living",
+      "balcony"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "nesting-tables",
+    "name": "Nesting tables (set of 2)",
+    "category": "table",
+    "widthMm": 550,
+    "depthMm": 400,
+    "heightMm": 500,
+    "roomTypes": [
+      "living"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "corner-table",
+    "name": "Corner table",
+    "category": "table",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 600,
+    "roomTypes": [
+      "living",
+      "passage",
+      "lobby"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "coffee-table-round",
+    "name": "Round coffee table",
+    "category": "table",
+    "widthMm": 900,
+    "depthMm": 900,
+    "heightMm": 450,
+    "roomTypes": [
+      "living",
+      "living_dining"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "study-desk-900",
+    "name": "Study desk (900)",
+    "category": "table",
+    "widthMm": 900,
+    "depthMm": 550,
+    "heightMm": 750,
+    "roomTypes": [
+      "study",
+      "bedroom",
+      "guest_bedroom"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "study-desk-1500",
+    "name": "Study desk (1500)",
+    "category": "table",
+    "widthMm": 1500,
+    "depthMm": 600,
+    "heightMm": 750,
+    "roomTypes": [
+      "study"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "study-table-kids",
+    "name": "Kids study table",
+    "category": "table",
+    "widthMm": 750,
+    "depthMm": 500,
+    "heightMm": 650,
+    "roomTypes": [
+      "bedroom",
+      "study"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "computer-table",
+    "name": "Computer table",
+    "category": "table",
+    "widthMm": 1000,
+    "depthMm": 600,
+    "heightMm": 750,
+    "roomTypes": [
+      "study",
+      "bedroom"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "office-desk-executive",
+    "name": "Executive office desk",
+    "category": "table",
+    "widthMm": 1800,
+    "depthMm": 900,
+    "heightMm": 750,
+    "roomTypes": [
+      "study"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "workstation-single",
+    "name": "Workstation (single seat)",
+    "category": "table",
+    "widthMm": 1200,
+    "depthMm": 600,
+    "heightMm": 750,
+    "roomTypes": [
+      "study"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "meeting-table-4",
+    "name": "Meeting table (4 seat)",
+    "category": "table",
+    "widthMm": 1200,
+    "depthMm": 1200,
+    "heightMm": 750,
+    "roomTypes": [
+      "study"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "meeting-table-6",
+    "name": "Meeting table (6 seat)",
+    "category": "table",
+    "widthMm": 1800,
+    "depthMm": 900,
+    "heightMm": 750,
+    "roomTypes": [
+      "study"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "reception-desk",
+    "name": "Reception desk",
+    "category": "table",
+    "widthMm": 1800,
+    "depthMm": 750,
+    "heightMm": 1100,
+    "roomTypes": [
+      "foyer",
+      "lobby",
+      "study"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "drafting-table",
+    "name": "Drafting table",
+    "category": "table",
+    "widthMm": 1200,
+    "depthMm": 800,
+    "heightMm": 900,
+    "roomTypes": [
+      "study"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "tv-console-1200",
+    "name": "TV console (1200)",
+    "category": "table",
+    "widthMm": 1200,
+    "depthMm": 400,
+    "heightMm": 450,
+    "roomTypes": [
+      "living",
+      "bedroom"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "tv-console-2400",
+    "name": "TV console (2400)",
+    "category": "table",
+    "widthMm": 2400,
+    "depthMm": 450,
+    "heightMm": 500,
+    "roomTypes": [
+      "living",
+      "living_dining"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "dressing-table-large",
+    "name": "Dressing table with mirror (large)",
+    "category": "table",
+    "widthMm": 1200,
+    "depthMm": 450,
+    "heightMm": 1800,
+    "roomTypes": [
+      "bedroom_master",
+      "dress"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "bar-counter",
+    "name": "Bar counter",
+    "category": "table",
+    "widthMm": 1500,
+    "depthMm": 600,
+    "heightMm": 1050,
+    "roomTypes": [
+      "living",
+      "dining"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "bistro-table",
+    "name": "Bistro table",
+    "category": "table",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 720,
+    "roomTypes": [
+      "balcony",
+      "terrace",
+      "porch"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "pooja-chowki",
+    "name": "Pooja chowki",
+    "category": "table",
+    "widthMm": 600,
+    "depthMm": 450,
+    "heightMm": 200,
+    "roomTypes": [
+      "pooja",
+      "living"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "wardrobe-4door",
+    "name": "Wardrobe (4 door)",
+    "category": "storage",
+    "widthMm": 2400,
+    "depthMm": 600,
+    "heightMm": 2100,
+    "roomTypes": [
+      "bedroom_master",
+      "dress"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "wardrobe-sliding-2door",
+    "name": "Sliding wardrobe (2 door)",
+    "category": "storage",
+    "widthMm": 1800,
+    "depthMm": 650,
+    "heightMm": 2400,
+    "roomTypes": [
+      "bedroom",
+      "bedroom_master",
+      "dress"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "wardrobe-sliding-3door",
+    "name": "Sliding wardrobe (3 door)",
+    "category": "storage",
+    "widthMm": 2700,
+    "depthMm": 650,
+    "heightMm": 2400,
+    "roomTypes": [
+      "bedroom_master",
+      "dress"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "wardrobe-single-door",
+    "name": "Single-door wardrobe",
+    "category": "storage",
+    "widthMm": 600,
+    "depthMm": 550,
+    "heightMm": 1950,
+    "roomTypes": [
+      "servant_room",
+      "guest_bedroom",
+      "bedroom",
+      "store"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "wardrobe-loft",
+    "name": "Loft above wardrobe",
+    "category": "storage",
+    "widthMm": 1800,
+    "depthMm": 600,
+    "heightMm": 600,
+    "roomTypes": [
+      "bedroom",
+      "bedroom_master",
+      "dress"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "loft-storage-1200",
+    "name": "Loft storage (1200)",
+    "category": "storage",
+    "widthMm": 1200,
+    "depthMm": 600,
+    "heightMm": 600,
+    "roomTypes": [
+      "kitchen",
+      "passage",
+      "store",
+      "utility"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "chest-drawers-3",
+    "name": "Chest of drawers (3 drawer)",
+    "category": "storage",
+    "widthMm": 800,
+    "depthMm": 450,
+    "heightMm": 750,
+    "roomTypes": [
+      "bedroom",
+      "dress",
+      "living"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "chest-drawers-5",
+    "name": "Chest of drawers (5 drawer)",
+    "category": "storage",
+    "widthMm": 900,
+    "depthMm": 450,
+    "heightMm": 1200,
+    "roomTypes": [
+      "bedroom",
+      "dress"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "bookshelf-low",
+    "name": "Low bookshelf",
+    "category": "storage",
+    "widthMm": 900,
+    "depthMm": 300,
+    "heightMm": 900,
+    "roomTypes": [
+      "study",
+      "living",
+      "bedroom",
+      "passage"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bookshelf-tall",
+    "name": "Tall bookshelf",
+    "category": "storage",
+    "widthMm": 800,
+    "depthMm": 350,
+    "heightMm": 2100,
+    "roomTypes": [
+      "study",
+      "living"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bookshelf-kids",
+    "name": "Kids bookshelf",
+    "category": "storage",
+    "widthMm": 600,
+    "depthMm": 300,
+    "heightMm": 1200,
+    "roomTypes": [
+      "bedroom",
+      "study"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "magazine-rack",
+    "name": "Magazine rack",
+    "category": "storage",
+    "widthMm": 400,
+    "depthMm": 300,
+    "heightMm": 900,
+    "roomTypes": [
+      "living",
+      "study"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "display-unit",
+    "name": "Display unit",
+    "category": "storage",
+    "widthMm": 900,
+    "depthMm": 400,
+    "heightMm": 1800,
+    "roomTypes": [
+      "living",
+      "dining",
+      "foyer"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "wall-ledge",
+    "name": "Display wall ledge",
+    "category": "storage",
+    "widthMm": 900,
+    "depthMm": 250,
+    "heightMm": 250,
+    "roomTypes": [
+      "living",
+      "passage",
+      "foyer"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "crockery-unit",
+    "name": "Crockery unit",
+    "category": "storage",
+    "widthMm": 1200,
+    "depthMm": 450,
+    "heightMm": 1800,
+    "roomTypes": [
+      "dining",
+      "kitchen",
+      "living_dining"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "sideboard",
+    "name": "Sideboard",
+    "category": "storage",
+    "widthMm": 1500,
+    "depthMm": 450,
+    "heightMm": 850,
+    "roomTypes": [
+      "dining",
+      "living_dining"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "shoe-cabinet-tall",
+    "name": "Shoe cabinet (tall)",
+    "category": "storage",
+    "widthMm": 800,
+    "depthMm": 350,
+    "heightMm": 1800,
+    "roomTypes": [
+      "foyer",
+      "lobby",
+      "passage"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "filing-cabinet",
+    "name": "Filing cabinet (4 drawer)",
+    "category": "storage",
+    "widthMm": 470,
+    "depthMm": 620,
+    "heightMm": 1320,
+    "roomTypes": [
+      "study",
+      "store"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "office-credenza",
+    "name": "Office credenza",
+    "category": "storage",
+    "widthMm": 1200,
+    "depthMm": 450,
+    "heightMm": 750,
+    "roomTypes": [
+      "study"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "safe-locker",
+    "name": "Safe locker",
+    "category": "storage",
+    "widthMm": 450,
+    "depthMm": 400,
+    "heightMm": 600,
+    "roomTypes": [
+      "bedroom_master",
+      "dress",
+      "study"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "mirror-cabinet",
+    "name": "Mirror cabinet",
+    "category": "storage",
+    "widthMm": 600,
+    "depthMm": 150,
+    "heightMm": 750,
+    "roomTypes": [
+      "bath",
+      "wc",
+      "bath_wc"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "linen-cupboard",
+    "name": "Linen cupboard",
+    "category": "storage",
+    "widthMm": 900,
+    "depthMm": 500,
+    "heightMm": 1950,
+    "roomTypes": [
+      "passage",
+      "dress",
+      "store"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "kitchen-trolley",
+    "name": "Kitchen trolley",
+    "category": "storage",
+    "widthMm": 750,
+    "depthMm": 450,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen",
+      "dining"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "vegetable-trolley",
+    "name": "Vegetable trolley",
+    "category": "storage",
+    "widthMm": 450,
+    "depthMm": 450,
+    "heightMm": 950,
+    "roomTypes": [
+      "kitchen",
+      "utility"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "pooja-mandir",
+    "name": "Pooja mandir (floor standing)",
+    "category": "storage",
+    "widthMm": 750,
+    "depthMm": 500,
+    "heightMm": 1350,
+    "roomTypes": [
+      "pooja",
+      "living"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "pooja-wall-shelf",
+    "name": "Pooja wall shelf",
+    "category": "storage",
+    "widthMm": 600,
+    "depthMm": 300,
+    "heightMm": 450,
+    "roomTypes": [
+      "pooja",
+      "kitchen",
+      "passage"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "storage-rack-slotted",
+    "name": "Slotted-angle storage rack",
+    "category": "storage",
+    "widthMm": 900,
+    "depthMm": 450,
+    "heightMm": 1800,
+    "roomTypes": [
+      "store",
+      "utility",
+      "garage",
+      "stilt"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "tv-panel-unit",
+    "name": "TV panel unit (full wall)",
+    "category": "storage",
+    "widthMm": 2400,
+    "depthMm": 350,
+    "heightMm": 2100,
+    "roomTypes": [
+      "living"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "bar-cabinet",
+    "name": "Bar cabinet",
+    "category": "storage",
+    "widthMm": 900,
+    "depthMm": 500,
+    "heightMm": 1100,
+    "roomTypes": [
+      "living",
+      "dining"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "toy-storage",
+    "name": "Toy storage unit",
+    "category": "storage",
+    "widthMm": 800,
+    "depthMm": 400,
+    "heightMm": 800,
+    "roomTypes": [
+      "bedroom",
+      "living"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "kitchen-base-300",
+    "name": "Base cabinet (300)",
+    "category": "kitchen",
+    "widthMm": 300,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "kitchen-base-450",
+    "name": "Base cabinet (450)",
+    "category": "kitchen",
+    "widthMm": 450,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "kitchen-base-600",
+    "name": "Base cabinet (600)",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "kitchen-base-900",
+    "name": "Base cabinet (900)",
+    "category": "kitchen",
+    "widthMm": 900,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "kitchen-base-corner",
+    "name": "Corner base cabinet (carousel)",
+    "category": "kitchen",
+    "widthMm": 900,
+    "depthMm": 900,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "kitchen-drawer-unit-600",
+    "name": "Drawer base unit (600)",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "kitchen-wall-300",
+    "name": "Wall cabinet (300)",
+    "category": "kitchen",
+    "widthMm": 300,
+    "depthMm": 350,
+    "heightMm": 700,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "kitchen-wall-450",
+    "name": "Wall cabinet (450)",
+    "category": "kitchen",
+    "widthMm": 450,
+    "depthMm": 350,
+    "heightMm": 700,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "kitchen-wall-600",
+    "name": "Wall cabinet (600)",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 350,
+    "heightMm": 700,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "kitchen-wall-900",
+    "name": "Wall cabinet (900)",
+    "category": "kitchen",
+    "widthMm": 900,
+    "depthMm": 350,
+    "heightMm": 700,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "kitchen-wall-corner",
+    "name": "Corner wall cabinet",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 700,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "kitchen-wall-glass-600",
+    "name": "Glass-shutter wall cabinet (600)",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 350,
+    "heightMm": 700,
+    "roomTypes": [
+      "kitchen",
+      "dining"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "sink-unit-single",
+    "name": "Sink unit (single bowl)",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "sink-unit-double",
+    "name": "Sink unit (double bowl)",
+    "category": "kitchen",
+    "widthMm": 1200,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "hob-2burner",
+    "name": "Hob (2 burner)",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 350,
+    "heightMm": 100,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "hob-3burner",
+    "name": "Hob (3 burner)",
+    "category": "kitchen",
+    "widthMm": 690,
+    "depthMm": 520,
+    "heightMm": 100,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "cooking-range",
+    "name": "Cooking range (freestanding)",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 900,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "chimney-hood-600",
+    "name": "Chimney hood (600)",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 500,
+    "heightMm": 450,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "chimney-hood-900",
+    "name": "Chimney hood (900)",
+    "category": "kitchen",
+    "widthMm": 900,
+    "depthMm": 500,
+    "heightMm": 450,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "kitchen-island",
+    "name": "Kitchen island",
+    "category": "kitchen",
+    "widthMm": 1500,
+    "depthMm": 900,
+    "heightMm": 900,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 1050
+  },
+  {
+    "id": "kitchen-pantry-450",
+    "name": "Tall pantry unit (450)",
+    "category": "kitchen",
+    "widthMm": 450,
+    "depthMm": 600,
+    "heightMm": 2100,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "kitchen-appliance-tower",
+    "name": "Appliance tower unit",
+    "category": "kitchen",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 2100,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "breakfast-counter",
+    "name": "Breakfast counter",
+    "category": "kitchen",
+    "widthMm": 1200,
+    "depthMm": 450,
+    "heightMm": 1050,
+    "roomTypes": [
+      "kitchen",
+      "dining",
+      "living_dining"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "gas-cylinder",
+    "name": "LPG cylinder",
+    "category": "kitchen",
+    "widthMm": 350,
+    "depthMm": 350,
+    "heightMm": 750,
+    "roomTypes": [
+      "kitchen",
+      "utility"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "fridge-single-door",
+    "name": "Refrigerator (single door)",
+    "category": "appliance",
+    "widthMm": 600,
+    "depthMm": 650,
+    "heightMm": 1250,
+    "roomTypes": [
+      "kitchen",
+      "dining"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "fridge-double-door",
+    "name": "Refrigerator (double door)",
+    "category": "appliance",
+    "widthMm": 700,
+    "depthMm": 720,
+    "heightMm": 1700,
+    "roomTypes": [
+      "kitchen",
+      "dining"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "fridge-side-by-side",
+    "name": "Refrigerator (side by side)",
+    "category": "appliance",
+    "widthMm": 910,
+    "depthMm": 740,
+    "heightMm": 1780,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "fridge-mini",
+    "name": "Mini refrigerator",
+    "category": "appliance",
+    "widthMm": 480,
+    "depthMm": 520,
+    "heightMm": 850,
+    "roomTypes": [
+      "bedroom_master",
+      "study",
+      "guest_bedroom"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "deep-freezer",
+    "name": "Deep freezer (chest)",
+    "category": "appliance",
+    "widthMm": 900,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "store",
+      "utility",
+      "kitchen"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "washing-machine-front",
+    "name": "Washing machine (front load)",
+    "category": "appliance",
+    "widthMm": 600,
+    "depthMm": 650,
+    "heightMm": 850,
+    "roomTypes": [
+      "utility",
+      "bath_wc"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "washing-machine-top",
+    "name": "Washing machine (top load)",
+    "category": "appliance",
+    "widthMm": 550,
+    "depthMm": 600,
+    "heightMm": 950,
+    "roomTypes": [
+      "utility",
+      "bath_wc",
+      "balcony"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "washing-machine-semi",
+    "name": "Washing machine (semi automatic)",
+    "category": "appliance",
+    "widthMm": 800,
+    "depthMm": 450,
+    "heightMm": 900,
+    "roomTypes": [
+      "utility",
+      "balcony",
+      "bath_wc"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "clothes-dryer",
+    "name": "Clothes dryer",
+    "category": "appliance",
+    "widthMm": 600,
+    "depthMm": 650,
+    "heightMm": 850,
+    "roomTypes": [
+      "utility"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "dishwasher",
+    "name": "Dishwasher",
+    "category": "appliance",
+    "widthMm": 600,
+    "depthMm": 600,
+    "heightMm": 850,
+    "roomTypes": [
+      "kitchen",
+      "utility"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "microwave-oven",
+    "name": "Microwave oven",
+    "category": "appliance",
+    "widthMm": 520,
+    "depthMm": 420,
+    "heightMm": 310,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "otg-oven",
+    "name": "OTG oven",
+    "category": "appliance",
+    "widthMm": 520,
+    "depthMm": 400,
+    "heightMm": 330,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "built-in-oven",
+    "name": "Built-in oven",
+    "category": "appliance",
+    "widthMm": 600,
+    "depthMm": 570,
+    "heightMm": 600,
+    "roomTypes": [
+      "kitchen"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "water-purifier",
+    "name": "Water purifier (wall mount)",
+    "category": "appliance",
+    "widthMm": 400,
+    "depthMm": 250,
+    "heightMm": 500,
+    "roomTypes": [
+      "kitchen",
+      "utility",
+      "dining"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "geyser-storage-25l",
+    "name": "Geyser (25 L storage)",
+    "category": "appliance",
+    "widthMm": 450,
+    "depthMm": 450,
+    "heightMm": 650,
+    "roomTypes": [
+      "bath",
+      "bath_wc",
+      "utility"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "geyser-instant",
+    "name": "Instant geyser (3 L)",
+    "category": "appliance",
+    "widthMm": 250,
+    "depthMm": 200,
+    "heightMm": 450,
+    "roomTypes": [
+      "bath",
+      "wc",
+      "bath_wc",
+      "kitchen"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "ac-split-indoor",
+    "name": "AC indoor unit (split)",
+    "category": "appliance",
+    "widthMm": 1000,
+    "depthMm": 230,
+    "heightMm": 320,
+    "roomTypes": [
+      "bedroom",
+      "bedroom_master",
+      "guest_bedroom",
+      "living",
+      "study"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "ac-window",
+    "name": "Window AC",
+    "category": "appliance",
+    "widthMm": 660,
+    "depthMm": 770,
+    "heightMm": 430,
+    "roomTypes": [
+      "bedroom",
+      "living",
+      "study"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "air-cooler",
+    "name": "Air cooler (desert)",
+    "category": "appliance",
+    "widthMm": 600,
+    "depthMm": 450,
+    "heightMm": 1100,
+    "roomTypes": [
+      "living",
+      "bedroom"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "tv-43",
+    "name": "Television (43 inch)",
+    "category": "appliance",
+    "widthMm": 960,
+    "depthMm": 80,
+    "heightMm": 560,
+    "roomTypes": [
+      "living",
+      "bedroom",
+      "guest_bedroom"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "tv-55",
+    "name": "Television (55 inch)",
+    "category": "appliance",
+    "widthMm": 1230,
+    "depthMm": 80,
+    "heightMm": 710,
+    "roomTypes": [
+      "living",
+      "living_dining",
+      "bedroom_master"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "tv-65",
+    "name": "Television (65 inch)",
+    "category": "appliance",
+    "widthMm": 1450,
+    "depthMm": 80,
+    "heightMm": 830,
+    "roomTypes": [
+      "living",
+      "living_dining"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "water-dispenser",
+    "name": "Water dispenser",
+    "category": "appliance",
+    "widthMm": 350,
+    "depthMm": 350,
+    "heightMm": 1000,
+    "roomTypes": [
+      "dining",
+      "kitchen",
+      "study",
+      "lobby"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "treadmill",
+    "name": "Treadmill",
+    "category": "appliance",
+    "widthMm": 800,
+    "depthMm": 1800,
+    "heightMm": 1300,
+    "roomTypes": [
+      "bedroom",
+      "living",
+      "terrace"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "exercise-bike",
+    "name": "Exercise bike",
+    "category": "appliance",
+    "widthMm": 550,
+    "depthMm": 1200,
+    "heightMm": 1350,
+    "roomTypes": [
+      "bedroom",
+      "living",
+      "terrace"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "sewing-machine",
+    "name": "Sewing machine with table",
+    "category": "appliance",
+    "widthMm": 1000,
+    "depthMm": 450,
+    "heightMm": 800,
+    "roomTypes": [
+      "utility",
+      "bedroom",
+      "study"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "wc-one-piece",
+    "name": "WC (one piece)",
+    "category": "sanitary",
+    "widthMm": 700,
+    "depthMm": 380,
+    "heightMm": 750,
+    "roomTypes": [
+      "bath",
+      "wc",
+      "bath_wc"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "wc-indian-pan",
+    "name": "Indian WC pan",
+    "category": "sanitary",
+    "widthMm": 580,
+    "depthMm": 440,
+    "heightMm": 300,
+    "roomTypes": [
+      "bath_wc",
+      "wc",
+      "bath"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "washbasin-pedestal",
+    "name": "Pedestal washbasin",
+    "category": "sanitary",
+    "widthMm": 600,
+    "depthMm": 480,
+    "heightMm": 850,
+    "roomTypes": [
+      "bath",
+      "wc",
+      "bath_wc",
+      "dining"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "washbasin-counter-top",
+    "name": "Counter-top basin",
+    "category": "sanitary",
+    "widthMm": 450,
+    "depthMm": 450,
+    "heightMm": 150,
+    "roomTypes": [
+      "bath",
+      "bath_wc"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "washbasin-corner",
+    "name": "Corner washbasin",
+    "category": "sanitary",
+    "widthMm": 400,
+    "depthMm": 400,
+    "heightMm": 850,
+    "roomTypes": [
+      "wc",
+      "bath_wc"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "washbasin-wall-650",
+    "name": "Wall-hung basin (650)",
+    "category": "sanitary",
+    "widthMm": 650,
+    "depthMm": 500,
+    "heightMm": 850,
+    "roomTypes": [
+      "bath",
+      "bath_wc"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "basin-counter-750",
+    "name": "Basin counter (750)",
+    "category": "sanitary",
+    "widthMm": 750,
+    "depthMm": 550,
+    "heightMm": 850,
+    "roomTypes": [
+      "bath",
+      "bath_wc",
+      "wc"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "vanity-600",
+    "name": "Vanity unit (600)",
+    "category": "sanitary",
+    "widthMm": 600,
+    "depthMm": 480,
+    "heightMm": 850,
+    "roomTypes": [
+      "bath",
+      "bath_wc"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "vanity-900",
+    "name": "Vanity unit (900)",
+    "category": "sanitary",
+    "widthMm": 900,
+    "depthMm": 480,
+    "heightMm": 850,
+    "roomTypes": [
+      "bath",
+      "bath_wc"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "vanity-double-1200",
+    "name": "Double-basin vanity (1200)",
+    "category": "sanitary",
+    "widthMm": 1200,
+    "depthMm": 500,
+    "heightMm": 850,
+    "roomTypes": [
+      "bath"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "urinal",
+    "name": "Urinal",
+    "category": "sanitary",
+    "widthMm": 350,
+    "depthMm": 350,
+    "heightMm": 650,
+    "roomTypes": [
+      "wc",
+      "bath"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "bidet",
+    "name": "Bidet",
+    "category": "sanitary",
+    "widthMm": 380,
+    "depthMm": 560,
+    "heightMm": 400,
+    "roomTypes": [
+      "bath"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "shower-enclosure-1200",
+    "name": "Shower enclosure (1200)",
+    "category": "sanitary",
+    "widthMm": 1200,
+    "depthMm": 900,
+    "heightMm": 2100,
+    "roomTypes": [
+      "bath",
+      "bath_wc"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "shower-area-800",
+    "name": "Shower area (compact)",
+    "category": "sanitary",
+    "widthMm": 800,
+    "depthMm": 800,
+    "heightMm": 2100,
+    "roomTypes": [
+      "bath_wc",
+      "bath"
+    ],
+    "clearanceMm": 0
+  },
+  {
+    "id": "bathtub-freestanding",
+    "name": "Freestanding bathtub",
+    "category": "sanitary",
+    "widthMm": 1700,
+    "depthMm": 800,
+    "heightMm": 580,
+    "roomTypes": [
+      "bath"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "bathtub-corner",
+    "name": "Corner bathtub",
+    "category": "sanitary",
+    "widthMm": 1400,
+    "depthMm": 1400,
+    "heightMm": 600,
+    "roomTypes": [
+      "bath"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "washing-stone",
+    "name": "Cloth-washing stone",
+    "category": "sanitary",
+    "widthMm": 900,
+    "depthMm": 600,
+    "heightMm": 250,
+    "roomTypes": [
+      "utility",
+      "terrace"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "car-compact-suv",
+    "name": "Car (compact SUV)",
+    "category": "vehicle",
+    "widthMm": 1790,
+    "depthMm": 4300,
+    "heightMm": 1650,
+    "roomTypes": [
+      "garage",
+      "stilt",
+      "porch"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "car-suv-full",
+    "name": "Car (full-size SUV)",
+    "category": "vehicle",
+    "widthMm": 1900,
+    "depthMm": 4950,
+    "heightMm": 1850,
+    "roomTypes": [
+      "garage",
+      "stilt",
+      "porch"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "car-muv",
+    "name": "Car (MUV, 7 seat)",
+    "category": "vehicle",
+    "widthMm": 1850,
+    "depthMm": 4700,
+    "heightMm": 1750,
+    "roomTypes": [
+      "garage",
+      "stilt"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "motorcycle-cruiser",
+    "name": "Motorcycle (cruiser)",
+    "category": "vehicle",
+    "widthMm": 800,
+    "depthMm": 2200,
+    "heightMm": 1150,
+    "roomTypes": [
+      "garage",
+      "stilt",
+      "porch"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "bicycle",
+    "name": "Bicycle",
+    "category": "vehicle",
+    "widthMm": 600,
+    "depthMm": 1800,
+    "heightMm": 1100,
+    "roomTypes": [
+      "garage",
+      "stilt",
+      "porch",
+      "store"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "bicycle-kids",
+    "name": "Kids bicycle",
+    "category": "vehicle",
+    "widthMm": 450,
+    "depthMm": 1300,
+    "heightMm": 800,
+    "roomTypes": [
+      "garage",
+      "stilt",
+      "store",
+      "porch"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "water-tank-500",
+    "name": "Overhead water tank (500 L)",
+    "category": "service",
+    "widthMm": 900,
+    "depthMm": 900,
+    "heightMm": 1000,
+    "roomTypes": [
+      "terrace"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "water-tank-2000",
+    "name": "Overhead water tank (2000 L)",
+    "category": "service",
+    "widthMm": 1400,
+    "depthMm": 1400,
+    "heightMm": 1500,
+    "roomTypes": [
+      "terrace"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "solar-water-heater",
+    "name": "Solar water heater (200 L)",
+    "category": "service",
+    "widthMm": 2100,
+    "depthMm": 1200,
+    "heightMm": 1400,
+    "roomTypes": [
+      "terrace"
+    ],
+    "clearanceMm": 600
+  },
+  {
+    "id": "solar-pv-panel",
+    "name": "Solar PV panel",
+    "category": "service",
+    "widthMm": 1100,
+    "depthMm": 2100,
+    "heightMm": 200,
+    "roomTypes": [
+      "terrace"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "ev-charger",
+    "name": "EV charging point",
+    "category": "service",
+    "widthMm": 350,
+    "depthMm": 200,
+    "heightMm": 550,
+    "roomTypes": [
+      "garage",
+      "stilt",
+      "porch"
+    ],
+    "clearanceMm": 900
+  },
+  {
+    "id": "generator-5kva",
+    "name": "Generator (5 kVA)",
+    "category": "service",
+    "widthMm": 1200,
+    "depthMm": 700,
+    "heightMm": 900,
+    "roomTypes": [
+      "stilt",
+      "garage",
+      "terrace"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "clothes-drying-stand",
+    "name": "Clothes drying stand",
+    "category": "service",
+    "widthMm": 1800,
+    "depthMm": 600,
+    "heightMm": 1100,
+    "roomTypes": [
+      "utility",
+      "balcony",
+      "terrace"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "ironing-board",
+    "name": "Ironing board",
+    "category": "service",
+    "widthMm": 1400,
+    "depthMm": 400,
+    "heightMm": 900,
+    "roomTypes": [
+      "utility",
+      "bedroom",
+      "dress"
+    ],
+    "clearanceMm": 750
+  },
+  {
+    "id": "planter-large",
+    "name": "Planter (large)",
+    "category": "service",
+    "widthMm": 500,
+    "depthMm": 500,
+    "heightMm": 600,
+    "roomTypes": [
+      "balcony",
+      "terrace",
+      "porch",
+      "foyer"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "planter-trough",
+    "name": "Planter trough",
+    "category": "service",
+    "widthMm": 1000,
+    "depthMm": 350,
+    "heightMm": 400,
+    "roomTypes": [
+      "balcony",
+      "terrace"
+    ],
+    "clearanceMm": 300
+  },
+  {
+    "id": "water-pump",
+    "name": "Water pump (monoblock)",
+    "category": "service",
+    "widthMm": 400,
+    "depthMm": 250,
+    "heightMm": 300,
+    "roomTypes": [
+      "utility",
+      "stilt",
+      "garage"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "dustbin-pair",
+    "name": "Dustbin pair (wet / dry)",
+    "category": "service",
+    "widthMm": 500,
+    "depthMm": 300,
+    "heightMm": 600,
+    "roomTypes": [
+      "kitchen",
+      "utility",
+      "balcony"
+    ],
+    "clearanceMm": 450
+  },
+  {
+    "id": "letter-box",
+    "name": "Letter box",
+    "category": "service",
+    "widthMm": 400,
+    "depthMm": 150,
+    "heightMm": 450,
+    "roomTypes": [
+      "porch",
+      "foyer",
+      "lobby"
+    ],
+    "clearanceMm": 0
   }
 ]

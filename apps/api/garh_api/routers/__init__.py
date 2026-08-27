@@ -530,11 +530,14 @@ def api_router() -> APIRouter:
     Submodules are imported here, not at module scope: they import *this* module for
     their dependencies, and a top-level import would be a cycle.
     """
-    from garh_api.routers import catalog, copilot, jobs, ops, projects, renders, share
+    from garh_api.routers import catalog, collab, copilot, jobs, ops, projects, renders, share
 
     router = APIRouter()
     router.include_router(projects.router)
     router.include_router(ops.router)
+    #: Live collaboration SSE (op-log advance + presence). Read-only fan-out; the
+    #: publishes it relays come from the op sequencer's post-commit seam.
+    router.include_router(collab.router)
     #: Phase 6: propose-only — apply goes back through ops.router (§13 containment).
     router.include_router(copilot.router)
     router.include_router(jobs.router)

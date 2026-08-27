@@ -10,8 +10,8 @@ bytes.
 
 | File | Shape | Count |
 |---|---|---|
-| `furniture.json` | array of `CatalogItemOut` | 45 (≥30 required) |
-| `materials.json` | array of `MaterialOut` | 31 (≥20 required) |
+| `furniture.json` | array of `CatalogItemOut` | 229 (≥30 required) |
+| `materials.json` | array of `MaterialOut` | 97 (≥20 required) |
 | `facade-kits.json` | array of `FacadeKitOut` | 2 (exactly the MVP kits) |
 | `index.json` | manifest + asserted counts | — |
 
@@ -27,9 +27,10 @@ still serves a real catalogue. That is a genuine second copy, so it is pinned:
 * `apps/api/tests/test_catalog_fixtures.py::test_fixture_is_a_superset_of_the_builtin_table`
   asserts every built-in id exists here with **identical dimensions**. Change one, change
   both, or CI fails.
-* These files are a *superset*: the nine extra furniture items and four extra materials
-  cover room types and Indian finishes the built-in table missed (passage, staircase,
-  wooden louvers, terracotta jaali, red-oxide and Athangudi floors).
+* These files are a *superset*: beyond the built-in table they carry the depth catalogue —
+  bed/sofa/wardrobe/kitchen-module/appliance/sanitary variants at Indian-market sizes,
+  vehicles, services, and a full Indian material palette (stones, marbles, tile shades,
+  paints, claddings, roofing). The built-in ids keep their built-in dimensions.
 
 ## Serving these files from the API
 

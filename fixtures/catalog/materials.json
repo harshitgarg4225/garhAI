@@ -357,5 +357,778 @@
       "floor.interior",
       "floor.pooja"
     ]
+  },
+  {
+    "id": "vitrified-tile-ivory",
+    "name": "Vitrified tile (ivory)",
+    "category": "floor",
+    "finish": "glossy",
+    "colorHex": "#F1EDE2",
+    "priceInrPerSqm": 780,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "vitrified-tile-pearl",
+    "name": "Vitrified tile (pearl white)",
+    "category": "floor",
+    "finish": "glossy",
+    "colorHex": "#F4F2EE",
+    "priceInrPerSqm": 820,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "vitrified-tile-beige",
+    "name": "Vitrified tile (beige)",
+    "category": "floor",
+    "finish": "glossy",
+    "colorHex": "#E6DCC8",
+    "priceInrPerSqm": 900,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "vitrified-tile-grey",
+    "name": "Vitrified tile (grey)",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#B9B9B4",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "vitrified-tile-charcoal",
+    "name": "Vitrified tile (charcoal)",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#55555A",
+    "priceInrPerSqm": 980,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "vitrified-tile-travertine",
+    "name": "Vitrified tile (travertine look)",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#D9CBB2",
+    "priceInrPerSqm": 1100,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "vitrified-plank-wood",
+    "name": "Wood-look vitrified plank",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#8F6437",
+    "priceInrPerSqm": 1250,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom"
+    ]
+  },
+  {
+    "id": "vitrified-slab-1200",
+    "name": "Vitrified slab 1200×600",
+    "category": "floor",
+    "finish": "glossy",
+    "colorHex": "#EFEAE0",
+    "priceInrPerSqm": 1650,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "ceramic-floor-300",
+    "name": "Ceramic floor tile 300×300",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#CBBFA8",
+    "priceInrPerSqm": 480,
+    "surfaceGroups": [
+      "floor.bath",
+      "floor.utility"
+    ]
+  },
+  {
+    "id": "anti-skid-tile-grey",
+    "name": "Anti-skid tile (grey)",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#A8A8A2",
+    "priceInrPerSqm": 680,
+    "surfaceGroups": [
+      "floor.bath",
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "parking-tile",
+    "name": "Heavy-duty parking tile",
+    "category": "floor",
+    "finish": "textured",
+    "colorHex": "#8E8E86",
+    "priceInrPerSqm": 720,
+    "surfaceGroups": [
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "granite-jet-black",
+    "name": "Jet black granite",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#1E1E20",
+    "priceInrPerSqm": 3200,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.stair",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "granite-steel-grey",
+    "name": "Steel grey granite",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#6E6E72",
+    "priceInrPerSqm": 2600,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "granite-ruby-red",
+    "name": "Ruby red granite",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#7E3B34",
+    "priceInrPerSqm": 2800,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.stair",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "granite-forest-green",
+    "name": "Forest green granite",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#2F4A3B",
+    "priceInrPerSqm": 2700,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "granite-ivory-cream",
+    "name": "Ivory cream granite",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#D8CDB4",
+    "priceInrPerSqm": 2500,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "granite-flamed-grey",
+    "name": "Flamed granite (outdoor)",
+    "category": "floor",
+    "finish": "flamed",
+    "colorHex": "#77726A",
+    "priceInrPerSqm": 2200,
+    "surfaceGroups": [
+      "floor.terrace",
+      "floor.parking",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "marble-white-indian",
+    "name": "Indian white marble",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#EFEFEA",
+    "priceInrPerSqm": 2200,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.pooja"
+    ]
+  },
+  {
+    "id": "marble-green",
+    "name": "Green marble",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#29584A",
+    "priceInrPerSqm": 2400,
+    "surfaceGroups": [
+      "floor.interior",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "marble-pink",
+    "name": "Pink marble",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#DFB8B3",
+    "priceInrPerSqm": 2000,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.pooja"
+    ]
+  },
+  {
+    "id": "marble-beige-imported",
+    "name": "Beige marble (imported)",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#E4D8C2",
+    "priceInrPerSqm": 2600,
+    "surfaceGroups": [
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "sandstone-red",
+    "name": "Red sandstone",
+    "category": "floor",
+    "finish": "natural",
+    "colorHex": "#9E4A32",
+    "priceInrPerSqm": 1200,
+    "surfaceGroups": [
+      "floor.terrace",
+      "wall.exterior",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "sandstone-yellow",
+    "name": "Yellow sandstone",
+    "category": "floor",
+    "finish": "natural",
+    "colorHex": "#D9B36A",
+    "priceInrPerSqm": 1100,
+    "surfaceGroups": [
+      "floor.terrace",
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "shahabad-stone",
+    "name": "Shahabad stone",
+    "category": "floor",
+    "finish": "honed",
+    "colorHex": "#C8C2AE",
+    "priceInrPerSqm": 650,
+    "surfaceGroups": [
+      "floor.utility",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "tandur-stone",
+    "name": "Tandur stone",
+    "category": "floor",
+    "finish": "honed",
+    "colorHex": "#9BA29A",
+    "priceInrPerSqm": 600,
+    "surfaceGroups": [
+      "floor.utility",
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "terracotta-floor-tile",
+    "name": "Terracotta floor tile",
+    "category": "floor",
+    "finish": "natural",
+    "colorHex": "#B5623B",
+    "priceInrPerSqm": 850,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.terrace",
+      "floor.pooja"
+    ]
+  },
+  {
+    "id": "engineered-wood-oak",
+    "name": "Engineered wood (oak)",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#A47B4E",
+    "priceInrPerSqm": 2800,
+    "surfaceGroups": [
+      "floor.bedroom",
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "laminate-walnut",
+    "name": "Laminate flooring (walnut)",
+    "category": "floor",
+    "finish": "textured",
+    "colorHex": "#6B4A31",
+    "priceInrPerSqm": 1200,
+    "surfaceGroups": [
+      "floor.bedroom"
+    ]
+  },
+  {
+    "id": "bamboo-flooring",
+    "name": "Bamboo flooring",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#C09B62",
+    "priceInrPerSqm": 1800,
+    "surfaceGroups": [
+      "floor.bedroom",
+      "floor.interior"
+    ]
+  },
+  {
+    "id": "epoxy-floor-coat",
+    "name": "Epoxy floor coat",
+    "category": "floor",
+    "finish": "glossy",
+    "colorHex": "#B9BEC4",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "floor.utility",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "concrete-trowel-finish",
+    "name": "Trowelled concrete floor",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#A3A19C",
+    "priceInrPerSqm": 800,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.utility"
+    ]
+  },
+  {
+    "id": "wpc-deck-tile",
+    "name": "WPC deck tile",
+    "category": "floor",
+    "finish": "wood-grain",
+    "colorHex": "#86592F",
+    "priceInrPerSqm": 1900,
+    "surfaceGroups": [
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "artificial-grass-mat",
+    "name": "Artificial grass mat",
+    "category": "floor",
+    "finish": "textured",
+    "colorHex": "#4C8A3F",
+    "priceInrPerSqm": 700,
+    "surfaceGroups": [
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "emulsion-warm-white",
+    "name": "Interior emulsion (warm white)",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#F6F1E7",
+    "priceInrPerSqm": 230,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "emulsion-pastel-green",
+    "name": "Interior emulsion (pastel green)",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#DCE8D8",
+    "priceInrPerSqm": 240,
+    "surfaceGroups": [
+      "wall.interior"
+    ]
+  },
+  {
+    "id": "emulsion-pastel-blue",
+    "name": "Interior emulsion (pastel blue)",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#D8E4EC",
+    "priceInrPerSqm": 240,
+    "surfaceGroups": [
+      "wall.interior"
+    ]
+  },
+  {
+    "id": "emulsion-grey-mist",
+    "name": "Interior emulsion (grey mist)",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#D3D3CF",
+    "priceInrPerSqm": 240,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "emulsion-accent-terracotta",
+    "name": "Accent emulsion (terracotta)",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#C0603C",
+    "priceInrPerSqm": 260,
+    "surfaceGroups": [
+      "wall.feature",
+      "wall.interior"
+    ]
+  },
+  {
+    "id": "distemper-economy",
+    "name": "Distemper (economy)",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#F2EEE4",
+    "priceInrPerSqm": 90,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "exterior-emulsion-smooth",
+    "name": "Exterior emulsion (smooth)",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#E8E2D4",
+    "priceInrPerSqm": 260,
+    "surfaceGroups": [
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "exterior-emulsion-grey",
+    "name": "Exterior emulsion (grey)",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#C9C9C4",
+    "priceInrPerSqm": 260,
+    "surfaceGroups": [
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "texture-scratch-plaster",
+    "name": "Scratch-texture plaster",
+    "category": "wall",
+    "finish": "textured",
+    "colorHex": "#DFD8C8",
+    "priceInrPerSqm": 420,
+    "surfaceGroups": [
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "lime-plaster-araish",
+    "name": "Lime plaster (araish)",
+    "category": "wall",
+    "finish": "polished",
+    "colorHex": "#EDE8DC",
+    "priceInrPerSqm": 900,
+    "surfaceGroups": [
+      "wall.interior",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "cement-plaster-natural",
+    "name": "Natural cement plaster",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#B4B0A6",
+    "priceInrPerSqm": 180,
+    "surfaceGroups": [
+      "wall.exterior",
+      "wall.interior"
+    ]
+  },
+  {
+    "id": "kitchen-tile-gloss-white",
+    "name": "Kitchen wall tile (gloss white)",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#F7F7F2",
+    "priceInrPerSqm": 550,
+    "surfaceGroups": [
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "mosaic-dado-tile",
+    "name": "Mosaic dado tile",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#7FA8A0",
+    "priceInrPerSqm": 900,
+    "surfaceGroups": [
+      "wall.kitchen",
+      "wall.bath"
+    ]
+  },
+  {
+    "id": "bath-tile-aqua",
+    "name": "Bathroom wall tile (aqua)",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#CFE6E4",
+    "priceInrPerSqm": 620,
+    "surfaceGroups": [
+      "wall.bath"
+    ]
+  },
+  {
+    "id": "bath-tile-graphite",
+    "name": "Bathroom wall tile (graphite)",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#5E6467",
+    "priceInrPerSqm": 700,
+    "surfaceGroups": [
+      "wall.bath"
+    ]
+  },
+  {
+    "id": "subway-tile-white",
+    "name": "Subway tile (white)",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#EFEFE9",
+    "priceInrPerSqm": 750,
+    "surfaceGroups": [
+      "wall.kitchen",
+      "wall.bath"
+    ]
+  },
+  {
+    "id": "highlighter-tile-rust",
+    "name": "Highlighter wall tile (rust)",
+    "category": "wall",
+    "finish": "textured",
+    "colorHex": "#A67443",
+    "priceInrPerSqm": 850,
+    "surfaceGroups": [
+      "wall.bath",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "brick-wall-tile",
+    "name": "Brick wall tile (wirecut)",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#A0503A",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "wall.feature",
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "fluted-wpc-panel",
+    "name": "Fluted WPC wall panel",
+    "category": "wall",
+    "finish": "wood-grain",
+    "colorHex": "#8A6238",
+    "priceInrPerSqm": 1600,
+    "surfaceGroups": [
+      "wall.feature",
+      "wall.interior"
+    ]
+  },
+  {
+    "id": "pvc-wall-panel",
+    "name": "PVC wall panel",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#E9E7E0",
+    "priceInrPerSqm": 450,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "hpl-cladding",
+    "name": "HPL exterior cladding",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#6F4B2F",
+    "priceInrPerSqm": 2400,
+    "surfaceGroups": [
+      "facade.cladding",
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "grc-jaali",
+    "name": "GRC jaali screen",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#D8D3C4",
+    "priceInrPerSqm": 2100,
+    "surfaceGroups": [
+      "facade.screen",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "ms-jaali-laser-cut",
+    "name": "Laser-cut MS jaali",
+    "category": "wall",
+    "finish": "powder-coated",
+    "colorHex": "#3A3A3C",
+    "priceInrPerSqm": 2600,
+    "surfaceGroups": [
+      "facade.screen",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "slate-cladding-black",
+    "name": "Black slate cladding",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#37383A",
+    "priceInrPerSqm": 1500,
+    "surfaceGroups": [
+      "wall.feature",
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "glass-frosted",
+    "name": "Frosted glass",
+    "category": "glazing",
+    "finish": "frosted",
+    "colorHex": "#DDE6E8",
+    "priceInrPerSqm": 1500,
+    "surfaceGroups": [
+      "window.glazing",
+      "facade.glazing"
+    ]
+  },
+  {
+    "id": "glass-reflective",
+    "name": "Reflective glass",
+    "category": "glazing",
+    "finish": "coated",
+    "colorHex": "#6C8A94",
+    "priceInrPerSqm": 2000,
+    "surfaceGroups": [
+      "facade.glazing",
+      "window.glazing"
+    ]
+  },
+  {
+    "id": "wpc-door",
+    "name": "WPC door (bath)",
+    "category": "joinery",
+    "finish": "matte",
+    "colorHex": "#A98F6C",
+    "priceInrPerSqm": 2200,
+    "surfaceGroups": [
+      "door.internal"
+    ]
+  },
+  {
+    "id": "aluminium-sliding-door",
+    "name": "Aluminium sliding door",
+    "category": "joinery",
+    "finish": "anodised",
+    "colorHex": "#77797C",
+    "priceInrPerSqm": 5600,
+    "surfaceGroups": [
+      "door.internal",
+      "window.frame"
+    ]
+  },
+  {
+    "id": "aluminium-railing",
+    "name": "Aluminium railing",
+    "category": "railing",
+    "finish": "powder-coated",
+    "colorHex": "#4A4A4C",
+    "priceInrPerSqm": 3600,
+    "surfaceGroups": [
+      "railing.balcony",
+      "railing.stair"
+    ]
+  },
+  {
+    "id": "wooden-handrail",
+    "name": "Wooden handrail",
+    "category": "railing",
+    "finish": "polished",
+    "colorHex": "#7A4F28",
+    "priceInrPerSqm": 2400,
+    "surfaceGroups": [
+      "railing.stair"
+    ]
+  },
+  {
+    "id": "metal-roof-sheet",
+    "name": "Colour-coated metal roof sheet",
+    "category": "roof",
+    "finish": "matte",
+    "colorHex": "#8A3A2A",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "roof.pitched"
+    ]
+  },
+  {
+    "id": "cool-roof-coat",
+    "name": "Cool-roof reflective coat",
+    "category": "roof",
+    "finish": "matte",
+    "colorHex": "#F2F4F4",
+    "priceInrPerSqm": 300,
+    "surfaceGroups": [
+      "roof.flat"
+    ]
+  },
+  {
+    "id": "china-mosaic",
+    "name": "China mosaic terrace finish",
+    "category": "roof",
+    "finish": "glossy",
+    "colorHex": "#E8E4DA",
+    "priceInrPerSqm": 750,
+    "surfaceGroups": [
+      "roof.flat",
+      "floor.terrace"
+    ]
   }
 ]

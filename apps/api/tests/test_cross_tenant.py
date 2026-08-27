@@ -142,6 +142,9 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
     ),
     Case("GET", "/projects/{project_id}/ops", query="since=-1"),
     Case("GET", "/projects/{project_id}/model"),
+    # SSE, but safe in this sweep: the tenancy check runs (and 404s) inside the
+    # handler BEFORE the EventSourceResponse is built, so firm B never streams.
+    Case("GET", "/projects/{project_id}/collab/events"),
     # -- solver -----------------------------------------------------------
     Case("POST", "/projects/{project_id}/solve", body={"optionCount": 3}),
     Case("GET", "/projects/{project_id}/solver-jobs"),

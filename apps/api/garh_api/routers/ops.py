@@ -58,6 +58,7 @@ from fastapi import APIRouter, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from garh_api import MODEL_SCHEMA_VERSION
+from garh_api.collab import OpsAdvanced, queue_ops_advanced
 from garh_api.config import get_settings
 from garh_api.logging import get_logger
 from garh_api.repositories import (
@@ -810,6 +811,28 @@ async def _append_core(
     stale_count = 0
     if any(op.type not in _NON_VISUAL_OP_TYPES for op in new_ops):
         stale_count = await RenderJobRepository(session, ctx).mark_stale_for_project(project_id)
+
+    # Live collab (the §SSE contract): every append funnels through this function —
+    # POST /ops (manual edits, copilot applies, solver op-31 applies) and
+    # dispatch_ops (PUT /plot, PUT /brief) alike — so this is the ONE seam that
+    # tells connected clients the log advanced. Registered, not published: the
+    # commit belongs to the caller's session scope, and a notification sent before
+    # it races the reader's refetch (garh_api.collab explains the after_commit
+    # hook). ``system`` is skipped: today that source is only the seed, which runs
+    # before anyone can be connected, and a firehose of seed frames during a
+    # ``--reset-demo`` would be noise even if someone were.
+    if source != "system":
+        queue_ops_advanced(
+            session,
+            OpsAdvanced(
+                project_id=str(project_id),
+                head_idx=result.head_idx,
+                version_branch=str(branch),
+                actor_id=str(ctx.user_id) if ctx.user_id is not None else None,
+                source=source,
+                group_id=str(group_id) if group_id is not None else None,
+            ),
+        )
 
     _log.info(
         "ops.append_ok",

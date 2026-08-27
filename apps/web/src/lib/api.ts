@@ -1211,15 +1211,21 @@ export function createApiClient(client: HttpClient = http) {
     },
 
     comments: {
-      list: (
-        projectId: string,
-        options: CallOptions & { resolved?: boolean } = {},
-      ): Promise<Page<Comment>> =>
+      /**
+       * Open (unresolved) comments, oldest first.
+       *
+       * A BARE ARRAY, not a cursor page: the route answers `list[CommentOut]`
+       * (routers/share.py `list_comments`) and takes no query parameters. This
+       * used to parse with `pageParser` and pass a `resolved` filter the server
+       * does not read — the same never-executed class as `share.create`'s
+       * nested body: it would have thrown `malformed_response` on every real
+       * response. Callers wanting newest-first reverse the result.
+       */
+      list: (projectId: string, opts: CallOptions = {}): Promise<Comment[]> =>
         client.request({
           path: projectPath(projectId, '/comments'),
-          query: { resolved: options.resolved },
-          parse: pageParser(commentSchema),
-          ...(options.signal === undefined ? {} : { signal: options.signal }),
+          parse: (data) => z.array(commentSchema).parse(data),
+          ...opts,
         }),
 
       create: (

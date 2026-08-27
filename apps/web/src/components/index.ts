@@ -46,6 +46,9 @@ export type { InspectorProps } from './Inspector';
 export { JobCard, JobList } from './JobCard';
 export type { JobCardProps } from './JobCard';
 
+export { PresenceChips, presenceInitials, presencePaletteIndex } from './PresenceChips';
+export type { PresenceChipsProps, PresenceUser } from './PresenceChips';
+
 export { ProjectCard, ProjectCardSkeleton } from './ProjectCard';
 export type { ProjectCardProps } from './ProjectCard';
 

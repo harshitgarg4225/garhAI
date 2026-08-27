@@ -226,7 +226,7 @@ export function subscribeJobEvents(options: JobEventOptions): () => void {
       // server that cannot serve it, so back off harder.
       const base = sawEvent ? FIRST_BACKOFF_MS : FIRST_BACKOFF_MS * 2;
       const delay = Math.min(base * 2 ** (attempt - 1), MAX_BACKOFF_MS);
-      await sleep(delay, controller.signal);
+      await abortableSleep(delay, controller.signal);
     }
   };
 
@@ -251,7 +251,13 @@ function safeParseState(data: string): ProgressEvent | null {
   }
 }
 
-function sleep(ms: number, signal: AbortSignal): Promise<void> {
+/**
+ * Abort-aware backoff sleep. Exported for `lib/collab.ts`, which runs the same
+ * fetch-with-Authorization reconnect loop over a different frame vocabulary —
+ * a second hand-rolled abortable timer is exactly the kind of subtle helper
+ * that drifts.
+ */
+export function abortableSleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
     if (signal.aborted) {
       resolve();
