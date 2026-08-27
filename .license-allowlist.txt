@@ -1,0 +1,9 @@
+# Packages the licence scanner cannot classify from installed metadata, allowed
+# here by hand. One name per line; every entry needs a DECISIONS.md row stating
+# the actual licence and why the scanner misses it.
+#
+# setuptools: MIT. Recent releases (78+) dropped the License classifier in
+# favour of SPDX metadata that older interpreters of the metadata spec — and a
+# fresh CI pip — surface in a way the three-signature probe reads as empty.
+# It is build tooling pulled in by pip itself, not an app dependency we chose.
+setuptools
