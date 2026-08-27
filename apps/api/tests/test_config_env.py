@@ -86,24 +86,15 @@ PRODUCTION_ENV: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=ConfigError,
-    reason=(
-        "config.py's _fail_fast_on_missing_secrets runs for every env except 'dev', so "
-        "APP_ENV=test demands real S3 credentials, a public APP_URL and a non-local "
-        "DATABASE_URL/REDIS_URL. A test environment cannot satisfy that — it is by "
-        "definition pointed at the local stack. Fix: guard the validator with "
-        '`if self.env in ("dev", "test")`. When that lands, remove this marker AND '
-        "the APP_ENV override in tests/conftest.py."
-    ),
-)
 def test_test_env_can_point_at_the_local_stack(monkeypatch: Any) -> None:
     """``APP_ENV=test`` against compose's datastores must boot.
 
     This is what CI's ``unit-python`` job actually configures (``APP_ENV=test``,
-    ``REDIS_URL=redis://localhost:6379/0``, no ``S3_*``, no ``APP_URL``), so as long as this
-    fails, that job cannot start the app either.
+    ``REDIS_URL=redis://localhost:6379/0``, no ``S3_*``, no ``APP_URL``) — its
+    ``alembic upgrade head`` step imports ``Settings`` under exactly this
+    environment, before conftest exists to intervene. This was a strict xfail
+    until 2026-08-27, when the first real CI run hit the defect and the
+    validator gained its ``("dev", "test")`` guard.
     """
     settings = _settings_from(
         monkeypatch,

@@ -204,7 +204,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _fail_fast_on_missing_secrets(self) -> Settings:
-        if self.env == "dev":
+        # "test" is exempt alongside "dev": a test environment is by definition
+        # pointed at a local stack (CI's service containers, a dev box's
+        # postgres), so demanding non-local URLs and real S3 credentials made
+        # APP_ENV=test unusable — the suite ran as "dev" and CI's alembic step
+        # died at import. Staging and prod keep the full check.
+        if self.env in ("dev", "test"):
             return self
         missing: list[str] = []
 

@@ -16,22 +16,21 @@ Everything comes from the environment, with the same defaults ``docker compose``
 
 ## Why the suite runs with ``APP_ENV=dev`` and not ``test``
 
-`config.py`'s ``_fail_fast_on_missing_secrets`` validator runs for **every** env except
-``dev`` — including ``test``. In ``test`` it therefore demands an RS256 keypair, real S3
-credentials, a public ``APP_URL``, and a ``DATABASE_URL``/``REDIS_URL`` that are *not* the
-local ones. A test suite whose whole point is to run against the local stack cannot
-satisfy that: pointing ``DATABASE_URL`` at compose's database is exactly what the
-validator rejects, so ``Settings()`` raises ``ConfigError`` before a single test collects.
+Since 2026-08-27 the ``_fail_fast_on_missing_secrets`` validator exempts ``test``
+alongside ``dev`` (its old refusal is pinned, now as a passing test, in
+``test_config_env.py::test_test_env_can_point_at_the_local_stack``), so ``APP_ENV=test``
+*boots* against the local stack — that is what CI's ``alembic upgrade head`` step needs.
+This module still forces ``APP_ENV=dev`` for the suite itself, for one concrete reason:
+``refresh_cookie_secure`` is ``not is_dev``, so under ``test`` the rotating refresh
+cookie is ``Secure`` — and this suite's ASGI client talks ``http://``, where a
+cookie-jar honouring ``Secure`` would silently drop it and fail every refresh round
+trip for the wrong reason. The ``Secure`` attribute itself is asserted directly against
+a non-dev ``Settings`` in ``test_auth_flow.py``, so nothing is lost.
 
-Until that is fixed (see ``test_config_env.py``, which pins the defect with a strict
-xfail), this module forces ``APP_ENV=dev`` — overriding an inherited value, including the
-``APP_ENV: test`` that ``.github/workflows/ci.yml`` sets. The one-line fix in ``config.py``
-is ``if self.env in ("dev", "test"): return self``; when it lands, delete
-:func:`_force_dev_env` and the xfail together.
-
-Nothing the tests care about differs between ``dev`` and ``test``: ``is_production`` is
-False in both, ``dev_echo_otp_enabled`` allows both, and the flags/provider defaults are
-identical. Two things *do* differ, and both are covered another way:
+Nothing else the tests care about differs between ``dev`` and ``test``:
+``is_production`` is False in both, ``dev_echo_otp_enabled`` allows both, and the
+flags/provider defaults are identical. The two behavioural differences are covered
+another way:
 
 * the refresh cookie is not ``Secure`` in dev (so the ASGI client can carry it over
   ``http://``) — ``test_auth_flow.py`` asserts ``Secure`` directly against a non-dev
@@ -73,7 +72,7 @@ import pytest
 # Environment — set before anything imports garh_api.config (its settings are cached)
 # ---------------------------------------------------------------------------
 
-#: What the suite would like ``APP_ENV`` to be, and cannot use yet. See the module
+#: What CI's alembic step runs as, and what this suite deliberately does not. See the
 #: docstring; ``test_config_env.py`` is the executable version of this comment.
 INTENDED_APP_ENV = "test"
 
@@ -82,7 +81,8 @@ def _force_dev_env() -> str | None:
     """Pin ``APP_ENV=dev``. Returns the value we overrode, for the warning below.
 
     Deliberately ``environ[...] = ...`` and not ``setdefault``: CI exports
-    ``APP_ENV: test``, and honouring it makes ``Settings()`` raise before collection.
+    ``APP_ENV: test``, and honouring it would flip the refresh cookie to ``Secure``
+    under the suite's http:// ASGI client (module docstring).
     """
     inherited = os.environ.get("APP_ENV") or os.environ.get("ENV")
     os.environ["APP_ENV"] = "dev"
@@ -125,15 +125,15 @@ _TRUNCATE_SQL = "TRUNCATE TABLE %s RESTART IDENTITY CASCADE" % ", ".join(
 
 
 def pytest_configure(config: Any) -> None:
-    """Say out loud that we overrode ``APP_ENV``, so the workaround stays visible."""
+    """Say out loud that we overrode ``APP_ENV``, so the choice stays visible."""
     if _OVERRODE_APP_ENV is None:
         return
     config.issue_config_time_warning(
         pytest.PytestConfigWarning(
-            "Overrode APP_ENV=%s with 'dev': config.py's production-secret validator "
-            "applies to every env except 'dev', so APP_ENV=%s cannot point at the local "
-            "stack. See tests/conftest.py and tests/test_config_env.py."
-            % (_OVERRODE_APP_ENV, _OVERRODE_APP_ENV)
+            "Overrode APP_ENV=%s with 'dev': the suite's ASGI client runs over "
+            "http://, and outside dev the refresh cookie is Secure and would be "
+            "dropped by the cookie jar. See the module docstring in tests/conftest.py."
+            % (_OVERRODE_APP_ENV,)
         ),
         stacklevel=1,
     )
