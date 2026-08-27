@@ -95,27 +95,34 @@ def repo_root() -> str:
 
 
 def fixtures_dir() -> str:
-    """``fixtures/`` — honours ``FIXTURE_DIR`` (compose sets it)."""
+    """``fixtures/`` — honours ``FIXTURE_DIR`` (compose sets it); a relative
+    value resolves against the repo root, never the cwd."""
     override = os.environ.get("FIXTURE_DIR")
     if override:
-        return os.path.abspath(override)
+        return override if os.path.isabs(override) else os.path.join(repo_root(), override)
     return os.path.join(repo_root(), "fixtures")
 
 
 def rulepack_dir() -> str:
     """``rulepacks/``. ``GARH_RULEPACK_DIR`` is what ``routers/catalog.py`` reads;
-    ``RULEPACK_DIR`` is what compose sets. Both are honoured, in that order."""
-    return (
-        os.environ.get("GARH_RULEPACK_DIR")
-        or os.environ.get("RULEPACK_DIR")
-        or os.path.join(repo_root(), "rulepacks")
-    )
+    ``RULEPACK_DIR`` is what compose sets. Both are honoured, in that order.
+    A relative override resolves against the repo root, never the cwd — the api
+    container's cwd is /app/apps/api and .env.example ships the relative form."""
+    override = os.environ.get("GARH_RULEPACK_DIR") or os.environ.get("RULEPACK_DIR")
+    if override:
+        return override if os.path.isabs(override) else os.path.join(repo_root(), override)
+    return os.path.join(repo_root(), "rulepacks")
 
 
 def catalog_search_paths() -> tuple[str, ...]:
     """Candidate catalogue directories, highest priority first."""
     override = os.environ.get("GARH_CATALOG_DIR")
     root = repo_root()
+    if override and not os.path.isabs(override):
+        # Relative overrides resolve against the repo root, never the cwd
+        # (.env.example ships GARH_CATALOG_DIR=fixtures/catalog; the api
+        # container's cwd is /app/apps/api).
+        override = os.path.join(root, override)
     candidates = [
         override,
         os.path.join(root, "catalog"),

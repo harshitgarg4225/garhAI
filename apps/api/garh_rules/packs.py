@@ -387,14 +387,18 @@ def rulepack_dir(root: str | None = None) -> str:
     """
     if root:
         return root
-    override = os.environ.get("GARH_RULEPACK_DIR") or os.environ.get("RULEPACK_DIR")
-    if override:
-        return override
     base = os.environ.get("GARH_ROOT")
     if not base:
         here = os.path.abspath(os.path.dirname(__file__))
         # garh_rules -> apps/api -> apps -> <repo root>
         base = os.path.abspath(os.path.join(here, "..", "..", ".."))
+    override = os.environ.get("GARH_RULEPACK_DIR") or os.environ.get("RULEPACK_DIR")
+    if override:
+        # A relative override is meant relative to the REPO, not the process
+        # cwd: .env.example ships RULEPACK_DIR=rulepacks for host runs, the api
+        # container's cwd is /app/apps/api, and cwd-relative resolution broke
+        # the first `docker compose up` seed (CI run 10, 2026-08-27).
+        return override if os.path.isabs(override) else os.path.join(base, override)
     return os.path.join(base, "rulepacks")
 
 

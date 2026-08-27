@@ -162,11 +162,11 @@ def _validated(model: type[ResponseModel], items: tuple[Any, ...]) -> list[dict[
 def rulepack_dir() -> str:
     # Same precedence as garh_rules.packs.rulepack_dir and garh_api.seed.catalog:
     # GARH_RULEPACK_DIR (code-facing name) then RULEPACK_DIR (what compose sets).
-    return (
-        os.environ.get("GARH_RULEPACK_DIR")
-        or os.environ.get("RULEPACK_DIR")
-        or os.path.join(repo_root(), "rulepacks")
-    )
+    # Relative overrides resolve against the repo root, never the cwd.
+    override = os.environ.get("GARH_RULEPACK_DIR") or os.environ.get("RULEPACK_DIR")
+    if override:
+        return override if os.path.isabs(override) else os.path.join(repo_root(), override)
+    return os.path.join(repo_root(), "rulepacks")
 
 
 #: Where the JSON overrides live, in precedence order after ``GARH_CATALOG_DIR``.
@@ -184,7 +184,9 @@ _CATALOG_DIR_CANDIDATES: tuple[str, ...] = ("catalog", os.path.join("fixtures", 
 def catalog_dir() -> str:
     override = os.environ.get("GARH_CATALOG_DIR")
     if override:
-        return override
+        # Relative overrides resolve against the repo root, never the cwd —
+        # same rule as rulepack_dir above and garh_api.seed.catalog.
+        return override if os.path.isabs(override) else os.path.join(repo_root(), override)
     root = repo_root()
     for candidate in _CATALOG_DIR_CANDIDATES:
         path = os.path.join(root, candidate)
