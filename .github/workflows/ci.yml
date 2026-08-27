@@ -448,17 +448,41 @@ jobs:
       - name: Install JS workspace
         run: pnpm install --frozen-lockfile
 
+      # The dependency-free golden gates — rule fixtures through the real engine,
+      # the copilot eval corpus + containment through the real fold, sheet goldens,
+      # and the audits. `make bare` is the one command CLAUDE.md promises runs
+      # anywhere; CI proving it keeps that promise honest.
+      - name: "Golden gates (make bare): rule fixtures, copilot corpus, sheet goldens"
+        run: make bare
+
       - name: "Golden suites (python): plans, dims, sheets"
         working-directory: apps/api
-        run: pytest -q -m golden
+        # Exit 5 = the marker is registered but nothing carries it yet. That is a
+        # visible NOTE, not a pass and not a fail — the same policy the
+        # cross-tenant step applies, inverted: here an empty selection is
+        # acceptable because `make bare` above ran the real golden gates.
+        run: |
+          set +e
+          pytest -q -m golden
+          code=$?
+          set -e
+          if [ "$code" = "5" ]; then
+            echo "::notice::No pytest-marked golden tests in apps/api yet — the golden gates ran via make bare above."
+            exit 0
+          fi
+          exit $code
 
       - name: "Golden suites (services)"
         run: |
-          if ls services/*/tests/*.py >/dev/null 2>&1; then
-            pytest -q -m golden -c apps/api/pyproject.toml services
-          else
-            echo "no services golden tests yet"
+          set +e
+          pytest -q -m golden -c apps/api/pyproject.toml services
+          code=$?
+          set -e
+          if [ "$code" = "5" ]; then
+            echo "::notice::No pytest-marked golden tests in services yet — the golden gates ran via make bare above."
+            exit 0
           fi
+          exit $code
 
       - name: "Golden suites (web): units TS must agree with units PY"
         run: pnpm -r --if-present test:golden
