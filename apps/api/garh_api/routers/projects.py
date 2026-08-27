@@ -23,7 +23,7 @@ import json
 import os
 import re
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Query, Response, status
 
@@ -107,7 +107,7 @@ async def list_projects(
     ctx: TenantDep,
     page: PageDep,
     include_archived: bool = Query(default=False),
-    project_status: Optional[str] = Query(
+    project_status: str | None = Query(
         default=None, alias="status", description="Filter by dashboard status chip."
     ),
 ) -> CursorPage[ProjectOut]:
@@ -249,12 +249,12 @@ async def delete_project(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/projects/{project_id}/plot", response_model=Optional[PlotOut], summary="Get the plot")
+@router.get("/projects/{project_id}/plot", response_model=PlotOut | None, summary="Get the plot")
 async def get_plot(
     project_id: uuid.UUID,
     session: SessionDep,
     ctx: TenantDep,
-) -> Optional[PlotOut]:
+) -> PlotOut | None:
     """Null when the project has no plot yet — an empty state, not an error."""
     await require_project(session, ctx, project_id)
     plot = await PlotRepository(session, ctx).get_for_project(project_id)
@@ -341,14 +341,12 @@ async def put_plot(
 # ---------------------------------------------------------------------------
 
 
-@router.get(
-    "/projects/{project_id}/brief", response_model=Optional[BriefOut], summary="Get the brief"
-)
+@router.get("/projects/{project_id}/brief", response_model=BriefOut | None, summary="Get the brief")
 async def get_brief(
     project_id: uuid.UUID,
     session: SessionDep,
     ctx: TenantDep,
-) -> Optional[BriefOut]:
+) -> BriefOut | None:
     await require_project(session, ctx, project_id)
     brief = await BriefRepository(session, ctx).get_for_project(project_id)
     return BriefOut.of(brief) if brief is not None else None
@@ -516,7 +514,7 @@ async def get_compliance(
     project_id: uuid.UUID,
     session: SessionDep,
     ctx: TenantDep,
-    version: Optional[uuid.UUID] = Query(default=None, description="A design version id."),
+    version: uuid.UUID | None = Query(default=None, description="A design version id."),
 ) -> ComplianceOut:
     """The frozen rules-engine result for a version (§6).
 
@@ -577,9 +575,7 @@ async def freeze_compliance_report(
     """
     blocked = cannot_evaluate_reason(document)
     if blocked is not None:
-        _log.info(
-            "compliance.skipped", project_id=str(project_id), reason=blocked
-        )
+        _log.info("compliance.skipped", project_id=str(project_id), reason=blocked)
         return
     try:
         payload, pack_versions = evaluate_document(document)
@@ -618,9 +614,7 @@ async def list_versions(
     megabytes to render a row of dots.
     """
     await require_project(session, ctx, project_id)
-    summaries = await DesignVersionRepository(session, ctx).list_summaries(
-        project_id, limit=limit
-    )
+    summaries = await DesignVersionRepository(session, ctx).list_summaries(project_id, limit=limit)
     return CursorPage[VersionOut](
         items=[VersionOut.of(v) for v in summaries],
         next_cursor=None,
@@ -814,7 +808,9 @@ class _MockBriefParser:
     _BATHS = re.compile(r"(\d+)\s*(?:bath\s?rooms?|baths?|toilets?)", re.IGNORECASE)
     _STOREYS = re.compile(r"\bg\s*\+\s*(\d+)\b", re.IGNORECASE)
     _BUDGET_LAKH = re.compile(r"(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(lakhs?|lacs?)", re.IGNORECASE)
-    _BUDGET_CRORE = re.compile(r"(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(crores?|cr)\b", re.IGNORECASE)
+    _BUDGET_CRORE = re.compile(
+        r"(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(crores?|cr)\b", re.IGNORECASE
+    )
     _FACING = re.compile(
         r"\b(north[-\s]?east|south[-\s]?east|north[-\s]?west|south[-\s]?west|north|south|east|west)"
         r"[-\s]?facing\b",
@@ -943,7 +939,7 @@ class _MockBriefParser:
             "warnings": [],
         }
 
-    def _match_fixture(self, text: str) -> Optional[dict[str, Any]]:
+    def _match_fixture(self, text: str) -> dict[str, Any] | None:
         directory = os.path.join(
             os.environ.get("FIXTURE_DIR") or os.path.join(repo_root(), "fixtures"), "briefs"
         )
@@ -954,16 +950,14 @@ class _MockBriefParser:
             if not name.endswith(".json"):
                 continue
             try:
-                with open(os.path.join(directory, name), "r", encoding="utf-8") as handle:
+                with open(os.path.join(directory, name), encoding="utf-8") as handle:
                     fixture = json.load(handle)
             except (OSError, ValueError):
                 continue
             if not isinstance(fixture, dict):
                 continue
             keywords = fixture.get("match")
-            if isinstance(keywords, list) and any(
-                str(k).lower() in lowered for k in keywords
-            ):
+            if isinstance(keywords, list) and any(str(k).lower() in lowered for k in keywords):
                 _log.info("brief_parse.fixture_hit", fixture=name)
                 return {
                     "provider": self.provider_name,
@@ -975,7 +969,7 @@ class _MockBriefParser:
         return None
 
     @staticmethod
-    def _first_int(pattern: "re.Pattern[str]", text: str) -> Optional[int]:
+    def _first_int(pattern: re.Pattern[str], text: str) -> int | None:
         match = pattern.search(text)
         if not match:
             return None
@@ -986,7 +980,7 @@ class _MockBriefParser:
         return value if 0 < value <= 20 else None
 
     @classmethod
-    def _budget_inr(cls, text: str) -> Optional[int]:
+    def _budget_inr(cls, text: str) -> int | None:
         """Money in whole rupees — never a float (the model core rejects floats)."""
         crore = cls._BUDGET_CRORE.search(text)
         if crore:
@@ -1031,7 +1025,7 @@ def _resolve_brief_parser() -> Any:
         if callable(factory):
             try:
                 parser = factory()
-            except Exception as exc:  # noqa: BLE001 - misconfiguration must not 500
+            except Exception as exc:
                 # PROVIDER_LLM=anthropic with no key raises here. Degrade loudly.
                 _log.warning(
                     "brief_parse.provider_unavailable",

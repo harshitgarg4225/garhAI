@@ -27,7 +27,7 @@ import shutil
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", ".."))
@@ -62,16 +62,16 @@ class RecordedEvent:
     type: str
     stage: str
     message: str
-    percent: Optional[int]
-    data: Dict[str, Any] = field(default_factory=dict)
+    percent: int | None
+    data: dict[str, Any] = field(default_factory=dict)
 
 
 class FakeProgress:
     def __init__(self) -> None:
-        self.events: List[RecordedEvent] = []
+        self.events: list[RecordedEvent] = []
 
     async def stage(
-        self, stage: str, message: str, *, percent: Optional[int] = None, **data: Any
+        self, stage: str, message: str, *, percent: int | None = None, **data: Any
     ) -> None:
         self.events.append(RecordedEvent("stage", stage, message, percent, dict(data)))
 
@@ -81,7 +81,7 @@ class FakeProgress:
     async def warning(self, message: str, **data: Any) -> None:
         self.events.append(RecordedEvent("warning", "", message, None, dict(data)))
 
-    def percents(self) -> List[int]:
+    def percents(self) -> list[int]:
         return [e.percent for e in self.events if e.percent is not None]
 
 
@@ -89,7 +89,7 @@ class FakeBlobs:
     """Writes to ``path`` refs. Same interface the real client exposes to a handler."""
 
     def __init__(self) -> None:
-        self.written: Dict[str, bytes] = {}
+        self.written: dict[str, bytes] = {}
 
     async def fetch(self, ref: Any, *, what: str = "file") -> bytes:
         if ref.inline_base64 is not None:
@@ -97,21 +97,21 @@ class FakeBlobs:
 
             return base64.b64decode(ref.inline_base64)
         if ref.path:
-            with open(ref.path, "rb") as handle:
+            # Test fake: a tiny local read; nothing here starves an event loop.
+            with open(ref.path, "rb") as handle:  # noqa: ASYNC230
                 return handle.read()
         raise AssertionError("fake blobs only handle inline/path refs, got %r" % (ref,))
 
     async def put(
-        self, ref: Any, data: bytes, *, content_type: Optional[str] = None, what: str = "result"
+        self, ref: Any, data: bytes, *, content_type: str | None = None, what: str = "result"
     ) -> Any:
         assert ref.path, "every output the handler writes must carry a destination"
         os.makedirs(os.path.dirname(ref.path), exist_ok=True)
-        with open(ref.path, "wb") as handle:
+        # Test fake: a tiny local write; nothing here starves an event loop.
+        with open(ref.path, "wb") as handle:  # noqa: ASYNC230
             handle.write(data)
         self.written[ref.path] = data
-        return BlobRef(
-            path=ref.path, get_url=ref.get_url, key=ref.key, content_type=content_type
-        )
+        return BlobRef(path=ref.path, get_url=ref.get_url, key=ref.key, content_type=content_type)
 
 
 @dataclass
@@ -131,7 +131,7 @@ class FakeContext:
     checkpoint: Any = None
 
     @property
-    def payload(self) -> Dict[str, Any]:
+    def payload(self) -> dict[str, Any]:
         return self.envelope.payload
 
     def raise_if_cancelled(self) -> None:
@@ -158,17 +158,15 @@ class Workspace:
         shutil.rmtree(self.root, ignore_errors=True)
 
     # -- envelopes ------------------------------------------------------
-    def assets(self) -> Dict[str, BlobRef]:
+    def assets(self) -> dict[str, BlobRef]:
         assets = {ASSET_MODEL: BlobRef(path=self.model_path, content_type="application/json")}
         if self.areas_path:
-            assets[ASSET_AREAS] = BlobRef(
-                path=self.areas_path, content_type="application/json"
-            )
+            assets[ASSET_AREAS] = BlobRef(path=self.areas_path, content_type="application/json")
         return assets
 
-    def sheet_outputs(self, slugs) -> Dict[str, BlobRef]:
+    def sheet_outputs(self, slugs) -> dict[str, BlobRef]:
         """Presigned-PUT stand-ins, keyed exactly as the API mints them."""
-        outputs: Dict[str, BlobRef] = {}
+        outputs: dict[str, BlobRef] = {}
         for slug in slugs:
             for fmt in self.formats:
                 key = "%s.%s" % (slug, fmt)
@@ -260,7 +258,7 @@ def test_the_handler_draws_and_publishes_the_whole_set():
             assert layout["artifacts"]["svg"] == "%s.svg" % layout["sheetId"]
             path = os.path.join(workspace.root, "out", "%s.svg" % layout["sheetId"])
             assert os.path.exists(path), layout["sheetId"]
-            with open(path, "r", encoding="utf-8") as handle:
+            with open(path, encoding="utf-8") as handle:
                 assert handle.read().startswith("<svg ")
         assert result.data["designVersionId"] == "11111111-1111-1111-1111-111111111111"
         assert result.data["chainCount"] > 0
@@ -420,7 +418,7 @@ def test_a_missing_model_asset_names_the_asset():
         ctx.envelope.assets.pop(ASSET_MODEL)
         try:
             run(HANDLER.handle(ctx))
-        except Exception as exc:  # noqa: BLE001 - require_asset raises its own type
+        except Exception as exc:
             assert "model" in str(exc).lower() or "design" in str(exc).lower()
         else:  # pragma: no cover
             raise AssertionError("no model asset means no sheets")
@@ -570,7 +568,7 @@ def _main() -> int:
         try:
             fn()
             passed += 1
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             import traceback
 
             traceback.print_exc()

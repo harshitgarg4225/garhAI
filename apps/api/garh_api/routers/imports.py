@@ -53,6 +53,7 @@ byte ceiling has to be enforced while reading the stream anyway. A raw
 from __future__ import annotations
 
 import base64
+import contextlib
 import email.parser
 import email.policy
 import hashlib
@@ -61,8 +62,8 @@ import json
 import os
 import re
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from urllib.parse import quote, urlparse
 
 import httpx
@@ -141,13 +142,14 @@ async def _read_body_capped(request: Request, cap: int) -> bytes:
     return b"".join(chunks)
 
 
-def _clean_filename(raw: Optional[str]) -> str:
+def _clean_filename(raw: str | None) -> str:
     """A display-safe filename: basename only, conservative charset, bounded length."""
     name = os.path.basename((raw or "").strip().replace("\\", "/"))
     name = _FILENAME_SAFE.sub("_", name).strip(" .")
     return name[:120] if name else DEFAULT_FILENAME
 
-def _file_from_multipart(content_type: str, body: bytes) -> Optional[tuple[bytes, str]]:
+
+def _file_from_multipart(content_type: str, body: bytes) -> tuple[bytes, str] | None:
     """Extract the first file part from a multipart/form-data body, stdlib-only.
 
     Returns ``(bytes, filename)`` or ``None`` when no usable part exists. Prefers the
@@ -155,24 +157,20 @@ def _file_from_multipart(content_type: str, body: bytes) -> Optional[tuple[bytes
     part with any payload.
     """
     try:
-        prefix = ("Content-Type: %s\r\nMIME-Version: 1.0\r\n\r\n" % content_type).encode(
-            "latin-1"
-        )
+        prefix = ("Content-Type: %s\r\nMIME-Version: 1.0\r\n\r\n" % content_type).encode("latin-1")
     except UnicodeEncodeError:
         return None
     try:
-        message = email.parser.BytesParser(policy=email.policy.default).parsebytes(
-            prefix + body
-        )
-    except Exception:  # noqa: BLE001 - a body we cannot parse is a 400, not a 500
+        message = email.parser.BytesParser(policy=email.policy.default).parsebytes(prefix + body)
+    except Exception:
         return None
     if not message.is_multipart():
         return None
-    fallback: Optional[tuple[bytes, str]] = None
+    fallback: tuple[bytes, str] | None = None
     for part in message.iter_parts():
         try:
             payload = part.get_payload(decode=True)
-        except Exception:  # noqa: BLE001 - skip the broken part, keep looking
+        except Exception:
             continue
         if not isinstance(payload, bytes) or not payload:
             continue
@@ -193,9 +191,7 @@ def _looks_like_dxf(data: bytes) -> bool:
     if data.startswith(b"AutoCAD Binary DXF"):
         return True
     head = data[:2048].upper()
-    return b"SECTION" in head and (
-        b"HEADER" in head or b"ENTITIES" in head or b"CLASSES" in head
-    )
+    return b"SECTION" in head and (b"HEADER" in head or b"ENTITIES" in head or b"CLASSES" in head)
 
 
 # ---------------------------------------------------------------------------
@@ -213,8 +209,8 @@ def _sigv4_presign(
     key: str,
     *,
     ttl_seconds: int,
-    settings: Optional[Settings] = None,
-    now: Optional[datetime] = None,
+    settings: Settings | None = None,
+    now: datetime | None = None,
 ) -> str:
     """AWS Signature V4 presigned URL (query auth, UNSIGNED-PAYLOAD), path-style.
 
@@ -225,7 +221,7 @@ def _sigv4_presign(
     endpoint = urlparse(cfg.s3_endpoint_url)
     host = endpoint.netloc
     canonical_uri = "/%s/%s" % (cfg.s3_bucket, quote(key, safe="/-_.~"))
-    at = now or datetime.now(timezone.utc)
+    at = now or datetime.now(UTC)
     amz_date = at.strftime("%Y%m%dT%H%M%SZ")
     datestamp = at.strftime("%Y%m%d")
     scope = "%s/%s/s3/aws4_request" % (datestamp, cfg.s3_region)
@@ -258,14 +254,14 @@ def _sigv4_presign(
 
     signing_key = _hmac(
         _hmac(
-            _hmac(_hmac(("AWS4" + cfg.s3_secret_access_key).encode("utf-8"), datestamp), cfg.s3_region),
+            _hmac(
+                _hmac(("AWS4" + cfg.s3_secret_access_key).encode("utf-8"), datestamp), cfg.s3_region
+            ),
             "s3",
         ),
         "aws4_request",
     )
-    signature = hmac.new(
-        signing_key, string_to_sign.encode("utf-8"), hashlib.sha256
-    ).hexdigest()
+    signature = hmac.new(signing_key, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
     return "%s://%s%s?%s&X-Amz-Signature=%s" % (
         endpoint.scheme or "http",
         host,
@@ -307,7 +303,7 @@ async def _store_dxf(key: str, data: bytes, settings: Settings) -> None:
 
 def _build_asset(
     data: bytes, *, firm_id: Any, job_id: str, settings: Settings
-) -> tuple[queue.BlobRef, Optional[str]]:
+) -> tuple[queue.BlobRef, str | None]:
     """The envelope asset for the upload: inline when small, else a storage key to
     upload to. Returns ``(ref, key_to_upload or None)`` — the PUT itself happens after
     the idempotency claim so a replayed request never re-uploads."""
@@ -347,8 +343,10 @@ def _events_url(request: Request, job_id: str) -> str:
     """Import jobs stream from the export-jobs SSE endpoint — same Redis record, same
     lifecycle plumbing (see the module docstring)."""
     settings = get_settings()
-    return str(request.base_url).rstrip("/") + settings.api_prefix + (
-        "/export-jobs/%s/events" % job_id
+    return (
+        str(request.base_url).rstrip("/")
+        + settings.api_prefix
+        + ("/export-jobs/%s/events" % job_id)
     )
 
 
@@ -397,12 +395,10 @@ async def _reconcile(record: queue.ExportJob) -> queue.ExportJob:
         changes["error"] = _problem_message(terminal)
 
     updated = record.evolve(**changes)
-    try:
+    # Serving the reconciled view still beats failing the read; the write is
+    # retried on the next GET.
+    with contextlib.suppress(queue.QueueUnavailableError):
         await queue.put_export_job(updated)
-    except queue.QueueUnavailableError:
-        # Serving the reconciled view still beats failing the read; the write is
-        # retried on the next GET.
-        pass
     return updated
 
 
@@ -449,7 +445,7 @@ async def import_dxf(
     request: Request,
     session: SessionDep,
     ctx: TenantDep,
-    filename: Optional[str] = Query(
+    filename: str | None = Query(
         default=None,
         max_length=200,
         description="Display name for raw-body uploads; multipart carries its own.",

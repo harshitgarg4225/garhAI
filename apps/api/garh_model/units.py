@@ -30,14 +30,11 @@ import json
 import math
 import os
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Pattern, Sequence, Tuple, Union
-
-try:  # pragma: no cover - typing only
-    from typing import Literal
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[assignment]
+from re import Pattern
+from typing import Any, Literal, TypeGuard
 
 __all__ = [
     "MM_PER_INCH",
@@ -149,7 +146,7 @@ def round_half_away_from_zero(x: float) -> int:
     ``x >= 0 ? floor(x + 0.5) : -floor(-x + 0.5)`` — see the module docstring for
     why neither builtin will do.
     """
-    if isinstance(x, bool) or not isinstance(x, (int, float)):
+    if isinstance(x, bool) or not isinstance(x, int | float):
         raise TypeError(f"round_half_away_from_zero: not a number ({x!r})")
     if isinstance(x, int):
         return x
@@ -162,7 +159,7 @@ def round_half_away_from_zero(x: float) -> int:
 round_mm = round_half_away_from_zero
 
 
-def is_int_mm(v: object) -> bool:
+def is_int_mm(v: object) -> TypeGuard[int]:
     """True when ``v`` is a value we are willing to store as a length/coordinate.
 
     Mirrors ``Number.isSafeInteger``: a Python ``bool`` is rejected even though
@@ -170,14 +167,18 @@ def is_int_mm(v: object) -> bool:
     holds no floats). Values outside the JS safe-integer range are rejected so a
     document can never be written that TypeScript cannot read back.
     """
-    return isinstance(v, int) and not isinstance(v, bool) and -MAX_SAFE_INTEGER <= v <= MAX_SAFE_INTEGER
+    return (
+        isinstance(v, int)
+        and not isinstance(v, bool)
+        and -MAX_SAFE_INTEGER <= v <= MAX_SAFE_INTEGER
+    )
 
 
 def assert_int_mm(v: object, field: str) -> int:
     """Assert integer mm, naming the field (used by :mod:`garh_model.validate`)."""
     if not is_int_mm(v):
         raise ValueError(f"{field} must be an integer number of millimetres, got {v!r}")
-    return int(v)  # type: ignore[arg-type]
+    return int(v)
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +193,7 @@ def assert_int_mm(v: object, field: str) -> int:
 # U+2032 PRIME, U+2019 RIGHT SINGLE QUOTE, U+02B9 MODIFIER PRIME, U+00B4 ACUTE, backtick
 _PRIMES = re.compile("[\u2032\u2019\u02b9\u00b4`]")
 # U+2033 DOUBLE PRIME, U+201D RIGHT DOUBLE QUOTE, U+02BA, U+3003, U+FF02
-_DOUBLE_PRIMES = re.compile('[\u2033\u201d\u02ba\u3003\uff02]')
+_DOUBLE_PRIMES = re.compile("[\u2033\u201d\u02ba\u3003\uff02]")
 # NBSP, en/em/thin spaces, narrow NBSP, medium math space, ideographic space
 _UNICODE_SPACES = re.compile("[\u00a0\u2000-\u200a\u202f\u205f\u3000]")
 # U+2212 MINUS SIGN, U+2013 EN DASH, U+2014 EM DASH
@@ -221,7 +222,7 @@ def normalise_length_input(raw: str) -> str:
     return _WHITESPACE_RUN.sub(" ", s.strip()).lower()
 
 
-_UNIT_ALIASES: Sequence[Tuple[Pattern[str], float]] = (
+_UNIT_ALIASES: Sequence[tuple[Pattern[str], float]] = (
     (re.compile(r"^(?:mm|millimetre|millimetres|millimeter|millimeters)$"), 1.0),
     (re.compile(r"^(?:cm|centimetre|centimetres|centimeter|centimeters)$"), float(MM_PER_CM)),
     (re.compile(r"^(?:m|mt|mtr|metre|metres|meter|meters)$"), float(MM_PER_METRE)),
@@ -231,7 +232,7 @@ _UNIT_ALIASES: Sequence[Tuple[Pattern[str], float]] = (
 )
 
 
-def _unit_factor(token: str) -> Optional[float]:
+def _unit_factor(token: str) -> float | None:
     for pattern, factor in _UNIT_ALIASES:
         if pattern.match(token):
             return factor
@@ -244,7 +245,7 @@ _PLAIN_DECIMAL = re.compile(r"^[0-9]+(?:\.[0-9]+)?$")
 _LEADING_DOT_DECIMAL = re.compile(r"^\.[0-9]+$")
 
 
-def _parse_mixed_number(text: str) -> Optional[float]:
+def _parse_mixed_number(text: str) -> float | None:
     """``"6 1/2"`` / ``"6-1/2"`` / ``"1/2"`` / ``"6.5"`` -> 6.5 (a plain count)."""
     s = text.strip()
     if s == "":
@@ -314,7 +315,7 @@ def parse_length_mm(raw: str, default_unit: str = "mm") -> int:
     if "'" in s and ft_in is not None:
         feet = 0.0 if ft_in.group(1) is None else float(ft_in.group(1))
         inch_text = (ft_in.group(2) or "").strip()
-        inches: Optional[float] = 0.0 if inch_text == "" else _parse_mixed_number(inch_text)
+        inches: float | None = 0.0 if inch_text == "" else _parse_mixed_number(inch_text)
         if inches is None:
             raise UnitParseError(raw, f'cannot read inches part "{inch_text}"')
         return sign * round_mm((feet * 12 + inches) * MM_PER_INCH)
@@ -373,8 +374,8 @@ class LengthParseResult:
     """Non-throwing parse outcome. Mirrors the TS discriminated union."""
 
     ok: bool
-    mm: Optional[int] = None
-    error: Optional[str] = None
+    mm: int | None = None
+    error: str | None = None
 
 
 def try_parse_length_mm(raw: str, default_unit: str = "mm") -> LengthParseResult:
@@ -409,7 +410,9 @@ def parse_area_mm2(raw: str, default_unit: str = "sqft") -> int:
 
     rect = _AREA_RECT.match(s)
     if rect is not None:
-        unit = rect.group(3) if rect.group(3) is not None else ("m" if default_unit == "sqm" else "ft")
+        unit = (
+            rect.group(3) if rect.group(3) is not None else ("m" if default_unit == "sqm" else "ft")
+        )
         factor = _unit_factor(unit)
         if factor is None:
             raise UnitParseError(raw, f'unknown unit "{unit}"')
@@ -449,7 +452,7 @@ class FtInOptions:
     drop_zero_inches: bool = False
 
 
-_FRACTION_GLYPHS: Dict[str, str] = {
+_FRACTION_GLYPHS: dict[str, str] = {
     "1/2": "½",
     "1/4": "¼",
     "3/4": "¾",
@@ -467,7 +470,7 @@ def _gcd(a: int, b: int) -> int:
     return 1 if x == 0 else x
 
 
-def format_ft_in(mm: int, opts: Optional[FtInOptions] = None) -> str:
+def format_ft_in(mm: int, opts: FtInOptions | None = None) -> str:
     """3810 -> ``12'-6"``. Negative lengths keep the sign outside: ``-12'-6"``."""
     assert_int_mm(mm, "mm")
     o = opts if opts is not None else FtInOptions()
@@ -518,7 +521,7 @@ def format_mm(mm: int, with_unit: bool = True) -> str:
     return f"{mm} mm" if with_unit else str(mm)
 
 
-def format_length(mm: int, display: str, opts: Optional[FtInOptions] = None) -> str:
+def format_length(mm: int, display: str, opts: FtInOptions | None = None) -> str:
     """Format per project display units."""
     return format_ft_in(mm, opts) if display == "ft-in" else format_metres(mm)
 
@@ -616,7 +619,7 @@ def format_indian_number(n: float) -> str:
     else:
         head = digits[: len(digits) - 3]
         tail = digits[len(digits) - 3 :]
-        groups: List[str] = []
+        groups: list[str] = []
         i = len(head)
         while i > 2:
             groups.insert(0, head[i - 2 : i])
@@ -645,7 +648,7 @@ def format_rupees_compact(rupees: float) -> str:
     return format_rupees(rupees)
 
 
-def format_indian_date(d: Union[_dt.datetime, _dt.date, str]) -> str:
+def format_indian_date(d: _dt.datetime | _dt.date | str) -> str:
     """DD-MM-YYYY (Indian defaults). Takes an ISO string, ``date`` or ``datetime``.
 
     Like the TypeScript mirror, the date is read in UTC: a ``datetime`` carrying a
@@ -653,12 +656,12 @@ def format_indian_date(d: Union[_dt.datetime, _dt.date, str]) -> str:
     """
     if isinstance(d, str):
         text = d[:-1] + "+00:00" if d.endswith("Z") else d
-        parsed: Union[_dt.datetime, _dt.date] = _dt.datetime.fromisoformat(text)
+        parsed: _dt.datetime | _dt.date = _dt.datetime.fromisoformat(text)
     else:
         parsed = d
     if isinstance(parsed, _dt.datetime):
         if parsed.tzinfo is not None:
-            parsed = parsed.astimezone(_dt.timezone.utc)
+            parsed = parsed.astimezone(_dt.UTC)
         return f"{parsed.day:02d}-{parsed.month:02d}-{parsed.year:04d}"
     return f"{parsed.day:02d}-{parsed.month:02d}-{parsed.year:04d}"
 
@@ -673,9 +676,9 @@ class GoldenUnits:
     """Contents of ``fixtures/model/golden-units.json``."""
 
     #: ``[input, expected_mm]`` rows parsed with ``default_unit='mm'``.
-    pairs: Tuple[Tuple[str, int], ...]
+    pairs: tuple[tuple[str, int], ...]
     #: Inputs that MUST raise :class:`UnitParseError`.
-    failures: Tuple[str, ...]
+    failures: tuple[str, ...]
     default_unit: str
     rounding: str
 
@@ -697,7 +700,7 @@ def golden_units_path() -> Path:
     actionable message rather than silently skipping the contract test.
     """
     override = os.environ.get(GOLDEN_UNITS_ENV)
-    candidates: List[Path] = []
+    candidates: list[Path] = []
     if override:
         base = Path(override)
         candidates.extend([base / "model" / "golden-units.json", base / GOLDEN_UNITS_RELPATH])
@@ -714,7 +717,7 @@ def golden_units_path() -> Path:
     )
 
 
-_GOLDEN_CACHE: Optional[GoldenUnits] = None
+_GOLDEN_CACHE: GoldenUnits | None = None
 
 
 def load_golden_units() -> GoldenUnits:
@@ -728,7 +731,7 @@ def load_golden_units() -> GoldenUnits:
     if _GOLDEN_CACHE is not None:
         return _GOLDEN_CACHE
     raw: Any = json.loads(golden_units_path().read_text(encoding="utf-8"))
-    pairs: List[Tuple[str, int]] = []
+    pairs: list[tuple[str, int]] = []
     for row in raw["pairs"]:
         if not isinstance(row, list) or len(row) != 2:
             raise ValueError(f"golden-units.json: malformed pair {row!r}")

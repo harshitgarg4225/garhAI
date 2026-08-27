@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """A tiny JSON Schema (draft 2020-12) validator — exactly the keywords our schemas use.
 
 Why this exists: ``rulepacks/schema/rulepack.schema.json`` is the contract that
@@ -28,9 +26,12 @@ Ignored as annotations: ``$schema``, ``$id``, ``$anchor``, ``title``,
 how ``x-garh-check-meta`` rides along in the pack schema).
 """
 
+from __future__ import annotations
+
 import json
 import re
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from .errors import SchemaFeatureError
 
@@ -54,7 +55,7 @@ _ANNOTATIONS = frozenset(
     }
 )
 
-_JSON_TYPES: Dict[str, Tuple[type, ...]] = {
+_JSON_TYPES: dict[str, tuple[type, ...]] = {
     "object": (dict,),
     "array": (list,),
     "string": (str,),
@@ -76,7 +77,7 @@ def _type_matches(value: Any, name: str) -> bool:
             return True
         return isinstance(value, float) and float(value).is_integer()
     if name == "number":
-        return not isinstance(value, bool) and isinstance(value, (int, float))
+        return not isinstance(value, bool) and isinstance(value, int | float)
     expected = _JSON_TYPES.get(name)
     if expected is None:
         raise SchemaFeatureError("unknown JSON Schema type %r" % (name,))
@@ -99,17 +100,17 @@ class SchemaValidator:
 
     def __init__(self, schema: Mapping[str, Any]) -> None:
         self.root: Mapping[str, Any] = schema
-        self._pattern_cache: Dict[str, "re.Pattern[str]"] = {}
+        self._pattern_cache: dict[str, re.Pattern[str]] = {}
 
     # -- public ------------------------------------------------------------
-    def validate(self, instance: Any, *, path: str = "$") -> List[str]:
+    def validate(self, instance: Any, *, path: str = "$") -> list[str]:
         """Return a list of human-readable violations. Empty means valid."""
-        errors: List[str] = []
+        errors: list[str] = []
         self._check(instance, self.root, path, errors)
         return errors
 
     # -- internals ---------------------------------------------------------
-    def _pattern(self, pattern: str) -> "re.Pattern[str]":
+    def _pattern(self, pattern: str) -> re.Pattern[str]:
         compiled = self._pattern_cache.get(pattern)
         if compiled is None:
             compiled = re.compile(pattern)
@@ -140,13 +141,11 @@ class SchemaValidator:
         return node
 
     def _subschema_ok(self, instance: Any, schema: Mapping[str, Any], path: str) -> bool:
-        probe: List[str] = []
+        probe: list[str] = []
         self._check(instance, schema, path, probe)
         return not probe
 
-    def _check(
-        self, instance: Any, schema: Any, path: str, errors: List[str]
-    ) -> None:
+    def _check(self, instance: Any, schema: Any, path: str, errors: list[str]) -> None:
         if schema is True or schema == {}:
             return
         if schema is False:
@@ -187,7 +186,7 @@ class SchemaValidator:
             self._check_string(instance, schema, path, errors)
         if isinstance(instance, bool):
             pass  # bool is not a number for our purposes
-        elif isinstance(instance, (int, float)):
+        elif isinstance(instance, int | float):
             self._check_number(instance, schema, path, errors)
         if isinstance(instance, list):
             self._check_array(instance, schema, path, errors)
@@ -197,7 +196,7 @@ class SchemaValidator:
         self._check_logic(instance, schema, path, errors)
 
     def _check_string(
-        self, value: str, schema: Mapping[str, Any], path: str, errors: List[str]
+        self, value: str, schema: Mapping[str, Any], path: str, errors: list[str]
     ) -> None:
         if "minLength" in schema and len(value) < schema["minLength"]:
             errors.append("%s: shorter than %d characters" % (path, schema["minLength"]))
@@ -215,7 +214,7 @@ class SchemaValidator:
                 errors.append("%s: %r is not a YYYY-MM-DD date" % (path, value))
 
     def _check_number(
-        self, value: Any, schema: Mapping[str, Any], path: str, errors: List[str]
+        self, value: Any, schema: Mapping[str, Any], path: str, errors: list[str]
     ) -> None:
         if "minimum" in schema and value < schema["minimum"]:
             errors.append("%s: %r is below the minimum %r" % (path, value, schema["minimum"]))
@@ -237,14 +236,14 @@ class SchemaValidator:
                 errors.append("%s: %r is not a multiple of %r" % (path, value, step))
 
     def _check_array(
-        self, value: List[Any], schema: Mapping[str, Any], path: str, errors: List[str]
+        self, value: list[Any], schema: Mapping[str, Any], path: str, errors: list[str]
     ) -> None:
         if "minItems" in schema and len(value) < schema["minItems"]:
             errors.append("%s: needs at least %d items" % (path, schema["minItems"]))
         if "maxItems" in schema and len(value) > schema["maxItems"]:
             errors.append("%s: allows at most %d items" % (path, schema["maxItems"]))
         if schema.get("uniqueItems"):
-            seen: Set[str] = set()
+            seen: set[str] = set()
             for i, item in enumerate(value):
                 key = _canonical(item)
                 if key in seen:
@@ -255,7 +254,7 @@ class SchemaValidator:
                 self._check(item, schema["items"], "%s[%d]" % (path, i), errors)
 
     def _check_object(
-        self, value: Dict[str, Any], schema: Mapping[str, Any], path: str, errors: List[str]
+        self, value: dict[str, Any], schema: Mapping[str, Any], path: str, errors: list[str]
     ) -> None:
         if "minProperties" in schema and len(value) < schema["minProperties"]:
             errors.append("%s: needs at least %d properties" % (path, schema["minProperties"]))
@@ -279,16 +278,19 @@ class SchemaValidator:
                     self._check(value[key], extra, "%s.%s" % (path, key), errors)
 
     def _check_logic(
-        self, instance: Any, schema: Mapping[str, Any], path: str, errors: List[str]
+        self, instance: Any, schema: Mapping[str, Any], path: str, errors: list[str]
     ) -> None:
         for sub in schema.get("allOf", ()):
             self._check(instance, sub, path, errors)
-        if "anyOf" in schema:
-            if not any(self._subschema_ok(instance, sub, path) for sub in schema["anyOf"]):
-                errors.append("%s: matches none of the anyOf alternatives" % path)
+        if "anyOf" in schema and not any(
+            self._subschema_ok(instance, sub, path) for sub in schema["anyOf"]
+        ):
+            errors.append("%s: matches none of the anyOf alternatives" % path)
         if "oneOf" in schema:
             matched = [
-                i for i, sub in enumerate(schema["oneOf"]) if self._subschema_ok(instance, sub, path)
+                i
+                for i, sub in enumerate(schema["oneOf"])
+                if self._subschema_ok(instance, sub, path)
             ]
             if len(matched) != 1:
                 # Report why, because "matched 0 of 18" on a `check` object is the
@@ -306,22 +308,22 @@ class SchemaValidator:
             if branch in schema:
                 self._check(instance, schema[branch], path, errors)
 
-    def _explain_one_of(
-        self, instance: Any, alternatives: Sequence[Any], path: str
-    ) -> str:
+    def _explain_one_of(self, instance: Any, alternatives: Sequence[Any], path: str) -> str:
         """Pick the closest alternative and quote its complaints.
 
         A discriminated union keyed on a ``const`` (which is how every ``check``
         subschema is written) has exactly one plausible branch. Naming it turns
         "matched 0 of 18" into "wall thickness is not a valid setback_min field".
         """
-        best: Optional[Tuple[int, str, List[str]]] = None
+        best: tuple[int, str, list[str]] | None = None
         for alt in alternatives:
-            schema = self._resolve(alt["$ref"], path) if isinstance(alt, dict) and "$ref" in alt else alt
+            schema = (
+                self._resolve(alt["$ref"], path) if isinstance(alt, dict) and "$ref" in alt else alt
+            )
             if not isinstance(schema, dict):
                 continue
             discriminator = ((schema.get("properties") or {}).get("type") or {}).get("const")
-            probe: List[str] = []
+            probe: list[str] = []
             self._check(instance, schema, path, probe)
             if discriminator is not None and isinstance(instance, dict):
                 if instance.get("type") != discriminator:
@@ -371,7 +373,7 @@ _HANDLED = frozenset(
 )
 
 
-def validate(instance: Any, schema: Mapping[str, Any], *, path: str = "$") -> List[str]:
+def validate(instance: Any, schema: Mapping[str, Any], *, path: str = "$") -> list[str]:
     """One-shot validation. Returns the (possibly empty) list of violations."""
     return SchemaValidator(schema).validate(instance, path=path)
 

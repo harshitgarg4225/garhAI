@@ -13,11 +13,11 @@ rewrite.
 
 ## Images
 
-| Image | Stages | Notes |
-|---|---|---|
-| `apps/api/Dockerfile` | `base` → `dev` → `prod` | `prod` runs as non-root uid 10001, 4 uvicorn workers |
-| `services/Dockerfile` | `base` → `dev` → `prod` | one image, three entrypoints, non-root |
-| `apps/web/Dockerfile` | `base` → `deps` → `dev` / `build` → `prod` | `prod` is static assets on nginx |
+| Image                 | Stages                                     | Notes                                                |
+| --------------------- | ------------------------------------------ | ---------------------------------------------------- |
+| `apps/api/Dockerfile` | `base` → `dev` → `prod`                    | `prod` runs as non-root uid 10001, 4 uvicorn workers |
+| `services/Dockerfile` | `base` → `dev` → `prod`                    | one image, three entrypoints, non-root               |
+| `apps/web/Dockerfile` | `base` → `deps` → `dev` / `build` → `prod` | `prod` is static assets on nginx                     |
 
 Build context is the **repo root** for all three — the API and workers import
 `garh_model` and read `rulepacks/`, and the web build resolves workspace packages.
@@ -32,14 +32,14 @@ makes the bind-mounted dev source live without a reinstall.
 
 ## Differences from local
 
-| Concern | Local | Deployed |
-|---|---|---|
-| Web | Vite dev server + HMR | static bundle on nginx (`prod` stage) |
-| API | 1 worker, `--reload` | 4 uvicorn workers, no reload |
-| Migrations | run by the api container on boot | **separate step before rollout** |
-| Secrets | generated / mock defaults | real, from the host's secret store |
-| `APP_ENV` | `dev` | `staging` or `prod` — enables fail-fast validation |
-| TLS | none | terminated at the reverse proxy |
+| Concern    | Local                            | Deployed                                           |
+| ---------- | -------------------------------- | -------------------------------------------------- |
+| Web        | Vite dev server + HMR            | static bundle on nginx (`prod` stage)              |
+| API        | 1 worker, `--reload`             | 4 uvicorn workers, no reload                       |
+| Migrations | run by the api container on boot | **separate step before rollout**                   |
+| Secrets    | generated / mock defaults        | real, from the host's secret store                 |
+| `APP_ENV`  | `dev`                            | `staging` or `prod` — enables fail-fast validation |
+| TLS        | none                             | terminated at the reverse proxy                    |
 
 ### Migrations must not run on boot in production
 
@@ -87,14 +87,14 @@ disabled and a generous read timeout, or job progress silently stalls.
 
 ## Scaling shape
 
-| Component | Scale by |
-|---|---|
-| api | replicas behind the proxy — stateless |
-| worker-solver | replicas; CP-SAT is CPU-bound, `SOLVER_NUM_SEARCH_WORKERS` threads per job |
-| worker-render | one per GPU; `RENDER_DEVICE=cuda`, L4 in Mumbai (`asia-south1` / `g6`) |
-| worker-drawings | replicas — CPU-bound, memory-hungry on large sheet sets |
-| postgres | vertical first; the op log is append-only and snapshots bound replay cost |
-| redis | single instance is fine at beta; queue depth is the metric to watch |
+| Component       | Scale by                                                                   |
+| --------------- | -------------------------------------------------------------------------- |
+| api             | replicas behind the proxy — stateless                                      |
+| worker-solver   | replicas; CP-SAT is CPU-bound, `SOLVER_NUM_SEARCH_WORKERS` threads per job |
+| worker-render   | one per GPU; `RENDER_DEVICE=cuda`, L4 in Mumbai (`asia-south1` / `g6`)     |
+| worker-drawings | replicas — CPU-bound, memory-hungry on large sheet sets                    |
+| postgres        | vertical first; the op log is append-only and snapshots bound replay cost  |
+| redis           | single instance is fine at beta; queue depth is the metric to watch        |
 
 GPU render is the one component that cannot scale on the same box. Keeping inference
 in Mumbai is also what keeps the India data-residency claim honest (spec §15), so

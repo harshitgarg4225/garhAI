@@ -203,12 +203,19 @@ export function sobelEdges(depth: Float32Array, width: number, height: number): 
     for (let x = 0; x < width; x += 1) {
       // Kernels:  gx = [-1 0 1; -2 0 2; -1 0 1]   gy = gxᵀ
       const gx =
-        -at(x - 1, y - 1) + at(x + 1, y - 1)
-        - 2 * at(x - 1, y) + 2 * at(x + 1, y)
-        - at(x - 1, y + 1) + at(x + 1, y + 1);
+        -at(x - 1, y - 1) +
+        at(x + 1, y - 1) -
+        2 * at(x - 1, y) +
+        2 * at(x + 1, y) -
+        at(x - 1, y + 1) +
+        at(x + 1, y + 1);
       const gy =
-        -at(x - 1, y - 1) - 2 * at(x, y - 1) - at(x + 1, y - 1)
-        + at(x - 1, y + 1) + 2 * at(x, y + 1) + at(x + 1, y + 1);
+        -at(x - 1, y - 1) -
+        2 * at(x, y - 1) -
+        at(x + 1, y - 1) +
+        at(x - 1, y + 1) +
+        2 * at(x, y + 1) +
+        at(x + 1, y + 1);
       const magnitude = Math.min(Math.hypot(gx, gy) * EDGE_GAIN, 1);
       out[y * width + x] = Math.round((1 - magnitude) * 255);
     }

@@ -43,8 +43,9 @@ be data (not doc comments). It is also what ``schema/ops.schema.json`` mirrors.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from .model import (
     ANNOTATION_ANCHOR_KINDS,
@@ -114,9 +115,9 @@ class Op:
     type: OpType
     #: camelCase JSON keys — see the module docstring on absent vs null.
     payload: Mapping[str, Any]
-    group_id: Optional[str] = None
-    client_op_id: Optional[str] = None
-    source: Optional[str] = None
+    group_id: str | None = None
+    client_op_id: str | None = None
+    source: str | None = None
 
     # -- payload access helpers (so call sites read like the TypeScript) ----
     def get(self, key: str, default: Any = None) -> Any:
@@ -125,18 +126,18 @@ class Op:
         A key present with the value ``None`` returns ``None``, not ``default``:
         that is JSON ``null`` and it means something.
         """
-        return self.payload[key] if key in self.payload else default
+        return self.payload.get(key, default)
 
     def has(self, key: str) -> bool:
         """True when the payload carries the key at all (``null`` counts)."""
         return key in self.payload
 
-    def with_group(self, group_id: Optional[str]) -> "Op":
+    def with_group(self, group_id: str | None) -> Op:
         """Copy with ``group_id`` stamped on — mirrors ``{...op, groupId}``."""
         return replace(self, group_id=group_id)
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Op":
+    def from_json(cls, raw: Mapping[str, Any]) -> Op:
         """Parse the wire form. Raises :class:`TypeError` on a non-op shape."""
         if not isinstance(raw, Mapping):
             raise TypeError("An op must be an object { type, payload }.")
@@ -151,9 +152,9 @@ class Op:
             source=_opt_str(raw.get("source")),
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """The wire form. Envelope fields are omitted when unset."""
-        out: Dict[str, Any] = {"type": self.type, "payload": dict(self.payload)}
+        out: dict[str, Any] = {"type": self.type, "payload": dict(self.payload)}
         if self.group_id is not None:
             out["groupId"] = self.group_id
         if self.client_op_id is not None:
@@ -163,7 +164,7 @@ class Op:
         return out
 
 
-def _opt_str(v: Any) -> Optional[str]:
+def _opt_str(v: Any) -> str | None:
     return None if v is None else str(v)
 
 
@@ -176,7 +177,7 @@ def op(op_type: OpType, **payload: Any) -> Op:
     return Op(type=op_type, payload=payload)
 
 
-def op_type_of(value: Any) -> Optional[str]:
+def op_type_of(value: Any) -> str | None:
     """``type`` of an :class:`Op` or of a raw wire dict, else ``None``."""
     if isinstance(value, Op):
         return value.type
@@ -186,7 +187,7 @@ def op_type_of(value: Any) -> Optional[str]:
     return None
 
 
-def payload_of(value: Any) -> Optional[Mapping[str, Any]]:
+def payload_of(value: Any) -> Mapping[str, Any] | None:
     """``payload`` of an :class:`Op` or of a raw wire dict, else ``None``."""
     if isinstance(value, Op):
         return value.payload
@@ -201,17 +202,17 @@ class OpGroup:
     """A batch applied atomically under one ``group_id``."""
 
     group_id: str
-    ops: Tuple[Op, ...]
+    ops: tuple[Op, ...]
 
 
 # ---------------------------------------------------------------------------
 # Combined-op action enums (ops 24 / 25 / 26 / 32)
 # ---------------------------------------------------------------------------
 
-COLUMN_ACTIONS: Tuple[str, ...] = ("add", "move", "delete")
-FURNITURE_ACTIONS: Tuple[str, ...] = ("place", "transform", "delete")
-BALCONY_ACTIONS: Tuple[str, ...] = ("add", "edit", "delete")
-ANNOTATION_ACTIONS: Tuple[str, ...] = ("add", "edit", "delete")
+COLUMN_ACTIONS: tuple[str, ...] = ("add", "move", "delete")
+FURNITURE_ACTIONS: tuple[str, ...] = ("place", "transform", "delete")
+BALCONY_ACTIONS: tuple[str, ...] = ("add", "edit", "delete")
+ANNOTATION_ACTIONS: tuple[str, ...] = ("add", "edit", "delete")
 
 
 # ---------------------------------------------------------------------------
@@ -225,12 +226,12 @@ class OpFieldSpec:
     type: OpFieldType
     required: bool
     #: Physical unit, so a prompt/validator never has to guess.
-    units: Optional[str]
+    units: str | None
     description: str
     #: For ``type='id'`` — which id namespace the value must belong to.
-    id_type: Optional[str] = None
+    id_type: str | None = None
     #: For ``type='enum'`` — the exact allowed values.
-    enum_values: Optional[Tuple[str, ...]] = None
+    enum_values: tuple[str, ...] | None = None
     #: May the field be explicitly null?
     nullable: bool = False
 
@@ -245,11 +246,11 @@ class OpSpec:
     title: str
     #: One-line human summary — goes verbatim into the copilot system prompt.
     summary: str
-    payload: Tuple[OpFieldSpec, ...]
+    payload: tuple[OpFieldSpec, ...]
     #: For combined ops (24/25/26/32): the values ``payload.action`` accepts.
-    actions: Optional[Tuple[str, ...]]
-    creates: Tuple[str, ...]
-    destroys: Tuple[str, ...]
+    actions: tuple[str, ...] | None
+    creates: tuple[str, ...]
+    destroys: tuple[str, ...]
     #: May the copilot emit this op? (solver expansion and plot edits may not.)
     copilot: bool
     #: Must always be applied inside a group (atomic).
@@ -288,21 +289,30 @@ EXAMPLE_IDS: Mapping[str, str] = {
 
 
 def _int_mm(name: str, description: str, required: bool = True) -> OpFieldSpec:
-    return OpFieldSpec(name=name, type="int-mm", required=required, units="mm", description=description)
+    return OpFieldSpec(
+        name=name, type="int-mm", required=required, units="mm", description=description
+    )
 
 
 def _int(
     name: str,
     description: str,
-    units: Optional[str] = "count",
+    units: str | None = "count",
     required: bool = True,
 ) -> OpFieldSpec:
-    return OpFieldSpec(name=name, type="int", required=required, units=units, description=description)
+    return OpFieldSpec(
+        name=name, type="int", required=required, units=units, description=description
+    )
 
 
 def _id(name: str, id_type: str, description: str, required: bool = True) -> OpFieldSpec:
     return OpFieldSpec(
-        name=name, type="id", required=required, units=None, id_type=id_type, description=description
+        name=name,
+        type="id",
+        required=required,
+        units=None,
+        id_type=id_type,
+        description=description,
     )
 
 
@@ -311,7 +321,9 @@ def _pt(name: str, description: str, required: bool = True) -> OpFieldSpec:
 
 
 def _polygon(name: str, description: str, required: bool = True) -> OpFieldSpec:
-    return OpFieldSpec(name=name, type="polygon", required=required, units="mm", description=description)
+    return OpFieldSpec(
+        name=name, type="polygon", required=required, units="mm", description=description
+    )
 
 
 def _enum(
@@ -336,16 +348,25 @@ def _string(
     name: str, description: str, required: bool = True, nullable: bool = False
 ) -> OpFieldSpec:
     return OpFieldSpec(
-        name=name, type="string", required=required, units=None, nullable=nullable, description=description
+        name=name,
+        type="string",
+        required=required,
+        units=None,
+        nullable=nullable,
+        description=description,
     )
 
 
 def _bool(name: str, description: str, required: bool = False) -> OpFieldSpec:
-    return OpFieldSpec(name=name, type="bool", required=required, units=None, description=description)
+    return OpFieldSpec(
+        name=name, type="bool", required=required, units=None, description=description
+    )
 
 
 def _json(name: str, description: str, required: bool = True) -> OpFieldSpec:
-    return OpFieldSpec(name=name, type="json", required=required, units=None, description=description)
+    return OpFieldSpec(
+        name=name, type="json", required=required, units=None, description=description
+    )
 
 
 #: THE SINGLE SOURCE OF TRUTH FOR OP COVERAGE.
@@ -355,7 +376,7 @@ def _json(name: str, description: str, required: bool = True) -> OpFieldSpec:
 #:  - ``packages/model/schema/ops.schema.json``: kept in lockstep, asserted by a test
 #:  - ``tests/test_ops.py``: every ``OpType`` appears exactly once and every
 #:    ``example`` folds cleanly onto a demo document
-OP_CATALOG: Tuple[OpSpec, ...] = (
+OP_CATALOG: tuple[OpSpec, ...] = (
     OpSpec(
         number=1,
         type="plot.set_boundary",
@@ -1172,9 +1193,14 @@ OP_CATALOG: Tuple[OpSpec, ...] = (
             _id("id", "annotation", "Annotation id."),
             _id("sheetId", "sheet", "Sheet the annotation lives on (required for add).", False),
             _string(
-                "anchorElementId", "Model element the annotation is anchored to, or null.", False, True
+                "anchorElementId",
+                "Model element the annotation is anchored to, or null.",
+                False,
+                True,
             ),
-            _enum("anchorKind", ANNOTATION_ANCHOR_KINDS, "What kind of thing the anchor is.", False),
+            _enum(
+                "anchorKind", ANNOTATION_ANCHOR_KINDS, "What kind of thing the anchor is.", False
+            ),
             _json("payload", "Annotation content (text, leader, style).", False),
             _bool("orphaned", "Set true when a re-solve destroyed the anchor (Review Tray)."),
         ),
@@ -1196,12 +1222,12 @@ OP_CATALOG: Tuple[OpSpec, ...] = (
 )
 
 #: All 32 op type strings, in playbook order.
-OP_TYPES: Tuple[str, ...] = tuple(spec.type for spec in OP_CATALOG)
+OP_TYPES: tuple[str, ...] = tuple(spec.type for spec in OP_CATALOG)
 
 _OP_SPEC_BY_TYPE: Mapping[str, OpSpec] = {spec.type: spec for spec in OP_CATALOG}
 
 
-def get_op_spec(op_type: str) -> Optional[OpSpec]:
+def get_op_spec(op_type: str) -> OpSpec | None:
     """Catalogue entry for an op type, or ``None`` for an unknown type."""
     return _OP_SPEC_BY_TYPE.get(op_type)
 
@@ -1224,12 +1250,12 @@ def is_op(value: Any) -> bool:
     return payload_of(value) is not None
 
 
-def copilot_op_specs() -> List[OpSpec]:
+def copilot_op_specs() -> list[OpSpec]:
     """Ops the copilot is allowed to emit (prompt generation filters on this)."""
     return [spec for spec in OP_CATALOG if spec.copilot]
 
 
-def render_op_catalog_for_prompt(copilot_only: Optional[bool] = None) -> str:
+def render_op_catalog_for_prompt(copilot_only: bool | None = None) -> str:
     """Render the op catalogue as the copilot system-prompt section (section 10).
 
     Deliberately terse and unit-explicit: the LLM's whole job is to pick a type
@@ -1240,7 +1266,7 @@ def render_op_catalog_for_prompt(copilot_only: Optional[bool] = None) -> str:
     the copilot-emittable ops (mirrors the TypeScript default).
     """
     specs = list(OP_CATALOG) if copilot_only is False else copilot_op_specs()
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append("# Op catalogue")
     lines.append("")
     lines.append(
@@ -1256,7 +1282,7 @@ def render_op_catalog_for_prompt(copilot_only: Optional[bool] = None) -> str:
         if spec.actions:
             lines.append("action: " + " | ".join(spec.actions))
         for f in spec.payload:
-            bits: List[str] = [f.type]
+            bits: list[str] = [f.type]
             if f.units:
                 bits.append(f.units)
             if f.id_type:
@@ -1268,7 +1294,8 @@ def render_op_catalog_for_prompt(copilot_only: Optional[bool] = None) -> str:
             bits.append("required" if f.required else "optional")
             lines.append(f"- {f.name} ({', '.join(bits)}): {f.description}")
         lines.append(
-            "example: " + json.dumps(spec.example.to_json(), separators=(",", ":"), ensure_ascii=False)
+            "example: "
+            + json.dumps(spec.example.to_json(), separators=(",", ":"), ensure_ascii=False)
         )
         lines.append("")
     return "\n".join(lines)

@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import List, Tuple
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", ".."))
@@ -31,10 +30,10 @@ _APPS_API = os.path.join(_REPO_ROOT, "apps", "api")
 PASS = "  ok  "
 FAIL = "  FAIL"
 
-_failures: List[str] = []
+_failures: list[str] = []
 
 
-def bootstrap() -> Tuple[str, ...]:
+def bootstrap() -> tuple[str, ...]:
     for path in (_REPO_ROOT, _APPS_API):
         if path not in sys.path:
             sys.path.insert(0, path)
@@ -57,6 +56,7 @@ def main() -> int:
     from services.drawings.dimensions import assert_chains_sum, find_label_collisions
     from services.drawings.elevations.demo_house import demo_house, demo_material_names
     from services.drawings.elevations.smoke import report
+    from services.drawings.elevations.vertical import K_FOUNDATION_LABEL, K_FOUNDATION_LINE
     from services.drawings.projection.primitives import (
         Line,
         Text,
@@ -72,7 +72,6 @@ def main() -> int:
         SectionOptions,
         build_section,
     )
-    from services.drawings.elevations.vertical import K_FOUNDATION_LABEL, K_FOUNDATION_LINE
 
     house = demo_house()
     choice = choose_section_line(house)
@@ -112,8 +111,7 @@ def main() -> int:
     print(
         "  stairs cut : %s"
         % ", ".join(
-            "%s (%s, %d/%d risers drawn)"
-            % (g.stair_id, g.kind, g.drawn_risers, g.risers_count)
+            "%s (%s, %d/%d risers drawn)" % (g.stair_id, g.kind, g.drawn_risers, g.risers_count)
             for g in result.stairs
         )
     )

@@ -6,7 +6,7 @@ the settling command is named).
 
 Provenance note: Phase 5 was built by a workflow whose final review agent
 stalled six times and never ran. This close-out was performed directly by the
-orchestrator on 2026-08-09. It is a *targeted* pass over the inherited risk
+orchestrator on 2026-08-09. It is a _targeted_ pass over the inherited risk
 list from `phase-4-verification.md`, not the full adversarial sweep that agent
 would have done — the difference is stated rather than papered over.
 
@@ -40,7 +40,7 @@ would have done — the difference is stated rather than papered over.
    picks the camera mode, and the 2D↔3D switch swaps rig + layer set in place —
    same scene, same selection, same `PickRegistry`, no remount, no Manifold
    re-warm-up. This is §12 implemented as intended.
-3. **Manifold laziness.** `three/booleans.ts` has a *type-only* top-level
+3. **Manifold laziness.** `three/booleans.ts` has a _type-only_ top-level
    import (erased at compile) and loads the WASM via `await import('manifold-3d')`
    at line 96, behind one module, with a documented fallback that renders walls
    without holes and reports itself via `onEngineStatus` — honest degradation.
@@ -51,15 +51,15 @@ would have done — the difference is stated rather than papered over.
 
 ## 3. UNVERIFIED — and what settles each
 
-| Item | Settles it |
-|---|---|
-| No 3D code has ever rendered — 55 feature files + integrator work, zero frames drawn | toolchain, then open the 3D tab on the demo project |
-| The <100ms dirty-storey rebuild budget (§14) | Playwright perf spec in CI |
-| NOAA sun numbers (tests exist against published solstice/equinox values; never run) | `pnpm --filter @garh/web test` |
-| Facade generator determinism per (model, kit, seed) — vitest specs written, never run | same |
-| Tab 2D↔3D selection round-trip | e2e spec in CI |
-| TypeScript has NEVER compiled (now ~35k lines of canvas code under `exactOptionalPropertyTypes`) | `pnpm --filter @garh/web typecheck` |
-| The full adversarial review this phase never received | re-run a review agent over the Phase-5 delta, or accept CI + first-render findings as the backstop |
+| Item                                                                                             | Settles it                                                                                         |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| No 3D code has ever rendered — 55 feature files + integrator work, zero frames drawn             | toolchain, then open the 3D tab on the demo project                                                |
+| The <100ms dirty-storey rebuild budget (§14)                                                     | Playwright perf spec in CI                                                                         |
+| NOAA sun numbers (tests exist against published solstice/equinox values; never run)              | `pnpm --filter @garh/web test`                                                                     |
+| Facade generator determinism per (model, kit, seed) — vitest specs written, never run            | same                                                                                               |
+| Tab 2D↔3D selection round-trip                                                                  | e2e spec in CI                                                                                     |
+| TypeScript has NEVER compiled (now ~35k lines of canvas code under `exactOptionalPropertyTypes`) | `pnpm --filter @garh/web typecheck`                                                                |
+| The full adversarial review this phase never received                                            | re-run a review agent over the Phase-5 delta, or accept CI + first-render findings as the backstop |
 
 ## 4. Known open items carried forward
 

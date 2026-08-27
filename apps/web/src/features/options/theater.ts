@@ -121,7 +121,7 @@ function readStr(value: unknown): string | null {
  * bare 0 with no stage is treated as "not stated", not as "0%".
  */
 export function eventPercent(event: ProgressEvent): number | null {
-  const fromData = readInt(event.data['percent']);
+  const fromData = readInt(event.data.percent);
   if (fromData !== null) return clampPercent(fromData);
   if (event.progress > 0) return clampPercent(event.progress);
   return null;
@@ -133,16 +133,17 @@ function clampPercent(v: number): number {
 
 /** Sub-progress copy derived ONLY from facts the event carried. */
 export function stageDetail(event: ProgressEvent): string | null {
-  const candidate = readInt(event.data['stairCandidate']);
-  const total = readInt(event.data['stairCandidates']);
+  const candidate = readInt(event.data.stairCandidate);
+  const total = readInt(event.data.stairCandidates);
   if (candidate !== null && total !== null && total > 0) {
     return `Stair position ${candidate} of ${total}`;
   }
-  const candidates = readInt(event.data['candidates']);
-  if (candidates !== null) return `${candidates} candidate ${plural(candidates, 'layout', 'layouts')}`;
-  const refined = readInt(event.data['refined']);
+  const candidates = readInt(event.data.candidates);
+  if (candidates !== null)
+    return `${candidates} candidate ${plural(candidates, 'layout', 'layouts')}`;
+  const refined = readInt(event.data.refined);
   if (refined !== null) return `${refined} ${plural(refined, 'layout', 'layouts')} refined`;
-  const scored = readInt(event.data['scored']);
+  const scored = readInt(event.data.scored);
   if (scored !== null) return `${scored} ${plural(scored, 'layout', 'layouts')} scored`;
   return null;
 }
@@ -152,19 +153,19 @@ function plural(n: number, one: string, many: string): string {
 }
 
 function isSilhouetteEvent(event: ProgressEvent): boolean {
-  return event.data['artifactName'] === 'plan-option' || event.stage === 'option';
+  return event.data.artifactName === 'plan-option' || event.stage === 'option';
 }
 
 function readSilhouette(event: ProgressEvent): TheaterSilhouette | null {
-  const optionId = readStr(event.data['optionId']);
+  const optionId = readStr(event.data.optionId);
   if (optionId === null) return null;
-  const rawPlan = event.data['miniPlan'];
+  const rawPlan = event.data.miniPlan;
   const parsedPlan = rawPlan === undefined ? null : miniPlanSchema.safeParse(rawPlan);
   return {
     optionId,
-    rank: readInt(event.data['rank']) ?? 0,
-    composite: readInt(event.data['composite']) ?? 0,
-    miniPlan: parsedPlan !== null && parsedPlan.success ? parsedPlan.data : null,
+    rank: readInt(event.data.rank) ?? 0,
+    composite: readInt(event.data.composite) ?? 0,
+    miniPlan: parsedPlan?.success ? parsedPlan.data : null,
   };
 }
 
@@ -179,10 +180,7 @@ function upsertStage(
   if (index === -1) {
     // A newly-heard stage becomes active; everything before it is done.
     const done = stages.map((s): TheaterStage => ({ ...s, state: 'done' }));
-    return [
-      ...done,
-      { id, message: message ?? '', percent, detail, state: 'active' },
-    ];
+    return [...done, { id, message: message ?? '', percent, detail, state: 'active' }];
   }
   return stages.map((s, i): TheaterStage => {
     if (i !== index) return s;
@@ -197,13 +195,11 @@ function upsertStage(
 
 function readFailure(event: ProgressEvent): TheaterFailure {
   const message =
-    readStr(event.message) ??
-    readStr(event.data['message']) ??
-    'Plan generation did not finish.';
-  const action = readStr(event.data['action']);
-  const rejected = readInt(event.data['rejectedByGates']);
-  const considered = readInt(event.data['considered']);
-  const reasons = event.data['discardReasons'];
+    readStr(event.message) ?? readStr(event.data.message) ?? 'Plan generation did not finish.';
+  const action = readStr(event.data.action);
+  const rejected = readInt(event.data.rejectedByGates);
+  const considered = readInt(event.data.considered);
+  const reasons = event.data.discardReasons;
   let discard: string | null = null;
   if (Array.isArray(reasons) && reasons.length > 0) {
     discard = reasons.filter((r): r is string => typeof r === 'string').join(' · ') || null;
@@ -275,7 +271,12 @@ export function reduceTheater(state: TheaterState, event: ProgressEvent): Theate
   const lastSeq = event.seq > 0 ? event.seq : state.lastSeq;
 
   // Terminal events settle everything.
-  if (event.terminal || event.status === 'succeeded' || event.status === 'failed' || event.status === 'cancelled') {
+  if (
+    event.terminal ||
+    event.status === 'succeeded' ||
+    event.status === 'failed' ||
+    event.status === 'cancelled'
+  ) {
     const stagesDone =
       event.status === 'succeeded'
         ? state.stages.map((s): TheaterStage => ({ ...s, state: 'done' }))
@@ -284,13 +285,14 @@ export function reduceTheater(state: TheaterState, event: ProgressEvent): Theate
       ...state,
       lastSeq,
       done: true,
-      status: event.status === 'succeeded' || event.status === 'failed' || event.status === 'cancelled'
-        ? event.status
-        : 'succeeded',
+      status:
+        event.status === 'succeeded' || event.status === 'failed' || event.status === 'cancelled'
+          ? event.status
+          : 'succeeded',
       stages: stagesDone,
       percent: event.status === 'succeeded' ? 100 : state.percent,
       queuePosition: null,
-      banner: readStr(event.data['banner']) ?? state.banner,
+      banner: readStr(event.data.banner) ?? state.banner,
       failure: event.status === 'failed' ? readFailure(event) : state.failure,
     };
   }
@@ -309,7 +311,7 @@ export function reduceTheater(state: TheaterState, event: ProgressEvent): Theate
   }
 
   const percent = eventPercent(event);
-  const queuePosition = readInt(event.data['queuePosition']);
+  const queuePosition = readInt(event.data.queuePosition);
 
   // Queued: show position, nothing else moves.
   if (event.status === 'queued' || event.stage === 'queued') {
@@ -323,7 +325,7 @@ export function reduceTheater(state: TheaterState, event: ProgressEvent): Theate
   }
 
   const warnings =
-    event.status === 'running' && event.data['warning'] === true && event.message
+    event.status === 'running' && event.data.warning === true && event.message
       ? [...state.warnings, event.message]
       : state.warnings;
 

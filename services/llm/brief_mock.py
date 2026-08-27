@@ -28,10 +28,10 @@ keeps the mock path free of heavyweight imports.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 #: Order in which room entries are emitted. Fixed so output is reproducible.
-_ROOM_ORDER: Tuple[str, ...] = (
+_ROOM_ORDER: tuple[str, ...] = (
     "living_dining",
     "kitchen",
     "bedroom_master",
@@ -51,11 +51,30 @@ _ROOM_ORDER: Tuple[str, ...] = (
 
 #: Small-number words accepted where Indian briefs commonly spell them out
 #: ("family of four", "paanch log"). Deliberately tiny — this is a parser, not NLU.
-_NUMBER_WORDS: Dict[str, int] = {
-    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
-    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
-    "ek": 1, "do": 2, "teen": 3, "char": 4, "chaar": 4, "paanch": 5, "panch": 5,
-    "chhe": 6, "che": 6, "saat": 7, "aath": 8,
+_NUMBER_WORDS: dict[str, int] = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "ek": 1,
+    "do": 2,
+    "teen": 3,
+    "char": 4,
+    "chaar": 4,
+    "paanch": 5,
+    "panch": 5,
+    "chhe": 6,
+    "che": 6,
+    "saat": 7,
+    "aath": 8,
 }
 _NUMBER_WORD_PATTERN = "|".join(sorted(_NUMBER_WORDS, key=len, reverse=True))
 
@@ -104,7 +123,7 @@ _VASTU_NEGATED = re.compile(r"(?:no|without|skip)\s+va+stu|va+stu\s+nahi", re.IG
 
 #: Requests this system does not model in the MVP brief. Reported in `unclear`
 #: rather than dropped (the §10 prompt makes the real provider do the same).
-_OUT_OF_SCOPE: Tuple[Tuple[str, str], ...] = (
+_OUT_OF_SCOPE: tuple[tuple[str, str], ...] = (
     (r"lift|elevator", "a lift"),
     (r"swimming\s*pool|\bpool\b", "a swimming pool"),
     (r"home\s+theat(?:re|er)", "a home theatre"),
@@ -115,7 +134,7 @@ _OUT_OF_SCOPE: Tuple[Tuple[str, str], ...] = (
 _MAX_UNCLEAR = 10  # schema cap
 
 
-def _first_int(pattern: "re.Pattern[str]", text: str) -> Optional[int]:
+def _first_int(pattern: re.Pattern[str], text: str) -> int | None:
     match = pattern.search(text)
     if not match:
         return None
@@ -130,7 +149,7 @@ def _first_int(pattern: "re.Pattern[str]", text: str) -> Optional[int]:
     return None
 
 
-def _rupees(text: str) -> Optional[int]:
+def _rupees(text: str) -> int | None:
     """Budget in whole rupees — integer out, never a float (model-core rule)."""
     crore = _BUDGET_CRORE.search(text)
     if crore:
@@ -150,7 +169,7 @@ def _mentions(text_lower: str, *needles: str) -> bool:
     return any(needle in text_lower for needle in needles)
 
 
-def synthesize_brief_parse(text: str) -> Dict[str, Any]:
+def synthesize_brief_parse(text: str) -> dict[str, Any]:
     """Free text → a ``BRIEF_PARSE_SCHEMA``-shaped object. Pure and deterministic.
 
     Returns ``{brief, assumptions, stated, unclear}`` exactly as the real provider
@@ -158,30 +177,29 @@ def synthesize_brief_parse(text: str) -> Dict[str, Any]:
     the same :class:`~services.llm.brief.BriefParser` assembly downstream.
     """
     lowered = text.lower()
-    brief: Dict[str, Any] = {}
-    assumptions: List[Dict[str, Any]] = []
-    stated: List[str] = []
-    unclear: List[str] = []
+    brief: dict[str, Any] = {}
+    assumptions: list[dict[str, Any]] = []
+    stated: list[str] = []
+    unclear: list[str] = []
 
     def assume(field: str, value: Any, reason: str) -> None:
         assumptions.append({"field": field, "value": value, "reason": reason})
 
     # -- storeys ------------------------------------------------------------
-    storeys: Optional[int] = None
-    storeys_stated = False
+    storeys: int | None = None
     g_plus = _first_int(_G_PLUS, text)
     if g_plus is not None and 1 <= g_plus + 1 <= 6:
-        storeys, storeys_stated = g_plus + 1, True
+        storeys = g_plus + 1
     elif _SINGLE_STOREY.search(text):
-        storeys, storeys_stated = 1, True
+        storeys = 1
     elif "triplex" in lowered:
-        storeys, storeys_stated = 3, True
+        storeys = 3
     elif "duplex" in lowered:
-        storeys, storeys_stated = 2, True
+        storeys = 2
     else:
         n_floors = _first_int(_N_FLOORS, text)
         if n_floors is not None and 1 <= n_floors <= 6:
-            storeys, storeys_stated = n_floors, True
+            storeys = n_floors
         elif n_floors is not None:
             unclear.append(
                 "The brief mentions %d floors — this system models 1 to 6 storeys; "
@@ -218,7 +236,7 @@ def synthesize_brief_parse(text: str) -> Dict[str, Any]:
         assume("brief.hasBasement", False, "A basement was not mentioned — assumed none.")
 
     # -- rooms ---------------------------------------------------------------
-    rooms: Dict[str, Dict[str, Any]] = {}
+    rooms: dict[str, dict[str, Any]] = {}
     any_room_stated = False
 
     def add_room(room_type: str, count: int) -> None:
@@ -226,12 +244,11 @@ def synthesize_brief_parse(text: str) -> Dict[str, Any]:
 
     bhk = _first_int(_BHK, text)
     bedroom_word = _first_int(_BEDROOMS, text)
-    bedrooms: Optional[int] = None
-    bedrooms_stated = False
+    bedrooms: int | None = None
     if bhk is not None and 1 <= bhk <= 10:
-        bedrooms, bedrooms_stated = bhk, True
+        bedrooms = bhk
     elif bedroom_word is not None and 1 <= bedroom_word <= 10:
-        bedrooms, bedrooms_stated = bedroom_word, True
+        bedrooms = bedroom_word
     if bedrooms is None:
         bedrooms = 3
         assume(
@@ -283,8 +300,7 @@ def synthesize_brief_parse(text: str) -> Dict[str, Any]:
         assume(
             "brief.rooms.bath_wc.count",
             assumed_baths,
-            "Bathroom count was not stated — assumed one toilet per two bedrooms, "
-            "minimum two.",
+            "Bathroom count was not stated — assumed one toilet per two bedrooms, " "minimum two.",
         )
 
     if _mentions(lowered, "pooja", "puja", "mandir", "prayer room", "devghar"):
@@ -323,8 +339,7 @@ def synthesize_brief_parse(text: str) -> Dict[str, Any]:
         assume(
             "brief.rooms.utility.count",
             1,
-            "A utility/wash area was not asked for but is standard alongside an "
-            "Indian kitchen.",
+            "A utility/wash area was not asked for but is standard alongside an " "Indian kitchen.",
         )
 
     brief["rooms"] = [rooms[name] for name in _ROOM_ORDER if name in rooms]
@@ -402,8 +417,7 @@ def synthesize_brief_parse(text: str) -> Dict[str, Any]:
         assume(
             "brief.familySize",
             None,
-            "Family size was not mentioned — the room programme drives the plan "
-            "either way.",
+            "Family size was not mentioned — the room programme drives the plan " "either way.",
         )
 
     # -- plot mentions → the plot step, never the brief -----------------------------
@@ -411,8 +425,7 @@ def synthesize_brief_parse(text: str) -> Dict[str, Any]:
     if dims:
         unclear.append(
             "The brief mentions a %sx%s plot — plot size, facing and roads are set "
-            "in the plot step; the brief holds no geometry."
-            % (dims.group(1), dims.group(2))
+            "in the plot step; the brief holds no geometry." % (dims.group(1), dims.group(2))
         )
     elif _PLOT_MENTION.search(text):
         unclear.append(

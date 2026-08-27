@@ -35,6 +35,7 @@ from services.dev_stubs import install_worker_dep_stubs  # noqa: E402
 STUBBED = install_worker_dep_stubs()
 
 from garh_model.testing import FIXTURE_IDS, make_two_room_plan_with_openings  # noqa: E402
+
 from services.drawings.dimensions import (  # noqa: E402
     LEVEL_1_OFFSET_MM,
     LEVEL_2_OFFSET_MM,
@@ -57,11 +58,11 @@ from services.drawings.sheets import (  # noqa: E402
     DEFAULT_PAPER,
     DEFAULT_SCALE,
     DEFAULT_SHEET_PLAN,
+    ELEVATION_ORDER,
     PAPER_SIZES,
     PAPER_UM_PER_MM,
     SCALE_1_50,
     SHEET_KINDS,
-    ELEVATION_ORDER,
     Frame,
     PaperTransform,
     Scale,
@@ -109,13 +110,13 @@ def demo_sheet(scale: Scale = DEFAULT_SCALE, paper: str = DEFAULT_PAPER) -> Shee
 # The model: defaults and validation
 # ---------------------------------------------------------------------------
 def test_defaults_are_the_section_7_defaults():
-    """"scale (1:100 default), frame A2 landscape default"."""
+    """ "scale (1:100 default), frame A2 landscape default"."""
     assert DEFAULT_SCALE.denominator == 100 and DEFAULT_SCALE.label == "1:100"
     frame = default_frame()
     assert frame.paper.name == "A2"
     assert (frame.paper.width_mm, frame.paper.height_mm) == (594, 420), "A2, landscape"
     assert PAPER_SIZES["A2"].width_mm == 594
-    assert SHEET_KINDS == tuple(kind for kind, _number, _title in DEFAULT_SHEET_PLAN)
+    assert tuple(kind for kind, _number, _title in DEFAULT_SHEET_PLAN) == SHEET_KINDS
     assert len(SHEET_KINDS) == 6, "the MVP cut line: six sheet kinds"
 
 
@@ -163,7 +164,7 @@ def test_scale_rejects_nonsense_and_reads_ints_correctly():
 # §7's paper-scaled dimension offsets
 # ---------------------------------------------------------------------------
 def test_dim_chain_offsets_are_section_7s_numbers_at_1_100():
-    """"Offsets: L1 at 2400mm from building line (paper-scaled), L2 1800, L3 1200"."""
+    """ "Offsets: L1 at 2400mm from building line (paper-scaled), L2 1800, L3 1200"."""
     assert (LEVEL_1_OFFSET_MM, LEVEL_2_OFFSET_MM, LEVEL_3_OFFSET_MM) == (2400, 1800, 1200)
     assert [dim_chain_offset_model_mm(level, 100) for level in (1, 2, 3)] == [2400, 1800, 1200]
 
@@ -221,11 +222,15 @@ def test_fit_centres_the_drawing_in_the_drawable_area():
     # The whole drawing sits inside the border.
     for corner in ((0, 0), (6230, 4230)):
         px, py = fit.transform.point_to_paper(corner)
-        assert paper_mm_to_um(frame.margin_left_mm) <= px <= paper_mm_to_um(
-            frame.paper.width_mm - frame.margin_right_mm
+        assert (
+            paper_mm_to_um(frame.margin_left_mm)
+            <= px
+            <= paper_mm_to_um(frame.paper.width_mm - frame.margin_right_mm)
         )
-        assert paper_mm_to_um(frame.margin_bottom_mm) <= py <= paper_mm_to_um(
-            frame.paper.height_mm - frame.margin_top_mm
+        assert (
+            paper_mm_to_um(frame.margin_bottom_mm)
+            <= py
+            <= paper_mm_to_um(frame.paper.height_mm - frame.margin_top_mm)
         )
 
 
@@ -328,7 +333,9 @@ def test_compose_scales_lengths_and_leaves_angles_alone():
     line = Line(layer=A_WALL, a=(0, 0), b=(6000, 0), kind="wall-face")
     arc = Arc(layer=A_WALL, centre=(1000, 0), radius_mm=900, start_deg=0, end_deg=90)
     text = Text(layer=A_WALL, position=(0, 0), text="LIVING", height_mm=250, rotation_deg=90)
-    hatch = Hatch(layer=A_WALL, boundary=((0, 0), (100, 0), (100, 100)), angle_deg=45, spacing_mm=250)
+    hatch = Hatch(
+        layer=A_WALL, boundary=((0, 0), (100, 0), (100, 100)), angle_deg=45, spacing_mm=250
+    )
 
     scaled_line, scaled_arc, scaled_text, scaled_hatch = transform_primitives(
         (line, arc, text, hatch), transform
@@ -531,7 +538,7 @@ def _main() -> int:
     for test in TESTS:
         try:
             test()
-        except Exception as exc:  # noqa: BLE001 - a test runner reports everything
+        except Exception as exc:
             failures.append((test.__name__, exc))
             print("FAIL %s: %s: %s" % (test.__name__, type(exc).__name__, exc))
         else:

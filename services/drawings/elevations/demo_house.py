@@ -50,7 +50,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 __all__ = [
     "BUILDING_DEPTH_MM",
@@ -100,7 +100,7 @@ def ensure_model_importable() -> None:
             sys.path.insert(0, path)
 
 
-def _ids() -> Dict[str, str]:
+def _ids() -> dict[str, str]:
     ensure_model_importable()
     from garh_model.testing import fixed_id
 
@@ -149,14 +149,22 @@ def _ids() -> Dict[str, str]:
 
 
 #: Stable ids for everything the tests need to name.
-DEMO_IDS: Dict[str, str] = {}
+DEMO_IDS: dict[str, str] = {}
 
 
-def _pt(x: int, y: int) -> Dict[str, int]:
+def _pt(x: int, y: int) -> dict[str, int]:
     return {"x": x, "y": y}
 
 
-def _wall(op: Any, wid: str, storey: str, a: Tuple[int, int], b: Tuple[int, int], thickness: int, kind: str) -> Any:
+def _wall(
+    op: Any,
+    wid: str,
+    storey: str,
+    a: tuple[int, int],
+    b: tuple[int, int],
+    thickness: int,
+    kind: str,
+) -> Any:
     return op(
         "wall.add",
         id=wid,
@@ -168,7 +176,7 @@ def _wall(op: Any, wid: str, storey: str, a: Tuple[int, int], b: Tuple[int, int]
     )
 
 
-def _shell_ops(op: Any, ids: Dict[str, str], storey_key: str, prefix: str) -> List[Any]:
+def _shell_ops(op: Any, ids: dict[str, str], storey_key: str, prefix: str) -> list[Any]:
     """The four external walls plus the three partitions, for one storey."""
     storey = ids[storey_key]
     w, d = BUILDING_WIDTH_MM, BUILDING_DEPTH_MM
@@ -178,13 +186,33 @@ def _shell_ops(op: Any, ids: Dict[str, str], storey_key: str, prefix: str) -> Li
         _wall(op, ids[prefix + "_n"], storey, (w, d), (0, d), EXTERNAL_MM, "external"),
         _wall(op, ids[prefix + "_w"], storey, (0, d), (0, 0), EXTERNAL_MM, "external"),
         _wall(op, ids[prefix + "_spine"], storey, (0, 5_000), (w, 5_000), INTERNAL_MM, "internal"),
-        _wall(op, ids[prefix + "_cross_front"], storey, (4_000, 0), (4_000, 5_000), INTERNAL_MM, "internal"),
-        _wall(op, ids[prefix + "_cross_rear"], storey, (4_000, 5_000), (4_000, d), INTERNAL_MM, "internal"),
-        _wall(op, ids[prefix + "_wet"], storey, (4_000, 7_000), (w, 7_000), INTERNAL_MM, "internal"),
+        _wall(
+            op,
+            ids[prefix + "_cross_front"],
+            storey,
+            (4_000, 0),
+            (4_000, 5_000),
+            INTERNAL_MM,
+            "internal",
+        ),
+        _wall(
+            op,
+            ids[prefix + "_cross_rear"],
+            storey,
+            (4_000, 5_000),
+            (4_000, d),
+            INTERNAL_MM,
+            "internal",
+        ),
+        _wall(
+            op, ids[prefix + "_wet"], storey, (4_000, 7_000), (w, 7_000), INTERNAL_MM, "internal"
+        ),
     ]
 
 
-def _opening(op: Any, oid: str, wall: str, kind: str, width: int, height: int, sill: int, offset: int) -> Any:
+def _opening(
+    op: Any, oid: str, wall: str, kind: str, width: int, height: int, sill: int, offset: int
+) -> Any:
     return op(
         "opening.add",
         id=oid,
@@ -198,7 +226,7 @@ def _opening(op: Any, oid: str, wall: str, kind: str, width: int, height: int, s
     )
 
 
-def _facade_components(ids: Dict[str, str]) -> List[Dict[str, Any]]:
+def _facade_components(ids: dict[str, str]) -> list[dict[str, Any]]:
     """Components in the shape ``generateFacadeComponents`` emits for ``contemporary``.
 
     Window trims and chajjas are minted per opening by the real generator; the four kept
@@ -266,7 +294,7 @@ def _facade_components(ids: Dict[str, str]) -> List[Dict[str, Any]]:
     ]
 
 
-def demo_ops() -> List[Any]:
+def demo_ops() -> list[Any]:
     """Every op, in order. Folding this list is the whole fixture."""
     ensure_model_importable()
     from garh_model.model import DEFAULTS
@@ -276,7 +304,7 @@ def demo_ops() -> List[Any]:
     ids = _ids()
     DEMO_IDS.clear()
     DEMO_IDS.update(ids)
-    ops: List[Any] = [
+    ops: list[Any] = [
         op("plot.set_boundary", polygon=list(DEMO_PLOT_POLYGON), source="seed"),
         op("plot.set_north", deg=0),
         op("plot.set_road", edgeIndex=0, widthMm=9_000, name="9m Road"),
@@ -289,7 +317,9 @@ def demo_ops() -> List[Any]:
     # ---- ground floor openings: one on every face -------------------------
     ops.extend(
         [
-            _opening(op, ids["gf_door"], ids["gf_s"], "door", 1_000, DEFAULTS.door_height_mm, 0, 2_000),
+            _opening(
+                op, ids["gf_door"], ids["gf_s"], "door", 1_000, DEFAULTS.door_height_mm, 0, 2_000
+            ),
             _opening(op, ids["gf_win_e"], ids["gf_e"], "window", 1_500, 1_200, 900, 2_500),
             _opening(op, ids["gf_win_n"], ids["gf_n"], "window", 900, 1_200, 900, 2_000),
             _opening(op, ids["gf_win_w"], ids["gf_w"], "window", 1_500, 1_200, 900, 3_000),
@@ -298,7 +328,16 @@ def demo_ops() -> List[Any]:
     # ---- first floor openings + the balcony door --------------------------
     ops.extend(
         [
-            _opening(op, ids["ff_door_balcony"], ids["ff_s"], "door", 900, DEFAULTS.door_height_mm, 0, 2_200),
+            _opening(
+                op,
+                ids["ff_door_balcony"],
+                ids["ff_s"],
+                "door",
+                900,
+                DEFAULTS.door_height_mm,
+                0,
+                2_200,
+            ),
             _opening(op, ids["ff_win_s"], ids["ff_s"], "window", 1_800, 1_200, 900, 5_000),
             _opening(op, ids["ff_win_e"], ids["ff_e"], "window", 1_500, 1_200, 900, 2_500),
             _opening(op, ids["ff_win_n"], ids["ff_n"], "window", 900, 1_200, 900, 2_000),
@@ -351,7 +390,7 @@ def demo_ops() -> List[Any]:
 
 #: (storey key, x range, y range) → room type. Applied after the fold, because room ids
 #: are *derived* by the model core and cannot be known before it runs.
-_ROOM_PROGRAMME: Tuple[Tuple[str, Tuple[int, int], Tuple[int, int], str, str], ...] = (
+_ROOM_PROGRAMME: tuple[tuple[str, tuple[int, int], tuple[int, int], str, str], ...] = (
     ("gf", (0, 4_000), (0, 5_000), "living", "Living"),
     ("gf", (4_000, 7_000), (0, 5_000), "staircase", "Stair Hall"),
     ("gf", (0, 4_000), (5_000, 9_000), "bedroom_master", "Master Bedroom"),
@@ -365,11 +404,11 @@ _ROOM_PROGRAMME: Tuple[Tuple[str, Tuple[int, int], Tuple[int, int], str, str], .
 )
 
 
-def _room_programme_ops(doc: Any, ids: Dict[str, str]) -> List[Any]:
+def _room_programme_ops(doc: Any, ids: dict[str, str]) -> list[Any]:
     from garh_model.ops import op
 
     storey_of = {"gf": ids["gf"], "ff": ids["ff"]}
-    out: List[Any] = []
+    out: list[Any] = []
     for room in doc.house.rooms:
         xs = [p.x for p in room.polygon]
         ys = [p.y for p in room.polygon]
@@ -378,7 +417,9 @@ def _room_programme_ops(doc: Any, ids: Dict[str, str]) -> List[Any]:
             if room.storey_id != storey_of[storey_key]:
                 continue
             if x_lo <= cx <= x_hi and y_lo <= cy <= y_hi:
-                out.append(op("room.assign", roomId=room.id, type=room_type, name=name, locked=False))
+                out.append(
+                    op("room.assign", roomId=room.id, type=room_type, name=name, locked=False)
+                )
                 break
     return out
 
@@ -434,7 +475,7 @@ def demo_house() -> Any:
     return demo_project_doc().house
 
 
-def demo_material_names(catalog_path: Optional[str] = None) -> Dict[str, str]:
+def demo_material_names(catalog_path: str | None = None) -> dict[str, str]:
     """Material id → display name, read from ``fixtures/catalog/materials.json``.
 
     Optional everywhere it is used: a missing catalogue means callouts print material ids,
@@ -447,7 +488,7 @@ def demo_material_names(catalog_path: Optional[str] = None) -> Dict[str, str]:
         root = os.path.abspath(os.path.join(here, "..", "..", ".."))
         catalog_path = os.path.join(root, "fixtures", "catalog", "materials.json")
     try:
-        with open(catalog_path, "r", encoding="utf-8") as handle:
+        with open(catalog_path, encoding="utf-8") as handle:
             entries = json.load(handle)
     except (OSError, ValueError):
         return {}

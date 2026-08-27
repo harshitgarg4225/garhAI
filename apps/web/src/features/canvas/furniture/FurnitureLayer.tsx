@@ -63,10 +63,10 @@ import { useThree } from '@react-three/fiber';
 import {
   Color,
   DoubleSide,
-  InstancedMesh,
+  type InstancedMesh,
   Matrix4,
-  Mesh,
-  MeshBasicMaterial,
+  type Mesh,
+  type MeshBasicMaterial,
   Quaternion,
   Vector3,
 } from 'three';
@@ -446,7 +446,13 @@ function PlacedClearances({
     for (let i = 0; i < strips.length; i += 1) {
       const s = strips[i];
       if (s === undefined) continue;
-      const [x, y, z] = scenePosition(s.x, s.y, floorLevelMm + STRIP_THICKNESS_MM, axes, sceneUnitsPerMm);
+      const [x, y, z] = scenePosition(
+        s.x,
+        s.y,
+        floorLevelMm + STRIP_THICKNESS_MM,
+        axes,
+        sceneUnitsPerMm,
+      );
       SCRATCH_POS.set(x, y, z);
       const [sx, sy, sz] = sceneScale(s.wMm, s.dMm, STRIP_THICKNESS_MM, axes, sceneUnitsPerMm);
       SCRATCH_SCALE.set(sx, sy, sz);

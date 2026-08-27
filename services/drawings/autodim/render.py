@@ -26,9 +26,7 @@ is a lottery ticket.
 
 from __future__ import annotations
 
-from typing import List, Sequence, Tuple
-
-from services.drawings.layers import A_DIM
+from collections.abc import Sequence
 
 from services.drawings.autodim.chains import DimChainInfo
 from services.drawings.autodim.config import DEFAULT_CONFIG, AutoDimConfig
@@ -45,6 +43,7 @@ from services.drawings.autodim.primitives import (
     Primitive,
     Text,
 )
+from services.drawings.layers import A_DIM
 
 
 def _pt(chain: DimChainInfo, along_mm: int, perpendicular_mm: int) -> Point:
@@ -54,23 +53,24 @@ def _pt(chain: DimChainInfo, along_mm: int, perpendicular_mm: int) -> Point:
     return (perpendicular_mm, along_mm)
 
 
-def breakpoints_of(chain: DimChainInfo) -> Tuple[int, ...]:
+def breakpoints_of(chain: DimChainInfo) -> tuple[int, ...]:
     """The absolute breakpoints the chain was built from.
 
     Recovered from the segments rather than stored twice: the chain start, plus the far
     end of every segment. Segments are contiguous by construction, so this is exact.
     """
     origin = chain.chain.origin_mm
-    return (origin,) + tuple(
-        origin + segment.start_mm + segment.length_mm for segment in chain.chain.segments
+    return (
+        origin,
+        *tuple(origin + segment.start_mm + segment.length_mm for segment in chain.chain.segments),
     )
 
 
 def chain_primitives(
     chain: DimChainInfo, config: AutoDimConfig = DEFAULT_CONFIG
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """The lines of one chain: dimension line, witness lines, ticks."""
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     start, end = chain.absolute_start_mm(), chain.absolute_end_mm()
 
     out.append(
@@ -110,9 +110,9 @@ def chain_primitives(
     return tuple(out)
 
 
-def label_primitives(label: PlacedLabel) -> Tuple[Primitive, ...]:
+def label_primitives(label: PlacedLabel) -> tuple[Primitive, ...]:
     """The text of one label, plus its leader when it needed one."""
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     if label.leader_from is not None and label.leader_to is not None:
         out.append(
             Line(
@@ -143,9 +143,9 @@ def render_primitives(
     chains: Sequence[DimChainInfo],
     labels: Sequence[PlacedLabel],
     config: AutoDimConfig = DEFAULT_CONFIG,
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """The full ``A-DIM`` stream for a sheet, in a fixed order."""
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     for chain in sorted(chains, key=lambda c: (c.level, c.id)):
         out.extend(chain_primitives(chain, config))
     for label in sorted(labels, key=lambda item: (item.chain_id, item.segment_index)):

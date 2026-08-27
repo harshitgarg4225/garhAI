@@ -29,8 +29,9 @@ treats ``null`` as present.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import Any
 
 from .geometry import (
     Pt,
@@ -106,7 +107,7 @@ MIN_ROOM_AREA_MM2 = 500_000  # 0.5 m^2
 
 #: Every rejection code. STABLE API — the copilot, the UI error copy map and the
 #: API problem+json ``code`` field all key off these strings.
-VALIDATION_CODES: Tuple[str, ...] = (
+VALIDATION_CODES: tuple[str, ...] = (
     # --- op envelope / payload
     "OP_UNKNOWN_TYPE",
     "OP_PAYLOAD_NOT_OBJECT",
@@ -178,17 +179,17 @@ class ValidationIssue:
     message: str
     severity: Severity = "error"
     #: Element ids the issue is about — drives canvas highlighting.
-    element_ids: Tuple[str, ...] = ()
+    element_ids: tuple[str, ...] = ()
     #: Payload path the issue is about, e.g. ``payload.widthMm``.
-    field: Optional[str] = None
-    actual: Optional[Any] = None
-    limit: Optional[Any] = None
+    field: str | None = None
+    actual: Any | None = None
+    limit: Any | None = None
     #: One-line suggestion the copilot can act on.
-    fix: Optional[str] = None
+    fix: str | None = None
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """The wire shape (matches ``schema/validation-issue.schema.json``)."""
-        out: Dict[str, Any] = {
+        out: dict[str, Any] = {
             "code": self.code,
             "message": self.message,
             "severity": self.severity,
@@ -216,9 +217,9 @@ class OpRejectedError(Exception):
         detail = f"{first.code} — {first.message}" if first is not None else "unknown reason"
         super().__init__(f"Op {op_type} rejected: {detail}")
         self.op_type = op_type
-        self.issues: Tuple[ValidationIssue, ...] = tuple(issues)
+        self.issues: tuple[ValidationIssue, ...] = tuple(issues)
 
-    def as_problem(self) -> Dict[str, Any]:
+    def as_problem(self) -> dict[str, Any]:
         """RFC 7807 problem+json body (the API returns this verbatim)."""
         return {
             "type": "https://garh.ai/problems/op-rejected",
@@ -236,10 +237,10 @@ def _issue(
     *,
     severity: Severity = "error",
     element_ids: Sequence[str] = (),
-    field: Optional[str] = None,
-    actual: Optional[Any] = None,
-    limit: Optional[Any] = None,
-    fix: Optional[str] = None,
+    field: str | None = None,
+    actual: Any | None = None,
+    limit: Any | None = None,
+    fix: str | None = None,
 ) -> ValidationIssue:
     return ValidationIssue(
         code=code,
@@ -270,7 +271,7 @@ def _js_string(value: Any) -> str:
         return str(value)
     if isinstance(value, float):
         return str(int(value)) if value.is_integer() else repr(value)
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return ",".join(_js_string(v) for v in value)
     return "[object Object]"
 
@@ -279,7 +280,7 @@ def _actual(value: Any) -> Any:
     """Numbers survive as numbers; everything else becomes its JS string form."""
     if isinstance(value, bool):
         return _js_string(value)
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return value
     return _js_string(value)
 
@@ -304,17 +305,17 @@ def pt_of(v: Any) -> Pt:
     return Pt(int(v["x"]), int(v["y"]))
 
 
-def polygon_of(v: Any) -> List[Pt]:
+def polygon_of(v: Any) -> list[Pt]:
     """Coerce a wire polygon (list of ``{x, y}``) to a list of :class:`Pt`."""
     return [pt_of(p) for p in v]
 
 
 def _check_int_mm(
-    out: List[ValidationIssue],
+    out: list[ValidationIssue],
     value: Any,
     field: str,
-    minimum: Optional[int] = None,
-    maximum: Optional[int] = None,
+    minimum: int | None = None,
+    maximum: int | None = None,
 ) -> bool:
     if not is_int_mm(value):
         out.append(
@@ -357,11 +358,11 @@ def _is_safe_int(value: Any) -> bool:
 
 
 def _check_int(
-    out: List[ValidationIssue],
+    out: list[ValidationIssue],
     value: Any,
     field: str,
-    minimum: Optional[int] = None,
-    maximum: Optional[int] = None,
+    minimum: int | None = None,
+    maximum: int | None = None,
 ) -> bool:
     if not _is_safe_int(value):
         out.append(
@@ -398,16 +399,14 @@ def _check_int(
     return True
 
 
-def _check_string(out: List[ValidationIssue], value: Any, field: str) -> bool:
+def _check_string(out: list[ValidationIssue], value: Any, field: str) -> bool:
     if not isinstance(value, str):
         out.append(_issue("OP_FIELD_NOT_STRING", f"{field} must be a string.", field=field))
         return False
     return True
 
 
-def _check_enum(
-    out: List[ValidationIssue], value: Any, field: str, allowed: Sequence[str]
-) -> bool:
+def _check_enum(out: list[ValidationIssue], value: Any, field: str, allowed: Sequence[str]) -> bool:
     if not isinstance(value, str) or value not in allowed:
         out.append(
             _issue(
@@ -422,7 +421,7 @@ def _check_enum(
     return True
 
 
-def _check_id(out: List[ValidationIssue], value: Any, field: str, element_type: str) -> bool:
+def _check_id(out: list[ValidationIssue], value: Any, field: str, element_type: str) -> bool:
     if not is_id_of(element_type, value):
         out.append(
             _issue(
@@ -437,23 +436,31 @@ def _check_id(out: List[ValidationIssue], value: Any, field: str, element_type: 
     return True
 
 
-def _check_pt(out: List[ValidationIssue], value: Any, field: str) -> bool:
+def _check_pt(out: list[ValidationIssue], value: Any, field: str) -> bool:
     if not is_pt_like(value):
         out.append(
-            _issue("OP_FIELD_BAD_POINT", f"{field} must be {{ x, y }} in whole millimetres.", field=field)
+            _issue(
+                "OP_FIELD_BAD_POINT",
+                f"{field} must be {{ x, y }} in whole millimetres.",
+                field=field,
+            )
         )
         return False
     return True
 
 
-def _check_polygon(out: List[ValidationIssue], value: Any, field: str) -> bool:
+def _check_polygon(out: list[ValidationIssue], value: Any, field: str) -> bool:
     if (
-        not isinstance(value, (list, tuple))
+        not isinstance(value, list | tuple)
         or len(value) < 3
         or not all(is_pt_like(p) for p in value)
     ):
         out.append(
-            _issue("OP_FIELD_BAD_POLYGON", f"{field} must be at least 3 integer-mm points.", field=field)
+            _issue(
+                "OP_FIELD_BAD_POLYGON",
+                f"{field} must be at least 3 integer-mm points.",
+                field=field,
+            )
         )
         return False
     if not polygon_is_closed_ring(polygon_of(value)):
@@ -470,14 +477,14 @@ def _check_polygon(out: List[ValidationIssue], value: Any, field: str) -> bool:
     return True
 
 
-def _check_object(out: List[ValidationIssue], value: Any, field: str) -> bool:
+def _check_object(out: list[ValidationIssue], value: Any, field: str) -> bool:
     if not _is_plain_object(value):
         out.append(_issue("OP_FIELD_NOT_OBJECT", f"{field} must be an object.", field=field))
         return False
     return True
 
 
-def _check_json_integral(out: List[ValidationIssue], value: Any, field: str) -> bool:
+def _check_json_integral(out: list[ValidationIssue], value: Any, field: str) -> bool:
     """Free-form JSON must hold no floats.
 
     Brief patches, reg-profile overrides, facade params and annotation payloads
@@ -489,9 +496,9 @@ def _check_json_integral(out: List[ValidationIssue], value: Any, field: str) -> 
 
     def walk(v: Any, path: str) -> None:
         nonlocal ok
-        if v is None or isinstance(v, (str, bool)):
+        if v is None or isinstance(v, str | bool):
             return
-        if isinstance(v, (int, float)):
+        if isinstance(v, int | float):
             if not is_int_mm(v):
                 ok = False
                 out.append(
@@ -507,7 +514,7 @@ def _check_json_integral(out: List[ValidationIssue], value: Any, field: str) -> 
                     )
                 )
             return
-        if isinstance(v, (list, tuple)):
+        if isinstance(v, list | tuple):
             for i, item in enumerate(v):
                 walk(item, f"{path}[{i}]")
             return
@@ -534,7 +541,7 @@ def _has(payload: Mapping[str, Any], key: str) -> bool:
 
 
 def _require_field(
-    out: List[ValidationIssue], payload: Mapping[str, Any], key: str, op_type: str
+    out: list[ValidationIssue], payload: Mapping[str, Any], key: str, op_type: str
 ) -> bool:
     if not _has(payload, key):
         out.append(
@@ -559,13 +566,13 @@ def _coalesce(value: Any, fallback: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
-def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
+def validate_op_shape(candidate: Any) -> list[ValidationIssue]:
     """Validate an op's SHAPE: known type, required fields present, ids
     well-formed, lengths integer mm, enums legal. Does not look at the document.
 
     Accepts an :class:`~garh_model.ops.Op` or the raw wire dict.
     """
-    out: List[ValidationIssue] = []
+    out: list[ValidationIssue] = []
     if not isinstance(candidate, Op) and not _is_plain_object(candidate):
         return [_issue("OP_PAYLOAD_NOT_OBJECT", "An op must be an object { type, payload }.")]
     op_type = op_type_of(candidate)
@@ -591,14 +598,14 @@ def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
         return f"payload.{k}"
 
     def g(k: str) -> Any:
-        return p[k] if k in p else None
+        return p.get(k, None)
 
     t = op_type
     if t == "plot.set_boundary":
         # An empty polygon is the legal "clear the boundary" form — it is what the
         # inverse of the FIRST plot.set_boundary has to be.
         if _require_field(out, p, "polygon", t):
-            if not isinstance(g("polygon"), (list, tuple)):
+            if not isinstance(g("polygon"), list | tuple):
                 out.append(
                     _issue(
                         "OP_FIELD_BAD_POLYGON",
@@ -765,7 +772,7 @@ def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
             _check_string(out, g("name"), f("name"))
         if _has(p, "tags"):
             tags = g("tags")
-            if not isinstance(tags, (list, tuple)) or not all(isinstance(x, str) for x in tags):
+            if not isinstance(tags, list | tuple) or not all(isinstance(x, str) for x in tags):
                 out.append(
                     _issue(
                         "OP_FIELD_NOT_STRING",
@@ -799,8 +806,10 @@ def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
             _check_int_mm(out, g("widthMm"), f("widthMm"), 300)
         if _require_field(out, p, "risersCount", t):
             _check_int(out, g("risersCount"), f("risersCount"), 2, 60)
-        if _has(p, "landing") and g("landing") is not None and _check_object(
-            out, g("landing"), f("landing")
+        if (
+            _has(p, "landing")
+            and g("landing") is not None
+            and _check_object(out, g("landing"), f("landing"))
         ):
             landing = g("landing")
             _check_int_mm(out, landing.get("widthMm"), f("landing.widthMm"), 1)
@@ -888,7 +897,7 @@ def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
             _check_string(out, g("colorwayId"), f("colorwayId"))
         if _require_field(out, p, "components", t):
             components = g("components")
-            if not isinstance(components, (list, tuple)):
+            if not isinstance(components, list | tuple):
                 out.append(
                     _issue(
                         "OP_FIELD_NOT_OBJECT",
@@ -917,9 +926,7 @@ def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
                     if _has(c, "params") and _check_object(
                         out, c["params"], f"{f('components')}[{i}].params"
                     ):
-                        _check_json_integral(
-                            out, c["params"], f"{f('components')}[{i}].params"
-                        )
+                        _check_json_integral(out, c["params"], f"{f('components')}[{i}].params")
     elif t == "facade.edit_component":
         if _require_field(out, p, "componentId", t):
             _check_id(out, g("componentId"), f("componentId"), "facadecomp")
@@ -953,7 +960,7 @@ def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
         if _has(p, "fflPerStoreyMm"):
             any_field = True
             ffls = g("fflPerStoreyMm")
-            if not isinstance(ffls, (list, tuple)) or not all(is_int_mm(v) for v in ffls):
+            if not isinstance(ffls, list | tuple) or not all(is_int_mm(v) for v in ffls):
                 out.append(
                     _issue(
                         "OP_FIELD_NOT_INT_MM",
@@ -964,7 +971,9 @@ def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
         if not any_field:
             out.append(
                 _issue(
-                    "OP_FIELD_MISSING", "levels.set needs at least one field to set.", field="payload"
+                    "OP_FIELD_MISSING",
+                    "levels.set needs at least one field to set.",
+                    field="payload",
                 )
             )
     elif t == "solver.apply_option":
@@ -974,9 +983,13 @@ def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
             _check_int(out, g("optionIndex"), f("optionIndex"), 0)
         if _require_field(out, p, "ops", t):
             inner_ops = g("ops")
-            if not isinstance(inner_ops, (list, tuple)):
+            if not isinstance(inner_ops, list | tuple):
                 out.append(
-                    _issue("OP_FIELD_NOT_OBJECT", "payload.ops must be an array of ops.", field=f("ops"))
+                    _issue(
+                        "OP_FIELD_NOT_OBJECT",
+                        "payload.ops must be an array of ops.",
+                        field=f("ops"),
+                    )
                 )
             else:
                 for i, inner in enumerate(inner_ops):
@@ -1005,21 +1018,22 @@ def validate_op_shape(candidate: Any) -> List[ValidationIssue]:
                 _check_enum(out, g("anchorKind"), f("anchorKind"), ANNOTATION_ANCHOR_KINDS)
         elif _has(p, "anchorKind"):
             _check_enum(out, g("anchorKind"), f("anchorKind"), ANNOTATION_ANCHOR_KINDS)
-        if _has(p, "anchorElementId") and g("anchorElementId") is not None:
-            if try_parse_id(g("anchorElementId")) is None:
-                out.append(
-                    _issue(
-                        "OP_FIELD_BAD_ID",
-                        "payload.anchorElementId must be an element id or null.",
-                        field=f("anchorElementId"),
-                    )
+        if (
+            _has(p, "anchorElementId")
+            and g("anchorElementId") is not None
+            and try_parse_id(g("anchorElementId")) is None
+        ):
+            out.append(
+                _issue(
+                    "OP_FIELD_BAD_ID",
+                    "payload.anchorElementId must be an element id or null.",
+                    field=f("anchorElementId"),
                 )
+            )
         if _has(p, "payload") and _check_object(out, g("payload"), f("payload")):
             _check_json_integral(out, g("payload"), f("payload"))
     else:  # pragma: no cover - a new op type without a shape validator lands here
-        out.append(
-            _issue("OP_UNKNOWN_TYPE", f"No shape validator for op type {t}.", field="type")
-        )
+        out.append(_issue("OP_UNKNOWN_TYPE", f"No shape validator for op type {t}.", field="type"))
     return out
 
 
@@ -1038,7 +1052,7 @@ def _missing(code: ValidationCode, kind: str, element_id: Any, fix: str) -> Vali
     )
 
 
-def validate_op_against_doc(doc: ProjectDoc, op: Op) -> List[ValidationIssue]:
+def validate_op_against_doc(doc: ProjectDoc, op: Op) -> list[ValidationIssue]:
     """Validate that an op can be applied to THIS document: referenced elements
     exist, new ids are free, indices are in range, openings fit their host wall.
 
@@ -1049,14 +1063,14 @@ def validate_op_against_doc(doc: ProjectDoc, op: Op) -> List[ValidationIssue]:
     PRECONDITION: ``validate_op_shape(op)`` returned no issues. This function
     trusts the payload's shape and only asks document questions.
     """
-    out: List[ValidationIssue] = []
+    out: list[ValidationIssue] = []
     h = doc.house
     p = op.payload
 
     def g(k: str) -> Any:
-        return p[k] if k in p else None
+        return p.get(k, None)
 
-    all_ids: Set[str] = set()
+    all_ids: set[str] = set()
     for element in (
         list(h.storeys)
         + list(h.walls)
@@ -1170,7 +1184,9 @@ def validate_op_against_doc(doc: ProjectDoc, op: Op) -> List[ValidationIssue]:
         wall = next((w for w in h.walls if w.id == wall_id), None)
         if wall is None:
             out.append(
-                _missing("WALL_UNKNOWN", "wall", wall_id, "Use a wallId that exists on this storey.")
+                _missing(
+                    "WALL_UNKNOWN", "wall", wall_id, "Use a wallId that exists on this storey."
+                )
             )
         elif t == "wall.move":
             moved = Seg(pt_of(g("a")), pt_of(g("b")))
@@ -1232,9 +1248,7 @@ def validate_op_against_doc(doc: ProjectDoc, op: Op) -> List[ValidationIssue]:
                 out.append(fit)
             storey = next((s for s in h.storeys if s.id == wall.storey_id), None)
             if storey is not None and g("sillMm") + g("heightMm") > storey.height_mm:
-                out.append(
-                    _height_issue(g("id"), g("sillMm") + g("heightMm"), storey.height_mm)
-                )
+                out.append(_height_issue(g("id"), g("sillMm") + g("heightMm"), storey.height_mm))
     elif t in ("opening.move", "opening.resize", "opening.flip", "opening.delete"):
         opening_id = g("openingId") if isinstance(g("openingId"), str) else ""
         opening = next((o for o in h.openings if o.id == opening_id), None)
@@ -1286,9 +1300,7 @@ def validate_op_against_doc(doc: ProjectDoc, op: Op) -> List[ValidationIssue]:
             storey = next((s for s in h.storeys if s.id == g("storeyId")), None)
             if storey is not None:
                 rise = g("risersCount") * g("riserMm")
-                rise_issue = _stair_rise_issue(
-                    g("id"), rise, storey.height_mm, g("risersCount")
-                )
+                rise_issue = _stair_rise_issue(g("id"), rise, storey.height_mm, g("risersCount"))
                 if rise_issue is not None:
                     out.append(rise_issue)
     elif t in ("stair.edit", "stair.delete"):
@@ -1302,9 +1314,7 @@ def validate_op_against_doc(doc: ProjectDoc, op: Op) -> List[ValidationIssue]:
             risers = _coalesce(patch.get("risersCount"), stair.risers_count)
             riser = _coalesce(patch.get("riserMm"), stair.riser_mm)
             if storey is not None:
-                rise_issue = _stair_rise_issue(
-                    stair.id, risers * riser, storey.height_mm, risers
-                )
+                rise_issue = _stair_rise_issue(stair.id, risers * riser, storey.height_mm, risers)
                 if rise_issue is not None:
                     out.append(rise_issue)
     elif t == "column.set":
@@ -1314,7 +1324,10 @@ def validate_op_against_doc(doc: ProjectDoc, op: Op) -> List[ValidationIssue]:
         elif not any(c.id == g("id") for c in h.columns):
             out.append(
                 _missing(
-                    "COLUMN_UNKNOWN", "column", g("id"), "Add the column before moving or deleting it."
+                    "COLUMN_UNKNOWN",
+                    "column",
+                    g("id"),
+                    "Add the column before moving or deleting it.",
                 )
             )
     elif t == "furniture.set":
@@ -1336,7 +1349,9 @@ def validate_op_against_doc(doc: ProjectDoc, op: Op) -> List[ValidationIssue]:
             require_storey(g("storeyId"))
         elif not any(b.id == g("id") for b in h.balconies):
             out.append(
-                _missing("BALCONY_UNKNOWN", "balcony", g("id"), "Add the balcony before editing it.")
+                _missing(
+                    "BALCONY_UNKNOWN", "balcony", g("id"), "Add the balcony before editing it."
+                )
             )
     elif t == "facade.edit_component":
         if not any(c.id == g("componentId") for c in h.facade.components):
@@ -1406,7 +1421,7 @@ def _overlaps_wall(a: Seg, b: Seg) -> bool:
 
 def _opening_fit_issue(
     opening_id: str, offset_mm: int, width_mm: int, wall_length_mm: int
-) -> Optional[ValidationIssue]:
+) -> ValidationIssue | None:
     usable = wall_length_mm - 2 * WALL_END_MARGIN_MM
     if width_mm > usable:
         return _issue(
@@ -1452,7 +1467,7 @@ def _height_issue(opening_id: str, top_mm: int, storey_height_mm: int) -> Valida
 
 def _stair_rise_issue(
     stair_id: str, total_rise_mm: int, storey_height_mm: int, risers_count: int
-) -> Optional[ValidationIssue]:
+) -> ValidationIssue | None:
     delta = abs(total_rise_mm - storey_height_mm)
     if delta <= STAIR_RISE_TOLERANCE_MM:
         return None
@@ -1476,17 +1491,17 @@ def _stair_rise_issue(
 
 def validate_model(
     doc: ProjectDoc,
-    storey_ids: Optional[Iterable[str]] = None,
+    storey_ids: Iterable[str] | None = None,
     include_warnings: bool = True,
-) -> List[ValidationIssue]:
+) -> list[ValidationIssue]:
     """The section-3 fold invariants over a whole document.
 
     ``fold()`` runs this on the candidate next state (scoped to the touched
     storeys via ``storey_ids``) and refuses to return a document that breaks it.
     """
-    out: List[ValidationIssue] = []
+    out: list[ValidationIssue] = []
     h = doc.house
-    scope: Optional[Set[str]] = None if storey_ids is None else set(storey_ids)
+    scope: set[str] | None = None if storey_ids is None else set(storey_ids)
 
     def in_scope(storey_id: str) -> bool:
         return scope is None or storey_id in scope
@@ -1501,7 +1516,7 @@ def validate_model(
         )
 
     # --- duplicate ids across the whole document
-    seen: Dict[str, int] = {}
+    seen: dict[str, int] = {}
     for element in (
         list(h.storeys)
         + list(h.walls)
@@ -1600,11 +1615,14 @@ def validate_model(
         if w.storey_id not in storey_by_id:
             out.append(
                 _missing(
-                    "STOREY_UNKNOWN", "storey", w.storey_id, "Re-parent the wall to an existing storey."
+                    "STOREY_UNKNOWN",
+                    "storey",
+                    w.storey_id,
+                    "Re-parent the wall to an existing storey.",
                 )
             )
     # "no two walls exactly overlapping" — quadratic, so scope it per storey
-    by_storey: Dict[str, List[Any]] = {}
+    by_storey: dict[str, list[Any]] = {}
     for w in walls_in_scope:
         by_storey.setdefault(w.storey_id, []).append(w)
     for walls in by_storey.values():
@@ -1626,7 +1644,9 @@ def validate_model(
         wall = wall_by_id.get(o.wall_id)
         if wall is None:
             out.append(
-                _missing("OPENING_UNKNOWN", "host wall", o.wall_id, "Re-host or delete the opening.")
+                _missing(
+                    "OPENING_UNKNOWN", "host wall", o.wall_id, "Re-host or delete the opening."
+                )
             )
             continue
         if not in_scope(wall.storey_id):
@@ -1658,24 +1678,31 @@ def validate_model(
             out.append(_height_issue(o.id, o.sill_mm + o.height_mm, storey.height_mm))
 
     # --- stairs
-    for s in h.stairs:
-        if not in_scope(s.storey_id):
+    for stair in h.stairs:
+        if not in_scope(stair.storey_id):
             continue
-        storey = storey_by_id.get(s.storey_id)
+        storey = storey_by_id.get(stair.storey_id)
         if storey is None:
-            out.append(_missing("STOREY_UNKNOWN", "storey", s.storey_id, "Re-parent the stair."))
+            out.append(
+                _missing("STOREY_UNKNOWN", "storey", stair.storey_id, "Re-parent the stair.")
+            )
             continue
-        if s.riser_mm <= 0 or s.tread_mm <= 0 or s.width_mm <= 0 or s.risers_count <= 1:
+        if (
+            stair.riser_mm <= 0
+            or stair.tread_mm <= 0
+            or stair.width_mm <= 0
+            or stair.risers_count <= 1
+        ):
             out.append(
                 _issue(
                     "STAIR_DIMENSION_INVALID",
                     "Stair riser, tread, width and riser count must all be positive.",
-                    element_ids=[s.id],
+                    element_ids=[stair.id],
                 )
             )
             continue
         rise_issue = _stair_rise_issue(
-            s.id, s.risers_count * s.riser_mm, storey.height_mm, s.risers_count
+            stair.id, stair.risers_count * stair.riser_mm, storey.height_mm, stair.risers_count
         )
         if rise_issue is not None:
             out.append(rise_issue)
@@ -1740,9 +1767,9 @@ def is_acceptable(issues: Sequence[ValidationIssue]) -> bool:
     return not any(i.severity == "error" for i in issues)
 
 
-def issues_by_code(issues: Sequence[ValidationIssue]) -> Dict[str, List[ValidationIssue]]:
+def issues_by_code(issues: Sequence[ValidationIssue]) -> dict[str, list[ValidationIssue]]:
     """Group issues by code — handy for the compliance strip and copilot feedback."""
-    grouped: Dict[str, List[ValidationIssue]] = {}
+    grouped: dict[str, list[ValidationIssue]] = {}
     for i in issues:
         grouped.setdefault(i.code, []).append(i)
     return grouped
@@ -1753,9 +1780,9 @@ def render_issues_for_llm(issues: Sequence[ValidationIssue]) -> str:
 
     One line per issue: ``CODE field=... actual=... limit=... message (fix)``.
     """
-    lines: List[str] = []
+    lines: list[str] = []
     for i in issues:
-        parts: List[str] = [i.code]
+        parts: list[str] = [i.code]
         if i.field:
             parts.append(f"field={i.field}")
         if i.actual is not None:
@@ -1770,7 +1797,7 @@ def render_issues_for_llm(issues: Sequence[ValidationIssue]) -> str:
 
 
 #: All model-invariant codes (as opposed to op-shape codes) — used by the UI copy map.
-MODEL_INVARIANT_CODES: Tuple[str, ...] = (
+MODEL_INVARIANT_CODES: tuple[str, ...] = (
     "WALL_ZERO_LENGTH",
     "WALL_THICKNESS_INVALID",
     "WALL_DUPLICATE",

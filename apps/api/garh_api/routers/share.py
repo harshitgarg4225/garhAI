@@ -36,7 +36,7 @@ from __future__ import annotations
 import secrets
 import urllib.parse
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Query, Request, status
 
@@ -53,8 +53,8 @@ from garh_api.repositories import (
     OpRepository,
     ProjectRepository,
     RenderJobRepository,
-    SheetRepository,
     ShareLinkRepository,
+    SheetRepository,
 )
 from garh_api.repositories.audit_log import ACTION_SHARE_CREATED, ACTION_SHARE_REVOKED
 from garh_api.routers import (
@@ -73,8 +73,8 @@ from garh_api.schemas.project import (
     CommentOut,
     ComplianceOut,
     ShareCreate,
-    ShareLinkOut,
     SharedProjectOut,
+    ShareLinkOut,
 )
 
 _log = get_logger(__name__)
@@ -137,7 +137,7 @@ async def create_share_link(
 
     token = secrets.token_urlsafe(settings.share_token_bytes)
     expires_at = (
-        datetime.now(timezone.utc) + timedelta(days=body.expires_in_days)
+        datetime.now(UTC) + timedelta(days=body.expires_in_days)
         if body.expires_in_days is not None
         else None
     )
@@ -323,9 +323,8 @@ async def shared_model(
     # Imported here, not at module scope: keeping the op sequencer out of this module's
     # import graph is the §13 isolation this file is built around. ``unwrap_snapshot`` is
     # a pure envelope reader with no write path of its own.
-    from garh_api.routers.ops import unwrap_snapshot
-
     from garh_api import MODEL_SCHEMA_VERSION
+    from garh_api.routers.ops import unwrap_snapshot
 
     branch = await active_branch(session, ctx, project_id)
     op_repo = OpRepository(session, ctx)
@@ -377,9 +376,7 @@ async def shared_renders(
     ctx.require_scope("renders")
     page = await RenderJobRepository(session, ctx).list_gallery(project_id, limit=50)
     return [
-        RenderJobOut.of(job)
-        for job in page.items
-        if job.status == "succeeded" and job.output_url
+        RenderJobOut.of(job) for job in page.items if job.status == "succeeded" and job.output_url
     ]
 
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The 3x3 grid, the 8 compass sectors, and the four geometry primitives.
 
 The tiebreaker is ``rulepacks/schema/rulepack.schema.json`` -> ``$defs.zone`` and
@@ -19,8 +17,9 @@ engine reads pre-derived scalars from the context and the fixture verifier
 recomputes them from ``polygonMm``: the two derivations have to be the same one.
 """
 
+from __future__ import annotations
+
 from fractions import Fraction
-from typing import Tuple
 
 import pytest
 
@@ -94,7 +93,7 @@ class TestRotation:
         [(0, (100, 200)), (90, (-200, 100)), (180, (-100, -200)), (270, (200, -100))],
     )
     def test_cardinals_are_exact_integer_swaps(
-        self, degrees: int, expected: Tuple[int, int]
+        self, degrees: int, expected: tuple[int, int]
     ) -> None:
         assert rotate_ccw_deg((100, 200), degrees) == expected
 
@@ -231,7 +230,9 @@ class TestFacing:
 
 class TestClipAreaAgainstRect:
     def test_fully_inside(self) -> None:
-        assert clip_area_against_rect(rect(100, 100, 200, 200), 0, 0, 1000, 1000) == Fraction(40_000)
+        assert clip_area_against_rect(rect(100, 100, 200, 200), 0, 0, 1000, 1000) == Fraction(
+            40_000
+        )
 
     def test_fully_outside(self) -> None:
         assert clip_area_against_rect(rect(5000, 5000, 100, 100), 0, 0, 1000, 1000) == 0

@@ -106,7 +106,10 @@ describe('placeLabels', () => {
   });
 
   it('returns results in input order even though it places in priority order', () => {
-    const placed = placeLabels([label('z', 0, 0, { priority: 1 }), label('a', 5000, 0, { priority: 9 })]);
+    const placed = placeLabels([
+      label('z', 0, 0, { priority: 1 }),
+      label('a', 5000, 0, { priority: 9 }),
+    ]);
     expect(placed.map((p) => p.id)).toEqual(['z', 'a']);
   });
 
@@ -193,7 +196,9 @@ describe('placeLabels', () => {
   });
 
   it('drops nothing by default, and drops only on request', () => {
-    const labels = Array.from({ length: 6 }, (_, i) => label(`l${String(i)}`, 0, 0, { priority: 6 - i }));
+    const labels = Array.from({ length: 6 }, (_, i) =>
+      label(`l${String(i)}`, 0, 0, { priority: 6 - i }),
+    );
     expect(placeLabels(labels, { maxNudgeSteps: 1 })).toHaveLength(6);
     // The sheet engine's stricter contract: never emit a colliding label.
     const dropped = placeLabels(labels, { maxNudgeSteps: 1, dropUnplaceable: true });

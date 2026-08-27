@@ -536,7 +536,10 @@ describe('the plot lives in the same document', () => {
   it('folds plot ops through the same pipeline', async () => {
     await hydrate();
     const result = useModelStore.getState().dispatch([
-      { type: 'plot.set_boundary', payload: { polygon: DEMO_PLOT_POLYGON, source: 'manual' } } as Op,
+      {
+        type: 'plot.set_boundary',
+        payload: { polygon: DEMO_PLOT_POLYGON, source: 'manual' },
+      } as Op,
       { type: 'plot.set_north', payload: { deg: 0 } } as Op,
     ]);
     expect(result.ok).toBe(true);

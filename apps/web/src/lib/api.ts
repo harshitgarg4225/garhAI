@@ -710,7 +710,11 @@ export function createApiClient(client: HttpClient = http) {
           ...(options.signal === undefined ? {} : { signal: options.signal }),
         }),
 
-      create: (projectId: string, input: { name: string }, opts: CallOptions = {}): Promise<Version> =>
+      create: (
+        projectId: string,
+        input: { name: string },
+        opts: CallOptions = {},
+      ): Promise<Version> =>
         client.request({
           method: 'POST',
           path: projectPath(projectId, '/versions'),
@@ -1094,10 +1098,7 @@ export function createApiClient(client: HttpClient = http) {
         options: CallOptions = {},
       ): Promise<SheetAnnotationResponse[]> =>
         client.request({
-          path: projectPath(
-            projectId,
-            `/sheets/${encodeURIComponent(sheetId)}/annotations`,
-          ),
+          path: projectPath(projectId, `/sheets/${encodeURIComponent(sheetId)}/annotations`),
           parse: parser(z.array(annotationSchema)),
           ...(options.signal === undefined ? {} : { signal: options.signal }),
         }),
@@ -1138,10 +1139,7 @@ export function createApiClient(client: HttpClient = http) {
         opts: CallOptions = {},
       ): Promise<DownloadLink> =>
         client.request({
-          path: projectPath(
-            projectId,
-            `/sheets/${encodeURIComponent(sheetId)}.${format}`,
-          ),
+          path: projectPath(projectId, `/sheets/${encodeURIComponent(sheetId)}.${format}`),
           parse: parser(downloadSchema),
           ...opts,
         }),

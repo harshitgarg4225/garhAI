@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Pack loader: read, validate, resolve ``extends``, apply overrides — loudly.
 
 Playbook §6 and ``rulepacks/README.md`` both say the same thing in different
@@ -26,11 +24,14 @@ Loading is I/O, so it happens **once**: :func:`load_pack_set` memoises on
 same escape hatch for the same reason).
 """
 
+from __future__ import annotations
+
 import importlib
 import json
 import os
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any, Dict, FrozenSet, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from .errors import PackLoadError, SchemaValidationError
 from .jsonschema_min import SchemaValidator
@@ -64,12 +65,12 @@ SUPPORTED_SCHEMA_VERSION = 1
 #: ``ventilation_ratio_min.countKinds`` default, per the schema. The context gives
 #: one pre-summed ``room.ventilationOpeningAreaMm2`` with no per-kind breakdown, so
 #: the engine can only verify a rule that counts this exact set.
-DEFAULT_COUNT_KINDS: Tuple[str, ...] = ("window", "ventilator")
+DEFAULT_COUNT_KINDS: tuple[str, ...] = ("window", "ventilator")
 
 #: ``floors_max.counts`` entries the engine can actually count. ``mezzanine`` and
 #: ``terrace-mumty`` are in the schema's enum but absent from the EvaluationContext,
 #: so a pack naming them would produce a floor count that is quietly too low.
-SUPPORTED_EXTRA_FLOOR_KINDS: Tuple[str, ...] = ("stilt", "basement")
+SUPPORTED_EXTRA_FLOOR_KINDS: tuple[str, ...] = ("stilt", "basement")
 
 #: Declared scope of each registered ``custom.fn`` (``x-garh-check-meta.customFns``).
 CUSTOM_FN_SCOPES: Mapping[str, str] = {"rwh_required": "project", "brahmasthan_open": "project"}
@@ -77,7 +78,7 @@ CUSTOM_FN_SCOPES: Mapping[str, str] = {"rwh_required": "project", "brahmasthan_o
 #: Documented, enforced limits — each one is a *loud* rejection at load, and each
 #: one is a note for whoever reviews the packs. Kept as data so the API can serve
 #: it next to ``GET /rulepacks``.
-ENGINE_LIMITS: Tuple[str, ...] = (
+ENGINE_LIMITS: tuple[str, ...] = (
     "floors_max.counts accepts only %s; mezzanine and terrace-mumty are not in the "
     "EvaluationContext, so counting them is impossible rather than approximate."
     % (" / ".join(SUPPORTED_EXTRA_FLOOR_KINDS),),
@@ -115,14 +116,14 @@ class AutoFix:
     computable: bool = True
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any]) -> "AutoFix":
+    def from_json(cls, data: Mapping[str, Any]) -> AutoFix:
         return cls(
             op_type=str(data["opType"]),
             strategy=str(data["strategy"]),
             computable=bool(data.get("computable", True)),
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {"opType": self.op_type, "strategy": self.strategy, "computable": self.computable}
 
 
@@ -134,10 +135,10 @@ class Check:
     params: Mapping[str, Any]
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any]) -> "Check":
+    def from_json(cls, data: Mapping[str, Any]) -> Check:
         return cls(type=str(data["type"]), params=dict(data))
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return dict(self.params)
 
     # -- typed accessors ---------------------------------------------------
@@ -150,7 +151,7 @@ class Check:
             return default
         return require_int(value, "check.%s" % name)
 
-    def str_param(self, name: str, default: Optional[str] = None) -> str:
+    def str_param(self, name: str, default: str | None = None) -> str:
         value = self.params.get(name, default)
         if not isinstance(value, str):
             raise PackLoadError("check.%s must be a string, got %r" % (name, value))
@@ -162,7 +163,7 @@ class Check:
             raise PackLoadError("check.%s must be a {num, den} ratio" % name)
         return Ratio.from_json(value, "check.%s" % name)
 
-    def opt_ratio_param(self, name: str) -> Optional[Ratio]:
+    def opt_ratio_param(self, name: str) -> Ratio | None:
         value = self.params.get(name)
         if value is None:
             return None
@@ -170,11 +171,11 @@ class Check:
             raise PackLoadError("check.%s must be a {num, den} ratio" % name)
         return Ratio.from_json(value, "check.%s" % name)
 
-    def list_param(self, name: str, default: Sequence[str] = ()) -> Tuple[str, ...]:
+    def list_param(self, name: str, default: Sequence[str] = ()) -> tuple[str, ...]:
         value = self.params.get(name)
         if value is None:
             return tuple(default)
-        if not isinstance(value, (list, tuple)):
+        if not isinstance(value, list | tuple):
             raise PackLoadError("check.%s must be an array" % name)
         return tuple(str(v) for v in value)
 
@@ -204,13 +205,13 @@ class Rule:
     fix: str
     confidence: str
     when: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
-    cite_url: Optional[str] = None
-    autofix: Optional[AutoFix] = None
-    weight: Optional[int] = None
-    group: Optional[str] = None
+    cite_url: str | None = None
+    autofix: AutoFix | None = None
+    weight: int | None = None
+    group: str | None = None
     hard: bool = False
-    tags: Tuple[str, ...] = ()
-    notes: Optional[str] = None
+    tags: tuple[str, ...] = ()
+    notes: str | None = None
     #: ``relax-to-warn`` came from a child pack's ``overrides``.
     relaxed_to_warn: bool = False
     #: Position in the resolved load order — the engine's deterministic sort key.
@@ -236,10 +237,10 @@ class Scoring:
     aggregate: str
     rounding: str
     modes: Mapping[str, ScoringMode]
-    groups: Tuple[Tuple[str, str, str], ...] = ()  # (id, label, description)
+    groups: tuple[tuple[str, str, str], ...] = ()  # (id, label, description)
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], pack_id: str) -> "Scoring":
+    def from_json(cls, data: Mapping[str, Any], pack_id: str) -> Scoring:
         if data.get("aggregate") != "weighted-mean":
             raise PackLoadError(
                 "scoring.aggregate %r is not implemented (only weighted-mean)"
@@ -274,7 +275,7 @@ class Scoring:
             groups=groups,
         )
 
-    def group_ids(self) -> FrozenSet[str]:
+    def group_ids(self) -> frozenset[str]:
         return frozenset(g[0] for g in self.groups)
 
 
@@ -282,15 +283,15 @@ class Scoring:
 class Vocabulary:
     """Merged pack vocabulary — the regulatory judgements the code must not hard-code."""
 
-    habitable_room_types: FrozenSet[str] = frozenset()
-    wet_room_types: FrozenSet[str] = frozenset()
-    open_room_types: FrozenSet[str] = frozenset()
-    far_exclusions: Tuple[str, ...] = ()
-    coverage_inclusions: Tuple[str, ...] = ()
+    habitable_room_types: frozenset[str] = frozenset()
+    wet_room_types: frozenset[str] = frozenset()
+    open_room_types: frozenset[str] = frozenset()
+    far_exclusions: tuple[str, ...] = ()
+    coverage_inclusions: tuple[str, ...] = ()
     #: vocabulary key -> the pack that supplied the winning value, for the report.
     sources: Mapping[str, str] = field(default_factory=dict)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "habitableRoomTypes": sorted(self.habitable_room_types),
             "wetRoomTypes": sorted(self.wet_room_types),
@@ -313,11 +314,11 @@ class Pack:
     citations_base: str
     confidence_default: str
     disclaimer: str
-    extends: Optional[str]
+    extends: str | None
     review_status: str
     jurisdiction: Mapping[str, Any]
     raw: Mapping[str, Any]
-    scoring: Optional[Scoring] = None
+    scoring: Scoring | None = None
 
     @property
     def is_scoring(self) -> bool:
@@ -333,21 +334,21 @@ class Pack:
 class PackSet:
     """The immutable, fully resolved rule set the evaluator runs against."""
 
-    load_order: Tuple[str, ...]
+    load_order: tuple[str, ...]
     packs: Mapping[str, Pack]
-    rules: Tuple[Rule, ...]
+    rules: tuple[Rule, ...]
     vocabulary: Vocabulary
-    room_types: FrozenSet[str]
+    room_types: frozenset[str]
     disabled: Mapping[str, str] = field(default_factory=dict)  # ruleId -> reason
-    notes: Tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
 
     @property
-    def pack_versions(self) -> Dict[str, str]:
+    def pack_versions(self) -> dict[str, str]:
         """``{packId: version}`` — pinned into every compliance report so an old
         report can still be re-explained by the exact rules that produced it."""
         return {pid: self.packs[pid].version for pid in self.load_order}
 
-    def rule(self, rule_id: str) -> Optional[Rule]:
+    def rule(self, rule_id: str) -> Rule | None:
         for candidate in self.rules:
             if candidate.id == rule_id:
                 return candidate
@@ -359,10 +360,10 @@ class PackSet:
             raise PackLoadError("no rule %r in the loaded pack set" % rule_id, rule_id=rule_id)
         return found
 
-    def scoring_packs(self) -> Tuple[Pack, ...]:
+    def scoring_packs(self) -> tuple[Pack, ...]:
         return tuple(self.packs[pid] for pid in self.load_order if self.packs[pid].is_scoring)
 
-    def disclaimers(self) -> Tuple[Tuple[str, str], ...]:
+    def disclaimers(self) -> tuple[tuple[str, str], ...]:
         """``(packId, disclaimer)`` pairs the UI and every export must show verbatim."""
         return tuple((pid, self.packs[pid].disclaimer) for pid in self.load_order)
 
@@ -372,7 +373,7 @@ class PackSet:
 # ---------------------------------------------------------------------------
 
 
-def rulepack_dir(root: Optional[str] = None) -> str:
+def rulepack_dir(root: str | None = None) -> str:
     """Where the packs live.
 
     Honours ``GARH_RULEPACK_DIR``, then ``RULEPACK_DIR``, then ``GARH_ROOT``.
@@ -400,12 +401,12 @@ def rulepack_dir(root: Optional[str] = None) -> str:
 class PackLoader:
     """Reads and resolves packs. One instance per pack directory; reusable."""
 
-    def __init__(self, root: Optional[str] = None) -> None:
+    def __init__(self, root: str | None = None) -> None:
         self.dir = rulepack_dir(root)
         self.schema_path = os.path.join(self.dir, "schema", "rulepack.schema.json")
-        self._schema: Optional[Mapping[str, Any]] = None
-        self._validator: Optional[SchemaValidator] = None
-        self._raw: Dict[str, Mapping[str, Any]] = {}
+        self._schema: Mapping[str, Any] | None = None
+        self._validator: SchemaValidator | None = None
+        self._raw: dict[str, Mapping[str, Any]] = {}
 
     # -- schema ------------------------------------------------------------
     @property
@@ -421,7 +422,7 @@ class PackLoader:
             self._validator = SchemaValidator(self.schema)
         return self._validator
 
-    def schema_enum(self, def_name: str) -> Tuple[str, ...]:
+    def schema_enum(self, def_name: str) -> tuple[str, ...]:
         node = (self.schema.get("$defs") or {}).get(def_name) or {}
         values = node.get("enum")
         if not values:
@@ -469,7 +470,7 @@ class PackLoader:
     # -- files -------------------------------------------------------------
     def _read_json(self, path: str, what: str) -> Mapping[str, Any]:
         try:
-            with open(path, "r", encoding="utf-8") as handle:
+            with open(path, encoding="utf-8") as handle:
                 data = json.load(handle)
         except FileNotFoundError as exc:
             raise PackLoadError("%s not found at %s" % (what, path)) from exc
@@ -486,7 +487,9 @@ class PackLoader:
             return cached
         if not _SAFE_PACK_ID(pack_id):
             raise PackLoadError("unsafe pack id %r" % pack_id, pack_id=pack_id)
-        data = self._read_json(os.path.join(self.dir, "%s.json" % pack_id), "rule pack %r" % pack_id)
+        data = self._read_json(
+            os.path.join(self.dir, "%s.json" % pack_id), "rule pack %r" % pack_id
+        )
         declared = data.get("schemaVersion")
         if declared != SUPPORTED_SCHEMA_VERSION:
             raise PackLoadError(
@@ -511,15 +514,15 @@ class PackLoader:
         return data
 
     # -- resolution --------------------------------------------------------
-    def chain(self, pack_id: str) -> Tuple[str, ...]:
+    def chain(self, pack_id: str) -> tuple[str, ...]:
         """The ``extends`` chain, root first. A cycle is a load error."""
-        order: List[str] = []
-        seen: List[str] = []
-        cursor: Optional[str] = pack_id
+        order: list[str] = []
+        seen: list[str] = []
+        cursor: str | None = pack_id
         while cursor is not None:
             if cursor in seen:
                 raise PackLoadError(
-                    "extends cycle: %s" % " -> ".join(seen + [cursor]), pack_id=pack_id
+                    "extends cycle: %s" % " -> ".join([*seen, cursor]), pack_id=pack_id
                 )
             seen.append(cursor)
             order.insert(0, cursor)
@@ -531,18 +534,18 @@ class PackLoader:
         """Resolve ``pack_ids`` (each expanded through its parents) into one set."""
         if not pack_ids:
             raise PackLoadError("no packs requested — a compliance run needs at least one pack")
-        order: List[str] = []
+        order: list[str] = []
         for pack_id in pack_ids:
             for member in self.chain(pack_id):
                 if member not in order:
                     order.append(member)
 
-        packs: Dict[str, Pack] = {}
+        packs: dict[str, Pack] = {}
         for pack_id in order:
             packs[pack_id] = self._build_pack(pack_id)
 
-        rules: List[Rule] = []
-        owner: Dict[str, str] = {}
+        rules: list[Rule] = []
+        owner: dict[str, str] = {}
         for pack_id in order:
             pack = packs[pack_id]
             for raw_rule in pack.raw["rules"]:
@@ -561,8 +564,8 @@ class PackLoader:
         rules, autofix_notes = self._vet_autofix(rules)
         autofix_notes.extend(self._vet_room_type_reachability(rules))
         rules_by_id = {r.id: r for r in rules}
-        disabled: Dict[str, str] = {}
-        relaxed: Dict[str, str] = {}
+        disabled: dict[str, str] = {}
+        relaxed: dict[str, str] = {}
         for pack_id in order:
             for override in packs[pack_id].raw.get("overrides") or ():
                 target = str(override["ruleId"])
@@ -594,7 +597,7 @@ class PackLoader:
                         "unknown override action %r" % action, pack_id=pack_id, rule_id=target
                     )
 
-        resolved: List[Rule] = []
+        resolved: list[Rule] = []
         for rule in rules:
             if rule.id in disabled:
                 continue
@@ -691,13 +694,12 @@ class PackLoader:
     def _validate_when(
         self, when: Mapping[str, Any], pack_id: str, rule_id: str
     ) -> Mapping[str, Mapping[str, Any]]:
-        out: Dict[str, Mapping[str, Any]] = {}
+        out: dict[str, Mapping[str, Any]] = {}
         for field_name, predicate in when.items():
             if field_name not in BOUND_WHEN_FIELDS:
                 raise PackLoadError(
                     "`when` field %r is not in the engine's closed context field set — a typo "
-                    "here would make the rule apply to every plot or to none"
-                    % field_name,
+                    "here would make the rule apply to every plot or to none" % field_name,
                     pack_id=pack_id,
                     rule_id=rule_id,
                 )
@@ -764,9 +766,7 @@ class PackLoader:
                     )
                 Ratio.from_json(args["maxEnclosedRatio"], "args.maxEnclosedRatio")
         elif check.type == "floors_max":
-            unsupported = sorted(
-                set(check.list_param("counts")) - set(SUPPORTED_EXTRA_FLOOR_KINDS)
-            )
+            unsupported = sorted(set(check.list_param("counts")) - set(SUPPORTED_EXTRA_FLOOR_KINDS))
             if unsupported:
                 raise PackLoadError(
                     "floors_max.counts %s cannot be counted: the EvaluationContext carries no "
@@ -833,7 +833,7 @@ class PackLoader:
                     rule_id=rule_id,
                 )
 
-    def _vet_autofix(self, rules: Sequence[Rule]) -> Tuple[List[Rule], List[str]]:
+    def _vet_autofix(self, rules: Sequence[Rule]) -> tuple[list[Rule], list[str]]:
         """Validate ``autofix.opType`` against the generated op catalogue.
 
         The schema asks for this check "at pack load". Two judgement calls:
@@ -859,8 +859,8 @@ class PackLoader:
                     "importable from here. Fix the PYTHONPATH to restore the check."
                 ],
             )
-        out: List[Rule] = []
-        broken: Dict[str, List[str]] = {}
+        out: list[Rule] = []
+        broken: dict[str, list[str]] = {}
         for rule in rules:
             fix = rule.autofix
             if fix is not None and fix.op_type not in op_types:
@@ -868,7 +868,7 @@ class PackLoader:
                 if fix.computable:
                     rule = replace(rule, autofix=replace(fix, computable=False))
             out.append(rule)
-        notes: List[str] = []
+        notes: list[str] = []
         for op_type, rule_ids in sorted(broken.items()):
             notes.append(
                 "autofix.opType %r is not in the op catalogue, so the Fix-it button is disabled "
@@ -882,7 +882,7 @@ class PackLoader:
             )
         return out, notes
 
-    def _vet_room_type_reachability(self, rules: Sequence[Rule]) -> List[str]:
+    def _vet_room_type_reachability(self, rules: Sequence[Rule]) -> list[str]:
         """Name every rule keyed on a room type the model core cannot emit.
 
         The other half of "no rule runs unseen". A rule whose ``when.roomType`` (or
@@ -902,8 +902,8 @@ class PackLoader:
         model_types = _model_room_types()
         if model_types is None:
             return []
-        unreachable: Dict[str, List[str]] = {}
-        dead: List[str] = []
+        unreachable: dict[str, list[str]] = {}
+        dead: list[str] = []
         for rule in rules:
             referenced = _room_types_referenced(rule)
             if not referenced:
@@ -913,7 +913,7 @@ class PackLoader:
                 unreachable.setdefault(room_type, []).append(rule.id)
             if len(missing) == len(referenced):
                 dead.append(rule.id)
-        notes: List[str] = []
+        notes: list[str] = []
         for room_type, rule_ids in sorted(unreachable.items()):
             notes.append(
                 "room type %r is selected by %d rule(s) (%s) but no model room can carry it: "
@@ -925,8 +925,7 @@ class PackLoader:
             notes.append(
                 "rule(s) %s can never be evaluated on a model from garh_model: every room type "
                 "they select is unreachable. Either the model core needs the type or the rule "
-                "needs retiring — it is not being checked today."
-                % ", ".join(sorted(dead))
+                "needs retiring — it is not being checked today." % ", ".join(sorted(dead))
             )
         return notes
 
@@ -937,9 +936,15 @@ class PackLoader:
         child pack that answers it answers all of it — a union would quietly
         re-admit a type the child deliberately dropped.
         """
-        keys = ("habitableRoomTypes", "wetRoomTypes", "openRoomTypes", "farExclusions", "coverageInclusions")
-        winning: Dict[str, Any] = {}
-        sources: Dict[str, str] = {}
+        keys = (
+            "habitableRoomTypes",
+            "wetRoomTypes",
+            "openRoomTypes",
+            "farExclusions",
+            "coverageInclusions",
+        )
+        winning: dict[str, Any] = {}
+        sources: dict[str, str] = {}
         for pack_id in order:
             vocabulary = packs[pack_id].raw.get("vocabulary") or {}
             for key in keys:
@@ -947,9 +952,7 @@ class PackLoader:
                     winning[key] = vocabulary[key]
                     sources[key] = pack_id
         return Vocabulary(
-            habitable_room_types=frozenset(
-                str(v) for v in winning.get("habitableRoomTypes", ())
-            ),
+            habitable_room_types=frozenset(str(v) for v in winning.get("habitableRoomTypes", ())),
             wet_room_types=frozenset(str(v) for v in winning.get("wetRoomTypes", ())),
             open_room_types=frozenset(str(v) for v in winning.get("openRoomTypes", ())),
             far_exclusions=tuple(str(v) for v in winning.get("farExclusions", ())),
@@ -962,9 +965,9 @@ def _SAFE_PACK_ID(pack_id: str) -> bool:
     return bool(pack_id) and all(c.isalnum() or c == "-" for c in pack_id) and pack_id[0].isalpha()
 
 
-def _room_types_referenced(rule: Rule) -> FrozenSet[str]:
+def _room_types_referenced(rule: Rule) -> frozenset[str]:
     """Every room type a rule selects on — ``when.roomType`` plus a zone target."""
-    found: List[str] = []
+    found: list[str] = []
     predicate = rule.when.get("roomType")
     if predicate:
         if "eq" in predicate:
@@ -977,7 +980,7 @@ def _room_types_referenced(rule: Rule) -> FrozenSet[str]:
     return frozenset(found)
 
 
-def _garh_model_attr(name: str) -> Optional[FrozenSet[str]]:
+def _garh_model_attr(name: str) -> frozenset[str] | None:
     """A string tuple exported by ``garh_model``, or ``None`` when it is not importable.
 
     ``garh_model`` ships in the same distribution as this package but is not a
@@ -995,12 +998,12 @@ def _garh_model_attr(name: str) -> Optional[FrozenSet[str]]:
     return frozenset(str(v) for v in values)
 
 
-def _op_catalogue() -> Optional[FrozenSet[str]]:
+def _op_catalogue() -> frozenset[str] | None:
     """``garh_model.OP_TYPES`` if importable, else ``None``. Never raises."""
     return _garh_model_attr("OP_TYPES")
 
 
-def _model_room_types() -> Optional[FrozenSet[str]]:
+def _model_room_types() -> frozenset[str] | None:
     """The room types a real model can carry: ``garh_model.ROOM_TYPES`` after the
     alias table in :mod:`garh_rules.context` has been applied (the engine normalises
     every incoming room type through it, so an aliased type *is* reachable)."""
@@ -1016,10 +1019,10 @@ def _model_room_types() -> Optional[FrozenSet[str]]:
 # Cache — pack loading is the only I/O, and it happens once
 # ---------------------------------------------------------------------------
 
-_CACHE: Dict[Tuple[str, Tuple[str, ...]], PackSet] = {}
+_CACHE: dict[tuple[str, tuple[str, ...]], PackSet] = {}
 
 
-def load_pack_set(pack_ids: Iterable[str], *, root: Optional[str] = None) -> PackSet:
+def load_pack_set(pack_ids: Iterable[str], *, root: str | None = None) -> PackSet:
     """Load (and memoise) a resolved pack set.
 
     Memoised deliberately and without an mtime check: the evaluator runs debounced

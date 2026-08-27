@@ -36,7 +36,8 @@ from __future__ import annotations
 import json
 import re
 import time
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from services.common.config import WorkerSettings, get_worker_settings
 from services.common.jsonschema_lite import format_errors
@@ -181,7 +182,7 @@ class AnthropicLlmProvider:
         )
         try:
             response = await client.messages.create(**request)
-        except Exception as exc:  # noqa: BLE001 - classified below
+        except Exception as exc:
             dropped = self._drop_rejected_param(exc, request)
             if dropped:
                 log.error(
@@ -260,9 +261,7 @@ class AnthropicLlmProvider:
         if stop_reason == "refusal":
             details = getattr(response, "stop_details", None)
             category = getattr(details, "category", None) if details else None
-            raise LlmRefusalError(
-                "The assistant declined this request.", category=category
-            )
+            raise LlmRefusalError("The assistant declined this request.", category=category)
         if stop_reason == "max_tokens":
             raise SchemaViolationError(
                 "The assistant's answer was cut off before it finished.",
@@ -301,9 +300,22 @@ class AnthropicLlmProvider:
 #: Keywords the structured-output compiler does not accept. Ours are validated
 #: locally anyway, so stripping them costs nothing and avoids a 400.
 _UNSUPPORTED_SCHEMA_KEYWORDS = frozenset(
-    {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
-     "minLength", "maxLength", "minItems", "maxItems", "minProperties", "maxProperties",
-     "uniqueItems", "pattern", "$comment"}
+    {
+        "minimum",
+        "maximum",
+        "exclusiveMinimum",
+        "exclusiveMaximum",
+        "multipleOf",
+        "minLength",
+        "maxLength",
+        "minItems",
+        "maxItems",
+        "minProperties",
+        "maxProperties",
+        "uniqueItems",
+        "pattern",
+        "$comment",
+    }
 )
 
 
@@ -375,9 +387,7 @@ def _as_llm_error(exc: Exception) -> Exception:
             "The assistant could not process that request.",
             detail="HTTP %s: %s" % (status, exc),
         )
-    return LlmUnavailableError(
-        "The assistant is temporarily unavailable.", detail=str(exc)
-    )
+    return LlmUnavailableError("The assistant is temporarily unavailable.", detail=str(exc))
 
 
 def describe_model_support(model: str) -> Mapping[str, bool]:

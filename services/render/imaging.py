@@ -35,7 +35,7 @@ def open_image(payload: bytes, *, what: str) -> Image.Image:
         return image.convert("RGB")
     except PermanentError:
         raise
-    except Exception as exc:  # noqa: BLE001 - Pillow raises a wide family here
+    except Exception as exc:
         raise PermanentError(
             "We could not read the view captured from your model.",
             action="Try the render again.",

@@ -64,9 +64,7 @@ class UserRepository(Repository[models.User, User]):
         """Invite/create a member. Admin-only (seat management)."""
         self.ctx.require_admin("adding a team member")
         if role not in models.USER_ROLES:
-            raise RepositoryUsageError(
-                "role must be one of %s." % ", ".join(models.USER_ROLES)
-            )
+            raise RepositoryUsageError("role must be one of %s." % ", ".join(models.USER_ROLES))
         clean_name = name.strip()
         if not clean_name:
             raise RepositoryUsageError("User name cannot be blank.")
@@ -109,9 +107,7 @@ class UserRepository(Repository[models.User, User]):
         """Promote/demote. Refuses to remove the firm's last admin."""
         self.ctx.require_admin("changing a member's role")
         if role not in models.USER_ROLES:
-            raise RepositoryUsageError(
-                "role must be one of %s." % ", ".join(models.USER_ROLES)
-            )
+            raise RepositoryUsageError("role must be one of %s." % ", ".join(models.USER_ROLES))
         row = await self._require_row(user_id)
         if row.role == "admin" and role != "admin" and await self.count_admins() <= 1:
             raise RepositoryUsageError(

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The evaluator's contract: one row per rule, deterministic, never a silent pass.
 
 §6 fixes the signature and the row shape; §13 adds logged overrides; §15 adds the
@@ -17,19 +15,25 @@ chip sentence. This module covers the parts no single check type owns:
   rounding-tolerant parser here would put a drifting number on a municipal drawing.
 """
 
+from __future__ import annotations
+
 import json
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
 from garh_rules import evaluate, evaluate_parts, load_pack_set
-from garh_rules.context import MODEL_FIELDS_NOT_IN_MODEL_CORE, EvaluationContext, normalise_room_type
+from garh_rules.context import (
+    MODEL_FIELDS_NOT_IN_MODEL_CORE,
+    EvaluationContext,
+    normalise_room_type,
+)
 from garh_rules.errors import ContextError
 from garh_rules.results import FAIL, NOT_APPLICABLE, PASS, WARN, worst_status
 
 from .conftest import RULEPACK_DIR, make_context, make_room
 
-SHORT_BEDROOM = dict(width=2500, depth=3600)  # 9.0 m2 — 0.5 m2 short of NBC's minimum
+SHORT_BEDROOM = {"width": 2500, "depth": 3600}  # 9.0 m2 — 0.5 m2 short of NBC's minimum
 
 
 def report_for(**kwargs: Any) -> Any:
@@ -84,7 +88,16 @@ class TestReportShape:
         row = next(
             r for r in report.to_json()["results"] if r["ruleId"] == "nbc.room.habitable.area.min"
         )
-        for key in ("ruleId", "status", "actual", "limit", "cite", "fixHint", "elements", "confidence"):
+        for key in (
+            "ruleId",
+            "status",
+            "actual",
+            "limit",
+            "cite",
+            "fixHint",
+            "elements",
+            "confidence",
+        ):
             assert key in row, key
         assert row["status"] == FAIL
         assert row["elements"] == ["r1"]
@@ -148,9 +161,9 @@ class TestNotApplicable:
     def test_a_scope_gate_that_matches_nothing_is_when_not_no_instances(self) -> None:
         """There *are* rooms, but none is habitable — the rule was gated out, and the
         reason must say which field did it."""
-        row = report_for(packs=("nbc-core",), rooms=[make_room("b1", "bath", width=1200, depth=1500)]).rule(
-            "nbc.room.habitable.area.min"
-        )
+        row = report_for(
+            packs=("nbc-core",), rooms=[make_room("b1", "bath", width=1200, depth=1500)]
+        ).rule("nbc.room.habitable.area.min")
         assert row is not None
         assert row.status == NOT_APPLICABLE
         assert row.not_applicable_reason == "when"
@@ -176,9 +189,9 @@ class TestNotApplicable:
     def test_plot_area_bands_are_scaled_not_rounded(self) -> None:
         """``{lte: 240}`` means 240 000 000 mm2 exactly, so a 240.000001 m2 plot falls
         outside the band."""
-        inside = report_for(
-            packs=("blr",), profile={"cityPack": "blr"}, area_mm2=240_000_000
-        ).rule("blr.setback.front.plot.121-240")
+        inside = report_for(packs=("blr",), profile={"cityPack": "blr"}, area_mm2=240_000_000).rule(
+            "blr.setback.front.plot.121-240"
+        )
         outside = report_for(
             packs=("blr",), profile={"cityPack": "blr"}, area_mm2=240_000_001
         ).rule("blr.setback.front.plot.121-240")
@@ -437,7 +450,7 @@ class TestEntryPoints:
 
 
 class TestContextBoundary:
-    def _json(self, **model_overrides: Any) -> Dict[str, Any]:
+    def _json(self, **model_overrides: Any) -> dict[str, Any]:
         context = make_context(packs=("nbc-core",), rooms=[make_room("r1", "bedroom")])
         data = context.to_json()
         data["model"].update(model_overrides)

@@ -102,7 +102,7 @@ async def _timed_check(name: str, probe: Awaitable[bool]) -> DependencyCheck:
     started = time.perf_counter()
     try:
         ok = bool(await asyncio.wait_for(probe, timeout=PROBE_TIMEOUT_SECONDS))
-    except Exception:  # noqa: BLE001 - a probe reports failure, it never raises
+    except Exception:
         ok = False
     elapsed_ms = int((time.perf_counter() - started) * 1000)
     return DependencyCheck(

@@ -28,8 +28,9 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 #: Rooms people live in. §5.6 gates furniture fit on these; a store room that
 #: cannot take a shelf is not a reason to discard an otherwise good plan.
@@ -155,7 +156,7 @@ def load_catalog(path: str | None = None) -> dict[str, CatalogItem]:
     silently-skipped requirement would turn the gate into decoration.
     """
     target = path or default_catalog_path()
-    with open(target, "r", encoding="utf-8") as handle:
+    with open(target, encoding="utf-8") as handle:
         raw = json.load(handle)
     entries: Iterable[Mapping[str, Any]] = raw["items"] if isinstance(raw, dict) else raw
 
@@ -237,9 +238,7 @@ def pack_room(
                 cursor_x + width <= room_width_mm
                 and shelf_y + max(shelf_height, depth) <= room_depth_mm
             ):
-                placed.append(
-                    FitPlacement(item.id, cursor_x, shelf_y, width, depth, rotated)
-                )
+                placed.append(FitPlacement(item.id, cursor_x, shelf_y, width, depth, rotated))
                 cursor_x += width
                 shelf_height = max(shelf_height, depth)
                 seated = True
@@ -296,9 +295,7 @@ def fit_room(
     )
 
 
-def fit_all(
-    placements: Sequence[Any], catalog: Mapping[str, CatalogItem]
-) -> tuple[RoomFit, ...]:
+def fit_all(placements: Sequence[Any], catalog: Mapping[str, CatalogItem]) -> tuple[RoomFit, ...]:
     """Test every placed room. ``placements`` are ``RoomPlacement``-shaped."""
     return tuple(
         fit_room(
@@ -321,9 +318,7 @@ def score(fits: Sequence[RoomFit]) -> int:
     rejects the option. Rooms with no requirement are excluded rather than
     counted as passes, so a plan cannot inflate its score with store rooms.
     """
-    checked = [
-        item for item in fits if not item.unchecked and item.room_type in HABITABLE_TYPES
-    ]
+    checked = [item for item in fits if not item.unchecked and item.room_type in HABITABLE_TYPES]
     if not checked:
         return 100
     passing = sum(1 for item in checked if item.fits)

@@ -51,6 +51,7 @@ from garh_model.testing import (  # noqa: E402
     make_two_room_plan_with_openings,
 )
 from garh_model.units import format_sqft, round_half_away_from_zero  # noqa: E402
+
 from services.drawings.dimensions import DEFAULT_DIM_TO_JAMB  # noqa: E402
 from services.drawings.layers import (  # noqa: E402
     A_AREA,
@@ -309,9 +310,9 @@ def test_window_is_a_triple_line_and_a_ventilator_is_distinct():
 
     vent_lines = by_kind(project_plan(vent_house, STOREY_ID, 100), "ventilator-glazing")
     assert len(vent_lines) == 3
-    assert [line.dashed for line in vent_lines].count(True) == 1, (
-        "the centre line is dashed — a ventilator sits above the cut plane"
-    )
+    assert [line.dashed for line in vent_lines].count(
+        True
+    ) == 1, "the centre line is dashed — a ventilator sits above the cut plane"
 
 
 def test_door_swing_matches_the_canvas_convention():
@@ -401,9 +402,9 @@ def test_room_label_text_formatting():
 
     names = sorted(item.text for item in by_kind(primitives, "room-name"))
     assert "LIVING & DINING" in names, "explicit name wins, upper-cased for the drawing"
-    assert any(name.startswith("ROOM ") for name in names), (
-        "an unassigned room falls back to the model core's 'Room N'"
-    )
+    assert any(
+        name.startswith("ROOM ") for name in names
+    ), "an unassigned room falls back to the model core's 'Room N'"
 
     areas = by_kind(primitives, "room-area")
     for text in areas:
@@ -411,9 +412,9 @@ def test_room_label_text_formatting():
         assert text.text == format_sqft(room.area_mm2, 1)
         assert text.text.endswith(" sq ft")
         assert len(text.text.split(".")[1].split(" ")[0]) == 1, "exactly one decimal"
-    assert "114.8 sq ft" in {text.text for text in areas}, (
-        "the fixture's 10,661,560mm² room, formatted the way the UI formats it"
-    )
+    assert "114.8 sq ft" in {
+        text.text for text in areas
+    }, "the fixture's 10,661,560mm² room, formatted the way the UI formats it"
 
 
 def test_text_is_sanitised_and_the_unsafe_check_is_an_invariant():
@@ -498,9 +499,7 @@ def test_stair_footprint_matches_the_model_core_in_every_direction():
     for direction in ("N", "E", "S", "W"):
         stair = _stair(direction)
         expected = [(p.x, p.y) for p in stair_footprint_polygon(stair)]
-        outline = next(
-            item for item in stair_symbol(stair, style) if item.kind == "stair-outline"
-        )
+        outline = next(item for item in stair_symbol(stair, style) if item.kind == "stair-outline")
         assert sorted(outline.points) == sorted(expected), direction
 
         fx, fy, rx, ry = STAIR_VECTORS[direction]
@@ -528,9 +527,9 @@ def test_stair_arrow_and_up_label():
     assert shaft.b[1] > shaft.a[1], "the arrow points the way up"
 
     treads = [item for item in primitives if item.kind == "stair-tread"]
-    assert len(treads) == stair.risers_count - 2, (
-        "18 risers → 17 treads → 16 internal nosing lines; the outer two are the outline"
-    )
+    assert (
+        len(treads) == stair.risers_count - 2
+    ), "18 risers → 17 treads → 16 internal nosing lines; the outer two are the outline"
     assert all(item.layer == A_STAIR for item in primitives if item.kind != "stair-label")
 
 
@@ -549,9 +548,7 @@ def test_non_straight_stair_draws_no_invented_treads():
 def test_section_marker_is_drawn_where_the_section_is_cut():
     house = two_room_house()
     marker = SectionMarker(a=(3000, -1000), b=(3000, 5000), label="A")
-    primitives = project_plan(
-        house, STOREY_ID, 100, options=PlanOptions(section_markers=(marker,))
-    )
+    primitives = project_plan(house, STOREY_ID, 100, options=PlanOptions(section_markers=(marker,)))
     line = by_kind(primitives, "section-line")[0]
     assert line.a[0] == line.b[0] == 3000
     assert line.dashed
@@ -638,7 +635,7 @@ def _main() -> int:
     for test in TESTS:
         try:
             test()
-        except Exception as exc:  # noqa: BLE001 - a test runner reports everything
+        except Exception as exc:
             failures.append((test.__name__, exc))
             print("FAIL %s: %s: %s" % (test.__name__, type(exc).__name__, exc))
         else:

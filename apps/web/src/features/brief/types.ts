@@ -59,7 +59,8 @@ export const STYLE_KITS = [
   {
     id: 'contemporary',
     name: 'Contemporary',
-    blurb: 'Flat chajjas, a vertical cladding band at the stair, slim MS railings. Monochrome with a wood accent.',
+    blurb:
+      'Flat chajjas, a vertical cladding band at the stair, slim MS railings. Monochrome with a wood accent.',
   },
   {
     id: 'modern-minimal',
@@ -126,11 +127,11 @@ export const VASTU_DEFAULT_PREFS: VastuPrefs = {
 };
 
 /** Zone rules in display order, with the copy the selector renders. */
-export const VASTU_ZONE_RULES: ReadonlyArray<{
+export const VASTU_ZONE_RULES: readonly {
   key: VastuZoneKey;
   label: string;
   hint: string;
-}> = [
+}[] = [
   { key: 'entrance', label: 'Main entrance', hint: 'Which sides the entry door may face.' },
   { key: 'pooja', label: 'Pooja', hint: 'Preferred corner for the pooja room or niche.' },
   { key: 'kitchen', label: 'Kitchen', hint: 'South-east is classical; north-west scores half.' },
@@ -265,16 +266,16 @@ function isJsonObject(v: JsonValue | undefined): v is JsonObject {
 
 function readRoom(v: JsonValue): RoomRequest | undefined {
   if (!isJsonObject(v)) return undefined;
-  const type = asString(v['type']);
-  const count = asInt(v['count']);
+  const type = asString(v.type);
+  const count = asInt(v.count);
   if (type === undefined || count === undefined || count < 0) return undefined;
-  const notes = asString(v['notes']);
-  const target = v['targetAreaMm2'] === null ? null : asInt(v['targetAreaMm2']);
-  const floor = v['floor'] === null ? null : asInt(v['floor']);
-  const facing = v['facing'] === null ? null : asDirection(v['facing']);
-  const bath = v['bath'] === null ? null : asEnum(v['bath'], BATH_CHOICES);
-  const adjacentTo = Array.isArray(v['adjacentTo'])
-    ? v['adjacentTo'].filter((x): x is string => typeof x === 'string')
+  const notes = asString(v.notes);
+  const target = v.targetAreaMm2 === null ? null : asInt(v.targetAreaMm2);
+  const floor = v.floor === null ? null : asInt(v.floor);
+  const facing = v.facing === null ? null : asDirection(v.facing);
+  const bath = v.bath === null ? null : asEnum(v.bath, BATH_CHOICES);
+  const adjacentTo = Array.isArray(v.adjacentTo)
+    ? v.adjacentTo.filter((x): x is string => typeof x === 'string')
     : undefined;
   return {
     type,
@@ -303,9 +304,9 @@ function readAdjacencies(v: JsonValue | undefined): AdjacencyWish[] | undefined 
   const out: AdjacencyWish[] = [];
   for (const item of v) {
     if (!isJsonObject(item)) continue;
-    const a = asString(item['a']);
-    const b = asString(item['b']);
-    const strength = asEnum(item['strength'], ['required', 'preferred', 'avoid'] as const);
+    const a = asString(item.a);
+    const b = asString(item.b);
+    const strength = asEnum(item.strength, ['required', 'preferred', 'avoid'] as const);
     if (a !== undefined && b !== undefined && strength !== undefined) out.push({ a, b, strength });
   }
   return out;
@@ -324,7 +325,7 @@ function readVastuPrefs(v: JsonValue | undefined): VastuPrefs | undefined {
     toiletsNever: read('toiletsNever'),
     stairs: read('stairs'),
     tank: read('tank'),
-    brahmasthanOpen: asBool(v['brahmasthanOpen']) ?? VASTU_DEFAULT_PREFS.brahmasthanOpen,
+    brahmasthanOpen: asBool(v.brahmasthanOpen) ?? VASTU_DEFAULT_PREFS.brahmasthanOpen,
   };
 }
 
@@ -334,60 +335,58 @@ function readVastuPrefs(v: JsonValue | undefined): VastuPrefs | undefined {
  */
 export function readBriefData(data: JsonObject): BriefData {
   const styleKitId =
-    data['styleKitId'] === null
+    data.styleKitId === null
       ? null
       : asEnum(
-          data['styleKitId'],
+          data.styleKitId,
           STYLE_KITS.map((k) => k.id),
         );
   const styleReferenceName =
-    data['styleReferenceName'] === null ? null : asString(data['styleReferenceName']);
+    data.styleReferenceName === null ? null : asString(data.styleReferenceName);
   const out: BriefData = {
-    ...(asInt(data['familySize']) === undefined ? {} : { familySize: asInt(data['familySize']) }),
-    ...(asInt(data['storeys']) === undefined ? {} : { storeys: asInt(data['storeys']) }),
-    ...(asBool(data['hasStilt']) === undefined ? {} : { hasStilt: asBool(data['hasStilt']) }),
-    ...(asBool(data['hasBasement']) === undefined ? {} : { hasBasement: asBool(data['hasBasement']) }),
-    ...(asBool(data['terraceAccess']) === undefined
+    ...(asInt(data.familySize) === undefined ? {} : { familySize: asInt(data.familySize) }),
+    ...(asInt(data.storeys) === undefined ? {} : { storeys: asInt(data.storeys) }),
+    ...(asBool(data.hasStilt) === undefined ? {} : { hasStilt: asBool(data.hasStilt) }),
+    ...(asBool(data.hasBasement) === undefined ? {} : { hasBasement: asBool(data.hasBasement) }),
+    ...(asBool(data.terraceAccess) === undefined
       ? {}
-      : { terraceAccess: asBool(data['terraceAccess']) }),
-    ...(asBool(data['futureExpansion']) === undefined
+      : { terraceAccess: asBool(data.terraceAccess) }),
+    ...(asBool(data.futureExpansion) === undefined
       ? {}
-      : { futureExpansion: asBool(data['futureExpansion']) }),
-    ...(asInt(data['parkingCount']) === undefined ? {} : { parkingCount: asInt(data['parkingCount']) }),
-    ...(asEnum(data['kitchenType'], KITCHEN_TYPES) === undefined
+      : { futureExpansion: asBool(data.futureExpansion) }),
+    ...(asInt(data.parkingCount) === undefined ? {} : { parkingCount: asInt(data.parkingCount) }),
+    ...(asEnum(data.kitchenType, KITCHEN_TYPES) === undefined
       ? {}
-      : { kitchenType: asEnum(data['kitchenType'], KITCHEN_TYPES) }),
-    ...(asEnum(data['livingDining'], LIVING_DINING_CHOICES) === undefined
+      : { kitchenType: asEnum(data.kitchenType, KITCHEN_TYPES) }),
+    ...(asEnum(data.livingDining, LIVING_DINING_CHOICES) === undefined
       ? {}
-      : { livingDining: asEnum(data['livingDining'], LIVING_DINING_CHOICES) }),
-    ...(readRooms(data['rooms']) === undefined ? {} : { rooms: readRooms(data['rooms']) }),
-    ...(readAdjacencies(data['adjacencies']) === undefined
+      : { livingDining: asEnum(data.livingDining, LIVING_DINING_CHOICES) }),
+    ...(readRooms(data.rooms) === undefined ? {} : { rooms: readRooms(data.rooms) }),
+    ...(readAdjacencies(data.adjacencies) === undefined
       ? {}
-      : { adjacencies: readAdjacencies(data['adjacencies']) }),
+      : { adjacencies: readAdjacencies(data.adjacencies) }),
     ...(styleKitId === undefined ? {} : { styleKitId }),
     ...(styleReferenceName === undefined ? {} : { styleReferenceName }),
     ...(asEnum(
-      data['budgetBand'],
+      data.budgetBand,
       BUDGET_BANDS.map((b) => b.id),
     ) === undefined
       ? {}
       : {
           budgetBand: asEnum(
-            data['budgetBand'],
+            data.budgetBand,
             BUDGET_BANDS.map((b) => b.id),
           ),
         }),
-    ...(asInt(data['budgetInr']) === undefined ? {} : { budgetInr: asInt(data['budgetInr']) }),
-    ...(asInt(data['ratePerSqftInr']) === undefined
+    ...(asInt(data.budgetInr) === undefined ? {} : { budgetInr: asInt(data.budgetInr) }),
+    ...(asInt(data.ratePerSqftInr) === undefined
       ? {}
-      : { ratePerSqftInr: asInt(data['ratePerSqftInr']) }),
-    ...(asBool(data['vastuDecided']) === undefined
+      : { ratePerSqftInr: asInt(data.ratePerSqftInr) }),
+    ...(asBool(data.vastuDecided) === undefined ? {} : { vastuDecided: asBool(data.vastuDecided) }),
+    ...(readVastuPrefs(data.vastuPrefs) === undefined
       ? {}
-      : { vastuDecided: asBool(data['vastuDecided']) }),
-    ...(readVastuPrefs(data['vastuPrefs']) === undefined
-      ? {}
-      : { vastuPrefs: readVastuPrefs(data['vastuPrefs']) }),
-    ...(asString(data['notes']) === undefined ? {} : { notes: asString(data['notes']) }),
+      : { vastuPrefs: readVastuPrefs(data.vastuPrefs) }),
+    ...(asString(data.notes) === undefined ? {} : { notes: asString(data.notes) }),
   };
   return out;
 }
@@ -554,11 +553,17 @@ export function parseRupees(raw: string): number | null {
     .toLowerCase();
   if (s === '') return null;
   const m = /^([0-9]*\.?[0-9]+)(cr|crore|crores|l|lac|lacs|lakh|lakhs|k)?$/.exec(s);
-  if (!m || m[1] === undefined) return null;
+  if (m?.[1] === undefined) return null;
   const n = Number(m[1]);
   if (!Number.isFinite(n) || n < 0) return null;
   const unit = m[2] ?? '';
-  const factor = unit.startsWith('cr') ? 10_000_000 : unit === 'k' ? 1_000 : unit === '' ? 1 : 100_000;
+  const factor = unit.startsWith('cr')
+    ? 10_000_000
+    : unit === 'k'
+      ? 1_000
+      : unit === ''
+        ? 1
+        : 100_000;
   return roundHalfAwayFromZero(n * factor);
 }
 

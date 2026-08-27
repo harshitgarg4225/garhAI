@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The closed ``when`` field set, and the six operators. Nothing else exists.
 
 ``when`` is an applicability gate, not a language. Six operators
@@ -25,7 +23,10 @@ fit.
 added to ``rulepack.schema.json`` without a binding here is a loud load error.
 """
 
-from typing import Any, Dict, FrozenSet, Mapping, Optional, Tuple
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
 
 from .context import EvaluationContext
 from .errors import EvaluationError
@@ -43,12 +44,12 @@ __all__ = [
 ]
 
 #: The six, and only the six.
-OPERATORS: FrozenSet[str] = frozenset({"lt", "lte", "gt", "gte", "eq", "in"})
+OPERATORS: frozenset[str] = frozenset({"lt", "lte", "gt", "gte", "eq", "in"})
 
-NUMERIC_OPERATORS: FrozenSet[str] = frozenset({"lt", "lte", "gt", "gte"})
+NUMERIC_OPERATORS: frozenset[str] = frozenset({"lt", "lte", "gt", "gte"})
 
 #: Fields bound for every rule, from the plot / profile / model summary.
-PROJECT_WHEN_FIELDS: Tuple[str, ...] = (
+PROJECT_WHEN_FIELDS: tuple[str, ...] = (
     "cityPack",
     "zoneCategory",
     "buildingUse",
@@ -71,7 +72,7 @@ PROJECT_WHEN_FIELDS: Tuple[str, ...] = (
 
 #: Fields bound only by the scope the check declares. Outside that scope they are
 #: absent, hence null, hence every predicate on them is false.
-SCOPE_WHEN_FIELDS: Mapping[str, Tuple[str, ...]] = {
+SCOPE_WHEN_FIELDS: Mapping[str, tuple[str, ...]] = {
     "edge": ("edgeRoadWidthMm",),
     "storey": ("storeyIndex",),
     "room": ("storeyIndex", "roomType", "roomIsHabitable", "roomIsInternal"),
@@ -82,7 +83,7 @@ SCOPE_WHEN_FIELDS: Mapping[str, Tuple[str, ...]] = {
     "project": (),
 }
 
-BOUND_WHEN_FIELDS: FrozenSet[str] = frozenset(PROJECT_WHEN_FIELDS) | frozenset(
+BOUND_WHEN_FIELDS: frozenset[str] = frozenset(PROJECT_WHEN_FIELDS) | frozenset(
     name for names in SCOPE_WHEN_FIELDS.values() for name in names
 )
 
@@ -91,7 +92,7 @@ BOUND_WHEN_FIELDS: FrozenSet[str] = frozenset(PROJECT_WHEN_FIELDS) | frozenset(
 FIELD_SCALE: Mapping[str, int] = {"plotAreaSqm": 1_000_000}
 
 
-def bind_project_fields(context: EvaluationContext) -> Dict[str, Any]:
+def bind_project_fields(context: EvaluationContext) -> dict[str, Any]:
     """The project-level half of the predicate environment. Built once per run."""
     plot = context.plot
     profile = context.profile
@@ -170,7 +171,7 @@ def predicate_matches(field_name: str, predicate: Mapping[str, Any], value: Any)
 
 def when_matches(
     when: Mapping[str, Mapping[str, Any]], fields: Mapping[str, Any]
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """``(matched, first_failing_field)``.
 
     The failing field name is not decoration: it is what makes a

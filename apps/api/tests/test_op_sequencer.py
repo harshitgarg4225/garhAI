@@ -23,9 +23,9 @@ import uuid
 from typing import Any
 
 import pytest
-
 from garh_api.config import Settings
 from garh_model.testing import FIXTURE_IDS
+
 from tests.helpers import main_branch, op_payload, problem, sorted_codes
 
 pytestmark = pytest.mark.integration
@@ -54,9 +54,7 @@ async def _append(client: Any, api: str, project_id: Any, headers: Any, **kwargs
 async def test_append_assigns_contiguous_indexes(
     client: Any, api: str, firm_a: Any, project_a: Any
 ) -> None:
-    first = await _append(
-        client, api, project_a.id, firm_a.headers, ops=[_north(0)], base_idx=-1
-    )
+    first = await _append(client, api, project_a.id, firm_a.headers, ops=[_north(0)], base_idx=-1)
     assert first.status_code == 200, first.text
     body = first.json()
     assert body["firstIdx"] == 0
@@ -165,9 +163,7 @@ async def test_stale_base_idx_is_409_with_head_idx(
     """The client's whole rebase strategy is built on this number being right."""
     await _append(client, api, project_a.id, firm_a.headers, ops=[_north(0)], base_idx=-1)
 
-    stale = await _append(
-        client, api, project_a.id, firm_a.headers, ops=[_north(180)], base_idx=-1
-    )
+    stale = await _append(client, api, project_a.id, firm_a.headers, ops=[_north(180)], base_idx=-1)
     assert stale.status_code == 409, stale.text
     body = problem(stale)
     assert body["code"] == "op_sequence_conflict"
@@ -325,9 +321,7 @@ async def test_snapshot_is_written_at_the_op_snapshot_interval(
     assert auto and auto[0]["kind"] == "auto", versions.json()
     assert auto[0]["hasSnapshot"] is True
 
-    model = await client.get(
-        "%s/projects/%s/model" % (api, project_a.id), headers=firm_a.headers
-    )
+    model = await client.get("%s/projects/%s/model" % (api, project_a.id), headers=firm_a.headers)
     assert model.status_code == 200, model.text
     state = model.json()
     assert state["baseIdx"] == interval - 1, "GET /model did not anchor on the snapshot"
@@ -487,9 +481,7 @@ async def test_explicit_version_branch_is_honoured(
     assert response.json()["versionBranch"] == str(branch)
 
 
-async def test_appending_to_an_unknown_project_is_404(
-    client: Any, api: str, firm_a: Any
-) -> None:
+async def test_appending_to_an_unknown_project_is_404(client: Any, api: str, firm_a: Any) -> None:
     response = await _append(
         client, api, uuid.uuid4(), firm_a.headers, ops=[_north(0)], base_idx=-1
     )
@@ -514,9 +506,7 @@ async def test_an_unreadable_snapshot_refolds_from_the_op_log(
     """
     from garh_api.repositories import DesignVersionRepository
 
-    first = await _append(
-        client, api, project_a.id, firm_a.headers, ops=[_north(45)], base_idx=-1
-    )
+    first = await _append(client, api, project_a.id, firm_a.headers, ops=[_north(45)], base_idx=-1)
     assert first.status_code == 200, first.text
 
     branch = main_branch(project_a.id)
@@ -536,8 +526,6 @@ async def test_an_unreadable_snapshot_refolds_from_the_op_log(
     )
     await session.commit()
 
-    second = await _append(
-        client, api, project_a.id, firm_a.headers, ops=[_north(90)], base_idx=0
-    )
+    second = await _append(client, api, project_a.id, firm_a.headers, ops=[_north(90)], base_idx=0)
     assert second.status_code == 200, second.text
     assert second.json()["headIdx"] == 1

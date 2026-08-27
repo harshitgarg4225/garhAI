@@ -8,12 +8,7 @@
 import { formatFtIn, formatSqft, parseAreaMm2, parseLengthMm } from '@garh/model';
 
 import { isCompassSector, type CompassSector, type VastuZone } from './planGeometry';
-import type {
-  OptionComplianceRow,
-  Placement,
-  PlanOption,
-  SolveOutcome,
-} from './types';
+import type { OptionComplianceRow, Placement, PlanOption, SolveOutcome } from './types';
 
 // ---------------------------------------------------------------------------
 // Key stats (§15: built-up, bedrooms fit, circulation %)
@@ -290,7 +285,11 @@ export function diffRooms(
     const both = Math.min(countA, setB.get(type) ?? 0);
     for (let i = 0; i < both; i += 1) shared.push(type);
   }
-  return { onlyA: multisetOnly(setA, setB), onlyB: multisetOnly(setB, setA), shared: shared.sort() };
+  return {
+    onlyA: multisetOnly(setA, setB),
+    onlyB: multisetOnly(setB, setA),
+    shared: shared.sort(),
+  };
 }
 
 /** Score keys the compare table shows, in display order. Composite leads. */
@@ -343,7 +342,7 @@ export interface SolveRequestParams extends Record<string, unknown> {
 }
 
 function readSeed(params: Readonly<Record<string, unknown>>): number | null {
-  const seed = params['seed'];
+  const seed = params.seed;
   return typeof seed === 'number' && Number.isInteger(seed) ? seed : null;
 }
 
@@ -402,14 +401,17 @@ export function assumptionEditOp(
   raw: string,
 ): { type: 'brief.update'; payload: { patch: Record<string, unknown> } } | null {
   if (!field.startsWith('brief.')) return null;
-  const path = field.slice('brief.'.length).split('.').filter((s) => s !== '');
+  const path = field
+    .slice('brief.'.length)
+    .split('.')
+    .filter((s) => s !== '');
   if (path.length === 0) return null;
 
   const leaf = path[path.length - 1] ?? '';
   let value: number;
   try {
-    if (/Mm2$/.test(leaf)) value = parseAreaMm2(raw);
-    else if (/Mm$/.test(leaf)) value = parseLengthMm(raw);
+    if (leaf.endsWith('Mm2')) value = parseAreaMm2(raw);
+    else if (leaf.endsWith('Mm')) value = parseLengthMm(raw);
     else {
       const n = Number(raw.replace(/[,\s]/g, ''));
       if (!Number.isFinite(n) || !Number.isInteger(n)) return null;
@@ -440,8 +442,8 @@ export function assumptionEditOp(
 export function assumptionValueText(field: string, value: unknown): string {
   if (typeof value === 'number' && Number.isFinite(value)) {
     const leaf = field.split('.').pop() ?? '';
-    if (/Mm2$/.test(leaf)) return formatSqft(value, 0);
-    if (/Mm$/.test(leaf)) return formatFtIn(value);
+    if (leaf.endsWith('Mm2')) return formatSqft(value, 0);
+    if (leaf.endsWith('Mm')) return formatFtIn(value);
     return new Intl.NumberFormat('en-IN').format(value);
   }
   if (typeof value === 'string') return value;

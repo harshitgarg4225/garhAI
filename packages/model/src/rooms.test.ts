@@ -15,7 +15,14 @@ import { FIXTURE_IDS, fixedId } from './testing';
 
 const STOREY = FIXTURE_IDS.groundStorey;
 
-function wall(tag: string, ax: number, ay: number, bx: number, by: number, thicknessMm = 230): Wall {
+function wall(
+  tag: string,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  thicknessMm = 230,
+): Wall {
   return {
     id: fixedId('wall', tag),
     storeyId: STOREY,

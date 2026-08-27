@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", ".."))
@@ -40,7 +40,7 @@ RISERS = 18
 TREAD_MM = 275
 
 
-def bootstrap() -> Tuple[str, ...]:
+def bootstrap() -> tuple[str, ...]:
     """Put the repo on the path and stub the absent worker deps. Returns what was faked."""
     for path in (_REPO_ROOT, _APPS_API):
         if path not in sys.path:
@@ -50,7 +50,7 @@ def bootstrap() -> Tuple[str, ...]:
     return install_worker_dep_stubs()
 
 
-def demo_ops() -> List[Any]:
+def demo_ops() -> list[Any]:
     """Ops for a G+0 demo: 8.0 × 5.4m envelope, spine wall, four openings, stair,
     six columns on a 3 × 2 grid, and a north balcony.
 
@@ -65,7 +65,7 @@ def demo_ops() -> List[Any]:
 
     storey = fixed_id("storey", "GF")
 
-    def pt(x: int, y: int) -> Dict[str, int]:
+    def pt(x: int, y: int) -> dict[str, int]:
         return {"x": x, "y": y}
 
     walls = (
@@ -75,7 +75,7 @@ def demo_ops() -> List[Any]:
         ("WW", (0, 5400), (0, 0), 230, "external"),
         ("WSP", (4000, 0), (4000, 5400), 115, "internal"),
     )
-    ops: List[Any] = [
+    ops: list[Any] = [
         op("plot.set_boundary", polygon=list(DEMO_PLOT_POLYGON), source="seed"),
         # 20° so the north dart is visibly rotated and nothing accidentally passes
         # because a sin/cos mix-up is invisible at 0°.
@@ -201,7 +201,7 @@ def demo_doc() -> Any:
     naming = [("living_dining", "Living / Dining"), ("bedroom_master", "Master Bedroom")]
     assigns = [
         op("room.assign", roomId=room.id, type=room_type, name=name)
-        for room, (room_type, name) in zip(rooms, naming)
+        for room, (room_type, name) in zip(rooms, naming, strict=False)
     ]
     return apply_group(doc, assigns).model if assigns else doc
 
@@ -247,9 +247,7 @@ def main() -> int:
     for denominator in (100, 50):
         options = PlanOptions(
             north_deg=doc.plot.north_deg,
-            section_markers=(
-                SectionMarker(a=(4850, -1200), b=(4850, 6600), label="A"),
-            ),
+            section_markers=(SectionMarker(a=(4850, -1200), b=(4850, 6600), label="A"),),
         )
         projection = project_plan_detail(house, storey.id, denominator, options=options)
         validate_primitives(projection.primitives)
@@ -259,14 +257,16 @@ def main() -> int:
         print("-" * 78)
         print("scale 1:%d — %d primitives" % (denominator, len(projection.primitives)))
         print("extent (model mm): %s" % (projection.extent,))
-        print("text height: room name %dmm, label %dmm; hatch spacing %dmm"
-              % (
-                  projection.style.room_name_height_mm,
-                  projection.style.label_height_mm,
-                  projection.style.hatch_spacing_mm,
-              ))
+        print(
+            "text height: room name %dmm, label %dmm; hatch spacing %dmm"
+            % (
+                projection.style.room_name_height_mm,
+                projection.style.label_height_mm,
+                projection.style.hatch_spacing_mm,
+            )
+        )
         print("digest: %s" % primitives_digest(projection.primitives))
-        print("unsafe text (§13): %s" % ("NONE" if not unsafe else unsafe))
+        print("unsafe text (§13): %s" % (unsafe if unsafe else "NONE"))
         print("")
         print("primitives by layer:")
         for layer, count in count_by_layer(projection.primitives).items():
@@ -307,16 +307,16 @@ def main() -> int:
             print("level-3 dim stations handed to the dimension engine:")
             for band in projection.bands:
                 for mode in (False, True):
-                    stations = opening_dim_stations(
-                        band, house.openings, dim_to_jamb=mode
-                    )
+                    stations = opening_dim_stations(band, house.openings, dim_to_jamb=mode)
                     if stations:
                         print(
                             "  %s dimToJamb=%-5s %s"
                             % (
                                 band.wall.id.split("_")[-1][-4:],
                                 mode,
-                                ", ".join("%s@%d" % (oid.split("_")[-1][-2:], mm) for oid, mm in stations),
+                                ", ".join(
+                                    "%s@%d" % (oid.split("_")[-1][-2:], mm) for oid, mm in stations
+                                ),
                             )
                         )
     print("")

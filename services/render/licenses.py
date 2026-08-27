@@ -83,9 +83,7 @@ DENIED_WEIGHTS: tuple[DeniedWeights, ...] = (
     DeniedWeights(
         marker="supir",
         name="SUPIR",
-        reason=(
-            "SUPIR's weights are non-commercial. Use Real-ESRGAN (BSD-3) for upscaling."
-        ),
+        reason=("SUPIR's weights are non-commercial. Use Real-ESRGAN (BSD-3) for upscaling."),
     ),
     DeniedWeights(
         marker="stable-video-diffusion",

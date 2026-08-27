@@ -23,7 +23,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["dev", "test", "staging", "prod"]
 LlmProvider = Literal["mock", "anthropic"]
-RenderProvider = Literal["mock", "diffusers"]
+# "stability" is served by the render worker, not this process, but the value
+# must validate here too: PROVIDER_RENDER is a shared env name, and a
+# project-wide setting must not brick the API at boot.
+RenderProvider = Literal["mock", "diffusers", "stability"]
 BillingProvider = Literal["mock", "razorpay"]
 RenderDevice = Literal["cpu", "cuda"]
 LogFormat = Literal["json", "console"]
@@ -34,7 +37,7 @@ DEV_DATABASE_URL = "postgresql+psycopg://garh:garh@localhost:5432/garh"
 DEV_REDIS_URL = "redis://localhost:6379/0"
 DEV_S3_ENDPOINT_URL = "http://localhost:9000"
 DEV_S3_ACCESS_KEY_ID = "garh-minio"
-DEV_S3_SECRET_ACCESS_KEY = "garh-minio-secret"  # noqa: S105 - local minio default
+DEV_S3_SECRET_ACCESS_KEY = "garh-minio-secret"
 DEV_APP_URL = "http://localhost:5173"
 
 
@@ -85,6 +88,17 @@ class Settings(BaseSettings):
     otp_code_length: int = Field(default=6, ge=4, le=10)
     share_token_bytes: int = Field(default=32, ge=32)  # 256-bit (§13)
 
+    # -- transactional mail (SMTP; delivers the §13 OTP sign-in codes) -----
+    #: Empty host = mail off. The dev echo is then the only delivery channel, and a
+    #: non-dev OTP request fails loudly instead of pretending a mail was sent — see
+    #: ``garh_api.auth._deliver_code`` and ``garh_api.mailer``.
+    smtp_host: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)  # 587 = submission, STARTTLS
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""  # sender address, e.g. no-reply@garh.ai
+    smtp_starttls: bool = True
+
     # -- object storage (minio in compose) --------------------------------
     s3_endpoint_url: str = Field(
         default=DEV_S3_ENDPOINT_URL, validation_alias=AliasChoices("S3_ENDPOINT_URL")
@@ -107,7 +121,10 @@ class Settings(BaseSettings):
     provider_billing: BillingProvider = "mock"
     render_device: RenderDevice = "cpu"
     anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-5"
+    # Current-generation default. The provider degrades gracefully on parameter
+    # drift (services/llm/anthropic_provider.py), but the default should not
+    # trail the model family the prompts were written against.
+    anthropic_model: str = "claude-opus-5"
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
 
@@ -147,7 +164,11 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: LogFormat = "json"
     sentry_dsn: str = ""
-    sentry_traces_sample_rate: float = Field(default=0.0, ge=0.0, le=1.0)
+    #: Fraction of requests traced when SENTRY_DSN is set (inert otherwise —
+    #: error tracking is OFF by default, like every provider). Small on purpose:
+    #: 10% is enough to see p95 latency shape without paying quota for every
+    #: request. Override via SENTRY_TRACES_SAMPLE_RATE.
+    sentry_traces_sample_rate: float = Field(default=0.1, ge=0.0, le=1.0)
 
     # -- web --------------------------------------------------------------
     cors_allow_origins: tuple[str, ...] = ("http://localhost:5173",)
@@ -262,6 +283,15 @@ class Settings(BaseSettings):
         return bool(self.jwt_private_key and self.jwt_public_key)
 
     @property
+    def smtp_configured(self) -> bool:
+        """True when real mail can go out: a relay (SMTP_HOST) and a sender (SMTP_FROM).
+
+        ``SMTP_USER``/``SMTP_PASSWORD`` are deliberately not part of the gate — an
+        IP-allowlisted internal relay legitimately needs neither.
+        """
+        return bool(self.smtp_host and self.smtp_from)
+
+    @property
     def sentry_enabled(self) -> bool:
         return bool(self.sentry_dsn)
 
@@ -276,6 +306,7 @@ class Settings(BaseSettings):
             "s3_secret_access_key",
             "s3_access_key_id",
             "sentry_dsn",
+            "smtp_password",
         }
         out: dict[str, Any] = {}
         for name, value in self.model_dump().items():

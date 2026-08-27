@@ -27,7 +27,6 @@ scrubbing, because silently stripping a `<script>` teaches nobody anything.
 from __future__ import annotations
 
 import re
-from typing import Tuple
 
 __all__ = [
     "ALLOWED_ATTRIBUTES",
@@ -47,7 +46,7 @@ class SvgSanitizeError(ValueError):
 
 
 #: Elements that can execute script, load remote content, or embed HTML.
-FORBIDDEN_ELEMENTS: Tuple[str, ...] = (
+FORBIDDEN_ELEMENTS: tuple[str, ...] = (
     "script",
     "foreignobject",
     "iframe",
@@ -66,7 +65,7 @@ FORBIDDEN_ELEMENTS: Tuple[str, ...] = (
 )
 
 #: Attribute name prefixes that carry script. ``on*`` covers onload/onclick/onmouseover.
-FORBIDDEN_ATTRIBUTE_PREFIXES: Tuple[str, ...] = ("on",)
+FORBIDDEN_ATTRIBUTE_PREFIXES: tuple[str, ...] = ("on",)
 
 #: Every element :mod:`services.drawings.render.svg` is allowed to emit.
 #:
@@ -77,7 +76,7 @@ FORBIDDEN_ATTRIBUTE_PREFIXES: Tuple[str, ...] = ("on",)
 #: incident, and they share a substring. Parsing tags and checking their names against
 #: this list distinguishes them exactly: escaped payloads are character data and are
 #: never parsed as a tag at all.
-ALLOWED_ELEMENTS: Tuple[str, ...] = (
+ALLOWED_ELEMENTS: tuple[str, ...] = (
     "svg",
     "title",
     "defs",
@@ -94,7 +93,7 @@ ALLOWED_ELEMENTS: Tuple[str, ...] = (
 
 #: Every attribute the renderer is allowed to emit. Presentation and geometry only —
 #: no href of any kind, no style (which can carry ``url()``), no event handler.
-ALLOWED_ATTRIBUTES: Tuple[str, ...] = (
+ALLOWED_ATTRIBUTES: tuple[str, ...] = (
     "class",
     "cx",
     "cy",
@@ -132,7 +131,7 @@ ALLOWED_ATTRIBUTES: Tuple[str, ...] = (
 )
 
 #: URI schemes that execute or embed. Checked anywhere in the document text.
-FORBIDDEN_URI_SCHEMES: Tuple[str, ...] = (
+FORBIDDEN_URI_SCHEMES: tuple[str, ...] = (
     "javascript:",
     "vbscript:",
     "data:text/html",
@@ -140,7 +139,7 @@ FORBIDDEN_URI_SCHEMES: Tuple[str, ...] = (
 )
 
 #: XML character-data escapes. Ampersand first, or the others get double-escaped.
-_ESCAPES: Tuple[Tuple[str, str], ...] = (
+_ESCAPES: tuple[tuple[str, str], ...] = (
     ("&", "&amp;"),
     ("<", "&lt;"),
     (">", "&gt;"),
@@ -256,8 +255,7 @@ def assert_sanitary(svg: str) -> None:
         if name in forbidden_elements:
             raise SvgSanitizeError(
                 "SVG output contains a <%s> element at offset %d. §13 forbids it — this "
-                "document is served to a client's browser through a share link."
-                % (name, index)
+                "document is served to a client's browser through a share link." % (name, index)
             )
         if name not in allowed_elements:
             raise SvgSanitizeError(
@@ -288,8 +286,7 @@ def assert_sanitary(svg: str) -> None:
                 raise SvgSanitizeError(
                     "SVG output contains attribute %r on <%s> at offset %d, which is not "
                     "on the allowlist. href/xlink:href/style are excluded on purpose: "
-                    "each can reference or execute remote content."
-                    % (attribute_name, name, index)
+                    "each can reference or execute remote content." % (attribute_name, name, index)
                 )
             lowered_value = value.lower().replace(" ", "")
             for scheme in FORBIDDEN_URI_SCHEMES:

@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from pydantic.alias_generators import to_camel
@@ -84,7 +84,7 @@ class Problem(ResponseModel):
     code: StrictStr = Field(description="Stable machine code, e.g. 'op_sequence_conflict'.")
     message: StrictStr = Field(description="One human sentence. Never a traceback.")
     action: StrictStr = Field(description="What the user (or client) should do next.")
-    request_id: Optional[StrictStr] = Field(
+    request_id: StrictStr | None = Field(
         default=None, description="Correlates with the server logs."
     )
 
@@ -98,11 +98,11 @@ class CursorPage(ResponseModel, Generic[ItemT]):
     """Keyset page. ``nextCursor`` is opaque — clients must not parse it."""
 
     items: list[ItemT]
-    next_cursor: Optional[StrictStr] = None
+    next_cursor: StrictStr | None = None
     has_more: StrictBool = False
 
     @classmethod
-    def of(cls, items: list[Any], next_cursor: Optional[str]) -> "CursorPage[Any]":
+    def of(cls, items: list[Any], next_cursor: str | None) -> CursorPage[Any]:
         return cls(items=items, next_cursor=next_cursor, has_more=next_cursor is not None)
 
 
@@ -126,7 +126,7 @@ class RoadEdge(CamelModel):
     """
 
     edge_index: StrictInt = Field(ge=0)
-    width_mm: Optional[Mm] = Field(default=None, gt=0)
+    width_mm: Mm | None = Field(default=None, gt=0)
 
 
 class Ack(ResponseModel):

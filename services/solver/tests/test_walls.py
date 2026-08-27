@@ -160,9 +160,7 @@ def test_two_room_golden_wall_set() -> None:
     layout = CellLayout.from_placements(TWO_ROOMS)
     net = build_wall_network(layout)
     assert net.outline == ((0, 0), (6900, 0), (6900, 3450), (0, 3450))
-    got = [
-        (w.axis, w.kind, w.a, w.b, w.thickness_mm, w.line_mm) for w in net.walls
-    ]
+    got = [(w.axis, w.kind, w.a, w.b, w.thickness_mm, w.line_mm) for w in net.walls]
     assert got == [
         ("h", "external", (115, 115), (6785, 115), 230, 0),
         ("v", "external", (6785, 115), (6785, 3335), 230, 6900),
@@ -177,9 +175,9 @@ def test_two_rooms_share_exactly_one_wall() -> None:
     internal = [w for w in net.walls if w.kind == "internal"]
     assert len(internal) == 1
     assert internal[0].thickness_mm == 115
-    assert [
-        (s.low_room, s.high_room, s.wall_index, s.lo, s.hi) for s in net.adjacencies
-    ] == [("living", "kitchen", 4, 115, 3335)]
+    assert [(s.low_room, s.high_room, s.wall_index, s.lo, s.hi) for s in net.adjacencies] == [
+        ("living", "kitchen", 4, 115, 3335)
+    ]
 
 
 def test_two_room_external_spans_with_compass() -> None:
@@ -245,9 +243,7 @@ L_ROOMS = (
 def test_l_shape_golden() -> None:
     layout = CellLayout.from_placements(L_ROOMS)
     net = build_wall_network(layout)
-    assert net.outline == (
-        (0, 0), (9200, 0), (9200, 3450), (4600, 3450), (4600, 6900), (0, 6900)
-    )
+    assert net.outline == ((0, 0), (9200, 0), (9200, 3450), (4600, 3450), (4600, 6900), (0, 6900))
     got = [(w.axis, w.kind, w.a, w.b, w.thickness_mm) for w in net.walls]
     assert got == [
         ("h", "external", (115, 115), (9085, 115), 230),
@@ -259,9 +255,10 @@ def test_l_shape_golden() -> None:
         ("h", "internal", (115, 3450), (4485, 3450), 115),
         ("v", "internal", (4600, 115), (4600, 3335), 115),
     ]
-    assert [
-        (s.low_room, s.high_room, s.lo, s.hi) for s in net.adjacencies
-    ] == [("a", "c", 115, 4485), ("a", "b", 115, 3335)]
+    assert [(s.low_room, s.high_room, s.lo, s.hi) for s in net.adjacencies] == [
+        ("a", "c", 115, 4485),
+        ("a", "b", 115, 3335),
+    ]
 
 
 def test_no_two_walls_overlap_on_the_l_shape() -> None:
@@ -415,7 +412,7 @@ if __name__ == "__main__":  # pragma: no cover
             try:
                 fn()
                 print("PASS %s" % name)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 failures += 1
                 print("FAIL %s" % name)
                 traceback.print_exc()

@@ -17,8 +17,9 @@ everywhere: **model millimetres** (the building) and **paper millimetres** (the 
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal, Mapping, Sequence
+from typing import Any, Literal
 
 #: The six municipal sheets of the MVP cut line (spec F8).
 SheetKind = Literal[
@@ -277,8 +278,7 @@ class Sheet:
     def validate(self) -> None:
         if self.kind not in SHEET_KINDS:
             raise ValueError(
-                "%r is not a sheet kind. Expected one of: %s."
-                % (self.kind, ", ".join(SHEET_KINDS))
+                "%r is not a sheet kind. Expected one of: %s." % (self.kind, ", ".join(SHEET_KINDS))
             )
         # Schedules and area statements are tables, not projections — they legitimately
         # have no viewport selector, so the "exactly one" rule does not apply to them.
@@ -369,7 +369,9 @@ def default_frame(paper: str = DEFAULT_PAPER, *, title_block: TitleBlock | None 
     return Frame(paper=size.landscape(), title_block=title_block or TitleBlock())
 
 
-def sheet_numbers(plan: Sequence[tuple[SheetKind, str, str]] = DEFAULT_SHEET_PLAN) -> tuple[str, ...]:
+def sheet_numbers(
+    plan: Sequence[tuple[SheetKind, str, str]] = DEFAULT_SHEET_PLAN,
+) -> tuple[str, ...]:
     return tuple(number for _kind, number, _title in plan)
 
 

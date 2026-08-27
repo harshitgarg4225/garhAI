@@ -121,8 +121,14 @@ export function formatDimensionPair(
   depthMm: number,
   display: UnitsDisplay = DEFAULT_UNITS_DISPLAY,
 ): string {
-  const w = display === 'ft-in' ? formatFtIn(widthMm, { dropZeroInches: true }) : formatLength(widthMm, display);
-  const d = display === 'ft-in' ? formatFtIn(depthMm, { dropZeroInches: true }) : formatLength(depthMm, display);
+  const w =
+    display === 'ft-in'
+      ? formatFtIn(widthMm, { dropZeroInches: true })
+      : formatLength(widthMm, display);
+  const d =
+    display === 'ft-in'
+      ? formatFtIn(depthMm, { dropZeroInches: true })
+      : formatLength(depthMm, display);
   return `${w} × ${d}`;
 }
 

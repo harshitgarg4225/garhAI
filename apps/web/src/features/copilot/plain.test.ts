@@ -42,7 +42,10 @@ const addWindow: CopilotWireOp = {
   },
 };
 
-const deleteWall: CopilotWireOp = { type: 'wall.delete', payload: { wallId: FIXTURE_IDS.wallSpine } };
+const deleteWall: CopilotWireOp = {
+  type: 'wall.delete',
+  payload: { wallId: FIXTURE_IDS.wallSpine },
+};
 
 const assignRoom: CopilotWireOp = {
   type: 'room.assign',
@@ -115,11 +118,7 @@ describe('describeOp (the fallback sentences)', () => {
 
 describe('toDiffOps', () => {
   it('prefers the server sentence and index-aligns it with the ops', () => {
-    const rows = toDiffOps(
-      [resizeDoor, moveWall],
-      ['Widen the kitchen door to 900mm.'],
-      doc,
-    );
+    const rows = toDiffOps([resizeDoor, moveWall], ['Widen the kitchen door to 900mm.'], doc);
     expect(rows).toHaveLength(2);
     expect(rows[0]?.text).toBe('Widen the kitchen door to 900mm.');
     // Second op has no server line: the fallback fills in.

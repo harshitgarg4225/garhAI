@@ -29,7 +29,6 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-
 from garh_api.config import (
     DEV_APP_URL,
     DEV_DATABASE_URL,

@@ -21,17 +21,19 @@ const S0 = 'storey_01HZY0000000000000000000';
 const S1 = 'storey_01HZY0000000000000000001';
 const COMP = 'facadecomp_01HZY000000000000000AA';
 
-function docWith(mutate: (doc: {
-  house: {
-    storeys: { id: string; name: string; heightMm: number }[];
-    facade: {
-      kitId: string | null;
-      seed: number;
-      colorwayId: string | null;
-      components: unknown[];
+function docWith(
+  mutate: (doc: {
+    house: {
+      storeys: { id: string; name: string; heightMm: number }[];
+      facade: {
+        kitId: string | null;
+        seed: number;
+        colorwayId: string | null;
+        components: unknown[];
+      };
     };
-  };
-}) => void): ProjectDoc {
+  }) => void,
+): ProjectDoc {
   // Deep-clone the empty doc so each spec owns a fresh, independent document —
   // the stores compare by identity and a shared mutable doc would alias state
   // across specs.

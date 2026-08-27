@@ -82,7 +82,12 @@ describe('HttpClient', () => {
     });
 
     await client.request({ path: '/projects', parse: identity });
-    await client.request({ method: 'POST', path: '/projects', body: { name: 'x' }, parse: identity });
+    await client.request({
+      method: 'POST',
+      path: '/projects',
+      body: { name: 'x' },
+      parse: identity,
+    });
 
     expect(calls[0]?.url).toBe(`${BASE}/projects`);
     expect(calls[0]?.authorization).toBe('Bearer a1');
@@ -207,7 +212,8 @@ describe('HttpClient', () => {
       tokens,
       onAuthLost,
       fetchImpl: (input) => {
-        if (String(input).endsWith('/auth/refresh')) return Promise.reject(new TypeError('offline'));
+        if (String(input).endsWith('/auth/refresh'))
+          return Promise.reject(new TypeError('offline'));
         return Promise.resolve(jsonResponse(401, { code: 'token_expired' }));
       },
     });
@@ -272,8 +278,14 @@ describe('HttpClient', () => {
   });
 
   it('builds absolute URLs for downloads and streams', () => {
-    const client = new HttpClient({ baseUrl: BASE, tokens, fetchImpl: () => Promise.reject() });
+    const client = new HttpClient({
+      baseUrl: BASE,
+      tokens,
+      fetchImpl: () => Promise.reject(new Error('no network in this test')),
+    });
     expect(client.url('/projects/p1/sheets/s1.pdf')).toBe(`${BASE}/projects/p1/sheets/s1.pdf`);
-    expect(client.url('/projects', { limit: 10, cursor: undefined })).toBe(`${BASE}/projects?limit=10`);
+    expect(client.url('/projects', { limit: 10, cursor: undefined })).toBe(
+      `${BASE}/projects?limit=10`,
+    );
   });
 });

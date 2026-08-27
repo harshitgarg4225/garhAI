@@ -174,7 +174,10 @@ export interface UiState {
   requestCanvasFocus: (elementIds: readonly string[], key?: string | null) => void;
   clearCanvasFocus: () => void;
 
-  setPanel: (panel: 'leftRail' | 'inspector' | 'complianceStrip' | 'copilot', open: boolean) => void;
+  setPanel: (
+    panel: 'leftRail' | 'inspector' | 'complianceStrip' | 'copilot',
+    open: boolean,
+  ) => void;
   togglePanel: (panel: 'leftRail' | 'inspector' | 'complianceStrip' | 'copilot') => void;
 
   setKeyboardEnabled: (enabled: boolean) => void;
@@ -334,8 +337,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
       title: input.title,
       description: input.description ?? null,
       action: input.action ?? null,
-      durationMs:
-        input.durationMs ?? (input.tone === 'error' ? ERROR_TOAST_MS : DEFAULT_TOAST_MS),
+      durationMs: input.durationMs ?? (input.tone === 'error' ? ERROR_TOAST_MS : DEFAULT_TOAST_MS),
       createdAt: Date.now(),
       requestId: input.requestId ?? null,
       dedupeKey: input.dedupeKey ?? null,

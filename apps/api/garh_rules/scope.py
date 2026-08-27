@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Scopes: what the engine iterates to produce one evaluation of a rule.
 
 ``x-garh-check-meta.scopes`` in the pack schema fixes this table, and it is the
@@ -28,9 +26,12 @@ Two design points that matter downstream:
   front setback.
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from fractions import Fraction
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from .context import EvaluationContext, PlotEdge, RoomSummary
 from .errors import ContextError, EvaluationError
@@ -59,7 +60,7 @@ __all__ = [
 
 #: ``edgeSelector`` -> the edge roles it covers. ``all`` is handled separately
 #: because it means "every edge in the plot", including ``other``.
-EDGE_SELECTORS: Mapping[str, Tuple[str, ...]] = {
+EDGE_SELECTORS: Mapping[str, tuple[str, ...]] = {
     "front": ("front",),
     "rear": ("rear",),
     "side-a": ("side-a",),
@@ -68,7 +69,7 @@ EDGE_SELECTORS: Mapping[str, Tuple[str, ...]] = {
 }
 
 
-def edges_covered(selector: str) -> Tuple[str, ...]:
+def edges_covered(selector: str) -> tuple[str, ...]:
     """Roles a selector names. ``()`` means "every edge" (the ``all`` selector)."""
     if selector == "all":
         return ()
@@ -98,16 +99,14 @@ class Instance:
     """One thing to measure, with the ``when`` fields its scope binds."""
 
     kind: str
-    element_id: Optional[str]
+    element_id: str | None
     label: str
     fields: Mapping[str, Any] = field(default_factory=dict)
     payload: Any = None
 
     def require(self, expected: str) -> Any:
         if self.kind != expected:
-            raise EvaluationError(
-                "check expected a %s instance, got %s" % (expected, self.kind)
-            )
+            raise EvaluationError("check expected a %s instance, got %s" % (expected, self.kind))
         return self.payload
 
 
@@ -122,10 +121,10 @@ class CheckEnv:
 
     context: EvaluationContext
     vocabulary: Vocabulary
-    _grid: Optional[ZoneGrid] = None
-    _rooms: Dict[str, RoomSummary] = field(default_factory=dict)
-    _storey_index: Dict[str, int] = field(default_factory=dict)
-    _instances: Dict[Any, Tuple["Instance", ...]] = field(default_factory=dict)
+    _grid: ZoneGrid | None = None
+    _rooms: dict[str, RoomSummary] = field(default_factory=dict)
+    _storey_index: dict[str, int] = field(default_factory=dict)
+    _instances: dict[Any, tuple[Instance, ...]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self._rooms = {room.id: room for room in self.context.model.rooms}
@@ -137,7 +136,7 @@ class CheckEnv:
             self._grid = zone_grid_for(self.context.plot)
         return self._grid
 
-    def room(self, room_id: str) -> Optional[RoomSummary]:
+    def room(self, room_id: str) -> RoomSummary | None:
         return self._rooms.get(room_id)
 
     def storey_index(self, storey_id: str, owner: str) -> int:
@@ -161,15 +160,15 @@ class CheckEnv:
 # ---------------------------------------------------------------------------
 
 
-def _project_instances() -> Tuple[Instance, ...]:
+def _project_instances() -> tuple[Instance, ...]:
     return (Instance(kind="project", element_id=None, label=PROJECT_LABEL),)
 
 
-def _edge_instances(check: Check, env: CheckEnv) -> Tuple[Instance, ...]:
+def _edge_instances(check: Check, env: CheckEnv) -> tuple[Instance, ...]:
     selector = check.str_param("edge")
     roles = edges_covered(selector)
     all_edges = env.context.plot.edges
-    out: List[Instance] = []
+    out: list[Instance] = []
     for edge in all_edges:
         if roles and edge.role not in roles:
             continue
@@ -185,8 +184,8 @@ def _edge_instances(check: Check, env: CheckEnv) -> Tuple[Instance, ...]:
     return tuple(out)
 
 
-def _storey_instances(env: CheckEnv) -> Tuple[Instance, ...]:
-    out: List[Instance] = []
+def _storey_instances(env: CheckEnv) -> tuple[Instance, ...]:
+    out: list[Instance] = []
     for storey in env.context.model.storeys:
         out.append(
             Instance(
@@ -200,8 +199,8 @@ def _storey_instances(env: CheckEnv) -> Tuple[Instance, ...]:
     return tuple(out)
 
 
-def _room_instances(env: CheckEnv) -> Tuple[Instance, ...]:
-    out: List[Instance] = []
+def _room_instances(env: CheckEnv) -> tuple[Instance, ...]:
+    out: list[Instance] = []
     for room in env.context.model.rooms:
         out.append(
             Instance(
@@ -220,8 +219,8 @@ def _room_instances(env: CheckEnv) -> Tuple[Instance, ...]:
     return tuple(out)
 
 
-def _opening_instances(env: CheckEnv) -> Tuple[Instance, ...]:
-    out: List[Instance] = []
+def _opening_instances(env: CheckEnv) -> tuple[Instance, ...]:
+    out: list[Instance] = []
     for opening in env.context.model.openings:
         out.append(
             Instance(
@@ -229,9 +228,7 @@ def _opening_instances(env: CheckEnv) -> Tuple[Instance, ...]:
                 element_id=opening.id,
                 label=opening_label(opening, env.context),
                 fields={
-                    "storeyIndex": env.storey_index(
-                        opening.storey_id, "opening %s" % opening.id
-                    ),
+                    "storeyIndex": env.storey_index(opening.storey_id, "opening %s" % opening.id),
                     "openingKind": opening.kind,
                     "openingRole": opening.role,
                 },
@@ -241,8 +238,8 @@ def _opening_instances(env: CheckEnv) -> Tuple[Instance, ...]:
     return tuple(out)
 
 
-def _stair_instances(env: CheckEnv) -> Tuple[Instance, ...]:
-    out: List[Instance] = []
+def _stair_instances(env: CheckEnv) -> tuple[Instance, ...]:
+    out: list[Instance] = []
     for stair in env.context.model.stairs:
         out.append(
             Instance(
@@ -256,10 +253,10 @@ def _stair_instances(env: CheckEnv) -> Tuple[Instance, ...]:
     return tuple(out)
 
 
-def _projection_instances(check: Check, env: CheckEnv) -> Tuple[Instance, ...]:
+def _projection_instances(check: Check, env: CheckEnv) -> tuple[Instance, ...]:
     element = check.str_param("element")
     into_setback_only = check.bool_param("intoSetbackOnly", False)
-    out: List[Instance] = []
+    out: list[Instance] = []
     for projection in env.context.model.projections:
         if projection.element != element:
             continue
@@ -281,12 +278,12 @@ def _projection_instances(check: Check, env: CheckEnv) -> Tuple[Instance, ...]:
     return tuple(out)
 
 
-def _zone_instances(check: Check, env: CheckEnv) -> Tuple[Instance, ...]:
+def _zone_instances(check: Check, env: CheckEnv) -> tuple[Instance, ...]:
     """The targets a ``zone_check`` selects — rooms, openings, services or stairs."""
     target = check.mapping_param("target")
     kind = str(target.get("kind"))
     model = env.context.model
-    out: List[Instance] = []
+    out: list[Instance] = []
 
     if kind == "room":
         wanted = frozenset(str(t) for t in (target.get("roomTypes") or ()))
@@ -294,9 +291,10 @@ def _zone_instances(check: Check, env: CheckEnv) -> Tuple[Instance, ...]:
         for room in model.rooms:
             if room.type not in wanted:
                 continue
-            if storey_index is not None and env.storey_index(
-                room.storey_id, "room %s" % room.id
-            ) != storey_index:
+            if (
+                storey_index is not None
+                and env.storey_index(room.storey_id, "room %s" % room.id) != storey_index
+            ):
                 continue
             out.append(
                 Instance(
@@ -363,7 +361,11 @@ def _cache_key(check: Check, scope: str) -> Any:
     if scope == "edge":
         return ("edge", check.str_param("edge"), check.str_param("measure", "to-building-line"))
     if scope == "projection":
-        return ("projection", check.str_param("element"), check.bool_param("intoSetbackOnly", False))
+        return (
+            "projection",
+            check.str_param("element"),
+            check.bool_param("intoSetbackOnly", False),
+        )
     if scope == "zone":
         target = check.mapping_param("target")
         return (
@@ -378,7 +380,7 @@ def _cache_key(check: Check, scope: str) -> Any:
     return (scope,)
 
 
-def instances_for(check: Check, scope: str, env: CheckEnv) -> Tuple[Instance, ...]:
+def instances_for(check: Check, scope: str, env: CheckEnv) -> tuple[Instance, ...]:
     """Every instance of ``scope`` this check applies to, in model order. Memoised."""
     key = _cache_key(check, scope)
     cached = env._instances.get(key)
@@ -434,13 +436,13 @@ class Outcome:
     order_key: Fraction
     satisfaction: Fraction = Fraction(1)
     degraded: bool = False
-    note: Optional[str] = None
+    note: str | None = None
     #: Overrides the instance's own element id in ``elements[]`` — used by
     #: ``brahmasthan_open``, a project-scope check that names the offending rooms.
-    elements: Optional[Tuple[str, ...]] = None
+    elements: tuple[str, ...] | None = None
 
     @classmethod
-    def at_least(cls, actual: int, limit: int, **kwargs: Any) -> "Outcome":
+    def at_least(cls, actual: int, limit: int, **kwargs: Any) -> Outcome:
         """A minimum: satisfied when ``actual >= limit``."""
         satisfied = actual >= limit
         return cls(
@@ -453,7 +455,7 @@ class Outcome:
         )
 
     @classmethod
-    def at_most(cls, actual: int, limit: int, **kwargs: Any) -> "Outcome":
+    def at_most(cls, actual: int, limit: int, **kwargs: Any) -> Outcome:
         """A maximum: satisfied when ``actual <= limit``."""
         satisfied = actual <= limit
         return cls(

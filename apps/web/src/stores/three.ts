@@ -150,9 +150,7 @@ export const useThreeStore = create<ThreeState>()((set, get) => ({
 
   _syncFromModel: (facade, storeyIds) => {
     const s = get();
-    const patch: Partial<
-      Pick<ThreeState, 'appliedFacade' | 'visibleStoreyId'>
-    > = {};
+    const patch: Partial<Pick<ThreeState, 'appliedFacade' | 'visibleStoreyId'>> = {};
     const f = s.appliedFacade;
     if (
       f.kitId !== facade.kitId ||

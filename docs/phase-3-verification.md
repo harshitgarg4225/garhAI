@@ -3,10 +3,10 @@
 Same discipline as `phase-0-verification.md` and `phase-2-verification.md`: three
 categories, and the value of this document is that it does not blur them.
 
-| Category | Meaning |
-|---|---|
-| **EXECUTED** | Actually run on this machine. Output quoted. |
-| **TRACED** | Read end to end by hand across files. No interpreter involved. |
+| Category       | Meaning                                                                           |
+| -------------- | --------------------------------------------------------------------------------- |
+| **EXECUTED**   | Actually run on this machine. Output quoted.                                      |
+| **TRACED**     | Read end to end by hand across files. No interpreter involved.                    |
 | **UNVERIFIED** | Nobody ran it and nobody could. Stated plainly, with the command that settles it. |
 
 Phase 3 is **incomplete**. It was built across three workflow runs that were cut
@@ -20,13 +20,13 @@ Read §4 before trusting any of it.
 The workflow's `critic-gates`, `stage-a`, `stage-b`, `integrator`, reviewer and
 fixer agents never ran to completion. These gaps were closed directly:
 
-| File | Status |
-|---|---|
-| `services/dev_stubs.py` | **New.** Import-time stand-ins for structlog/pydantic so the dependency-free solver modules can actually be imported on a bare machine. A real package always wins, so it is inert in CI. |
-| `services/solver/tests/conftest.py` | **New.** Installs the stubs before pytest collects, and puts the repo root + `apps/api` on `sys.path`. |
-| `services/solver/furniture_fit.py` | **New.** The §5.4 furniture-fit test — catalogue loading, required sets per room type, a deterministic shelf packer, and the 0-100 score §5.6 gates on. |
-| `services/solver/critic.py` | **Rewritten.** The five `NotImplementedError` sub-scores (adjacency, Vastu, furniture fit, plumbing stack, privacy) plus `critique()` are implemented. |
-| `scripts/solver_smoke.py` | **New.** Drives the whole ortools-free chain on the demo plot. |
+| File                                | Status                                                                                                                                                                                    |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `services/dev_stubs.py`             | **New.** Import-time stand-ins for structlog/pydantic so the dependency-free solver modules can actually be imported on a bare machine. A real package always wins, so it is inert in CI. |
+| `services/solver/tests/conftest.py` | **New.** Installs the stubs before pytest collects, and puts the repo root + `apps/api` on `sys.path`.                                                                                    |
+| `services/solver/furniture_fit.py`  | **New.** The §5.4 furniture-fit test — catalogue loading, required sets per room type, a deterministic shelf packer, and the 0-100 score §5.6 gates on.                                   |
+| `services/solver/critic.py`         | **Rewritten.** The five `NotImplementedError` sub-scores (adjacency, Vastu, furniture fit, plumbing stack, privacy) plus `critique()` are implemented.                                    |
+| `scripts/solver_smoke.py`           | **New.** Drives the whole ortools-free chain on the demo plot.                                                                                                                            |
 
 ## 2. EXECUTED — evidence, not claims
 
@@ -77,16 +77,16 @@ placements it passes; `pipeline.py` should be checked against this when stage A 
 
 ## 4. UNVERIFIED — and the command that settles each
 
-| Item | Why | Settles it |
-|---|---|---|
-| **Stage A (CP-SAT) has never run** | OR-Tools is pinned at 9.11.4210 but not installed; `stage_a.py` is 1314 lines that no interpreter has executed | `pip install ortools==9.11.4210 && pytest services/solver/tests -m ci` |
-| **CP-SAT API calls are unchecked** | The adversarial reviewer that was to line-check `NewIntervalVar`/`AddNoOverlap2D`/`solver.parameters` against 9.11 never ran | as above — an import-time or call-time error surfaces immediately |
-| **20-brief golden corpus** | Goldens cannot be generated without stage A, and fabricating them would be worse than having none | `python -m services.solver.golden --regen` after OR-Tools installs |
-| **≤60 s for 3 options** | No solve has occurred | pytest timing test in CI |
-| **Partial re-solve preserves locked ids** | `resolve.py` (776 lines) is stage-A-dependent | CI |
-| **`solver.apply_option` expansion** | `solver_apply.py` (309 lines) needs a live Postgres to fold and snapshot | `pytest apps/api/tests/test_solver_apply.py` |
-| **Options UI** | 15 files, never rendered — no Node on this machine | `pnpm --filter @garh/web test` |
-| **Are the plans any good?** | The question §5 exists to answer. Legal ≠ plausible | The 5-architect blind panel in the product spec's launch gate |
+| Item                                      | Why                                                                                                                          | Settles it                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Stage A (CP-SAT) has never run**        | OR-Tools is pinned at 9.11.4210 but not installed; `stage_a.py` is 1314 lines that no interpreter has executed               | `pip install ortools==9.11.4210 && pytest services/solver/tests -m ci` |
+| **CP-SAT API calls are unchecked**        | The adversarial reviewer that was to line-check `NewIntervalVar`/`AddNoOverlap2D`/`solver.parameters` against 9.11 never ran | as above — an import-time or call-time error surfaces immediately      |
+| **20-brief golden corpus**                | Goldens cannot be generated without stage A, and fabricating them would be worse than having none                            | `python -m services.solver.golden --regen` after OR-Tools installs     |
+| **≤60 s for 3 options**                   | No solve has occurred                                                                                                        | pytest timing test in CI                                               |
+| **Partial re-solve preserves locked ids** | `resolve.py` (776 lines) is stage-A-dependent                                                                                | CI                                                                     |
+| **`solver.apply_option` expansion**       | `solver_apply.py` (309 lines) needs a live Postgres to fold and snapshot                                                     | `pytest apps/api/tests/test_solver_apply.py`                           |
+| **Options UI**                            | 15 files, never rendered — no Node on this machine                                                                           | `pnpm --filter @garh/web test`                                         |
+| **Are the plans any good?**               | The question §5 exists to answer. Legal ≠ plausible                                                                          | The 5-architect blind panel in the product spec's launch gate          |
 
 ## 5. Carried findings — both now CLOSED and proven
 
@@ -97,10 +97,10 @@ fixed by a later agent; this document previously said otherwise and was wrong.
 `garh_api.compliance.DEFAULT_BUILDING_USE` is now `"dwelling-single"`, a member of
 the packs' own enum. Measured on a real `blr` fixture context:
 
-| `profile.buildingUse` | `blr.*` rules that bind |
-|---|---|
-| `dwelling-single` (current) | **12** |
-| `residential` (the old default) | **1** |
+| `profile.buildingUse`           | `blr.*` rules that bind |
+| ------------------------------- | ----------------------- |
+| `dwelling-single` (current)     | **12**                  |
+| `residential` (the old default) | **1**                   |
 
 83 rules across the packs gate on `when.buildingUse in [dwelling-single,
 dwelling-two, row-house]`. With the old default they reported `not_applicable` —
@@ -123,8 +123,8 @@ overridden       = False
 ```
 
 Note the two flags are deliberately distinct and must not be conflated:
-`overridden` means the architect *acknowledged* a failing rule; `value_overridden`
-means a *limit was changed*. `EvaluationReport.hard_failures` excludes the former
+`overridden` means the architect _acknowledged_ a failing rule; `value_overridden`
+means a _limit was changed_. `EvaluationReport.hard_failures` excludes the former
 and not the latter — a value override changes the limit, it does not excuse a
 failure. Golden rule 4 holds: the seeded pack value survives in `original_limit`
 so the UI can show "1.2 m (pack value 1.5 m, overridden)".

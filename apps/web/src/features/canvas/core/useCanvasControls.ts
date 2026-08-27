@@ -368,7 +368,6 @@ export function useCanvasControls(
     };
     // `options` is read through `latest`; only the element and the on/off
     // switch may re-attach listeners.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [element, options.enabled]);
 }
 

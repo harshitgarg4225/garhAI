@@ -25,7 +25,7 @@
  * every path, or the tab leaks the heap one boolean at a time.
  */
 
-import type { ManifoldToplevel, Vec2 } from 'manifold-3d';
+import type { Manifold as ManifoldSolid, ManifoldToplevel, Vec2 } from 'manifold-3d';
 
 import type { PrismProfileF } from './extrusion';
 
@@ -150,7 +150,7 @@ function cutPrism(
   // finally can free whatever exists when an exception unwinds. Keeping the
   // loop on `current` also breaks the type-inference cycle the compiler sees
   // when `solid = next` feeds `next = solid.subtract(...)`.
-  let solid: import('manifold-3d').Manifold | null = null;
+  let solid: ManifoldSolid | null = null;
   try {
     let current = Manifold.extrude([toVec2Ring(profile.polygon)], heightMm).translate([
       0,
@@ -178,9 +178,7 @@ function cutPrism(
     const triCount = mesh.triVerts.length / 3;
     const positionsMm = new Float32Array(triCount * 9);
     let v = 0;
-    for (let t = 0; t < mesh.triVerts.length; t += 1) {
-      const vi = mesh.triVerts[t];
-      if (vi === undefined) return null;
+    for (const vi of mesh.triVerts) {
       const base = vi * stride;
       positionsMm[v] = mesh.vertProperties[base] ?? 0;
       positionsMm[v + 1] = mesh.vertProperties[base + 1] ?? 0;

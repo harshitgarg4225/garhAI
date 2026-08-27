@@ -45,7 +45,13 @@ import {
   WALL_KINDS,
 } from './model';
 import type { ProjectDoc } from './model';
-import { ANNOTATION_ACTIONS, BALCONY_ACTIONS, COLUMN_ACTIONS, FURNITURE_ACTIONS, getOpSpec } from './ops';
+import {
+  ANNOTATION_ACTIONS,
+  BALCONY_ACTIONS,
+  COLUMN_ACTIONS,
+  FURNITURE_ACTIONS,
+  getOpSpec,
+} from './ops';
 import type { Op } from './ops';
 import { isIntMm, roundHalfAwayFromZero } from './units';
 
@@ -147,7 +153,9 @@ export class OpRejectedError extends Error {
 
   constructor(opType: string, issues: readonly ValidationIssue[]) {
     const first = issues[0];
-    super(`Op ${opType} rejected: ${first ? `${first.code} — ${first.message}` : 'unknown reason'}`);
+    super(
+      `Op ${opType} rejected: ${first ? `${first.code} — ${first.message}` : 'unknown reason'}`,
+    );
     this.name = 'OpRejectedError';
     this.opType = opType;
     this.issues = issues;
@@ -180,11 +188,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 }
 
 function isPt(v: unknown): v is Pt {
-  return (
-    isPlainObject(v) &&
-    isIntMm((v as { x?: unknown }).x) &&
-    isIntMm((v as { y?: unknown }).y)
-  );
+  return isPlainObject(v) && isIntMm((v as { x?: unknown }).x) && isIntMm((v as { y?: unknown }).y);
 }
 
 function checkIntMm(
@@ -327,7 +331,7 @@ function checkPolygon(out: ValidationIssue[], value: unknown, field: string): bo
     );
     return false;
   }
-  if (!polygonIsClosedRing(value as Pt[])) {
+  if (!polygonIsClosedRing(value)) {
     out.push(
       issue(
         'OP_FIELD_BAD_POLYGON',
@@ -362,11 +366,15 @@ function checkJsonIntegral(out: ValidationIssue[], value: unknown, field: string
       if (!Number.isSafeInteger(v)) {
         ok = false;
         out.push(
-          issue('OP_FIELD_NOT_INT', `${path} must be a whole number — this document holds no floats.`, {
-            field: path,
-            actual: v,
-            fix: 'Scale the value to an integer (whole rupees, mm, tenths of a degree, basis points).',
-          }),
+          issue(
+            'OP_FIELD_NOT_INT',
+            `${path} must be a whole number — this document holds no floats.`,
+            {
+              field: path,
+              actual: v,
+              fix: 'Scale the value to an integer (whole rupees, mm, tenths of a degree, basis points).',
+            },
+          ),
         );
       }
       return;
@@ -381,9 +389,13 @@ function checkJsonIntegral(out: ValidationIssue[], value: unknown, field: string
     }
     ok = false;
     out.push(
-      issue('OP_FIELD_NOT_OBJECT', `${path} must be JSON (null, boolean, integer, string, array or object).`, {
-        field: path,
-      }),
+      issue(
+        'OP_FIELD_NOT_OBJECT',
+        `${path} must be JSON (null, boolean, integer, string, array or object).`,
+        {
+          field: path,
+        },
+      ),
     );
   };
   walk(value, field);
@@ -466,7 +478,8 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
       break;
     }
     case 'plot.set_road': {
-      if (requireField(out, p, 'edgeIndex', type)) checkInt(out, p.edgeIndex, f('edgeIndex'), { min: 0 });
+      if (requireField(out, p, 'edgeIndex', type))
+        checkInt(out, p.edgeIndex, f('edgeIndex'), { min: 0 });
       if (requireField(out, p, 'widthMm', type) && p.widthMm !== null) {
         checkIntMm(out, p.widthMm, f('widthMm'), { min: 1 });
       }
@@ -477,7 +490,10 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
       if (requireField(out, p, 'cityPack', type) && p.cityPack !== null) {
         checkString(out, p.cityPack, f('cityPack'));
       }
-      if (requireField(out, p, 'overrides', type) && checkObject(out, p.overrides, f('overrides'))) {
+      if (
+        requireField(out, p, 'overrides', type) &&
+        checkObject(out, p.overrides, f('overrides'))
+      ) {
         checkJsonIntegral(out, p.overrides, f('overrides'));
       }
       break;
@@ -487,7 +503,8 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
         checkJsonIntegral(out, p.patch, f('patch'));
       }
       if (has(p, 'vastuMode')) checkEnum(out, p.vastuMode, f('vastuMode'), VASTU_MODES);
-      if (has(p, 'completeness')) checkInt(out, p.completeness, f('completeness'), { min: 0, max: 100 });
+      if (has(p, 'completeness'))
+        checkInt(out, p.completeness, f('completeness'), { min: 0, max: 100 });
       break;
     }
     case 'storey.add': {
@@ -551,7 +568,8 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
     }
     case 'wall.split': {
       if (requireField(out, p, 'wallId', type)) checkId(out, p.wallId, f('wallId'), 'wall');
-      if (requireField(out, p, 'newWallId', type)) checkId(out, p.newWallId, f('newWallId'), 'wall');
+      if (requireField(out, p, 'newWallId', type))
+        checkId(out, p.newWallId, f('newWallId'), 'wall');
       if (requireField(out, p, 'atMm', type)) checkIntMm(out, p.atMm, f('atMm'), { min: 1 });
       break;
     }
@@ -570,41 +588,53 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
       if (requireField(out, p, 'id', type)) checkId(out, p.id, f('id'), 'opening');
       if (requireField(out, p, 'wallId', type)) checkId(out, p.wallId, f('wallId'), 'wall');
       if (requireField(out, p, 'kind', type)) checkEnum(out, p.kind, f('kind'), OPENING_KINDS);
-      if (requireField(out, p, 'widthMm', type)) checkIntMm(out, p.widthMm, f('widthMm'), { min: 1 });
-      if (requireField(out, p, 'heightMm', type)) checkIntMm(out, p.heightMm, f('heightMm'), { min: 1 });
+      if (requireField(out, p, 'widthMm', type))
+        checkIntMm(out, p.widthMm, f('widthMm'), { min: 1 });
+      if (requireField(out, p, 'heightMm', type))
+        checkIntMm(out, p.heightMm, f('heightMm'), { min: 1 });
       if (requireField(out, p, 'sillMm', type)) checkIntMm(out, p.sillMm, f('sillMm'), { min: 0 });
-      if (requireField(out, p, 'offsetMm', type)) checkIntMm(out, p.offsetMm, f('offsetMm'), { min: 0 });
+      if (requireField(out, p, 'offsetMm', type))
+        checkIntMm(out, p.offsetMm, f('offsetMm'), { min: 0 });
       if (requireField(out, p, 'swing', type)) checkEnum(out, p.swing, f('swing'), OPENING_SWINGS);
       if (has(p, 'tag') && p.tag !== null) checkString(out, p.tag, f('tag'));
       break;
     }
     case 'opening.move': {
-      if (requireField(out, p, 'openingId', type)) checkId(out, p.openingId, f('openingId'), 'opening');
-      if (requireField(out, p, 'offsetMm', type)) checkIntMm(out, p.offsetMm, f('offsetMm'), { min: 0 });
+      if (requireField(out, p, 'openingId', type))
+        checkId(out, p.openingId, f('openingId'), 'opening');
+      if (requireField(out, p, 'offsetMm', type))
+        checkIntMm(out, p.offsetMm, f('offsetMm'), { min: 0 });
       if (has(p, 'wallId')) checkId(out, p.wallId, f('wallId'), 'wall');
       break;
     }
     case 'opening.resize': {
-      if (requireField(out, p, 'openingId', type)) checkId(out, p.openingId, f('openingId'), 'opening');
+      if (requireField(out, p, 'openingId', type))
+        checkId(out, p.openingId, f('openingId'), 'opening');
       if (has(p, 'widthMm')) checkIntMm(out, p.widthMm, f('widthMm'), { min: 1 });
       if (has(p, 'heightMm')) checkIntMm(out, p.heightMm, f('heightMm'), { min: 1 });
       if (has(p, 'sillMm')) checkIntMm(out, p.sillMm, f('sillMm'), { min: 0 });
       if (!has(p, 'widthMm') && !has(p, 'heightMm') && !has(p, 'sillMm')) {
         out.push(
-          issue('OP_FIELD_MISSING', 'opening.resize needs at least one of widthMm, heightMm, sillMm.', {
-            field: 'payload',
-          }),
+          issue(
+            'OP_FIELD_MISSING',
+            'opening.resize needs at least one of widthMm, heightMm, sillMm.',
+            {
+              field: 'payload',
+            },
+          ),
         );
       }
       break;
     }
     case 'opening.flip': {
-      if (requireField(out, p, 'openingId', type)) checkId(out, p.openingId, f('openingId'), 'opening');
+      if (requireField(out, p, 'openingId', type))
+        checkId(out, p.openingId, f('openingId'), 'opening');
       if (requireField(out, p, 'swing', type)) checkEnum(out, p.swing, f('swing'), OPENING_SWINGS);
       break;
     }
     case 'opening.delete': {
-      if (requireField(out, p, 'openingId', type)) checkId(out, p.openingId, f('openingId'), 'opening');
+      if (requireField(out, p, 'openingId', type))
+        checkId(out, p.openingId, f('openingId'), 'opening');
       break;
     }
     case 'room.assign': {
@@ -613,7 +643,11 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
       if (has(p, 'name')) checkString(out, p.name, f('name'));
       if (has(p, 'tags')) {
         if (!Array.isArray(p.tags) || !p.tags.every((t) => typeof t === 'string')) {
-          out.push(issue('OP_FIELD_NOT_STRING', 'payload.tags must be an array of strings.', { field: f('tags') }));
+          out.push(
+            issue('OP_FIELD_NOT_STRING', 'payload.tags must be an array of strings.', {
+              field: f('tags'),
+            }),
+          );
         }
       }
       break;
@@ -633,11 +667,16 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
       if (requireField(out, p, 'storeyId', type)) checkId(out, p.storeyId, f('storeyId'), 'storey');
       if (requireField(out, p, 'kind', type)) checkEnum(out, p.kind, f('kind'), STAIR_KINDS);
       if (requireField(out, p, 'origin', type)) checkPt(out, p.origin, f('origin'));
-      if (requireField(out, p, 'direction', type)) checkEnum(out, p.direction, f('direction'), DIRECTIONS_4);
-      if (requireField(out, p, 'riserMm', type)) checkIntMm(out, p.riserMm, f('riserMm'), { min: 50, max: 400 });
-      if (requireField(out, p, 'treadMm', type)) checkIntMm(out, p.treadMm, f('treadMm'), { min: 100, max: 600 });
-      if (requireField(out, p, 'widthMm', type)) checkIntMm(out, p.widthMm, f('widthMm'), { min: 300 });
-      if (requireField(out, p, 'risersCount', type)) checkInt(out, p.risersCount, f('risersCount'), { min: 2, max: 60 });
+      if (requireField(out, p, 'direction', type))
+        checkEnum(out, p.direction, f('direction'), DIRECTIONS_4);
+      if (requireField(out, p, 'riserMm', type))
+        checkIntMm(out, p.riserMm, f('riserMm'), { min: 50, max: 400 });
+      if (requireField(out, p, 'treadMm', type))
+        checkIntMm(out, p.treadMm, f('treadMm'), { min: 100, max: 600 });
+      if (requireField(out, p, 'widthMm', type))
+        checkIntMm(out, p.widthMm, f('widthMm'), { min: 300 });
+      if (requireField(out, p, 'risersCount', type))
+        checkInt(out, p.risersCount, f('risersCount'), { min: 2, max: 60 });
       if (has(p, 'landing') && p.landing !== null && checkObject(out, p.landing, f('landing'))) {
         const l = p.landing as Record<string, unknown>;
         checkIntMm(out, l.widthMm, f('landing.widthMm'), { min: 1 });
@@ -651,11 +690,15 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
         const patch = p.patch as Record<string, unknown>;
         if (has(patch, 'kind')) checkEnum(out, patch.kind, f('patch.kind'), STAIR_KINDS);
         if (has(patch, 'origin')) checkPt(out, patch.origin, f('patch.origin'));
-        if (has(patch, 'direction')) checkEnum(out, patch.direction, f('patch.direction'), DIRECTIONS_4);
-        if (has(patch, 'riserMm')) checkIntMm(out, patch.riserMm, f('patch.riserMm'), { min: 50, max: 400 });
-        if (has(patch, 'treadMm')) checkIntMm(out, patch.treadMm, f('patch.treadMm'), { min: 100, max: 600 });
+        if (has(patch, 'direction'))
+          checkEnum(out, patch.direction, f('patch.direction'), DIRECTIONS_4);
+        if (has(patch, 'riserMm'))
+          checkIntMm(out, patch.riserMm, f('patch.riserMm'), { min: 50, max: 400 });
+        if (has(patch, 'treadMm'))
+          checkIntMm(out, patch.treadMm, f('patch.treadMm'), { min: 100, max: 600 });
         if (has(patch, 'widthMm')) checkIntMm(out, patch.widthMm, f('patch.widthMm'), { min: 300 });
-        if (has(patch, 'risersCount')) checkInt(out, patch.risersCount, f('patch.risersCount'), { min: 2, max: 60 });
+        if (has(patch, 'risersCount'))
+          checkInt(out, patch.risersCount, f('patch.risersCount'), { min: 2, max: 60 });
       }
       break;
     }
@@ -664,10 +707,12 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
       break;
     }
     case 'column.set': {
-      if (requireField(out, p, 'action', type)) checkEnum(out, p.action, f('action'), COLUMN_ACTIONS);
+      if (requireField(out, p, 'action', type))
+        checkEnum(out, p.action, f('action'), COLUMN_ACTIONS);
       if (requireField(out, p, 'id', type)) checkId(out, p.id, f('id'), 'column');
       if (p.action === 'add') {
-        if (requireField(out, p, 'storeyId', type)) checkId(out, p.storeyId, f('storeyId'), 'storey');
+        if (requireField(out, p, 'storeyId', type))
+          checkId(out, p.storeyId, f('storeyId'), 'storey');
         if (requireField(out, p, 'pt', type)) checkPt(out, p.pt, f('pt'));
       }
       if (p.action === 'move' && requireField(out, p, 'pt', type)) checkPt(out, p.pt, f('pt'));
@@ -679,30 +724,37 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
       break;
     }
     case 'furniture.set': {
-      if (requireField(out, p, 'action', type)) checkEnum(out, p.action, f('action'), FURNITURE_ACTIONS);
+      if (requireField(out, p, 'action', type))
+        checkEnum(out, p.action, f('action'), FURNITURE_ACTIONS);
       if (requireField(out, p, 'id', type)) checkId(out, p.id, f('id'), 'furniture');
       if (p.action === 'place') {
-        if (requireField(out, p, 'storeyId', type)) checkId(out, p.storeyId, f('storeyId'), 'storey');
+        if (requireField(out, p, 'storeyId', type))
+          checkId(out, p.storeyId, f('storeyId'), 'storey');
         if (requireField(out, p, 'catalogId', type)) checkString(out, p.catalogId, f('catalogId'));
         if (requireField(out, p, 'pt', type)) checkPt(out, p.pt, f('pt'));
       }
       if (has(p, 'pt') && p.action !== 'place') checkPt(out, p.pt, f('pt'));
-      if (has(p, 'rotationDeg')) checkInt(out, p.rotationDeg, f('rotationDeg'), { min: -359, max: 359 });
+      if (has(p, 'rotationDeg'))
+        checkInt(out, p.rotationDeg, f('rotationDeg'), { min: -359, max: 359 });
       break;
     }
     case 'balcony.set': {
-      if (requireField(out, p, 'action', type)) checkEnum(out, p.action, f('action'), BALCONY_ACTIONS);
+      if (requireField(out, p, 'action', type))
+        checkEnum(out, p.action, f('action'), BALCONY_ACTIONS);
       if (requireField(out, p, 'id', type)) checkId(out, p.id, f('id'), 'balcony');
       if (p.action === 'add') {
-        if (requireField(out, p, 'storeyId', type)) checkId(out, p.storeyId, f('storeyId'), 'storey');
+        if (requireField(out, p, 'storeyId', type))
+          checkId(out, p.storeyId, f('storeyId'), 'storey');
         if (requireField(out, p, 'polygon', type)) checkPolygon(out, p.polygon, f('polygon'));
       } else if (has(p, 'polygon')) {
         checkPolygon(out, p.polygon, f('polygon'));
       }
       if (has(p, 'railingKind')) checkEnum(out, p.railingKind, f('railingKind'), RAILING_KINDS);
-      if (has(p, 'railingHeightMm')) checkIntMm(out, p.railingHeightMm, f('railingHeightMm'), { min: 0 });
+      if (has(p, 'railingHeightMm'))
+        checkIntMm(out, p.railingHeightMm, f('railingHeightMm'), { min: 0 });
       if (has(p, 'projectionMm')) checkIntMm(out, p.projectionMm, f('projectionMm'), { min: 0 });
-      if (has(p, 'slabThicknessMm')) checkIntMm(out, p.slabThicknessMm, f('slabThicknessMm'), { min: 1 });
+      if (has(p, 'slabThicknessMm'))
+        checkIntMm(out, p.slabThicknessMm, f('slabThicknessMm'), { min: 1 });
       break;
     }
     case 'facade.apply_kit': {
@@ -710,28 +762,35 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
         checkString(out, p.kitId, f('kitId'));
       }
       if (requireField(out, p, 'seed', type)) checkInt(out, p.seed, f('seed'), { min: 0 });
-      if (has(p, 'colorwayId') && p.colorwayId !== null) checkString(out, p.colorwayId, f('colorwayId'));
+      if (has(p, 'colorwayId') && p.colorwayId !== null)
+        checkString(out, p.colorwayId, f('colorwayId'));
       if (requireField(out, p, 'components', type)) {
         if (!Array.isArray(p.components)) {
-          out.push(issue('OP_FIELD_NOT_OBJECT', 'payload.components must be an array.', { field: f('components') }));
+          out.push(
+            issue('OP_FIELD_NOT_OBJECT', 'payload.components must be an array.', {
+              field: f('components'),
+            }),
+          );
         } else {
           p.components.forEach((c, i) => {
             if (!isPlainObject(c)) {
               out.push(
-                issue('OP_FIELD_NOT_OBJECT', `payload.components[${String(i)}] must be an object.`, {
-                  field: `${f('components')}[${String(i)}]`,
-                }),
+                issue(
+                  'OP_FIELD_NOT_OBJECT',
+                  `payload.components[${String(i)}] must be an object.`,
+                  {
+                    field: `${f('components')}[${String(i)}]`,
+                  },
+                ),
               );
               return;
             }
             checkId(out, c.id, `${f('components')}[${String(i)}].id`, 'facadecomp');
-            checkEnum(
-              out,
-              c.kind,
-              `${f('components')}[${String(i)}].kind`,
-              FACADE_COMPONENT_KINDS,
-            );
-            if (has(c, 'params') && checkObject(out, c.params, `${f('components')}[${String(i)}].params`)) {
+            checkEnum(out, c.kind, `${f('components')}[${String(i)}].kind`, FACADE_COMPONENT_KINDS);
+            if (
+              has(c, 'params') &&
+              checkObject(out, c.params, `${f('components')}[${String(i)}].params`)
+            ) {
               checkJsonIntegral(out, c.params, `${f('components')}[${String(i)}].params`);
             }
           });
@@ -789,16 +848,26 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
         }
       }
       if (!any) {
-        out.push(issue('OP_FIELD_MISSING', 'levels.set needs at least one field to set.', { field: 'payload' }));
+        out.push(
+          issue('OP_FIELD_MISSING', 'levels.set needs at least one field to set.', {
+            field: 'payload',
+          }),
+        );
       }
       break;
     }
     case 'solver.apply_option': {
-      if (requireField(out, p, 'solverJobId', type)) checkString(out, p.solverJobId, f('solverJobId'));
-      if (requireField(out, p, 'optionIndex', type)) checkInt(out, p.optionIndex, f('optionIndex'), { min: 0 });
+      if (requireField(out, p, 'solverJobId', type))
+        checkString(out, p.solverJobId, f('solverJobId'));
+      if (requireField(out, p, 'optionIndex', type))
+        checkInt(out, p.optionIndex, f('optionIndex'), { min: 0 });
       if (requireField(out, p, 'ops', type)) {
         if (!Array.isArray(p.ops)) {
-          out.push(issue('OP_FIELD_NOT_OBJECT', 'payload.ops must be an array of ops.', { field: f('ops') }));
+          out.push(
+            issue('OP_FIELD_NOT_OBJECT', 'payload.ops must be an array of ops.', {
+              field: f('ops'),
+            }),
+          );
         } else {
           p.ops.forEach((inner, i) => {
             for (const sub of validateOpShape(inner)) {
@@ -810,7 +879,8 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
       break;
     }
     case 'annotation.set': {
-      if (requireField(out, p, 'action', type)) checkEnum(out, p.action, f('action'), ANNOTATION_ACTIONS);
+      if (requireField(out, p, 'action', type))
+        checkEnum(out, p.action, f('action'), ANNOTATION_ACTIONS);
       if (requireField(out, p, 'id', type)) checkId(out, p.id, f('id'), 'annotation');
       if (p.action === 'add') {
         if (requireField(out, p, 'sheetId', type)) checkId(out, p.sheetId, f('sheetId'), 'sheet');
@@ -837,7 +907,9 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
     default: {
       // Exhaustiveness: a new op type without a shape validator lands here.
       out.push(
-        issue('OP_UNKNOWN_TYPE', `No shape validator for op type ${String(type)}.`, { field: 'type' }),
+        issue('OP_UNKNOWN_TYPE', `No shape validator for op type ${String(type)}.`, {
+          field: 'type',
+        }),
       );
     }
   }
@@ -848,12 +920,7 @@ export function validateOpShape(op: unknown): ValidationIssue[] {
 // Document preconditions for an op
 // ---------------------------------------------------------------------------
 
-function missing(
-  code: ValidationCode,
-  kind: string,
-  id: unknown,
-  fix: string,
-): ValidationIssue {
+function missing(code: ValidationCode, kind: string, id: unknown, fix: string): ValidationIssue {
   return issue(code, `No ${kind} with id ${String(id)} in this design.`, {
     elementIds: [String(id)],
     actual: String(id),
@@ -902,7 +969,15 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
   };
   const requireStorey = (id: unknown): boolean => {
     const ok = h.storeys.some((s) => s.id === id);
-    if (!ok) out.push(missing('STOREY_UNKNOWN', 'storey', id, 'Add the storey first, or use an existing storeyId.'));
+    if (!ok)
+      out.push(
+        missing(
+          'STOREY_UNKNOWN',
+          'storey',
+          id,
+          'Add the storey first, or use an existing storeyId.',
+        ),
+      );
     return ok;
   };
 
@@ -912,17 +987,25 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
       const idx = op.payload.edgeIndex;
       if (edges === 0) {
         out.push(
-          issue('PLOT_BOUNDARY_NOT_CLOSED', 'Set the plot boundary before assigning roads to edges.', {
-            fix: 'Send plot.set_boundary first.',
-          }),
+          issue(
+            'PLOT_BOUNDARY_NOT_CLOSED',
+            'Set the plot boundary before assigning roads to edges.',
+            {
+              fix: 'Send plot.set_boundary first.',
+            },
+          ),
         );
       } else if (idx >= edges) {
         out.push(
-          issue('PLOT_EDGE_UNKNOWN', `The plot has ${String(edges)} edges; edge ${String(idx)} does not exist.`, {
-            field: 'payload.edgeIndex',
-            actual: idx,
-            limit: edges - 1,
-          }),
+          issue(
+            'PLOT_EDGE_UNKNOWN',
+            `The plot has ${String(edges)} edges; edge ${String(idx)} does not exist.`,
+            {
+              field: 'payload.edgeIndex',
+              actual: idx,
+              limit: edges - 1,
+            },
+          ),
         );
       }
       break;
@@ -980,13 +1063,18 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
       const wallId = (p.wallId as string) ?? '';
       const wall = h.walls.find((w) => w.id === wallId);
       if (!wall) {
-        out.push(missing('WALL_UNKNOWN', 'wall', wallId, 'Use a wallId that exists on this storey.'));
+        out.push(
+          missing('WALL_UNKNOWN', 'wall', wallId, 'Use a wallId that exists on this storey.'),
+        );
         break;
       }
       if (op.type === 'wall.move') {
         const moved = { a: op.payload.a, b: op.payload.b };
         const dup = h.walls.find(
-          (w) => w.id !== wall.id && w.storeyId === wall.storeyId && overlapsWall({ a: w.a, b: w.b }, moved),
+          (w) =>
+            w.id !== wall.id &&
+            w.storeyId === wall.storeyId &&
+            overlapsWall({ a: w.a, b: w.b }, moved),
         );
         if (dup) {
           out.push(
@@ -1027,7 +1115,14 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
       requireFreeId(op.payload.id);
       const wall = h.walls.find((w) => w.id === op.payload.wallId);
       if (!wall) {
-        out.push(missing('WALL_UNKNOWN', 'wall', op.payload.wallId, 'Host the opening on an existing wall.'));
+        out.push(
+          missing(
+            'WALL_UNKNOWN',
+            'wall',
+            op.payload.wallId,
+            'Host the opening on an existing wall.',
+          ),
+        );
         break;
       }
       const len = segmentLengthMm({ a: wall.a, b: wall.b });
@@ -1035,7 +1130,9 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
       if (fit) out.push(fit);
       const storey = h.storeys.find((s) => s.id === wall.storeyId);
       if (storey && op.payload.sillMm + op.payload.heightMm > storey.heightMm) {
-        out.push(heightIssue(op.payload.id, op.payload.sillMm + op.payload.heightMm, storey.heightMm));
+        out.push(
+          heightIssue(op.payload.id, op.payload.sillMm + op.payload.heightMm, storey.heightMm),
+        );
       }
       break;
     }
@@ -1098,7 +1195,12 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
         const storey = h.storeys.find((s) => s.id === op.payload.storeyId);
         if (storey) {
           const rise = op.payload.risersCount * op.payload.riserMm;
-          const riseIssue = stairRiseIssue(op.payload.id, rise, storey.heightMm, op.payload.risersCount);
+          const riseIssue = stairRiseIssue(
+            op.payload.id,
+            rise,
+            storey.heightMm,
+            op.payload.risersCount,
+          );
           if (riseIssue) out.push(riseIssue);
         }
       }
@@ -1128,7 +1230,14 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
         requireFreeId(op.payload.id);
         requireStorey(op.payload.storeyId);
       } else if (!h.columns.some((c) => c.id === op.payload.id)) {
-        out.push(missing('COLUMN_UNKNOWN', 'column', op.payload.id, 'Add the column before moving or deleting it.'));
+        out.push(
+          missing(
+            'COLUMN_UNKNOWN',
+            'column',
+            op.payload.id,
+            'Add the column before moving or deleting it.',
+          ),
+        );
       }
       break;
     }
@@ -1138,7 +1247,12 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
         requireStorey(op.payload.storeyId);
       } else if (!h.furniture.some((fi) => fi.id === op.payload.id)) {
         out.push(
-          missing('FURNITURE_UNKNOWN', 'furniture item', op.payload.id, 'Place the item before transforming it.'),
+          missing(
+            'FURNITURE_UNKNOWN',
+            'furniture item',
+            op.payload.id,
+            'Place the item before transforming it.',
+          ),
         );
       }
       break;
@@ -1148,7 +1262,14 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
         requireFreeId(op.payload.id);
         requireStorey(op.payload.storeyId);
       } else if (!h.balconies.some((b) => b.id === op.payload.id)) {
-        out.push(missing('BALCONY_UNKNOWN', 'balcony', op.payload.id, 'Add the balcony before editing it.'));
+        out.push(
+          missing(
+            'BALCONY_UNKNOWN',
+            'balcony',
+            op.payload.id,
+            'Add the balcony before editing it.',
+          ),
+        );
       }
       break;
     }
@@ -1193,7 +1314,11 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
           issue(
             'LEVELS_INVALID',
             `fflPerStoreyMm has ${String(op.payload.fflPerStoreyMm.length)} entries but there are ${String(h.storeys.length)} storeys.`,
-            { field: 'payload.fflPerStoreyMm', actual: op.payload.fflPerStoreyMm.length, limit: h.storeys.length },
+            {
+              field: 'payload.fflPerStoreyMm',
+              actual: op.payload.fflPerStoreyMm.length,
+              limit: h.storeys.length,
+            },
           ),
         );
       }
@@ -1203,7 +1328,9 @@ export function validateOpAgainstDoc(doc: ProjectDoc, op: Op): ValidationIssue[]
       if (op.payload.action === 'add') {
         requireFreeId(op.payload.id);
       } else if (!doc.annotations.some((a) => a.id === op.payload.id)) {
-        out.push(missing('ANNOTATION_UNKNOWN', 'annotation', op.payload.id, 'Add the annotation first.'));
+        out.push(
+          missing('ANNOTATION_UNKNOWN', 'annotation', op.payload.id, 'Add the annotation first.'),
+        );
       }
       break;
     }
@@ -1250,10 +1377,16 @@ function openingFitIssue(
       },
     );
   }
+  // Complementary floor/ceil halves: start+end must span exactly widthMm, which a
+  // half-away-from-zero helper would break. Integer input, so both are exact.
+  // eslint-disable-next-line no-restricted-properties -- see above
   const start = offsetMm - Math.floor(widthMm / 2);
+  // eslint-disable-next-line no-restricted-properties -- see above
   const end = offsetMm + Math.ceil(widthMm / 2);
   if (start < WALL_END_MARGIN_MM || end > wallLengthMm - WALL_END_MARGIN_MM) {
+    // eslint-disable-next-line no-restricted-properties -- same exact-halving pair as above
     const minOffset = WALL_END_MARGIN_MM + Math.floor(widthMm / 2);
+    // eslint-disable-next-line no-restricted-properties -- same exact-halving pair as above
     const maxOffset = wallLengthMm - WALL_END_MARGIN_MM - Math.ceil(widthMm / 2);
     return issue(
       'OPENING_OUT_OF_WALL',
@@ -1369,12 +1502,20 @@ export function validateModel(doc: ProjectDoc, opts: ValidateModelOptions = {}):
   // --- plot
   if (doc.plot.boundary.length > 0 && !polygonIsClosedRing(doc.plot.boundary)) {
     out.push(
-      issue('PLOT_BOUNDARY_NOT_CLOSED', 'The plot boundary must be a closed ring with non-zero area.', {
-        fix: 'Fix the boundary vertices so the outline closes without crossing itself.',
-      }),
+      issue(
+        'PLOT_BOUNDARY_NOT_CLOSED',
+        'The plot boundary must be a closed ring with non-zero area.',
+        {
+          fix: 'Fix the boundary vertices so the outline closes without crossing itself.',
+        },
+      ),
     );
   }
-  if (!Number.isSafeInteger(doc.plot.northDeg) || doc.plot.northDeg < 0 || doc.plot.northDeg > 359) {
+  if (
+    !Number.isSafeInteger(doc.plot.northDeg) ||
+    doc.plot.northDeg < 0 ||
+    doc.plot.northDeg > 359
+  ) {
     out.push(
       issue('PLOT_NORTH_INVALID', 'North must be an integer 0–359 degrees.', {
         actual: doc.plot.northDeg,
@@ -1418,15 +1559,26 @@ export function validateModel(doc: ProjectDoc, opts: ValidateModelOptions = {}):
     }
     if (!isIntMm(w.thicknessMm) || w.thicknessMm <= 0 || w.thicknessMm > MAX_WALL_THICKNESS_MM) {
       out.push(
-        issue('WALL_THICKNESS_INVALID', `Wall thickness ${String(w.thicknessMm)}mm is out of range.`, {
-          elementIds: [w.id],
-          actual: w.thicknessMm,
-          limit: `1..${String(MAX_WALL_THICKNESS_MM)}`,
-        }),
+        issue(
+          'WALL_THICKNESS_INVALID',
+          `Wall thickness ${String(w.thicknessMm)}mm is out of range.`,
+          {
+            elementIds: [w.id],
+            actual: w.thicknessMm,
+            limit: `1..${String(MAX_WALL_THICKNESS_MM)}`,
+          },
+        ),
       );
     }
     if (!storeyById.has(w.storeyId)) {
-      out.push(missing('STOREY_UNKNOWN', 'storey', w.storeyId, 'Re-parent the wall to an existing storey.'));
+      out.push(
+        missing(
+          'STOREY_UNKNOWN',
+          'storey',
+          w.storeyId,
+          'Re-parent the wall to an existing storey.',
+        ),
+      );
     }
   }
   // "no two walls exactly overlapping" — quadratic, so scope it per storey
@@ -1497,13 +1649,22 @@ export function validateModel(doc: ProjectDoc, opts: ValidateModelOptions = {}):
     }
     if (s.riserMm <= 0 || s.treadMm <= 0 || s.widthMm <= 0 || s.risersCount <= 1) {
       out.push(
-        issue('STAIR_DIMENSION_INVALID', 'Stair riser, tread, width and riser count must all be positive.', {
-          elementIds: [s.id],
-        }),
+        issue(
+          'STAIR_DIMENSION_INVALID',
+          'Stair riser, tread, width and riser count must all be positive.',
+          {
+            elementIds: [s.id],
+          },
+        ),
       );
       continue;
     }
-    const riseIssue = stairRiseIssue(s.id, s.risersCount * s.riserMm, storey.heightMm, s.risersCount);
+    const riseIssue = stairRiseIssue(
+      s.id,
+      s.risersCount * s.riserMm,
+      storey.heightMm,
+      s.risersCount,
+    );
     if (riseIssue) out.push(riseIssue);
   }
 
@@ -1538,7 +1699,9 @@ export function validateModel(doc: ProjectDoc, opts: ValidateModelOptions = {}):
     if (!inScope(b.storeyId)) continue;
     if (!polygonIsClosedRing(b.polygon)) {
       out.push(
-        issue('BALCONY_POLYGON_INVALID', 'A balcony outline must be a closed ring.', { elementIds: [b.id] }),
+        issue('BALCONY_POLYGON_INVALID', 'A balcony outline must be a closed ring.', {
+          elementIds: [b.id],
+        }),
       );
     }
   }
@@ -1547,7 +1710,9 @@ export function validateModel(doc: ProjectDoc, opts: ValidateModelOptions = {}):
   for (const c of h.columns) {
     if (!inScope(c.storeyId)) continue;
     if (c.sizeMm.xMm <= 0 || c.sizeMm.yMm <= 0) {
-      out.push(issue('COLUMN_SIZE_INVALID', 'Column size must be positive.', { elementIds: [c.id] }));
+      out.push(
+        issue('COLUMN_SIZE_INVALID', 'Column size must be positive.', { elementIds: [c.id] }),
+      );
     }
   }
 

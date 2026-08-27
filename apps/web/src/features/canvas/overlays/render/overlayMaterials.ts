@@ -15,7 +15,8 @@ import { Color, LineBasicMaterial, MeshBasicMaterial } from 'three';
 
 import { getCanvasThemeColors, LAYER_RENDER_ORDER, readTokenColor } from '../../core';
 
-export interface OverlayMaterials {
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- a type alias (not interface) carries the implicit index signature Object.values() needs to type the dispose loop below
+export type OverlayMaterials = {
   /** Dimension lines, witness lines and ticks. */
   readonly dimensionLine: LineBasicMaterial;
   /** The dimension string under the pointer or being edited. */
@@ -27,7 +28,7 @@ export interface OverlayMaterials {
   /** The disc behind a compliance marker. */
   readonly markerFail: MeshBasicMaterial;
   readonly markerWarn: MeshBasicMaterial;
-}
+};
 
 let materials: OverlayMaterials | null = null;
 

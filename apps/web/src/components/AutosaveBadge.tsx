@@ -53,7 +53,10 @@ export function AutosaveBadge({
         }
       >
         <span
-          className={cn('inline-flex items-center gap-1.5 text-2xs text-ink-subtle garh-nums', className)}
+          className={cn(
+            'inline-flex items-center gap-1.5 text-2xs text-ink-subtle garh-nums',
+            className,
+          )}
           role="status"
         >
           <Spinner size={12} />
@@ -67,7 +70,10 @@ export function AutosaveBadge({
     return (
       <Tooltip delayMs={400} content="Every change is saved. Undo still works — nothing is final.">
         <span
-          className={cn('inline-flex items-center gap-1.5 text-2xs text-ink-subtle garh-nums', className)}
+          className={cn(
+            'inline-flex items-center gap-1.5 text-2xs text-ink-subtle garh-nums',
+            className,
+          )}
           role="status"
         >
           <Icon name="check" size={12} className="text-pass" />

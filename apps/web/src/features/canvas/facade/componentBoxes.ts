@@ -240,12 +240,42 @@ function windowTrimBoxes(house: HouseModel, component: FacadeComponent): Oriente
     const outCentre = frame.halfThicknessMm - depth / 2;
     return [
       // head
-      wallBox(wall, frame, along, outCentre, openW, depth, sillElev + openH - REVEAL_BOARD_MM, REVEAL_BOARD_MM, hex),
+      wallBox(
+        wall,
+        frame,
+        along,
+        outCentre,
+        openW,
+        depth,
+        sillElev + openH - REVEAL_BOARD_MM,
+        REVEAL_BOARD_MM,
+        hex,
+      ),
       // sill board
       wallBox(wall, frame, along, outCentre, openW, depth, sillElev, REVEAL_BOARD_MM, hex),
       // jambs
-      wallBox(wall, frame, along - openW / 2 + REVEAL_BOARD_MM / 2, outCentre, REVEAL_BOARD_MM, depth, sillElev, openH, hex),
-      wallBox(wall, frame, along + openW / 2 - REVEAL_BOARD_MM / 2, outCentre, REVEAL_BOARD_MM, depth, sillElev, openH, hex),
+      wallBox(
+        wall,
+        frame,
+        along - openW / 2 + REVEAL_BOARD_MM / 2,
+        outCentre,
+        REVEAL_BOARD_MM,
+        depth,
+        sillElev,
+        openH,
+        hex,
+      ),
+      wallBox(
+        wall,
+        frame,
+        along + openW / 2 - REVEAL_BOARD_MM / 2,
+        outCentre,
+        REVEAL_BOARD_MM,
+        depth,
+        sillElev,
+        openH,
+        hex,
+      ),
     ];
   }
 
@@ -260,8 +290,28 @@ function windowTrimBoxes(house: HouseModel, component: FacadeComponent): Oriente
     // sill band
     wallBox(wall, frame, along, outCentre, openW + 2 * bandW, proud, sillElev - bandW, bandW, hex),
     // jamb bands
-    wallBox(wall, frame, along - openW / 2 - bandW / 2, outCentre, bandW, proud, sillElev, openH, hex),
-    wallBox(wall, frame, along + openW / 2 + bandW / 2, outCentre, bandW, proud, sillElev, openH, hex),
+    wallBox(
+      wall,
+      frame,
+      along - openW / 2 - bandW / 2,
+      outCentre,
+      bandW,
+      proud,
+      sillElev,
+      openH,
+      hex,
+    ),
+    wallBox(
+      wall,
+      frame,
+      along + openW / 2 + bandW / 2,
+      outCentre,
+      bandW,
+      proud,
+      sillElev,
+      openH,
+      hex,
+    ),
   ];
 }
 
@@ -444,7 +494,10 @@ function railingBoxes(house: HouseModel, component: FacadeComponent): OrientedBo
 
     if (style === 'glass') {
       out.push({
-        cx, cy, dirX, dirY,
+        cx,
+        cy,
+        dirX,
+        dirY,
         lenMm: len,
         depthMm: GLASS_PANEL_MM,
         baseElevMm: floor + GLASS_FLOOR_GAP_MM,
@@ -452,7 +505,10 @@ function railingBoxes(house: HouseModel, component: FacadeComponent): OrientedBo
         colorHex: '#B8D4DA', // glass tint — procedural, deliberately not the trim hex
       });
       out.push({
-        cx, cy, dirX, dirY,
+        cx,
+        cy,
+        dirX,
+        dirY,
         lenMm: len,
         depthMm: GLASS_TOP_RAIL_MM,
         baseElevMm: floor + height - GLASS_TOP_RAIL_MM,
@@ -461,7 +517,10 @@ function railingBoxes(house: HouseModel, component: FacadeComponent): OrientedBo
       });
     } else if (style === 'masonry') {
       out.push({
-        cx, cy, dirX, dirY,
+        cx,
+        cy,
+        dirX,
+        dirY,
         lenMm: len,
         depthMm: MASONRY_RAIL_MM,
         baseElevMm: floor,
@@ -471,7 +530,10 @@ function railingBoxes(house: HouseModel, component: FacadeComponent): OrientedBo
     } else {
       // ms-slim: top rail + posts.
       out.push({
-        cx, cy, dirX, dirY,
+        cx,
+        cy,
+        dirX,
+        dirY,
         lenMm: len,
         depthMm: MS_TOP_RAIL_MM,
         baseElevMm: floor + height - MS_TOP_RAIL_MM,
@@ -484,7 +546,8 @@ function railingBoxes(house: HouseModel, component: FacadeComponent): OrientedBo
         out.push({
           cx: edge.a.x + dirX * along,
           cy: edge.a.y + dirY * along,
-          dirX, dirY,
+          dirX,
+          dirY,
           lenMm: MS_POST_MM,
           depthMm: MS_POST_MM,
           baseElevMm: floor,

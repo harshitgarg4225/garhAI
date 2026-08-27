@@ -75,7 +75,12 @@ export function RendersTab(): JSX.Element {
             size="sm"
             iconLeft="image"
             onClick={() =>
-              goCapture({ kind: 'single', preset: 'exterior-street-day', mode: 'precise', seed: randomSeed() })
+              goCapture({
+                kind: 'single',
+                preset: 'exterior-street-day',
+                mode: 'precise',
+                seed: randomSeed(),
+              })
             }
           >
             New render
@@ -107,7 +112,12 @@ export function RendersTab(): JSX.Element {
           <h2 className="mb-2 text-sm font-semibold text-ink">Client packs</h2>
           <div className="space-y-3">
             {packs.map((pack) => (
-              <PackCard key={pack.packId} projectId={project.id} projectName={project.name} pack={pack} />
+              <PackCard
+                key={pack.packId}
+                projectId={project.id}
+                projectName={project.name}
+                pack={pack}
+              />
             ))}
           </div>
         </section>
@@ -123,7 +133,10 @@ export function RendersTab(): JSX.Element {
         </div>
 
         {history.error !== null ? (
-          <p className="rounded-md border border-line bg-surface p-3 text-xs text-ink-muted" role="alert">
+          <p
+            className="rounded-md border border-line bg-surface p-3 text-xs text-ink-muted"
+            role="alert"
+          >
             {history.error} — try Refresh.
           </p>
         ) : null}
@@ -131,7 +144,10 @@ export function RendersTab(): JSX.Element {
         {history.loading && history.items.length === 0 ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="aspect-[3/2] animate-pulse rounded-lg border border-line bg-surface-sunken" />
+              <div
+                key={i}
+                className="aspect-[3/2] animate-pulse rounded-lg border border-line bg-surface-sunken"
+              />
             ))}
           </div>
         ) : null}
@@ -142,15 +158,20 @@ export function RendersTab(): JSX.Element {
             <p className="mt-2 text-sm font-semibold text-ink">No renders yet</p>
             <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-ink-muted">
               Open the 3D view and press <strong>Render</strong> — a Precise render follows your
-              model exactly; the one-click client pack shoots six exteriors plus the living room
-              and kitchen.
+              model exactly; the one-click client pack shoots six exteriors plus the living room and
+              kitchen.
             </p>
             <div className="mt-3">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() =>
-                  goCapture({ kind: 'single', preset: 'exterior-street-day', mode: 'precise', seed: randomSeed() })
+                  goCapture({
+                    kind: 'single',
+                    preset: 'exterior-street-day',
+                    mode: 'precise',
+                    seed: randomSeed(),
+                  })
                 }
               >
                 Render the 3D view
@@ -206,8 +227,8 @@ function RenderCard({
     seed: number;
   }) => void;
 }): JSX.Element {
-  const preset = String(job.params['preset'] ?? 'exterior-street-day');
-  const seed = Number(job.params['seed'] ?? 0);
+  const preset = String(job.params.preset ?? 'exterior-street-day');
+  const seed = Number(job.params.seed ?? 0);
   const label = PRESETS_BY_ID.get(preset)?.label ?? preset;
 
   return (
@@ -222,7 +243,9 @@ function RenderCard({
           />
         ) : (
           <div className="flex h-full items-center justify-center text-2xs text-ink-muted">
-            {job.status === 'failed' ? (job.error ?? 'This render failed.') : `Render ${job.status}…`}
+            {job.status === 'failed'
+              ? (job.error ?? 'This render failed.')
+              : `Render ${job.status}…`}
           </div>
         )}
         {/* §9: "Design changed since this render" */}
@@ -268,7 +291,12 @@ function RenderCard({
           <button
             type="button"
             onClick={() =>
-              onRerender({ kind: 'single', preset, mode: job.mode, seed: Number.isFinite(seed) ? seed : 0 })
+              onRerender({
+                kind: 'single',
+                preset,
+                mode: job.mode,
+                seed: Number.isFinite(seed) ? seed : 0,
+              })
             }
             className="rounded p-1 text-ink-muted hover:text-ink"
             aria-label={`Re-render ${label} with the same settings`}
@@ -359,7 +387,9 @@ function PackCard({
             iconLeft="download"
             disabled={!complete || zipping}
             onClick={() => void download()}
-            title={complete ? 'Download all images as one zip' : 'Available when every image is done'}
+            title={
+              complete ? 'Download all images as one zip' : 'Available when every image is done'
+            }
           >
             Download zip
           </Button>
@@ -369,7 +399,7 @@ function PackCard({
       {/* Per-shot strip: thumbnails as they land, honest states meanwhile. */}
       <ul className="mt-2 flex gap-1.5 overflow-x-auto pb-1" aria-label="Pack images">
         {pack.jobs.map((job) => {
-          const slug = String(job.params['packSlug'] ?? job.params['preset'] ?? 'shot');
+          const slug = String(job.params.packSlug ?? job.params.preset ?? 'shot');
           return (
             <li key={job.id} className="shrink-0">
               {job.status === 'succeeded' && job.outputUrl !== null ? (
@@ -410,7 +440,7 @@ function groupHistory(items: readonly RenderJob[]): {
   const singles: RenderJob[] = [];
   const byPack = new Map<string, RenderJob[]>();
   for (const job of items) {
-    const packId = job.params['packId'];
+    const packId = job.params.packId;
     if (typeof packId === 'string' && packId !== '') {
       const list = byPack.get(packId) ?? [];
       list.push(job);
@@ -423,7 +453,7 @@ function groupHistory(items: readonly RenderJob[]): {
     packId,
     jobs: jobs
       .slice()
-      .sort((a, b) => Number(a.params['packIndex'] ?? 0) - Number(b.params['packIndex'] ?? 0)),
+      .sort((a, b) => Number(a.params.packIndex ?? 0) - Number(b.params.packIndex ?? 0)),
   }));
   return { singles, packs };
 }

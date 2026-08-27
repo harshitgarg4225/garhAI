@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Exact integer arithmetic. There is no float in a compliance verdict.
 
 Every derived limit in the DSL is an exact rational (`{num, den}`) applied to an
@@ -22,10 +20,13 @@ everything else is plain ``int`` division, which is what keeps a full run inside
 the 100 ms budget (§14).
 """
 
+from __future__ import annotations
+
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Any, Dict, Mapping
+from typing import Any
 
 from .errors import ContextError
 
@@ -96,13 +97,13 @@ class Ratio:
             raise ContextError("ratio denominator must be >= 1, got %r" % (self.den,))
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], what: str = "ratio") -> "Ratio":
+    def from_json(cls, data: Mapping[str, Any], what: str = "ratio") -> Ratio:
         return cls(
             num=require_int(data.get("num"), "%s.num" % what),
             den=require_int(data.get("den"), "%s.den" % what),
         )
 
-    def to_json(self) -> Dict[str, int]:
+    def to_json(self) -> dict[str, int]:
         return {"num": self.num, "den": self.den}
 
     def floor_of(self, base: int) -> int:

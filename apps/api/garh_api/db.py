@@ -23,7 +23,12 @@ from contextlib import asynccontextmanager, contextmanager
 
 from sqlalchemy import text
 from sqlalchemy.engine import Engine, make_url
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
@@ -169,7 +174,7 @@ async def healthcheck(settings: Settings | None = None) -> bool:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         return True
-    except Exception:  # noqa: BLE001 - health probes must not raise
+    except Exception:
         return False
 
 

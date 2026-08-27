@@ -30,7 +30,7 @@ import type { Problem } from './types';
 function isProblemShaped(value: unknown): value is Problem {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
-  return typeof v['code'] === 'string' && typeof v['message'] === 'string';
+  return typeof v.code === 'string' && typeof v.message === 'string';
 }
 
 /**
@@ -151,7 +151,8 @@ export function ProblemPanel({
     }
   };
 
-  const canRecover = recovery.kind !== 'none' && (recovery.kind !== 'retry' || onRetry !== undefined);
+  const canRecover =
+    recovery.kind !== 'none' && (recovery.kind !== 'retry' || onRetry !== undefined);
 
   const body = (
     <div className="flex flex-col items-start gap-3 p-5 text-left">
@@ -246,7 +247,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     // Always log the real thing for developers; never show it to the architect.
-    // eslint-disable-next-line no-console
+
     console.error(`[garh] error in ${this.props.region ?? 'app'}`, error, info.componentStack);
     this.props.onError?.(error, { componentStack: info.componentStack ?? '' });
   }

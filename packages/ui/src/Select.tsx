@@ -25,7 +25,7 @@ export interface SelectProps<T extends string = string>
   extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'className' | 'value' | 'onChange'> {
   value: T;
   onValueChange: (value: T) => void;
-  options: ReadonlyArray<SelectOption<T>>;
+  options: readonly SelectOption<T>[];
   /** Rendered as a disabled first option when `value` is empty. */
   placeholder?: string | undefined;
   invalid?: boolean | undefined;
@@ -33,10 +33,18 @@ export interface SelectProps<T extends string = string>
 }
 
 function SelectInner<T extends string>(
-  { value, onValueChange, options, placeholder, invalid = false, className, ...rest }: SelectProps<T>,
+  {
+    value,
+    onValueChange,
+    options,
+    placeholder,
+    invalid = false,
+    className,
+    ...rest
+  }: SelectProps<T>,
   ref: ForwardedRef<HTMLSelectElement>,
 ): JSX.Element {
-  const groups: Array<{ group: string | undefined; items: Array<SelectOption<T>> }> = [];
+  const groups: { group: string | undefined; items: SelectOption<T>[] }[] = [];
   for (const opt of options) {
     const last = groups[groups.length - 1];
     if (last !== undefined && last.group === opt.group) last.items.push(opt);

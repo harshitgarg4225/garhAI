@@ -27,8 +27,9 @@ print it.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.projection.primitives import (
     Arc,
@@ -74,7 +75,7 @@ def transform_primitive(item: Primitive, transform: PaperTransform) -> Primitive
 
 def transform_primitives(
     primitives: Sequence[Primitive], transform: PaperTransform
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """A whole model-space stream into paper space."""
     return tuple(transform_primitive(item, transform) for item in primitives)
 
@@ -92,8 +93,8 @@ class ComposedSheet:
     sheet: Sheet
     transform: PaperTransform
     fit: Fit
-    primitives: Tuple[Primitive, ...]
-    warnings: Tuple[str, ...] = ()
+    primitives: tuple[Primitive, ...]
+    warnings: tuple[str, ...] = ()
 
 
 def compose_sheet(
@@ -101,8 +102,8 @@ def compose_sheet(
     model_primitives: Sequence[Primitive] = (),
     *,
     paper_primitives: Sequence[Primitive] = (),
-    extent_model_mm: Optional[Tuple[int, int, int, int]] = None,
-    transform: Optional[PaperTransform] = None,
+    extent_model_mm: tuple[int, int, int, int] | None = None,
+    transform: PaperTransform | None = None,
     reserve_title_block: bool = True,
 ) -> ComposedSheet:
     """Frame + geometry for one sheet.
@@ -132,7 +133,7 @@ def compose_sheet(
     )
     resolved = transform or fit.transform
 
-    warnings: List[str] = []
+    warnings: list[str] = []
     if not fit.fits:
         suggestion = fit.suggested_denominator()
         warnings.append(
@@ -149,7 +150,7 @@ def compose_sheet(
             )
         )
 
-    primitives: List[Primitive] = list(frame_primitives(sheet.frame))
+    primitives: list[Primitive] = list(frame_primitives(sheet.frame))
     primitives.extend(transform_primitives(model_primitives, resolved))
     primitives.extend(paper_primitives)
     return ComposedSheet(

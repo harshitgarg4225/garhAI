@@ -23,11 +23,10 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from sqlalchemy import func, select
-
 from garh_api import models
 from garh_api.seed import demo as demo_data
 from garh_api.seed.runner import CREATED, REUSED, SKIPPED, SeedError, SeedOptions, seed
+from sqlalchemy import func, select
 
 pytestmark = pytest.mark.integration
 
@@ -159,7 +158,15 @@ async def test_seeding_twice_changes_nothing(session: Any) -> None:
 
     counts_before = {
         model.__name__: await _count(session, model)
-        for model in (models.Firm, models.User, models.Project, models.Plot, models.Brief, models.Op, models.DesignVersion)
+        for model in (
+            models.Firm,
+            models.User,
+            models.Project,
+            models.Plot,
+            models.Brief,
+            models.Op,
+            models.DesignVersion,
+        )
     }
 
     second = await seed(session, SeedOptions())
@@ -177,7 +184,15 @@ async def test_seeding_twice_changes_nothing(session: Any) -> None:
 
     counts_after = {
         model.__name__: await _count(session, model)
-        for model in (models.Firm, models.User, models.Project, models.Plot, models.Brief, models.Op, models.DesignVersion)
+        for model in (
+            models.Firm,
+            models.User,
+            models.Project,
+            models.Plot,
+            models.Brief,
+            models.Op,
+            models.DesignVersion,
+        )
     }
     assert counts_after == counts_before, "a re-seed changed the row counts"
 
@@ -283,7 +298,7 @@ async def test_seed_report_names_what_is_missing(session: Any) -> None:
 
 
 async def test_demo_project_status_matches_what_was_actually_seeded(session: Any) -> None:
-    """"brief", not "design": the project is at the stage the data really reaches."""
+    """ "brief", not "design": the project is at the stage the data really reaches."""
     await seed(session, SeedOptions())
     await session.commit()
     project = (await session.execute(select(models.Project))).scalars().one()

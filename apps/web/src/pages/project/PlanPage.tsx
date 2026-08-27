@@ -114,12 +114,7 @@ import {
 } from '../../features/canvas/core';
 import { FacadeKitPanel } from '../../features/canvas/facade';
 import { swatchHex, useMaterialsCatalogue } from '../../features/canvas/materials';
-import {
-  buildingExtentOf,
-  NavModeHud,
-  SunPanel,
-  useNav3d,
-} from '../../features/canvas/sun';
+import { buildingExtentOf, NavModeHud, SunPanel, useNav3d } from '../../features/canvas/sun';
 import {
   ComplianceMarkerLayer,
   DimensionEditor,
@@ -353,7 +348,8 @@ function PlanEditor(): JSX.Element {
   const [tagSession, setTagSession] = useState<RoomTagEditSession | null>(null);
 
   const tagRoom = useMemo(
-    () => (tagSession === null ? null : (house.rooms.find((r) => r.id === tagSession.roomId) ?? null)),
+    () =>
+      tagSession === null ? null : (house.rooms.find((r) => r.id === tagSession.roomId) ?? null),
     [house.rooms, tagSession],
   );
   // A room deleted (or undone away) while its label is open takes the field
@@ -377,11 +373,7 @@ function PlanEditor(): JSX.Element {
       core.viewport.fitBbox(extent.box, { animate: false });
       return;
     }
-    const extent = planExtentMm(
-      doc.house,
-      useUiStore.getState().activeStoreyId,
-      doc.plot.boundary,
-    );
+    const extent = planExtentMm(doc.house, useUiStore.getState().activeStoreyId, doc.plot.boundary);
     if (extent === null) return;
     core.viewport.fitBbox(extent, { animate: true });
   }, [core]);
@@ -512,10 +504,12 @@ function PlanEditor(): JSX.Element {
           useSelectionStore.getState().clear();
           return;
         }
-        useSelectionStore.getState().selectHit(
-          { kind: hit.kind, id: hit.id, storeyId: hit.storeyId, pointMm: hit.pointMm },
-          event.shiftKey ? 'toggle' : 'replace',
-        );
+        useSelectionStore
+          .getState()
+          .selectHit(
+            { kind: hit.kind, id: hit.id, storeyId: hit.storeyId, pointMm: hit.pointMm },
+            event.shiftKey ? 'toggle' : 'replace',
+          );
         return;
       }
 
@@ -563,11 +557,13 @@ function PlanEditor(): JSX.Element {
   );
 
   const handleHover = useCallback((hit: PickHit | null) => {
-    useSelectionStore.getState().setHoverHit(
-      hit === null || hit.id === null || hit.kind === 'empty'
-        ? null
-        : { kind: hit.kind, id: hit.id, storeyId: hit.storeyId, pointMm: hit.pointMm },
-    );
+    useSelectionStore
+      .getState()
+      .setHoverHit(
+        hit?.id == null || hit.kind === 'empty'
+          ? null
+          : { kind: hit.kind, id: hit.id, storeyId: hit.storeyId, pointMm: hit.pointMm },
+      );
   }, []);
 
   // ── furniture: browser → tool settings, and drag-and-drop ────────────────
@@ -683,7 +679,9 @@ function PlanEditor(): JSX.Element {
                 <FurnitureBrowser className="pointer-events-auto absolute bottom-3 left-3 max-h-[60%] w-72 overflow-hidden rounded-lg border border-line bg-surface shadow-lg" />
               ) : null}
 
-              {isEmpty ? <PlanEmpty onOpenPlot={() => navigate(`/projects/${project.id}/brief`)} /> : null}
+              {isEmpty ? (
+                <PlanEmpty onOpenPlot={() => navigate(`/projects/${project.id}/brief`)} />
+              ) : null}
             </>
           ) : (
             <>
@@ -813,9 +811,7 @@ function PlanEditor(): JSX.Element {
         <OptionsOverlay
           projectId={project.id}
           plotOutline={plotBoundary}
-          briefReady={
-            plotBoundary.length >= 3 && (project.progress?.briefCompleteness ?? 0) > 0
-          }
+          briefReady={plotBoundary.length >= 3 && (project.progress?.briefCompleteness ?? 0) > 0}
           onClose={() => setOptionsOpen(false)}
         />
       ) : null}

@@ -22,13 +22,13 @@ import uuid
 from typing import Any
 
 import pytest
-
 from garh_api.errors import (
     ERROR_CODES,
     PROBLEM_CONTENT_TYPE,
     ServiceUnavailableError,
 )
 from garh_api.main import API_CONTENT_SECURITY_POLICY, REQUEST_ID_HEADER
+
 from tests.helpers import problem
 
 pytestmark = pytest.mark.integration
@@ -103,9 +103,7 @@ async def test_401_token_invalid(client: Any, api: str) -> None:
 
 
 async def test_403_permission_denied(client: Any, api: str, member_a: Any, project_a: Any) -> None:
-    response = await client.delete(
-        "%s/projects/%s" % (api, project_a.id), headers=member_a.headers
-    )
+    response = await client.delete("%s/projects/%s" % (api, project_a.id), headers=member_a.headers)
     assert response.status_code == 403
     assert problem(response)["code"] == "permission_denied"
 
@@ -204,7 +202,9 @@ async def test_404_share_link_invalid(client: Any, api: str) -> None:
 
 def test_503_service_unavailable_shape() -> None:
     """Asserted as a unit: taking Redis down mid-suite would break every other test."""
-    error = ServiceUnavailableError("Redis is unreachable.", dependency="redis", retry_after_seconds=5)
+    error = ServiceUnavailableError(
+        "Redis is unreachable.", dependency="redis", retry_after_seconds=5
+    )
     body = error.as_problem()
     assert error.http_status == 503
     assert body["code"] == "service_unavailable"
@@ -252,9 +252,7 @@ async def test_every_error_carries_a_request_id(client: Any, api: str, firm_a: A
 async def test_inbound_request_id_is_echoed(client: Any, api: str) -> None:
     """A client-supplied correlation id must survive, or tracing across services breaks."""
     supplied = "req-%s" % uuid.uuid4().hex[:12]
-    response = await client.get(
-        "%s/meta" % api, headers={REQUEST_ID_HEADER: supplied}
-    )
+    response = await client.get("%s/meta" % api, headers={REQUEST_ID_HEADER: supplied})
     assert response.headers[REQUEST_ID_HEADER] == supplied
 
 
@@ -352,9 +350,9 @@ async def test_meta_exposes_no_secrets(client: Any, api: str) -> None:
     # Providers are named honestly so the UI can say "renders: mock" (golden rule 4).
     assert body["providers"]["llm"] == "mock"
     assert body["providers"]["render"] == "mock"
-    assert body["providers"]["modelEngine"] == "ready", (
-        "the model core is not importable on this server, so no op can be validated"
-    )
+    assert (
+        body["providers"]["modelEngine"] == "ready"
+    ), "the model core is not importable on this server, so no op can be validated"
     # The client must be told the limits it has to respect (§11).
     assert body["limits"]["opsPerSecond"] == 60
     assert body["limits"]["opSnapshotInterval"] == 200

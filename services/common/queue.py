@@ -64,8 +64,14 @@ class RedisLike(Protocol):
     async def lrem(self, name: str, count: int, value: str) -> Any: ...
     async def ltrim(self, name: str, start: int, end: int) -> Any: ...
     async def lrange(self, name: str, start: int, end: int) -> Any: ...
+    # `timeout` mirrors redis-py's blmove signature — this Protocol must match it.
     async def blmove(
-        self, first_list: str, second_list: str, timeout: float, src: str, dest: str
+        self,
+        first_list: str,
+        second_list: str,
+        timeout: float,  # noqa: ASYNC109
+        src: str,
+        dest: str,
     ) -> Any: ...
     async def hset(
         self,
@@ -246,9 +252,7 @@ class RedisJobQueue:
     async def dead_letter(self, reservation: Reservation, *, reason: str) -> None:
         """Give up on a job, keeping a bounded record of why (golden rule 9)."""
         await self._release_lease(reservation.envelope.job_id, reservation.raw)
-        await self._push_dead(
-            reservation.raw, reason=reason, job_id=reservation.envelope.job_id
-        )
+        await self._push_dead(reservation.raw, reason=reason, job_id=reservation.envelope.job_id)
 
     async def release(self, reservation: Reservation) -> None:
         """Hand a job straight back — used on graceful shutdown, no attempt burned.
@@ -359,9 +363,7 @@ class RedisJobQueue:
     # cancellation (§15: jobs are cancellable and the UI says so honestly)
     # ------------------------------------------------------------------
     async def request_cancel(self, job_id: str) -> None:
-        await self.redis.set(
-            CANCEL_KEY_TEMPLATE % job_id, "1", ex=CANCEL_TTL_SECONDS
-        )
+        await self.redis.set(CANCEL_KEY_TEMPLATE % job_id, "1", ex=CANCEL_TTL_SECONDS)
 
     async def is_cancelled(self, job_id: str) -> bool:
         return bool(int(await self.redis.exists(CANCEL_KEY_TEMPLATE % job_id) or 0))

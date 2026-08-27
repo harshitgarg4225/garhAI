@@ -66,9 +66,7 @@ import {
 } from './types';
 
 /** `length` is the only number the wall tool takes from the keyboard. */
-const FIELDS: readonly NumericField[] = [
-  { id: 'length', label: 'Length', unit: 'mm', minMm: 1 },
-];
+const FIELDS: readonly NumericField[] = [{ id: 'length', label: 'Length', unit: 'mm', minMm: 1 }];
 
 export class WallTool extends BaseTool {
   readonly id: ToolId = 'wall';
@@ -234,9 +232,7 @@ export class WallTool extends BaseTool {
       const a = this.chain[i];
       const b = this.chain[i + 1];
       if (a === undefined || b === undefined) continue;
-      segments.push(
-        previewWall(a, b, ctx.settings.wallThicknessMm, ctx.settings.wallKind),
-      );
+      segments.push(previewWall(a, b, ctx.settings.wallThicknessMm, ctx.settings.wallKind));
     }
 
     const anchor = this.anchor();

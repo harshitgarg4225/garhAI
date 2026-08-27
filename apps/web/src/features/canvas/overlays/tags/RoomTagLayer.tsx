@@ -22,7 +22,14 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from '@react-three/drei';
-import { BufferAttribute, BufferGeometry, Matrix4, PlaneGeometry, Quaternion, Vector3 } from 'three';
+import {
+  BufferAttribute,
+  BufferGeometry,
+  Matrix4,
+  PlaneGeometry,
+  Quaternion,
+  Vector3,
+} from 'three';
 import type { InstancedMesh, Object3D } from 'three';
 
 import { useCanvasCore, usePickableInstances, WORLD_UNITS_PER_MM } from '../../core';
@@ -35,7 +42,13 @@ import {
 } from '../render/overlayMaterials';
 import { useScreenScale, useViewportEffect } from '../render/screenScale';
 import { placeLabels, shouldReplace, type PlacedLabel } from './placement';
-import { DEFAULT_TAG_STYLE, tagFitsOnScreen, tagsToPlaceable, type RoomTagVM, type TagStyle } from './tags';
+import {
+  DEFAULT_TAG_STYLE,
+  tagFitsOnScreen,
+  tagsToPlaceable,
+  type RoomTagVM,
+  type TagStyle,
+} from './tags';
 
 /**
  * Appended to a room id to make the AREA line's pick handle.
@@ -128,7 +141,7 @@ export function RoomTagLayer({
    * another's.
    */
   const items = useMemo(() => {
-    const out: Array<{ tag: RoomTagVM; placed: PlacedLabel }> = [];
+    const out: { tag: RoomTagVM; placed: PlacedLabel }[] = [];
     for (const tag of tags) {
       const placed = placedById.get(tag.roomId);
       if (placed !== undefined) out.push({ tag, placed });
@@ -158,7 +171,7 @@ export function RoomTagLayer({
   const pickGeometry = useMemo(() => new PlaneGeometry(1, 1), []);
   useEffect(() => () => pickGeometry.dispose(), [pickGeometry]);
 
-  const labelRefs = useRef<Array<Object3D | null>>([]);
+  const labelRefs = useRef<(Object3D | null)[]>([]);
   labelRefs.current.length = items.length;
 
   /**

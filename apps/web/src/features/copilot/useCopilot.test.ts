@@ -214,7 +214,12 @@ describe('client dry-run fold', () => {
   it('reports honestly when the ops no longer fold on the current doc', async () => {
     routeMock.propose.mockResolvedValue(
       proposal({
-        ops: [{ type: 'opening.resize', payload: { openingId: fixedId('opening', 'GONE'), widthMm: 900 } }],
+        ops: [
+          {
+            type: 'opening.resize',
+            payload: { openingId: fixedId('opening', 'GONE'), widthMm: 900 },
+          },
+        ],
         plainLanguage: [],
       }),
     );
@@ -261,9 +266,7 @@ describe('apply', () => {
     expect(dispatched.map((op) => ({ type: op.type, payload: op.payload }))).toEqual(
       WIRE_OPS.map((op) => ({ type: op.type, payload: op.payload })),
     );
-    const groupIds = new Set(
-      dispatched.map((op) => (op as { groupId?: string }).groupId),
-    );
+    const groupIds = new Set(dispatched.map((op) => (op as { groupId?: string }).groupId));
     expect([...groupIds]).toEqual([groupId]);
 
     // It went to the sequencer through the normal append, source 'copilot'.

@@ -22,7 +22,8 @@ needs nothing at all.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Sequence, Tuple
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 #: 230mm external masonry, 115mm partitions: the Indian brick module, and the two
 #: thicknesses every catalogue plan uses.
@@ -93,15 +94,15 @@ def _fixed_id(element_type: str, tag: str) -> str:
     return core.fixed_id(element_type, tag)
 
 
-def _pt(x: int, y: int) -> Dict[str, int]:
+def _pt(x: int, y: int) -> dict[str, int]:
     return {"x": x, "y": y}
 
 
 def _wall(
     tag: str,
     storey_id: str,
-    a: Tuple[int, int],
-    b: Tuple[int, int],
+    a: tuple[int, int],
+    b: tuple[int, int],
     thickness_mm: int,
     kind: str,
 ) -> Any:
@@ -138,16 +139,14 @@ def _opening(
     )
 
 
-def _assign_rooms(
-    house: Any, wanted: Sequence[Tuple[int, int, str, str]]
-) -> List[Any]:
+def _assign_rooms(house: Any, wanted: Sequence[tuple[int, int, str, str]]) -> list[Any]:
     """Build ``room.assign`` ops by matching each room's centroid to a table row.
 
     Room ids are *derived* — they fall out of the planar subdivision, so a fixture
     cannot know them in advance (``fixtures/model/README.md`` explains why they are also
     history-dependent). Matching on the containing point is stable regardless.
     """
-    out: List[Any] = []
+    out: list[Any] = []
     for x, y, room_type, name in wanted:
         for room in house.rooms:
             xs = [p.x for p in room.polygon]
@@ -196,7 +195,7 @@ def demo_3bhk_ground() -> Any:
     have real door-side walls to hug.
     """
     storey = _fixed_id("storey", "GF")
-    ops: List[Any] = [
+    ops: list[Any] = [
         _op(
             "plot.set_boundary",
             polygon=[_pt(0, 0), _pt(9144, 0), _pt(9144, 12192), _pt(0, 12192)],
@@ -260,7 +259,7 @@ def l_shaped_plan() -> Any:
     level 2, and a non-rectangular room dimensioned to its bounding box with a note.
     """
     storey = _fixed_id("storey", "LGF")
-    ops: List[Any] = [
+    ops: list[Any] = [
         _op("storey.add", id=storey, index=0, name="Ground Floor", heightMm=3000),
         _wall("LS", storey, (1200, 3000), (7950, 3000), EXTERNAL_MM, "external"),
         _wall("LE", storey, (7950, 3000), (7950, 8500), EXTERNAL_MM, "external"),
@@ -409,9 +408,9 @@ def json_plan_with_diagonal(storey_id: str = "storey_JSON") -> Mapping[str, Any]
 
 #: Every plan the smoke report and the tests walk, as ``(name, builder)``.
 #: JSON first so a broken model-core path still leaves something runnable.
-def all_plans() -> Tuple[Tuple[str, Any, str], ...]:
+def all_plans() -> tuple[tuple[str, Any, str], ...]:
     """``(name, house-or-json, storey_id)`` for every fixture, model core permitting."""
-    out: List[Tuple[str, Any, str]] = []
+    out: list[tuple[str, Any, str]] = []
     json_plan = json_plan_with_diagonal()
     out.append(("json-diagonal", json_plan, "storey_JSON"))
     for name, builder in (
@@ -424,7 +423,7 @@ def all_plans() -> Tuple[Tuple[str, Any, str], ...]:
     return tuple(out)
 
 
-def room_label_obstacles(house: Any, storey_id: str, *, box_mm: int = 1800) -> Tuple[Any, ...]:
+def room_label_obstacles(house: Any, storey_id: str, *, box_mm: int = 1800) -> tuple[Any, ...]:
     """Room-name blocks as the plan projector will place them: centred, per room.
 
     §7 step 4 says dims, text and symbols all register on one collision grid. The
@@ -432,9 +431,8 @@ def room_label_obstacles(house: Any, storey_id: str, *, box_mm: int = 1800) -> T
     helper builds the same boxes the projector will, which is what makes the smoke
     report's flip/shift/shrink/leader counts mean something.
     """
-    from services.drawings.dimensions import LabelBox
-
     from services.drawings.autodim.extract import collect_rooms
+    from services.drawings.dimensions import LabelBox
 
     out = []
     for room in collect_rooms(house, storey_id):

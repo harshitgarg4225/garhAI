@@ -195,9 +195,7 @@ export function subscribeJobEvents(options: JobEventOptions): () => void {
             // progress event. They are different wire shapes — parsing the row
             // as a progress event used to fail silently and drop the outcome.
             const parsed =
-              frame.event === 'state'
-                ? safeParseState(frame.data)
-                : safeParseEvent(frame.data);
+              frame.event === 'state' ? safeParseState(frame.data) : safeParseEvent(frame.data);
             if (!parsed) continue;
             // Dedupe across a reconnect replay.
             if (parsed.seq > 0 && parsed.seq <= lastSeq) continue;

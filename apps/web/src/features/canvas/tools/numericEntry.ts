@@ -151,7 +151,7 @@ export function feedKey(state: NumericEntryState, event: ToolKeyInput): EntrySte
     // Shift-Tab walks backwards, like every other field cycle in the app.
     const step = event.shiftKey ? -1 : 1;
     const count = state.fields.length;
-    const index = ((state.index + step) % count + count) % count;
+    const index = (((state.index + step) % count) + count) % count;
     // The buffer belongs to the field it was typed into, so switching clears it.
     return { state: { ...state, index, buffer: '' }, action: 'field' };
   }

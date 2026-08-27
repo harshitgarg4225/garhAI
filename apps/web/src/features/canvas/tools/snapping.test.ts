@@ -218,9 +218,13 @@ describe('resolveSnap', () => {
 
   it('excludes the walls it was told to, and drops to the grid', () => {
     const ctx = makeCtx();
-    const r = resolveSnap(ctx, { x: 6000, y: 4000 }, {
-      excludeIds: new Set([FIXTURE_IDS.wallEast, FIXTURE_IDS.wallNorth]),
-    });
+    const r = resolveSnap(
+      ctx,
+      { x: 6000, y: 4000 },
+      {
+        excludeIds: new Set([FIXTURE_IDS.wallEast, FIXTURE_IDS.wallNorth]),
+      },
+    );
     expect(r.candidate).toBeNull();
     expect(r.pointMm).toEqual({ x: 5980, y: 4025 });
   });

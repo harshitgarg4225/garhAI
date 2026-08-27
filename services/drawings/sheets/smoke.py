@@ -18,14 +18,13 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Tuple
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", ".."))
 _APPS_API = os.path.join(_REPO_ROOT, "apps", "api")
 
 
-def bootstrap() -> Tuple[str, ...]:
+def bootstrap() -> tuple[str, ...]:
     for path in (_REPO_ROOT, _APPS_API):
         if path not in sys.path:
             sys.path.insert(0, path)
@@ -77,16 +76,21 @@ def main() -> int:
     paper = plan_sheet.frame.paper
     print("")
     print("-" * 78)
-    print("composed %s (%s) on %s %dx%dmm" % (plan_sheet.number, plan_sheet.title, paper.name, paper.width_mm, paper.height_mm))
+    print(
+        "composed %s (%s) on %s %dx%dmm"
+        % (plan_sheet.number, plan_sheet.title, paper.name, paper.width_mm, paper.height_mm)
+    )
     print("transform: %s" % composed.transform.to_json())
-    print("fits: %s (needs %.1f x %.1fmm, has %.1f x %.1fmm)"
-          % (
-              composed.fit.fits,
-              composed.fit.required_paper_mm[0],
-              composed.fit.required_paper_mm[1],
-              composed.fit.available_paper_mm[0],
-              composed.fit.available_paper_mm[1],
-          ))
+    print(
+        "fits: %s (needs %.1f x %.1fmm, has %.1f x %.1fmm)"
+        % (
+            composed.fit.fits,
+            composed.fit.required_paper_mm[0],
+            composed.fit.required_paper_mm[1],
+            composed.fit.available_paper_mm[0],
+            composed.fit.available_paper_mm[1],
+        )
+    )
     for warning in composed.warnings:
         print("warning: %s" % warning)
     print("primitives: %d" % len(composed.primitives))

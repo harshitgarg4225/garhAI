@@ -31,8 +31,8 @@ linearly; for any other bearing stage A degrades to advisory scoring and says so
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
 
 from services.solver.geometry import (
     Polygon,
@@ -50,20 +50,20 @@ MAX_ENVELOPE_RECTS = 3
 
 #: Grid directions (plot-local, +Y = drawing up) → unit vectors. Compass conversion
 #: lives in :func:`grid_side_to_compass` / :func:`compass_to_grid_side`.
-GRID_SIDES: Tuple[str, ...] = ("E", "N", "W", "S")
-_SIDE_VECTORS: Dict[str, Tuple[int, int]] = {
+GRID_SIDES: tuple[str, ...] = ("E", "N", "W", "S")
+_SIDE_VECTORS: dict[str, tuple[int, int]] = {
     "E": (1, 0),
     "N": (0, 1),
     "W": (-1, 0),
     "S": (0, -1),
 }
-_VECTOR_SIDES: Dict[Tuple[int, int], str] = {v: k for k, v in _SIDE_VECTORS.items()}
+_VECTOR_SIDES: dict[tuple[int, int], str] = {v: k for k, v in _SIDE_VECTORS.items()}
 
 
 class GridError(ValueError):
     """An envelope this grid cannot honestly represent. Typed, never silent."""
 
-    def __init__(self, code: str, message: str, *, detail: Optional[str] = None) -> None:
+    def __init__(self, code: str, message: str, *, detail: str | None = None) -> None:
         super().__init__("%s — %s" % (code, message))
         self.code = code
         self.message = message
@@ -116,9 +116,9 @@ class Grid:
     module_mm: int
     cols: int
     rows: int
-    mask: Tuple[Tuple[bool, ...], ...]
-    rects: Tuple[CellRect, ...]
-    voids: Tuple[CellRect, ...]
+    mask: tuple[tuple[bool, ...], ...]
+    rects: tuple[CellRect, ...]
+    voids: tuple[CellRect, ...]
 
     # -- transforms (exact integers, both directions) -----------------------
     def cell_to_mm(self, col: int, row: int) -> Pt:
@@ -130,12 +130,12 @@ class Grid:
         x, y = self.cell_to_mm(col, row)
         return (x + half, y + half)
 
-    def rect_to_mm(self, rect: CellRect) -> Tuple[int, int, int, int]:
+    def rect_to_mm(self, rect: CellRect) -> tuple[int, int, int, int]:
         x1, y1 = self.cell_to_mm(rect.col1, rect.row1)
         x2, y2 = self.cell_to_mm(rect.col2, rect.row2)
         return (x1, y1, x2, y2)
 
-    def mm_to_cell(self, x_mm: int, y_mm: int) -> Tuple[int, int]:
+    def mm_to_cell(self, x_mm: int, y_mm: int) -> tuple[int, int]:
         """The cell whose half-open extent contains the point. Floor division —
         a point exactly on a module line belongs to the higher cell, matching the
         half-open rect convention."""
@@ -152,7 +152,7 @@ class Grid:
     def buildable_cell_count(self) -> int:
         return sum(1 for row in self.mask for cell in row if cell)
 
-    def bbox_mm(self) -> Tuple[int, int, int, int]:
+    def bbox_mm(self) -> tuple[int, int, int, int]:
         return (
             self.origin[0],
             self.origin[1],
@@ -212,10 +212,10 @@ def build_grid(polygon: Polygon, *, module_mm: int = COARSE_MODULE_MM) -> Grid:
         )
 
     half = module_mm // 2
-    mask_rows: List[Tuple[bool, ...]] = []
+    mask_rows: list[tuple[bool, ...]] = []
     for row in range(rows):
         y1 = min_y + row * module_mm
-        cells: List[bool] = []
+        cells: list[bool] = []
         for col in range(cols):
             x1 = min_x + col * module_mm
             probes = (
@@ -248,10 +248,10 @@ def build_grid(polygon: Polygon, *, module_mm: int = COARSE_MODULE_MM) -> Grid:
     )
 
 
-def _runs(cells: Sequence[bool], *, value: bool) -> List[Tuple[int, int]]:
+def _runs(cells: Sequence[bool], *, value: bool) -> list[tuple[int, int]]:
     """Half-open runs of ``value`` in a row of cells."""
-    runs: List[Tuple[int, int]] = []
-    start: Optional[int] = None
+    runs: list[tuple[int, int]] = []
+    start: int | None = None
     for index, cell in enumerate(cells):
         if cell == value and start is None:
             start = index
@@ -263,11 +263,11 @@ def _runs(cells: Sequence[bool], *, value: bool) -> List[Tuple[int, int]]:
     return runs
 
 
-def _bands(mask: Sequence[Sequence[bool]]) -> Optional[List[CellRect]]:
+def _bands(mask: Sequence[Sequence[bool]]) -> list[CellRect] | None:
     """Merge rows into rect bands. ``None`` when a row has 2+ buildable runs or
     the non-empty rows are not contiguous (not representable this way)."""
-    bands: List[CellRect] = []
-    previous_run: Optional[Tuple[int, int]] = None
+    bands: list[CellRect] = []
+    previous_run: tuple[int, int] | None = None
     seen_any = False
     for row, cells in enumerate(mask):
         runs = _runs(cells, value=True)
@@ -289,13 +289,13 @@ def _bands(mask: Sequence[Sequence[bool]]) -> Optional[List[CellRect]]:
     return bands
 
 
-def _transpose(mask: Sequence[Sequence[bool]]) -> Tuple[Tuple[bool, ...], ...]:
+def _transpose(mask: Sequence[Sequence[bool]]) -> tuple[tuple[bool, ...], ...]:
     rows = len(mask)
     cols = len(mask[0]) if rows else 0
     return tuple(tuple(mask[r][c] for r in range(rows)) for c in range(cols))
 
 
-def buildable_rects_of_mask(mask: Sequence[Sequence[bool]]) -> Tuple[CellRect, ...]:
+def buildable_rects_of_mask(mask: Sequence[Sequence[bool]]) -> tuple[CellRect, ...]:
     """Decompose the buildable cells into ≤3 rects (row bands, else column bands).
 
     Rect → 1, L → 2, T → 2 or 3, depending on orientation; anything needing more is
@@ -303,11 +303,11 @@ def buildable_rects_of_mask(mask: Sequence[Sequence[bool]]) -> Tuple[CellRect, .
     """
     row_bands = _bands(mask)
     transposed = _bands(_transpose(mask))
-    col_bands: Optional[List[CellRect]] = None
+    col_bands: list[CellRect] | None = None
     if transposed is not None:
         col_bands = [CellRect(b.row1, b.col1, b.row2, b.col2) for b in transposed]
 
-    best: Optional[List[CellRect]] = None
+    best: list[CellRect] | None = None
     for candidate in (row_bands, col_bands):
         if candidate is not None and (best is None or len(candidate) < len(best)):
             best = candidate
@@ -315,24 +315,21 @@ def buildable_rects_of_mask(mask: Sequence[Sequence[bool]]) -> Tuple[CellRect, .
         raise GridError(
             "UNSUPPORTED_SHAPE",
             "This envelope isn't a rectangle, L or T; the solver handles those three.",
-            detail=(
-                "buildable cells need %s rects"
-                % ("?" if best is None else str(len(best)))
-            ),
+            detail=("buildable cells need %s rects" % ("?" if best is None else str(len(best)))),
         )
     return tuple(best)
 
 
-def void_rects_of_mask(mask: Sequence[Sequence[bool]]) -> Tuple[CellRect, ...]:
+def void_rects_of_mask(mask: Sequence[Sequence[bool]]) -> tuple[CellRect, ...]:
     """The mandatory-void cells (§5.2) as merged rects — the mask's complement.
 
     Works on ANY mask (including :class:`services.solver.stages.GridSpec` masks), so
     §5.7's obstacle-transformed grids reuse it unchanged.
     """
-    voids: List[CellRect] = []
-    open_bands: Dict[Tuple[int, int], CellRect] = {}
+    voids: list[CellRect] = []
+    open_bands: dict[tuple[int, int], CellRect] = {}
     for row, cells in enumerate(mask):
-        current: Dict[Tuple[int, int], CellRect] = {}
+        current: dict[tuple[int, int], CellRect] = {}
         for run in _runs(cells, value=False):
             previous = open_bands.get(run)
             if previous is not None and previous.row2 == row:
@@ -353,7 +350,7 @@ def void_rects_of_mask(mask: Sequence[Sequence[bool]]) -> Tuple[CellRect, ...]:
 # ---------------------------------------------------------------------------
 
 
-def bbox_thirds(plot_bbox: Tuple[int, int, int, int]) -> Tuple[Tuple[int, int, int, int], ...]:
+def bbox_thirds(plot_bbox: tuple[int, int, int, int]) -> tuple[tuple[int, int, int, int], ...]:
     """The nine axis-aligned thirds of the plot bbox, row-major from the SW corner.
 
     Integer boundaries at ``min + extent * k // 3`` — exact, and consistent between
@@ -364,7 +361,7 @@ def bbox_thirds(plot_bbox: Tuple[int, int, int, int]) -> Tuple[Tuple[int, int, i
     height = max_y - min_y
     xs = (min_x, min_x + width // 3, min_x + (2 * width) // 3, max_x)
     ys = (min_y, min_y + height // 3, min_y + (2 * height) // 3, max_y)
-    out: List[Tuple[int, int, int, int]] = []
+    out: list[tuple[int, int, int, int]] = []
     for row in range(3):
         for col in range(3):
             out.append((xs[col], ys[row], xs[col + 1], ys[row + 1]))
@@ -372,8 +369,8 @@ def bbox_thirds(plot_bbox: Tuple[int, int, int, int]) -> Tuple[Tuple[int, int, i
 
 
 def zone_bands_mm(
-    plot_bbox: Tuple[int, int, int, int], north_deg: int
-) -> Optional[Dict[str, Tuple[int, int, int, int]]]:
+    plot_bbox: tuple[int, int, int, int], north_deg: int
+) -> dict[str, tuple[int, int, int, int]] | None:
     """Zone name → axis-aligned mm band, or ``None`` when north is not cardinal.
 
     Each of the nine bbox thirds is labelled by running its centre through the ONE
@@ -384,7 +381,7 @@ def zone_bands_mm(
     """
     if north_deg % 90 != 0:
         return None
-    bands: Dict[str, Tuple[int, int, int, int]] = {}
+    bands: dict[str, tuple[int, int, int, int]] = {}
     for rect in bbox_thirds(plot_bbox):
         centre = ((rect[0] + rect[2]) // 2, (rect[1] + rect[3]) // 2)
         bands[zone_for_point(centre, plot_bbox, north_deg)] = rect
@@ -395,17 +392,17 @@ def zone_bands_mm(
 
 
 def zone_of_cell(
-    grid: Grid, col: int, row: int, plot_bbox: Tuple[int, int, int, int], north_deg: int
+    grid: Grid, col: int, row: int, plot_bbox: tuple[int, int, int, int], north_deg: int
 ) -> str:
     """Which zone a cell's centre falls in. Thin, so nothing re-derives zones."""
     return zone_for_point(grid.cell_centre_mm(col, row), plot_bbox, north_deg)
 
 
 def cells_by_zone(
-    grid: Grid, plot_bbox: Tuple[int, int, int, int], north_deg: int
-) -> Dict[str, Tuple[Tuple[int, int], ...]]:
+    grid: Grid, plot_bbox: tuple[int, int, int, int], north_deg: int
+) -> dict[str, tuple[tuple[int, int], ...]]:
     """Buildable cells grouped by zone — the advisory-mode scoring input."""
-    out: Dict[str, List[Tuple[int, int]]] = {}
+    out: dict[str, list[tuple[int, int]]] = {}
     for row in range(grid.rows):
         for col in range(grid.cols):
             if grid.mask[row][col]:
@@ -420,14 +417,14 @@ def cells_by_zone(
 # ---------------------------------------------------------------------------
 
 
-def _rotate_quarter(vector: Tuple[int, int], quarters: int) -> Tuple[int, int]:
+def _rotate_quarter(vector: tuple[int, int], quarters: int) -> tuple[int, int]:
     x, y = vector
     for _ in range(quarters % 4):
         x, y = -y, x
     return (x, y)
 
 
-def grid_side_to_compass(side: str, north_deg: int) -> Optional[str]:
+def grid_side_to_compass(side: str, north_deg: int) -> str | None:
     """Plot-local grid side ('N' = +Y) → true-compass side, cardinal norths only.
 
     Matches :func:`zone_for_point`'s rotation convention exactly (its own test pins
@@ -441,7 +438,7 @@ def grid_side_to_compass(side: str, north_deg: int) -> Optional[str]:
     return _VECTOR_SIDES[_rotate_quarter(_SIDE_VECTORS[side], north_deg // 90)]
 
 
-def compass_to_grid_side(compass: str, north_deg: int) -> Optional[str]:
+def compass_to_grid_side(compass: str, north_deg: int) -> str | None:
     """True-compass side → plot-local grid side. Inverse of :func:`grid_side_to_compass`."""
     if north_deg % 90 != 0:
         return None

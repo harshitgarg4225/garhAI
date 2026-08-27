@@ -117,15 +117,15 @@ def setup_dimstyle(document: Any, *, scale_denominator: int = 100) -> Any:
     style.dxf.dimtxt = DIM_TEXT_HEIGHT_PAPER_MM
     style.dxf.dimdec = 0
     style.dxf.dimzin = 8
-    style.dxf.dimtsz = 1.0            # oblique ticks, size in paper mm
-    style.dxf.dimasz = 2.5            # arrow size (used by leaders)
-    style.dxf.dimexe = 1.25           # extension line beyond the dimension line
-    style.dxf.dimexo = 1.0            # gap between the object and its extension line
-    style.dxf.dimgap = 1.0            # gap around the text
-    style.dxf.dimtih = 0              # text aligned with the dimension line (inside)
-    style.dxf.dimtoh = 0              # ... and outside
-    style.dxf.dimtad = 1              # text above the dimension line
-    style.dxf.dimclrd = 1             # dimension line: ACI red, matching A-DIM
+    style.dxf.dimtsz = 1.0  # oblique ticks, size in paper mm
+    style.dxf.dimasz = 2.5  # arrow size (used by leaders)
+    style.dxf.dimexe = 1.25  # extension line beyond the dimension line
+    style.dxf.dimexo = 1.0  # gap between the object and its extension line
+    style.dxf.dimgap = 1.0  # gap around the text
+    style.dxf.dimtih = 0  # text aligned with the dimension line (inside)
+    style.dxf.dimtoh = 0  # ... and outside
+    style.dxf.dimtad = 1  # text above the dimension line
+    style.dxf.dimclrd = 1  # dimension line: ACI red, matching A-DIM
     style.dxf.dimclre = 1
     style.dxf.dimclrt = 1
     log.info("drawings.dxf.dimstyle_ready", name=DIMSTYLE_NAME, scale=scale_denominator)
@@ -143,9 +143,7 @@ def audit(document: Any) -> tuple[bool, tuple[str, ...]]:
 
     auditor = ezdxf_audit.Auditor(document)
     auditor.run()
-    messages = tuple(
-        str(entry) for entry in list(auditor.errors) + list(auditor.fixes)
-    )
+    messages = tuple(str(entry) for entry in list(auditor.errors) + list(auditor.fixes))
     return (not auditor.errors, messages)
 
 

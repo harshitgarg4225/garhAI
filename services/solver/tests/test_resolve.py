@@ -18,9 +18,10 @@ from __future__ import annotations
 import asyncio
 import sys
 import unittest
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 from services.solver import resolve
 from services.solver.envelope import derive_envelope
@@ -29,7 +30,6 @@ from services.solver.pipeline import (
     PRODUCTION_PROFILE,
     SolveContext,
     SolverProfile,
-    StageSet,
 )
 from services.solver.stages import Candidate, GridSpec, grid_envelope
 from services.solver.tests.test_pipeline import (
@@ -287,7 +287,7 @@ def test_strip_relocked_walls_detects_a_touched_lock() -> None:
 
 def test_locked_walls_untouched_detects_mutation() -> None:
     lockset = _locked_walls()
-    assert resolve.locked_walls_untouched(lockset, list(lockset) + [{"id": "wall_x"}])
+    assert resolve.locked_walls_untouched(lockset, [*list(lockset), {"id": "wall_x"}])
     mutated = (replace(lockset[0], b=(6_000, 1_500)),)
     assert not resolve.locked_walls_untouched(lockset, list(mutated))
     assert not resolve.locked_walls_untouched(lockset, [])
@@ -307,9 +307,9 @@ def test_resolve_profile_fits_the_budget() -> None:
     ), "per-candidate budget × candidate cap must fit the §5.7 budget"
 
     deterministic = resolve.resolve_profile(DETERMINISTIC_TEST_PROFILE)
-    assert deterministic.time_budget_seconds is None, (
-        "the deterministic profile keeps solution/branch limits — already bounded"
-    )
+    assert (
+        deterministic.time_budget_seconds is None
+    ), "the deterministic profile keeps solution/branch limits — already bounded"
 
 
 # ---------------------------------------------------------------------------
@@ -334,12 +334,12 @@ class ResolveFake(FakeSolver):
         *,
         profile: SolverProfile,
         relaxed: bool = False,
-    ) -> Optional[Candidate]:
+    ) -> Candidate | None:
         self.masked_cells_seen.append(grid.buildable_cells())
         self.residual_keys_seen.append(tuple(room.key for room in params.rooms))
         return super().stage_a(grid, params, anchor, profile=profile, relaxed=relaxed)
 
-    def stage_b(self, candidate: Candidate, params: Any, envelope: Any) -> Optional[Mapping[str, Any]]:
+    def stage_b(self, candidate: Candidate, params: Any, envelope: Any) -> Mapping[str, Any] | None:
         self.stage_b_calls.append(candidate.stair_anchor.id)
         if self.touch_lock:
             # Stage B "moved" the locked wall: same id, different geometry.
@@ -411,12 +411,13 @@ def test_run_resolve_masks_the_grid_and_solves_the_residual_program() -> None:
     outcome, _ = run_resolve_with(fake, params=params)
 
     unmasked = grid_envelope(make_envelope()).buildable_cells()
-    assert fake.masked_cells_seen and all(seen < unmasked for seen in fake.masked_cells_seen), (
-        "stage A must solve inside the residual space, never under a locked room"
-    )
-    assert fake.residual_keys_seen[0] == ("kitchen", "master"), (
-        "the locked living room is not re-solved"
-    )
+    assert fake.masked_cells_seen and all(
+        seen < unmasked for seen in fake.masked_cells_seen
+    ), "stage A must solve inside the residual space, never under a locked room"
+    assert fake.residual_keys_seen[0] == (
+        "kitchen",
+        "master",
+    ), "the locked living room is not re-solved"
     assert outcome.result.options, "the residual program still produces options"
 
 
@@ -432,9 +433,9 @@ def test_run_resolve_locked_rooms_rejoin_every_option_with_their_ids() -> None:
         placement = locked_placements[0]
         assert (placement.x_mm, placement.y_mm) == (1_500, 1_500)
         assert (placement.width_mm, placement.depth_mm) == (4_000, 4_000)
-        assert any("living@" in token for token in option.signature), (
-            "the locked room shapes the diversity signature too"
-        )
+        assert any(
+            "living@" in token for token in option.signature
+        ), "the locked room shapes the diversity signature too"
 
 
 def test_run_resolve_dedupes_shared_walls_with_locked_side_winning() -> None:
@@ -449,10 +450,9 @@ def test_run_resolve_discards_candidates_that_touch_a_locked_wall() -> None:
     fake = ResolveFake(touch_lock=True)
     outcome, recorder = run_resolve_with(fake)
     assert not outcome.result.options, "every candidate moved the lock ⇒ none survive"
-    diversity = [e for e in recorder.events if e["stage"] == "diversity"][0]
+    diversity = next(e for e in recorder.events if e["stage"] == "diversity")
     assert any(
-        d["stage"] == "stage-b" and "locked" in d["reason"]
-        for d in diversity["data"]["discards"]
+        d["stage"] == "stage-b" and "locked" in d["reason"] for d in diversity["data"]["discards"]
     ), "the §5.7 discard reason is logged per candidate"
     assert outcome.result.banner is not None, "zero options gets the honest banner"
 
@@ -461,9 +461,9 @@ def test_run_resolve_caps_candidates_and_budget() -> None:
     fake = ResolveFake(anchor_count=6)
     run_resolve_with(fake)
     solved_anchors = {call[0] for call in fake.stage_a_calls}
-    assert len(solved_anchors) <= resolve.RESOLVE_MAX_CANDIDATES, (
-        "§5.7 is an edit, not a generate: candidates are capped"
-    )
+    assert (
+        len(solved_anchors) <= resolve.RESOLVE_MAX_CANDIDATES
+    ), "§5.7 is an edit, not a generate: candidates are capped"
     profiles = {call[2] for call in fake.stage_a_calls}
     for profile in profiles:
         if profile.time_budget_seconds is not None:
@@ -503,7 +503,8 @@ def _ensure_garh_model() -> None:
     Jaccard primitive, because §3 makes that primitive the definition of "same room".
     """
     try:
-        import garh_model.geometry  # noqa: F401
+        import garh_model.geometry
+
         return
     except ImportError:
         pass
@@ -512,6 +513,7 @@ def _ensure_garh_model() -> None:
         sys.path.insert(0, str(api_dir))
         try:
             import garh_model.geometry  # noqa: F401
+
             return
         except ImportError:
             pass
@@ -543,9 +545,7 @@ def test_diff_matching_classifies_kept_moved_new_and_removed() -> None:
         # nowhere near anything old → new
         RoomPlacement("bath", "bath", 0, 1_500, 12_000, 2_000, 2_000),
     )
-    diffs = resolve.match_unlocked_rooms(
-        previous, placements, locked_ids=(LOCKED_ROOM_RAW["id"],)
-    )
+    diffs = resolve.match_unlocked_rooms(previous, placements, locked_ids=(LOCKED_ROOM_RAW["id"],))
     by_relation = {}
     for diff in diffs:
         by_relation.setdefault(diff.relation, []).append(diff)
@@ -572,9 +572,9 @@ def test_run_resolve_reports_diffs_for_the_best_option() -> None:
     outcome, _ = run_resolve_with(ResolveFake(), previous_rooms=previous)
     assert outcome.result.options
     extra = outcome.to_extra_data()
-    assert isinstance(extra["roomDiffs"], list) and extra["roomDiffs"], (
-        "a resolve with previousRooms must tell the diff story"
-    )
+    assert (
+        isinstance(extra["roomDiffs"], list) and extra["roomDiffs"]
+    ), "a resolve with previousRooms must tell the diff story"
     for diff in extra["roomDiffs"]:
         assert set(diff) <= {"relation", "jaccardX100", "newKey", "roomId"}
         assert isinstance(diff["jaccardX100"], int), "no floats on the wire"
@@ -595,7 +595,7 @@ if __name__ == "__main__":  # pragma: no cover
                 print("PASS %s" % name)
             except unittest.SkipTest as skip:
                 print("SKIP %s (%s)" % (name, skip))
-            except Exception:  # noqa: BLE001
+            except Exception:
                 failures += 1
                 print("FAIL %s" % name)
                 traceback.print_exc()

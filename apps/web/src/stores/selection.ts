@@ -231,8 +231,7 @@ export const useSelectionStore = create<SelectionState>()((set, get) => ({
     // hand us the same target twice (a re-render, a storey switch). Writing
     // anyway would notify every subscriber for nothing, sixty times a second.
     if (s.hoverId === nextId && (nextId !== null || s.hover === null)) return;
-    const kinds =
-      hit === null || hit.id === null ? s.kinds : { ...s.kinds, [hit.id]: hit.kind };
+    const kinds = hit?.id == null ? s.kinds : { ...s.kinds, [hit.id]: hit.kind };
     set({
       hoverId: nextId,
       hover: nextId === null ? null : hit,

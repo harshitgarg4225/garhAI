@@ -20,13 +20,13 @@ walls + two openings):
   Window Schedule, A-06 Area Statement. Worker timings: load 11ms, draw 23ms,
   publish 346ms, total 387ms.
 - **EXECUTED** — auto-dimensioning: 17 chains across the set, `chainSumOk:
-  true` (§7 step 5 — chains must sum exactly), 0 label collisions. The floor
+true` (§7 step 5 — chains must sum exactly), 0 label collisions. The floor
   plan carries 3 dimension levels (overall / wall runs / openings) both axes,
   plus per-room chains.
 - **EXECUTED** — `ezdxf.audit()` on the A-02 DXF: **0 errors, 0 fixes** (80,447
   bytes; the DoD's "opens without errors" clause). Layers follow the
   convention: `A-WALL, A-WALL-PART, A-DOOR, A-WIND, A-STAIR, A-DIM, A-TEXT,
-  A-AREA, A-TITL, Defpoints`. Content arrives as an INSERT (block reference),
+A-AREA, A-TITL, Defpoints`. Content arrives as an INSERT (block reference),
   which LibreCAD/ODA resolve; a human open in LibreCAD remains UNVERIFIED.
 - **EXECUTED** — the SVG twin renders the same sheet (13,626 bytes, 145
   elements) with the title block populated (sheet number, project, client,

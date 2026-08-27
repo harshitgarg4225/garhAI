@@ -270,7 +270,13 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
                 }
               />
 
-              <Button type="submit" variant="primary" fullWidth loading={busy} loadingLabel="Sending your code">
+              <Button
+                type="submit"
+                variant="primary"
+                fullWidth
+                loading={busy}
+                loadingLabel="Sending your code"
+              >
                 Send me a code
               </Button>
 
@@ -305,12 +311,16 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
               <div>
                 <h2 className="text-base font-semibold text-ink">Create your practice</h2>
                 <p className="mt-0.5 text-sm text-ink-muted">
-                  One firm, then invite the rest of the studio. We will email you a code to
-                  finish — there is no password.
+                  One firm, then invite the rest of the studio. We will email you a code to finish —
+                  there is no password.
                 </p>
               </div>
 
-              <Field label="Practice name" required hint="Appears in the title block of every sheet.">
+              <Field
+                label="Practice name"
+                required
+                hint="Appears in the title block of every sheet."
+              >
                 {({ id, describedBy, invalid }) => (
                   <Input
                     id={id}

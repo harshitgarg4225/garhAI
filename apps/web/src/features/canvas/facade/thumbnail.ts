@@ -144,7 +144,7 @@ export function elevationSpec(
   }
 
   // Facade boxes that face this elevation, painted nearest-last.
-  const projected: Array<ElevationRect & { readonly out: number }> = [];
+  const projected: (ElevationRect & { readonly out: number })[] = [];
   for (const component of components) {
     for (const box of boxesForComponent(house, component)) {
       const parallel = Math.abs(box.dirX * frame.dirX + box.dirY * frame.dirY);

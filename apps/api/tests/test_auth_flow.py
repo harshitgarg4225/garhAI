@@ -18,8 +18,8 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-
 from garh_api.security import REFRESH_COOKIE_NAME
+
 from tests.helpers import problem
 
 pytestmark = pytest.mark.integration
@@ -100,9 +100,7 @@ async def test_verify_sets_an_httponly_lax_path_scoped_cookie(
     runs as dev over plain http, where it is deliberately off (see conftest).
     """
     code = await _request_code(client, api, firm_a.email)
-    response = await client.post(
-        "%s/auth/verify" % api, json={"email": firm_a.email, "code": code}
-    )
+    response = await client.post("%s/auth/verify" % api, json={"email": firm_a.email, "code": code})
     assert response.status_code == 200, response.text
 
     raw = response.headers.get("set-cookie", "")
@@ -120,7 +118,9 @@ async def test_access_token_is_required_and_scoped_to_its_firm(
     session = await _sign_in(client, api, firm_a.email)
     headers = {"Authorization": "Bearer %s" % session["accessToken"]}
 
-    created = await client.post("%s/projects" % api, json={"name": "From a real token"}, headers=headers)
+    created = await client.post(
+        "%s/projects" % api, json={"name": "From a real token"}, headers=headers
+    )
     assert created.status_code == 201, created.text
 
     listed = await client.get("%s/projects" % api, headers=headers)

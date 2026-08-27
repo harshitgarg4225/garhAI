@@ -37,7 +37,9 @@ prints at 2.5 mm) and through paperspace, not by scaling the geometry.
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Sequence, Tuple
+import contextlib
+from collections.abc import Sequence
+from typing import Any
 
 from services.drawings.layers import LAYER_NAMES
 from services.drawings.render.primitives import (
@@ -111,8 +113,8 @@ def block_name(drawing: SheetDrawing, index: int) -> str:
 
 def sheet_extent_width_mm(drawing: SheetDrawing) -> int:
     """Model-space width of everything on a sheet, for the block layout gutter."""
-    lo: Optional[int] = None
-    hi: Optional[int] = None
+    lo: int | None = None
+    hi: int | None = None
     for group in drawing.groups:
         extent = group.extent_model_mm()
         if extent is None:
@@ -127,7 +129,7 @@ def sheet_extent_width_mm(drawing: SheetDrawing) -> int:
 class EzdxfMissing(RuntimeError):
     """``ezdxf`` is not importable. Carries the install command, never a fallback."""
 
-    def __init__(self, cause: Optional[BaseException] = None) -> None:
+    def __init__(self, cause: BaseException | None = None) -> None:
         super().__init__(EZDXF_INSTALL_HINT)
         self.cause = cause
 
@@ -193,7 +195,7 @@ def dxf_structure(drawing: SheetDrawing) -> dict:
 # ---------------------------------------------------------------------------
 # Writing
 # ---------------------------------------------------------------------------
-def _model_point(point: Pt2) -> Tuple[float, float]:
+def _model_point(point: Pt2) -> tuple[float, float]:
     """Model mm -> DXF coordinates. Identity, with the Y sign preserved.
 
     Written as a named function rather than inlined because it is the one place the
@@ -287,9 +289,7 @@ def _add_hatch(msp: Any, prim: Hatch) -> None:
             scale=float(prim.spacing_mm) / 100.0,
             angle=float(prim.angle_deg),
         )
-    hatch.paths.add_polyline_path(
-        [_model_point(vertex) for vertex in prim.outline], is_closed=True
-    )
+    hatch.paths.add_polyline_path([_model_point(vertex) for vertex in prim.outline], is_closed=True)
     for hole in prim.holes:
         # flags=0 makes the path a hole rather than an external boundary; without it a
         # stair well would come out filled.
@@ -406,7 +406,7 @@ def write_dxf(drawings: Sequence[SheetDrawing], path: str) -> dict:
     # Sheets are laid out left to right with a generous gutter, so nothing overlaps
     # whatever the buildings' extents are.
     cursor_x = 0
-    written: List[dict] = []
+    written: list[dict] = []
     for index, drawing in enumerate(drawings):
         structure = dxf_structure(drawing)
         written.append(structure)
@@ -451,7 +451,5 @@ def write_dxf_bytes(drawings: Sequence[SheetDrawing]) -> bytes:
         with open(path, "rb") as stream:
             return stream.read()
     finally:
-        try:
+        with contextlib.suppress(OSError):  # pragma: no cover
             os.unlink(path)
-        except OSError:  # pragma: no cover
-            pass

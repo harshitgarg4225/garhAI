@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The loader's job is to REFUSE, loudly. This module is that promise, tested.
 
 Playbook §6: "rejects unknown ``when`` fields and unknown check types LOUDLY (a
@@ -13,9 +11,11 @@ every value is marked ``seed``), because "the packs still load" is the cheapest
 regression test in the repo and the one that breaks most often while authoring.
 """
 
+from __future__ import annotations
+
 import json
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -40,7 +40,7 @@ from .conftest import (
 )
 
 
-def load_one(pack: Dict[str, Any], *more: Dict[str, Any], request: str = "") -> PackSet:
+def load_one(pack: dict[str, Any], *more: dict[str, Any], request: str = "") -> PackSet:
     """Write pack(s) to a temp dir and load the first (or ``request``)."""
     root = write_pack_dir(pack, *more)
     return PackLoader(root).load([request or pack["pack"]])
@@ -64,7 +64,7 @@ class TestShippedPacks:
         assert len(pack_set.rules) == 118
         # A child's rules always come after its parent's, which is the order a
         # compliance annexure reads in.
-        seen: List[str] = []
+        seen: list[str] = []
         for rule in pack_set.rules:
             if rule.pack_id not in seen:
                 seen.append(rule.pack_id)
@@ -130,7 +130,9 @@ class TestShippedPacks:
 
 class TestRejectsUnevaluableRules:
     def test_unknown_check_type(self) -> None:
-        pack = minimal_pack(rules=[minimal_rule(check={"type": "sunlight_hours_min", "valueMm": 1})])
+        pack = minimal_pack(
+            rules=[minimal_rule(check={"type": "sunlight_hours_min", "valueMm": 1})]
+        )
         with pytest.raises(PackLoadError) as excinfo:
             load_one(pack)
         assert "sunlight_hours_min" in str(excinfo.value)
@@ -156,17 +158,15 @@ class TestRejectsUnevaluableRules:
 
     def test_a_float_anywhere_is_a_schema_failure(self) -> None:
         """The schema's promise: there is not one floating-point number in a valid pack."""
-        pack = minimal_pack(rules=[minimal_rule(check={"type": "stair_riser_max", "valueMm": 190.5})])
+        pack = minimal_pack(
+            rules=[minimal_rule(check={"type": "stair_riser_max", "valueMm": 190.5})]
+        )
         with pytest.raises(SchemaValidationError):
             load_one(pack)
 
     def test_floors_max_counts_the_context_cannot_supply(self) -> None:
         pack = minimal_pack(
-            rules=[
-                minimal_rule(
-                    check={"type": "floors_max", "value": 3, "counts": ["mezzanine"]}
-                )
-            ]
+            rules=[minimal_rule(check={"type": "floors_max", "value": 3, "counts": ["mezzanine"]})]
         )
         with pytest.raises(PackLoadError) as excinfo:
             load_one(pack)
@@ -255,9 +255,7 @@ class TestRejectsUnevaluableRules:
     def test_unknown_custom_fn(self) -> None:
         pack = minimal_pack(
             rules=[
-                minimal_rule(
-                    check={"type": "custom", "fn": "feng_shui_score", "scope": "project"}
-                )
+                minimal_rule(check={"type": "custom", "fn": "feng_shui_score", "scope": "project"})
             ]
         )
         with pytest.raises(PackLoadError):
@@ -372,7 +370,7 @@ class TestRejectsOnARealPack:
         even if the schema were relaxed. Both are checked, because this is the typo
         that would otherwise make a rule apply to every plot or to none."""
 
-        def mutate(pack: Dict[str, Any]) -> None:
+        def mutate(pack: dict[str, Any]) -> None:
             rule = next(r for r in pack["rules"] if r["id"] == "blr.far.road.9-18m")
             rule["when"]["roadwidthMm"] = rule["when"].pop("roadWidthMm")
 
@@ -387,15 +385,19 @@ class TestRejectsOnARealPack:
         assert "closed context field set" in str(excinfo.value)
 
     def test_a_check_type_renamed_by_a_bad_merge(self) -> None:
-        def mutate(pack: Dict[str, Any]) -> None:
-            next(r for r in pack["rules"] if r["id"] == "blr.far.road.9-18m")["check"]["type"] = "fsi_max"
+        def mutate(pack: dict[str, Any]) -> None:
+            next(r for r in pack["rules"] if r["id"] == "blr.far.road.9-18m")["check"]["type"] = (
+                "fsi_max"
+            )
 
         error = self._blr_with(mutate)
         assert "fsi_max" in str(error)
 
     def test_a_ratio_written_as_a_decimal(self) -> None:
-        def mutate(pack: Dict[str, Any]) -> None:
-            next(r for r in pack["rules"] if r["id"] == "blr.far.road.9-18m")["check"]["ratio"] = 2.25
+        def mutate(pack: dict[str, Any]) -> None:
+            next(r for r in pack["rules"] if r["id"] == "blr.far.road.9-18m")["check"]["ratio"] = (
+                2.25
+            )
 
         assert isinstance(self._blr_with(mutate), SchemaValidationError)
 
@@ -483,10 +485,15 @@ class TestRejectsStructuralMistakes:
 
 
 class TestScoringPackValidation:
-    def _scoring_pack(self, **rule_overrides: Any) -> Dict[str, Any]:
+    def _scoring_pack(self, **rule_overrides: Any) -> dict[str, Any]:
         rule = minimal_rule(
             "tscore.stair.zone",
-            check={"type": "zone_check", "mode": "zone", "target": {"kind": "stair"}, "allow": ["S"]},
+            check={
+                "type": "zone_check",
+                "mode": "zone",
+                "target": {"kind": "stair"},
+                "allow": ["S"],
+            },
             weight=50,
             group="circulation",
         )
@@ -551,17 +558,17 @@ class TestOverrideResolution:
         child = minimal_pack(
             "tchild",
             extends="tparent",
-            rules=[minimal_rule("tchild.stair.riser", check={"type": "stair_riser_max", "valueMm": 175})],
+            rules=[
+                minimal_rule(
+                    "tchild.stair.riser", check={"type": "stair_riser_max", "valueMm": 175}
+                )
+            ],
             overrides=[
                 {
                     "ruleId": "tparent.stair.riser",
                     "action": action,
                     "reason": "the city is stricter than the national code",
-                    **(
-                        {"replacedBy": "tchild.stair.riser"}
-                        if action == "replace"
-                        else {}
-                    ),
+                    **({"replacedBy": "tchild.stair.riser"} if action == "replace" else {}),
                 }
             ],
         )
@@ -605,7 +612,11 @@ class TestVocabularyMerge:
         child = minimal_pack(
             "tchild",
             extends="tparent",
-            rules=[minimal_rule("tchild.stair.tread", check={"type": "stair_tread_min", "valueMm": 250})],
+            rules=[
+                minimal_rule(
+                    "tchild.stair.tread", check={"type": "stair_tread_min", "valueMm": 250}
+                )
+            ],
             vocabulary={"habitableRoomTypes": ["bedroom", "living"]},
         )
         vocabulary = load_one(child, parent, request="tchild").vocabulary
@@ -632,10 +643,10 @@ class TestSchemaEngineGuard:
         return root
 
     def test_a_when_field_the_engine_cannot_bind_breaks_the_load(self) -> None:
-        """"Add a field, bump schemaVersion, teach the engine" has to be enforceable,
+        """ "Add a field, bump schemaVersion, teach the engine" has to be enforceable,
         not aspirational."""
 
-        def mutate(schema: Dict[str, Any]) -> None:
+        def mutate(schema: dict[str, Any]) -> None:
             schema["$defs"]["predicate"]["properties"]["solarAccessHours"] = {
                 "$ref": "#/$defs/intPredicate"
             }
@@ -645,7 +656,7 @@ class TestSchemaEngineGuard:
         assert "solarAccessHours" in str(excinfo.value)
 
     def test_a_check_type_the_engine_does_not_implement_breaks_the_load(self) -> None:
-        def mutate(schema: Dict[str, Any]) -> None:
+        def mutate(schema: dict[str, Any]) -> None:
             schema["$defs"]["check"]["properties"]["type"]["enum"].append("daylight_factor_min")
 
         with pytest.raises(PackLoadError) as excinfo:
@@ -653,7 +664,7 @@ class TestSchemaEngineGuard:
         assert "daylight_factor_min" in str(excinfo.value)
 
     def test_a_custom_fn_with_no_implementation_breaks_the_load(self) -> None:
-        def mutate(schema: Dict[str, Any]) -> None:
+        def mutate(schema: dict[str, Any]) -> None:
             schema["$defs"]["check_custom"]["properties"]["fn"]["enum"].append("shadow_analysis")
 
         with pytest.raises(PackLoadError) as excinfo:
@@ -665,7 +676,7 @@ class TestSchemaEngineGuard:
         schema it only partly checked."""
         from garh_rules.errors import SchemaFeatureError
 
-        def mutate(schema: Dict[str, Any]) -> None:
+        def mutate(schema: dict[str, Any]) -> None:
             schema["$defs"]["rule"]["dependentRequired"] = {"weight": ["group"]}
 
         with pytest.raises(SchemaFeatureError) as excinfo:
@@ -728,7 +739,9 @@ class TestAutofixVetting:
                 if rule.autofix is not None and rule.autofix.op_type == drifted
             ]
             assert affected, drifted
-            assert all(rule.autofix is not None and not rule.autofix.computable for rule in affected)
+            assert all(
+                rule.autofix is not None and not rule.autofix.computable for rule in affected
+            )
 
 
 # ---------------------------------------------------------------------------

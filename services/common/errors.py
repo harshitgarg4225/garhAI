@@ -153,9 +153,7 @@ def is_retryable(exc: BaseException) -> bool:
         return False
     if isinstance(exc, WorkerError):
         return exc.retryable
-    if isinstance(exc, (MemoryError, KeyboardInterrupt, SystemExit)):
-        return False
-    return True
+    return not isinstance(exc, MemoryError | KeyboardInterrupt | SystemExit)
 
 
 #: Copy used when an unexpected exception reaches the runtime. §15: "error copy never

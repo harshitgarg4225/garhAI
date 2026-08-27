@@ -22,10 +22,10 @@ from __future__ import annotations
 
 import ast
 import os
-from typing import Iterator
+from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
-
 from garh_api.models import (
     ALL_TABLES,
     NON_TENANT_TABLES,
@@ -205,7 +205,7 @@ def test_routers_never_mention_the_escape_hatch() -> None:
     offenders = [
         _relative(path)
         for path in _python_files(routers)
-        if UNSCOPED_ESCAPE_HATCH in open(path, encoding="utf-8").read()
+        if UNSCOPED_ESCAPE_HATCH in Path(path).read_text(encoding="utf-8")
     ]
     assert not offenders, "%s appears in router module(s): %s" % (
         UNSCOPED_ESCAPE_HATCH,
@@ -266,12 +266,14 @@ def test_no_router_imports_the_orm_models() -> None:
     enum_suffixes = ("_ROLES", "_STATUSES", "_UNITS", "_SOURCES", "_MODES", "_KINDS")
     for path in sorted(_python_files(routers)):
         relative = _relative(path)
-        tree = ast.parse(open(path, encoding="utf-8").read(), filename=path)
+        tree = ast.parse(Path(path).read_text(encoding="utf-8"), filename=path)
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and (node.module or "").endswith("models"):
                 for alias in node.names:
                     if not alias.name.endswith(enum_suffixes):
-                        offenders.append("%s:%d imports models.%s" % (relative, node.lineno, alias.name))
+                        offenders.append(
+                            "%s:%d imports models.%s" % (relative, node.lineno, alias.name)
+                        )
             elif isinstance(node, ast.Import):
                 for alias in node.names:
                     if alias.name.endswith("garh_api.models"):
@@ -285,7 +287,7 @@ def test_no_router_imports_the_orm_models() -> None:
 
 
 def test_every_tenant_owned_table_has_an_indexed_firm_id() -> None:
-    """"Every tenant-owned table carries ``firm_id`` **plus an index**" (§2).
+    """ "Every tenant-owned table carries ``firm_id`` **plus an index**" (§2).
 
     Without the column the scoping is impossible; without the index it is a sequential
     scan per request, which is how a correct multi-tenant app becomes an unusable one.
@@ -310,7 +312,7 @@ def test_every_tenant_owned_table_has_an_indexed_firm_id() -> None:
         # A composite primary key or unique constraint leading with firm_id also serves.
         if not indexed:
             indexed = any(
-                constraint.columns.keys() and list(constraint.columns.keys())[0] == "firm_id"
+                constraint.columns.keys() and next(iter(constraint.columns.keys())) == "firm_id"
                 for constraint in table.constraints
                 if hasattr(constraint, "columns")
             )
@@ -332,9 +334,7 @@ def test_non_tenant_tables_are_the_documented_two() -> None:
 
 def test_all_tables_matches_the_metadata() -> None:
     """``ALL_TABLES`` drives the test truncation; a drift silently un-isolates the suite."""
-    assert set(ALL_TABLES) == set(Base.metadata.tables), (
-        set(ALL_TABLES) ^ set(Base.metadata.tables)
-    )
+    assert set(ALL_TABLES) == set(Base.metadata.tables), set(ALL_TABLES) ^ set(Base.metadata.tables)
 
 
 def test_firm_scoped_repositories_require_a_tenant_context() -> None:
@@ -397,11 +397,11 @@ def test_viewer_surface_imports_no_write_path(module: str) -> None:
     imported at module scope, because an import is how they become reachable.
     """
     path = os.path.join(API_ROOT, module.replace(".", os.sep) + ".py")
-    tree = ast.parse(open(path, encoding="utf-8").read(), filename=path)
+    tree = ast.parse(Path(path).read_text(encoding="utf-8"), filename=path)
 
     module_level_names: set[str] = set()
     for node in tree.body:
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
+        if isinstance(node, ast.Import | ast.ImportFrom):
             for alias in node.names:
                 module_level_names.add(alias.asname or alias.name.split(".")[-1])
 

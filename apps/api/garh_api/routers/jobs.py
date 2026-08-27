@@ -48,8 +48,9 @@ import asyncio
 import contextlib
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Any, AsyncIterator, Optional
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -183,7 +184,7 @@ def _events_url(request: Request, path: str) -> str:
     return str(request.base_url).rstrip("/") + settings.api_prefix + path
 
 
-async def _depth(worker: str) -> Optional[int]:
+async def _depth(worker: str) -> int | None:
     """Queue depth, or ``None`` when Redis could not answer.
 
     ``None`` renders as "unknown" in the UI. Reporting 0 for an unreachable queue would
@@ -197,8 +198,8 @@ async def _resolve_design_version(
     session: AsyncSession,
     ctx: TenantCtx,
     project_id: uuid.UUID,
-    supplied: Optional[uuid.UUID],
-) -> Optional[uuid.UUID]:
+    supplied: uuid.UUID | None,
+) -> uuid.UUID | None:
     """Pin work to a design version: the supplied one, else the project's latest.
 
     Renders and sheets are pinned so a result can be shown honestly against the design
@@ -287,9 +288,7 @@ async def start_solve(
         job = await SolverJobRepository(session, ctx).enqueue(project_id, params=params)
         # §5.7: a run with locked rooms is a partial re-solve, and the worker takes a
         # different path for it. The kind says so rather than the worker inferring it.
-        kind = (
-            queue.JOB_SOLVER_RESOLVE if body.locked_room_ids else queue.JOB_SOLVER_GENERATE
-        )
+        kind = queue.JOB_SOLVER_RESOLVE if body.locked_room_ids else queue.JOB_SOLVER_GENERATE
         depth = await _enqueue_or_rollback(
             queue.JobEnvelope(
                 job_id=str(job.id),
@@ -333,7 +332,7 @@ async def list_solver_jobs(
     session: SessionDep,
     ctx: TenantDep,
     limit: int = Query(default=20, ge=1, le=100),
-    cursor: Optional[str] = Query(default=None, max_length=512),
+    cursor: str | None = Query(default=None, max_length=512),
 ) -> CursorPage[SolverJobOut]:
     await require_project(session, ctx, project_id)
     page = await SolverJobRepository(session, ctx).list_for_project(
@@ -397,7 +396,7 @@ async def solver_job_events(
     job_id: uuid.UUID,
     request: Request,
     ctx: TenantDep,
-    last_event_id: Optional[str] = Header(default=None, alias="Last-Event-ID"),
+    last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
 ) -> EventSourceResponse:
     """Stream the real stage messages §15's "generation theater" renders."""
     async with session_scope() as session:
@@ -570,7 +569,7 @@ async def list_renders(
     session: SessionDep,
     ctx: TenantDep,
     limit: int = Query(default=30, ge=1, le=100),
-    cursor: Optional[str] = Query(default=None, max_length=512),
+    cursor: str | None = Query(default=None, max_length=512),
 ) -> CursorPage[RenderJobOut]:
     await require_project(session, ctx, project_id)
     ctx.require_scope("renders")
@@ -595,9 +594,7 @@ async def get_render_job(
     depth = await _depth(queue.WORKER_RENDER) if job.status == "queued" else None
     output_url = None
     if job.output_url:
-        token, _ = sign_download_token(
-            {"k": "render", "f": str(ctx.firm_id), "j": str(job_id)}
-        )
+        token, _ = sign_download_token({"k": "render", "f": str(ctx.firm_id), "j": str(job_id)})
         output_url = build_download_url(request, token)
     return RenderJobOut.of(
         job,
@@ -607,9 +604,7 @@ async def get_render_job(
     )
 
 
-@router.post(
-    "/render-jobs/{job_id}/cancel", response_model=RenderJobOut, summary="Cancel a render"
-)
+@router.post("/render-jobs/{job_id}/cancel", response_model=RenderJobOut, summary="Cancel a render")
 async def cancel_render_job(
     job_id: uuid.UUID,
     session: SessionDep,
@@ -634,7 +629,7 @@ async def render_job_events(
     job_id: uuid.UUID,
     request: Request,
     ctx: TenantDep,
-    last_event_id: Optional[str] = Header(default=None, alias="Last-Event-ID"),
+    last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
 ) -> EventSourceResponse:
     async with session_scope() as session:
         job = await RenderJobRepository(session, ctx).require(job_id)
@@ -730,14 +725,14 @@ async def generate_sheets(
         )
     )
 
-    existing = await SheetRepository(session, ctx).list_for_version(
-        project_id, design_version_id
-    )
+    existing = await SheetRepository(session, ctx).list_for_version(project_id, design_version_id)
     return SheetSetOut(
         project_id=project_id,
         design_version_id=design_version_id,
-        sheets=[SheetOut.of(sheet, artifacts=_sheet_artifacts(request, ctx, sheet))
-                for sheet in existing],
+        sheets=[
+            SheetOut.of(sheet, artifacts=_sheet_artifacts(request, ctx, sheet))
+            for sheet in existing
+        ],
         job=ExportJobOut.of(
             record, events_url=_events_url(request, "/export-jobs/%s/events" % job_id)
         ),
@@ -755,23 +750,20 @@ async def list_sheets(
     request: Request,
     session: SessionDep,
     ctx: TenantDep,
-    version: Optional[uuid.UUID] = Query(default=None, description="A design version id."),
+    version: uuid.UUID | None = Query(default=None, description="A design version id."),
 ) -> SheetSetOut:
     await require_project(session, ctx, project_id)
     ctx.require_scope("sheets")
     design_version_id = await _resolve_design_version(session, ctx, project_id, version)
     if design_version_id is None:
         return SheetSetOut(project_id=project_id, design_version_id=None, sheets=[])
-    sheets = await SheetRepository(session, ctx).list_for_version(
-        project_id, design_version_id
-    )
+    sheets = await SheetRepository(session, ctx).list_for_version(project_id, design_version_id)
     generated = [s.generated_at for s in sheets if s.generated_at is not None]
     return SheetSetOut(
         project_id=project_id,
         design_version_id=design_version_id,
         sheets=[
-            SheetOut.of(sheet, artifacts=_sheet_artifacts(request, ctx, sheet))
-            for sheet in sheets
+            SheetOut.of(sheet, artifacts=_sheet_artifacts(request, ctx, sheet)) for sheet in sheets
         ],
         generated_at=max(generated) if generated else None,
     )
@@ -785,9 +777,7 @@ def _sheet_artifacts(request: Request, ctx: TenantCtx, sheet: Any) -> dict[str, 
     """
     stored = dict(sheet.layout).get("artifacts")
     available = (
-        [fmt for fmt in SHEET_FORMATS if stored.get(fmt)]
-        if isinstance(stored, dict)
-        else []
+        [fmt for fmt in SHEET_FORMATS if stored.get(fmt)] if isinstance(stored, dict) else []
     )
     out: dict[str, str] = {}
     for fmt in available:
@@ -831,9 +821,7 @@ async def get_sheet_download(
         raise EntityNotFoundError("sheet", sheet_id)
     stored = dict(sheet.layout).get("artifacts")
     if not isinstance(stored, dict) or not stored.get(fmt):
-        raise ArtifactNotReadyError(
-            "That sheet hasn't been rendered as %s yet." % fmt.upper()
-        )
+        raise ArtifactNotReadyError("That sheet hasn't been rendered as %s yet." % fmt.upper())
     token, expires_at = sign_download_token(
         {"k": "sheet", "f": str(ctx.firm_id), "s": str(sheet_id), "x": fmt}
     )
@@ -989,14 +977,12 @@ async def export_job_events(
     job_id: str,
     request: Request,
     ctx: TenantDep,
-    last_event_id: Optional[str] = Header(default=None, alias="Last-Event-ID"),
+    last_event_id: str | None = Header(default=None, alias="Last-Event-ID"),
 ) -> EventSourceResponse:
     record = await queue.get_export_job(ctx.firm_id, job_id)
     if record is None:
         raise EntityNotFoundError("export_job", job_id)
-    return _stream_job(
-        request, job_id, ExportJobOut.of(record), last_event_id
-    )
+    return _stream_job(request, job_id, ExportJobOut.of(record), last_event_id)
 
 
 # ---------------------------------------------------------------------------
@@ -1036,7 +1022,7 @@ async def redeem_download(token: str, request: Request) -> Response:
             action="Open the project and download again.",
         )
 
-    target: Optional[str] = None
+    target: str | None = None
     filename = "download"
 
     if kind == "export":
@@ -1052,8 +1038,8 @@ async def redeem_download(token: str, request: Request) -> Response:
         # presigned GET the worker reported at completion: those expire in ≤10 minutes
         # (§13), so a link opened fifteen minutes later landed on an S3 "Request has
         # expired" page. Same fix, same reason, as the sheet and render branches below.
-        from garh_api.routers.sheets import EXPORT_ARTEFACTS, export_object_key
         from garh_api.routers.imports import _sigv4_presign
+        from garh_api.routers.sheets import EXPORT_ARTEFACTS, export_object_key
 
         settings = get_settings()
         # The render client pack also lands as a `png-pack` export record, but it built
@@ -1075,7 +1061,9 @@ async def redeem_download(token: str, request: Request) -> Response:
         # Sheet and render artifacts are rows, so redemption re-reads them through a
         # firm-scoped repository. The token's firm id is only a lookup hint — the
         # repository is what enforces the boundary, exactly as on an authenticated path.
-        ctx = TenantCtx.for_system(uuid.UUID(firm_id), request_id=request.headers.get("x-request-id"))
+        ctx = TenantCtx.for_system(
+            uuid.UUID(firm_id), request_id=request.headers.get("x-request-id")
+        )
         async with session_scope() as session:
             if kind == "sheet":
                 sheet = await SheetRepository(session, ctx).require(
@@ -1166,7 +1154,7 @@ async def record_download(
 # ---------------------------------------------------------------------------
 
 
-def _parse_last_event_id(raw: Optional[str]) -> int:
+def _parse_last_event_id(raw: str | None) -> int:
     """``Last-Event-ID`` → a sequence number. Anything unreadable replays from zero.
 
     Replaying too much is a cosmetic flicker; replaying too little loses the event that
@@ -1184,7 +1172,7 @@ def _stream_job(
     request: Request,
     job_id: Any,
     initial: Any,
-    last_event_id: Optional[str],
+    last_event_id: str | None,
 ) -> EventSourceResponse:
     """Wrap :func:`queue.progress_stream` as SSE, opening with the current row state."""
     after_seq = _parse_last_event_id(last_event_id)
@@ -1209,7 +1197,7 @@ def _stream_job(
                 }
         except asyncio.CancelledError:  # pragma: no cover - client went away
             raise
-        except Exception as exc:  # noqa: BLE001 - a broken stream must close cleanly
+        except Exception as exc:
             _log.warning(
                 "sse.stream_failed",
                 job_id=str(job_id),
@@ -1243,9 +1231,7 @@ def _stream_job(
 # ---------------------------------------------------------------------------
 
 
-async def apply_lifecycle_record(
-    session: AsyncSession, record: queue.LifecycleRecord
-) -> bool:
+async def apply_lifecycle_record(session: AsyncSession, record: queue.LifecycleRecord) -> bool:
     """Apply one worker lifecycle event to its job row. True if a row was written.
 
     Runs under ``TenantCtx.for_system(firm_id)``: the firm comes from the envelope the
@@ -1279,9 +1265,7 @@ async def apply_lifecycle_record(
         elif record.type == "succeeded":
             output_url = event.data.get("outputUrl")
             if not output_url:
-                await repo_r.fail(
-                    job_id, "The render finished but produced no image. Try again."
-                )
+                await repo_r.fail(job_id, "The render finished but produced no image. Try again.")
             else:
                 await repo_r.succeed(job_id, str(output_url))
         elif record.type in ("failed", "dead_lettered"):
@@ -1306,9 +1290,7 @@ def _problem_message(event: queue.ProgressEvent) -> str:
     return "%s %s" % (text, action) if action else text
 
 
-async def _apply_drawings_lifecycle(
-    session: AsyncSession, record: queue.LifecycleRecord
-) -> bool:
+async def _apply_drawings_lifecycle(session: AsyncSession, record: queue.LifecycleRecord) -> bool:
     """Update the Redis-backed job record, and persist a finished sheet set.
 
     Returns True when a database row was written, so the caller's contract ("True if a
@@ -1360,9 +1342,7 @@ async def _apply_drawings_lifecycle(
     return wrote_rows
 
 
-async def consume_job_events(
-    consumer_name: str, *, stop: Optional[asyncio.Event] = None
-) -> None:
+async def consume_job_events(consumer_name: str, *, stop: asyncio.Event | None = None) -> None:
     """Background loop: drain ``garh:events:jobs`` into job rows. Runs for the app's life.
 
     Started from the lifespan hook in ``main.py``. Safe to run on every API replica —
@@ -1382,10 +1362,8 @@ async def consume_job_events(
             records = await queue.read_job_events(consumer_name)
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001 - never let the loop die
-            _log.error(
-                "job_events.read_failed", error="%s: %s" % (type(exc).__name__, exc)
-            )
+        except Exception as exc:
+            _log.error("job_events.read_failed", error="%s: %s" % (type(exc).__name__, exc))
             await asyncio.sleep(2.0)
             continue
 
@@ -1402,7 +1380,7 @@ async def consume_job_events(
                 )
             except asyncio.CancelledError:
                 raise
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 # Deliberately NOT acknowledged: the entry stays pending so it can be
                 # retried or inspected. A silently dropped `succeeded` is a job the user
                 # watches spin forever.
@@ -1421,12 +1399,10 @@ def start_job_event_consumer(app: Any) -> asyncio.Task[None]:
     """Spawn :func:`consume_job_events` and remember it on ``app.state``."""
     stop = asyncio.Event()
     consumer_name = "api-%s-%s" % (
-        datetime.now(timezone.utc).strftime("%H%M%S"),
+        datetime.now(UTC).strftime("%H%M%S"),
         uuid.uuid4().hex[:8],
     )
-    task = asyncio.create_task(
-        consume_job_events(consumer_name, stop=stop), name="garh-job-events"
-    )
+    task = asyncio.create_task(consume_job_events(consumer_name, stop=stop), name="garh-job-events")
     app.state.job_event_stop = stop
     app.state.job_event_task = task
     return task

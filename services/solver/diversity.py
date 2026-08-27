@@ -15,7 +15,7 @@ by signature, then by id) and nothing iterates over an unordered set.
 
 from __future__ import annotations
 
-from typing import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from services.solver.geometry import bbox, zone_for_point
 from services.solver.types import BuildableEnvelope, PlanOption, RoomPlacement
@@ -58,7 +58,8 @@ def signature(
     """
     plot_bbox = bbox(envelope.polygon)
     tokens = [
-        "%s@%s" % (
+        "%s@%s"
+        % (
             placement.room_type,
             zone_for_point(placement.centroid(), plot_bbox, north_deg),
         )
@@ -66,7 +67,7 @@ def signature(
         if placement.room_type in SIGNIFICANT_ROOM_TYPES
     ]
     tokens.sort()
-    return tuple(tokens) + ("stair:%s" % stair_anchor_id,)
+    return (*tuple(tokens), "stair:%s" % stair_anchor_id)
 
 
 def hamming_distance(first: Sequence[str], second: Sequence[str]) -> int:
@@ -119,14 +120,10 @@ def select_diverse(
     for option in ranked:
         if len(kept) >= limit:
             break
-        if is_diverse_enough(
-            option.signature, kept_signatures, minimum=minimum_distance
-        ):
+        if is_diverse_enough(option.signature, kept_signatures, minimum=minimum_distance):
             kept.append(option)
             kept_signatures.append(option.signature)
-    return tuple(
-        _reranked(option, rank) for rank, option in enumerate(kept)
-    )
+    return tuple(_reranked(option, rank) for rank, option in enumerate(kept))
 
 
 def _reranked(option: PlanOption, rank: int) -> PlanOption:

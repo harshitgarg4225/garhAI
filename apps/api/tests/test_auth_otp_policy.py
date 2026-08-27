@@ -17,14 +17,14 @@ passage of time: the control being tested *is* the stored timestamp.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
-from sqlalchemy import select, update
-
 from garh_api import models
 from garh_api.config import Settings
+from sqlalchemy import select, update
+
 from tests.helpers import problem
 
 pytestmark = pytest.mark.integration
@@ -66,10 +66,7 @@ async def test_expired_code_is_rejected_even_though_it_is_correct(
         update(models.OtpCode)
         .where(models.OtpCode.email == firm_a.email)
         .where(models.OtpCode.consumed_at.is_(None))
-        .values(
-            expires_at=datetime.now(timezone.utc)
-            - timedelta(seconds=1)
-        )
+        .values(expires_at=datetime.now(UTC) - timedelta(seconds=1))
     )
     await session.commit()
 
@@ -87,17 +84,19 @@ async def test_issued_code_expires_ten_minutes_out(
     client: Any, api: str, session: Any, firm_a: Any, settings: Settings
 ) -> None:
     """The stored expiry is the §13 window, not a longer one someone widened by hand."""
-    before = datetime.now(timezone.utc)
+    before = datetime.now(UTC)
     await _issue(client, api, firm_a.email)
 
     row = (
-        await session.execute(
-            select(models.OtpCode).where(models.OtpCode.email == firm_a.email)
-        )
-    ).scalars().one()
+        (await session.execute(select(models.OtpCode).where(models.OtpCode.email == firm_a.email)))
+        .scalars()
+        .one()
+    )
     ttl = row.expires_at - before
-    assert timedelta(seconds=settings.otp_ttl_seconds - 5) <= ttl <= timedelta(
-        seconds=settings.otp_ttl_seconds + 5
+    assert (
+        timedelta(seconds=settings.otp_ttl_seconds - 5)
+        <= ttl
+        <= timedelta(seconds=settings.otp_ttl_seconds + 5)
     ), ttl
     assert settings.otp_ttl_seconds == 600
 
@@ -134,8 +133,7 @@ async def test_five_wrong_attempts_burn_the_challenge(
     exhausted = await _verify(client, api, firm_a.email, code)
     assert exhausted.status_code == 400, (
         "the correct code still worked after %d wrong attempts — the five-attempt cap is "
-        "not being persisted (see AuthService._persist_failure_record)"
-        % settings.otp_max_attempts
+        "not being persisted (see AuthService._persist_failure_record)" % settings.otp_max_attempts
     )
     assert problem(exhausted)["code"] == "otp_invalid"
 
@@ -155,10 +153,14 @@ async def test_attempt_counter_is_persisted_per_attempt(
         await _verify(client, api, firm_a.email, wrong)
         session.expire_all()
         row = (
-            await session.execute(
-                select(models.OtpCode).where(models.OtpCode.email == firm_a.email)
+            (
+                await session.execute(
+                    select(models.OtpCode).where(models.OtpCode.email == firm_a.email)
+                )
             )
-        ).scalars().one()
+            .scalars()
+            .one()
+        )
         assert row.attempts == expected, (
             "after %d wrong attempt(s) the row says %d — the increment is being rolled "
             "back with the 401" % (expected, row.attempts)
@@ -177,8 +179,10 @@ async def test_reaching_the_cap_consumes_the_challenge_row(
 
     session.expire_all()
     row = (
-        await session.execute(select(models.OtpCode).where(models.OtpCode.email == firm_a.email))
-    ).scalars().one()
+        (await session.execute(select(models.OtpCode).where(models.OtpCode.email == firm_a.email)))
+        .scalars()
+        .one()
+    )
     assert row.attempts == settings.otp_max_attempts
     assert row.consumed_at is not None
 
@@ -224,9 +228,7 @@ async def test_malformed_codes_are_rejected_at_the_boundary(
 ) -> None:
     """Pydantic strict validation, not the comparison, handles these (§13 input)."""
     await _issue(client, api, firm_a.email)
-    response = await client.post(
-        "%s/auth/verify" % api, json={"email": firm_a.email, "code": code}
-    )
+    response = await client.post("%s/auth/verify" % api, json={"email": firm_a.email, "code": code})
     assert response.status_code in (400, 422), response.text
     body = problem(response)
     assert body["code"] in ("validation_failed", "otp_invalid", "invalid_request"), body

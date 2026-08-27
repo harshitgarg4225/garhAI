@@ -121,7 +121,7 @@ export function normaliseLengthInput(raw: string): string {
   return s;
 }
 
-const UNIT_ALIASES: ReadonlyArray<readonly [RegExp, number]> = [
+const UNIT_ALIASES: readonly (readonly [RegExp, number])[] = [
   [/^(?:mm|millimetre|millimetres|millimeter|millimeters)$/, 1],
   [/^(?:cm|centimetre|centimetres|centimeter|centimeters)$/, MM_PER_CM],
   [/^(?:m|mt|mtr|metre|metres|meter|meters)$/, MM_PER_METRE],
@@ -213,7 +213,7 @@ export function parseLengthMm(raw: string, defaultUnit: 'mm' | 'ft-in' | 'm' = '
 
   // --- 3. "12 ft 6 in" / "12 feet 6 inches"
   const ftInWords = /^([0-9.]+)\s*(?:ft|foot|feet)\s*([0-9 /.]+)?\s*(?:in|inch|inches)?$/.exec(s);
-  if (ftInWords && ftInWords[2] !== undefined && ftInWords[2].trim() !== '') {
+  if (ftInWords?.[2] !== undefined && ftInWords[2].trim() !== '') {
     const feet = Number(ftInWords[1]);
     const inches = parseMixedNumber(ftInWords[2]);
     if (inches === null) throw new UnitParseError(raw, `cannot read inches "${ftInWords[2]}"`);
@@ -542,7 +542,7 @@ export function formatIndianDate(d: Date | string): string {
  *
  * Each row is `[input, expectedMm]` parsed with `defaultUnit: 'mm'`.
  */
-export const GOLDEN_UNIT_PAIRS: ReadonlyArray<readonly [string, number]> = [
+export const GOLDEN_UNIT_PAIRS: readonly (readonly [string, number])[] = [
   // --- zero and identity
   ['0', 0],
   ['0mm', 0],

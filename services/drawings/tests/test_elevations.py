@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 for _path in (str(_REPO_ROOT), str(_REPO_ROOT / "apps" / "api")):
@@ -49,15 +48,8 @@ STUBBED = install_worker_dep_stubs()
 
 from garh_model.geometry import Pt, polygon_contains  # noqa: E402
 from garh_model.model import effective_lintel_mm, effective_sill_mm  # noqa: E402
+
 from services.drawings.dimensions import assert_chains_sum, find_label_collisions  # noqa: E402
-from services.drawings.layers import LAYER_NAMES  # noqa: E402
-from services.drawings.projection.primitives import (  # noqa: E402
-    Polyline,
-    by_owner,
-    find_unsafe_text,
-    primitives_digest,
-    validate_primitives,
-)
 from services.drawings.elevations.callouts import callout_text  # noqa: E402
 from services.drawings.elevations.demo_house import (  # noqa: E402
     DEMO_IDS,
@@ -89,6 +81,14 @@ from services.drawings.elevations.vertical import (  # noqa: E402
     normals_of,
     point_in_ring,
     subtract_intervals,
+)
+from services.drawings.layers import LAYER_NAMES  # noqa: E402
+from services.drawings.projection.primitives import (  # noqa: E402
+    Polyline,
+    by_owner,
+    find_unsafe_text,
+    primitives_digest,
+    validate_primitives,
 )
 
 # One fold, reused: folding is the slow part and every test wants the same house.
@@ -124,7 +124,7 @@ def test_levels_are_read_from_the_model_not_reconstructed() -> None:
 def test_level_markers_match_the_model_exactly() -> None:
     """Every marker is a model level; every model level has a marker. No extras."""
     levels = HOUSE.levels
-    expected: Dict[int, List[str]] = {0: ["GROUND LVL (NGL)"], levels.plinth_mm: ["PLINTH LVL"]}
+    expected: dict[int, list[str]] = {0: ["GROUND LVL (NGL)"], levels.plinth_mm: ["PLINTH LVL"]}
     for index, storey in enumerate(HOUSE.storeys):
         ffl = levels.ffl_per_storey_mm[index]
         for value in (
@@ -145,9 +145,7 @@ def test_level_markers_match_the_model_exactly() -> None:
             sorted(expected),
         )
     # The two labels that must coincide, because the ground FFL *is* the plinth top.
-    ground_marker = next(
-        m for m in ELEVATIONS["N"].level_markers if m.level_mm == levels.plinth_mm
-    )
+    ground_marker = next(m for m in ELEVATIONS["N"].level_markers if m.level_mm == levels.plinth_mm)
     assert "PLINTH LVL" in ground_marker.labels
     assert any(label.endswith("FFL") for label in ground_marker.labels)
 
@@ -263,7 +261,10 @@ def test_visible_openings_reports_what_it_hid() -> None:
         storey_levels={s.storey_id: (s.ffl_mm, s.top_mm) for s in levels.storeys},
     )
     openings, notes = visible_openings(
-        HOUSE, faces=faces, u_axis=u_axis, storey_ffl={s.storey_id: s.ffl_mm for s in levels.storeys}
+        HOUSE,
+        faces=faces,
+        u_axis=u_axis,
+        storey_ffl={s.storey_id: s.ffl_mm for s in levels.storeys},
     )
     assert len(openings) == 2, "one north window per storey"
     hidden = len(HOUSE.openings) - len(openings)
@@ -283,7 +284,7 @@ def test_an_opening_behind_a_nearer_wall_is_occluded() -> None:
     from garh_model.ops import op
     from garh_model.testing import fixed_id
 
-    def pt(x: int, y: int) -> Dict[str, int]:
+    def pt(x: int, y: int) -> dict[str, int]:
         return {"x": x, "y": y}
 
     wing_walls = []
@@ -344,7 +345,9 @@ def test_outward_normals_are_found_by_probing_not_by_winding() -> None:
     footprint2 = footprint_of(reversed_doc.house, DEMO_IDS["gf"])
     assert footprint2 is not None
     assert outward_normal_of(flipped, footprint2) == NORMALS["S"]
-    assert by_owner(build_elevation(reversed_doc.house, "S", OPTIONS).primitives, DEMO_IDS["gf_door"])
+    assert by_owner(
+        build_elevation(reversed_doc.house, "S", OPTIONS).primitives, DEMO_IDS["gf_door"]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -537,13 +540,12 @@ if __name__ == "__main__":  # pragma: no cover
             try:
                 fn()
                 print("PASS %s" % name)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 failures += 1
                 print("FAIL %s" % name)
                 traceback.print_exc()
     _report()
     print(
-        "\n%d test(s) failed. Stubbed dependencies: %s"
-        % (failures, ", ".join(STUBBED) or "none")
+        "\n%d test(s) failed. Stubbed dependencies: %s" % (failures, ", ".join(STUBBED) or "none")
     )
     sys.exit(1 if failures else 0)

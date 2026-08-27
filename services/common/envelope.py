@@ -55,9 +55,7 @@ JOB_KINDS_BY_WORKER: dict[str, tuple[str, ...]] = {
 }
 
 #: Flat tuple of all known kinds.
-JOB_KINDS: tuple[str, ...] = tuple(
-    kind for kinds in JOB_KINDS_BY_WORKER.values() for kind in kinds
-)
+JOB_KINDS: tuple[str, ...] = tuple(kind for kinds in JOB_KINDS_BY_WORKER.values() for kind in kinds)
 
 
 def now_ms() -> int:
@@ -309,9 +307,7 @@ class JobEnvelope:
 
     def encode(self) -> str:
         """Canonical JSON for the wire (sorted keys, no whitespace)."""
-        return json.dumps(
-            self.to_json(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
-        )
+        return json.dumps(self.to_json(), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
     @classmethod
     def from_json(cls, data: Any) -> JobEnvelope:
@@ -454,7 +450,7 @@ def _int(value: Any, *, where: str, minimum: int | None = None) -> int:
             "We could not read this job.",
             detail="%s must be >= %d (got %d)" % (where, minimum, value),
         )
-    return value
+    return int(value)
 
 
 __all__ = [

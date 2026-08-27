@@ -17,16 +17,7 @@
 import { useMemo, useState, type DragEvent } from 'react';
 
 import { ROOM_TYPE_LABELS, type RoomType, type UnitsDisplay } from '@garh/model';
-import {
-  Chip,
-  EmptyState,
-  Icon,
-  Input,
-  SkeletonText,
-  Tooltip,
-  cn,
-  type IconName,
-} from '@garh/ui';
+import { Chip, EmptyState, Icon, Input, SkeletonText, Tooltip, cn, type IconName } from '@garh/ui';
 
 import {
   filterByRoomType,
@@ -80,10 +71,7 @@ export function FurnitureBrowser({ roomType, className }: FurnitureBrowserProps)
     return groupByCategory(searchItems(scoped, query));
   }, [items, activeRoomFilter, query]);
 
-  const total = useMemo(
-    () => groups.reduce((sum, group) => sum + group.items.length, 0),
-    [groups],
-  );
+  const total = useMemo(() => groups.reduce((sum, group) => sum + group.items.length, 0), [groups]);
 
   return (
     <section
@@ -155,8 +143,18 @@ export function FurnitureBrowser({ roomType, className }: FurnitureBrowserProps)
             }
             action={
               activeRoomFilter === null
-                ? { label: 'Clear search', onClick: () => { setQuery(''); } }
-                : { label: 'Show everything', onClick: () => { setFilterOn(false); } }
+                ? {
+                    label: 'Clear search',
+                    onClick: () => {
+                      setQuery('');
+                    },
+                  }
+                : {
+                    label: 'Show everything',
+                    onClick: () => {
+                      setFilterOn(false);
+                    },
+                  }
             }
             demoAction={{ notApplicable: 'Searching the catalogue needs no demo data.' }}
           />
@@ -187,8 +185,7 @@ export function FurnitureBrowser({ roomType, className }: FurnitureBrowserProps)
       </div>
 
       <footer className="border-t border-line px-2 py-1.5 text-xs text-ink-subtle">
-        Drag onto the plan, or click to load it and click where it goes.
-        {' '}
+        Drag onto the plan, or click to load it and click where it goes.{' '}
         <span className="whitespace-nowrap">R rotates 90°.</span>
       </footer>
     </section>

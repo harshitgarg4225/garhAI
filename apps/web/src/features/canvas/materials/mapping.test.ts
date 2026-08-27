@@ -134,9 +134,7 @@ describe('SURFACE_PICKS × fixtures/catalog/materials.json', () => {
     expect(floors).not.toContain('ms-railing');
 
     const railings = idsFor('railing');
-    expect(railings).toEqual(
-      expect.arrayContaining(['ms-railing', 'ss-railing', 'glass-railing']),
-    );
+    expect(railings).toEqual(expect.arrayContaining(['ms-railing', 'ss-railing', 'glass-railing']));
     expect(railings).not.toContain('granite-flooring');
 
     const trim = idsFor('cladding');

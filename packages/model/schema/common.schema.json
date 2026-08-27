@@ -33,7 +33,10 @@
     "StairId": { "type": "string", "pattern": "^stair_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
     "SlabId": { "type": "string", "pattern": "^slab_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
     "ColumnId": { "type": "string", "pattern": "^column_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
-    "FurnitureId": { "type": "string", "pattern": "^furniture_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
+    "FurnitureId": {
+      "type": "string",
+      "pattern": "^furniture_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$"
+    },
     "BalconyId": { "type": "string", "pattern": "^balcony_[0-7][0-9ABCDEFGHJKMNPQRSTVWXYZ]{25}$" },
     "FacadeComponentId": {
       "type": "string",

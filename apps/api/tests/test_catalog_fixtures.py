@@ -21,7 +21,6 @@ import os
 from typing import Any
 
 import pytest
-
 from garh_api.seed.catalog import (
     FACADE_KIT_IDS,
     MIN_FURNITURE_ITEMS,
@@ -120,15 +119,15 @@ NAMED_DIMENSIONS: tuple[tuple[str, tuple[int, int]], ...] = (
 )
 
 
-@pytest.mark.parametrize(("label", "dimensions"), NAMED_DIMENSIONS, ids=[n for n, _ in NAMED_DIMENSIONS])
+@pytest.mark.parametrize(
+    ("label", "dimensions"), NAMED_DIMENSIONS, ids=[n for n, _ in NAMED_DIMENSIONS]
+)
 def test_playbook_named_items_exist_with_the_named_dimensions(
     furniture: list[dict[str, Any]], label: str, dimensions: tuple[int, int]
 ) -> None:
     """§17 lists these by number. An architect spots a wrong one instantly; a test should too."""
     wanted = {dimensions, (dimensions[1], dimensions[0])}
-    matches = [
-        item["id"] for item in furniture if (item["widthMm"], item["depthMm"]) in wanted
-    ]
+    matches = [item["id"] for item in furniture if (item["widthMm"], item["depthMm"]) in wanted]
     assert matches, "no catalogue item is %s (%d x %d mm)" % (label, *dimensions)
 
 
@@ -143,7 +142,8 @@ def test_playbook_named_depths(
     matches = [
         item["id"]
         for item in furniture
-        if item["depthMm"] == depth and category_hint.split()[0] in (item["id"] + item["name"].lower())
+        if item["depthMm"] == depth
+        and category_hint.split()[0] in (item["id"] + item["name"].lower())
     ]
     assert matches, "nothing resembling a %s at %d mm deep" % (category_hint, depth)
 
@@ -154,9 +154,7 @@ def test_playbook_named_depths(
 
 
 @pytest.mark.parametrize("field", ["widthMm", "depthMm", "heightMm"])
-def test_every_dimension_is_a_positive_integer(
-    furniture: list[dict[str, Any]], field: str
-) -> None:
+def test_every_dimension_is_a_positive_integer(furniture: list[dict[str, Any]], field: str) -> None:
     """§3: geometry is integer millimetres. ``True`` is an int in Python and is not a length."""
     offenders = [
         (item["id"], item[field])
@@ -196,9 +194,7 @@ def test_no_float_anywhere_in_the_catalogue_files() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_every_room_type_that_should_hold_furniture_does(
-    furniture: list[dict[str, Any]]
-) -> None:
+def test_every_room_type_that_should_hold_furniture_does(furniture: list[dict[str, Any]]) -> None:
     """A room type with no furniture is an empty palette and a silent zero fit score."""
     stocked = {room_type for item in furniture for room_type in item["roomTypes"]}
     expected = set(ROOM_TYPES) - set(ROOM_TYPES_WITHOUT_FURNITURE)
@@ -210,7 +206,7 @@ def test_every_room_type_that_should_hold_furniture_does(
 
 
 def test_no_furniture_names_a_room_type_the_model_does_not_have(
-    furniture: list[dict[str, Any]]
+    furniture: list[dict[str, Any]],
 ) -> None:
     """A typo here makes an item unreachable from the tool, with no error."""
     unknown = sorted(
@@ -318,7 +314,7 @@ def test_an_unknown_room_type_is_rejected() -> None:
 def test_a_third_facade_kit_is_rejected(facade_kits: list[dict[str, Any]]) -> None:
     """The cut line is enforced, not merely documented."""
     with pytest.raises(SeedDataError, match="MVP cut line"):
-        validate_facade_kits(facade_kits + [dict(facade_kits[0], id="art-deco")])
+        validate_facade_kits([*facade_kits, dict(facade_kits[0], id="art-deco")])
 
 
 # ---------------------------------------------------------------------------
@@ -347,8 +343,7 @@ def test_seed_packs_do_not_claim_review_they_have_not_had() -> None:
     for pack in registry.packs:
         if pack.get("confidence") == "seed":
             assert pack["reviewStatus"] != "reviewed", (
-                "%s claims confidence 'seed' but review status 'reviewed' — pick one"
-                % pack["id"]
+                "%s claims confidence 'seed' but review status 'reviewed' — pick one" % pack["id"]
             )
 
 
@@ -362,9 +357,9 @@ def test_catalog_index_documents_the_files_it_ships() -> None:
         index = json.load(handle)
     assert index["schemaVersion"] == 1
     assert set(index["facadeKitIds"]) == set(FACADE_KIT_IDS)
-    assert set(index["roomTypesWithoutFurniture"]) == set(ROOM_TYPES_WITHOUT_FURNITURE), (
-        "the manifest and garh_api.seed.catalog disagree about which rooms hold no furniture"
-    )
+    assert set(index["roomTypesWithoutFurniture"]) == set(
+        ROOM_TYPES_WITHOUT_FURNITURE
+    ), "the manifest and garh_api.seed.catalog disagree about which rooms hold no furniture"
 
     declared = {entry["name"]: entry for entry in index["files"]}
     assert set(declared) == {"furniture.json", "materials.json", "facade-kits.json"}

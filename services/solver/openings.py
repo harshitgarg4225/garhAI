@@ -53,14 +53,13 @@ fixed one keeps the JSON byte-stable.
 from __future__ import annotations
 
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 from services.solver.walls import (
     AdjacencySpan,
     CellLayout,
-    ExternalSpan,
     WallNetwork,
     WallSpec,
 )
@@ -109,7 +108,7 @@ DEFAULT_WINDOW_WIDTH_MM = 1200
 class OpeningError(ValueError):
     """A layout whose openings cannot satisfy §5.3. Typed discard reason."""
 
-    def __init__(self, code: str, message: str, *, detail: Optional[str] = None) -> None:
+    def __init__(self, code: str, message: str, *, detail: str | None = None) -> None:
         super().__init__("%s — %s" % (code, message))
         self.code = code
         self.message = message
@@ -133,7 +132,7 @@ class OpeningSpec:
     #: 'main-entrance' | 'internal' | 'bath' for doors; kind name otherwise.
     role: str
     #: For doors: the room the door leads FROM (circulation side), else None.
-    from_key: Optional[str] = None
+    from_key: str | None = None
 
 
 @dataclass(frozen=True)
@@ -166,7 +165,7 @@ def _ensure_apps_api_on_path() -> None:
         sys.path.append(str(candidate))
 
 
-def load_nbc_limits(root: Optional[str] = None) -> NbcOpeningLimits:
+def load_nbc_limits(root: str | None = None) -> NbcOpeningLimits:
     """Pull the opening limits from the nbc-core rule pack.
 
     Lazy import: the pack loader is pure stdlib, but keeping it out of module
@@ -213,7 +212,7 @@ def _to_local(wall: WallSpec, value_on_axis: int) -> int:
     return value_on_axis - a if b >= a else a - value_on_axis
 
 
-def _span_local(wall: WallSpec, lo: int, hi: int) -> Tuple[int, int]:
+def _span_local(wall: WallSpec, lo: int, hi: int) -> tuple[int, int]:
     """Absolute span → wall-local, clipped to the wall's own extent."""
     s1 = _to_local(wall, lo)
     s2 = _to_local(wall, hi)
@@ -225,25 +224,27 @@ class _WallOccupancy:
     """Occupied intervals per wall, so openings never collide or crowd."""
 
     def __init__(self) -> None:
-        self._used: Dict[int, List[Tuple[int, int]]] = {}
+        self._used: dict[int, list[tuple[int, int]]] = {}
 
     def blocked(self, wall_index: int, lo: int, hi: int) -> bool:
         for u1, u2 in self._used.get(wall_index, []):
-            if min(hi + OPENING_GAP_MM, u2 + OPENING_GAP_MM) - max(lo - OPENING_GAP_MM, u1 - OPENING_GAP_MM) > 0:
-                if hi > u1 - OPENING_GAP_MM and lo < u2 + OPENING_GAP_MM:
-                    return True
+            if (
+                min(hi + OPENING_GAP_MM, u2 + OPENING_GAP_MM)
+                - max(lo - OPENING_GAP_MM, u1 - OPENING_GAP_MM)
+                > 0
+            ) and (hi > u1 - OPENING_GAP_MM and lo < u2 + OPENING_GAP_MM):
+                return True
         return False
 
     def claim(self, wall_index: int, lo: int, hi: int) -> None:
         self._used.setdefault(wall_index, []).append((lo, hi))
 
-    def free_intervals(self, wall_index: int, lo: int, hi: int) -> List[Tuple[int, int]]:
+    def free_intervals(self, wall_index: int, lo: int, hi: int) -> list[tuple[int, int]]:
         """Sub-intervals of [lo, hi] clear of existing openings (+gap)."""
         blocks = sorted(
-            (u1 - OPENING_GAP_MM, u2 + OPENING_GAP_MM)
-            for u1, u2 in self._used.get(wall_index, [])
+            (u1 - OPENING_GAP_MM, u2 + OPENING_GAP_MM) for u1, u2 in self._used.get(wall_index, [])
         )
-        out: List[Tuple[int, int]] = []
+        out: list[tuple[int, int]] = []
         cursor = lo
         for b1, b2 in blocks:
             if b2 <= lo or b1 >= hi:
@@ -263,7 +264,7 @@ def _fit_opening(
     span_lo_local: int,
     span_hi_local: int,
     width_mm: int,
-) -> Optional[int]:
+) -> int | None:
     """Deterministic centre offset for an opening, or None when nothing fits.
 
     Preference order: hinge corner (span start) first, then +115 steps.
@@ -276,13 +277,15 @@ def _fit_opening(
     centre = lo + width_mm // 2
     last = hi - (width_mm - width_mm // 2)
     while centre <= last:
-        if not occupancy.blocked(wall_index, centre - width_mm // 2, centre + (width_mm - width_mm // 2)):
+        if not occupancy.blocked(
+            wall_index, centre - width_mm // 2, centre + (width_mm - width_mm // 2)
+        ):
             return centre
         centre += NUDGE_MM
     return None
 
 
-def _room_side_is_left(wall: WallSpec, room_centre: Tuple[int, int]) -> bool:
+def _room_side_is_left(wall: WallSpec, room_centre: tuple[int, int]) -> bool:
     ax, ay = wall.a
     bx, by = wall.b
     cx, cy = room_centre
@@ -301,9 +304,9 @@ def place_doors(
     *,
     limits: NbcOpeningLimits,
     door_height_mm: int = 2100,
-    entry_outward: Optional[str] = None,
-    occupancy: Optional[_WallOccupancy] = None,
-) -> Tuple[Tuple[OpeningSpec, ...], Optional[OpeningSpec], _WallOccupancy]:
+    entry_outward: str | None = None,
+    occupancy: _WallOccupancy | None = None,
+) -> tuple[tuple[OpeningSpec, ...], OpeningSpec | None, _WallOccupancy]:
     """All doors for one storey: ``(internal doors, main door or None, occupancy)``.
 
     Ground storey (``storey_index == 0``) gets a main entrance door on the entry
@@ -313,13 +316,9 @@ def place_doors(
     occ = occupancy if occupancy is not None else _WallOccupancy()
     rooms = {r.key: r for r in layout.rooms}
 
-    circulation = {
-        r.key for r in layout.rooms if r.room_type in CIRCULATION_ROOM_TYPES
-    }
+    circulation = {r.key for r in layout.rooms if r.room_type in CIRCULATION_ROOM_TYPES}
     if not circulation:
-        circulation = {
-            r.key for r in layout.rooms if r.room_type in FALLBACK_CIRCULATION_TYPES
-        }
+        circulation = {r.key for r in layout.rooms if r.room_type in FALLBACK_CIRCULATION_TYPES}
     if not circulation:
         raise OpeningError(
             "UNREACHABLE_ROOM",
@@ -328,7 +327,7 @@ def place_doors(
         )
 
     # Reachability root.
-    main_door: Optional[OpeningSpec] = None
+    main_door: OpeningSpec | None = None
     if layout.storey_index == 0:
         entry_key = _pick_entry_room(layout, network, circulation, entry_outward)
         main_door = _place_main_door(
@@ -336,9 +335,7 @@ def place_doors(
         )
         roots = {entry_key}
     else:
-        stair_keys = sorted(
-            r.key for r in layout.rooms if r.room_type == "staircase"
-        )
+        stair_keys = sorted(r.key for r in layout.rooms if r.room_type == "staircase")
         if not stair_keys:
             raise OpeningError(
                 "UNREACHABLE_ROOM",
@@ -361,17 +358,17 @@ def place_doors(
                     reached.add(a)
                     changed = True
 
-    doors: List[OpeningSpec] = []
+    doors: list[OpeningSpec] = []
     pending = sorted(
         k for k, r in rooms.items() if k not in reached and r.room_type not in SERVICE_VOID_TYPES
     )
     # Pass 1: door from circulation. Pass 2+: en-suite chaining off reached rooms.
     #: room key → why its last attempt failed, for the honest discard message.
-    unfit: Dict[str, str] = {}
+    unfit: dict[str, str] = {}
     progress = True
     while pending and progress:
         progress = False
-        still_pending: List[str] = []
+        still_pending: list[str] = []
         for key in pending:
             spans = _serving_spans(network, key, reached, circulation)
             if not spans:
@@ -383,8 +380,14 @@ def place_doors(
                 # new, wider span, so this is retryable — not yet a discard.
                 width = door_width_for(rooms[key].room_type, limits)
                 longest = max(s.hi - s.lo for s in spans)
-                unfit[key] = "a %dmm door into %r does not fit any of its %d shared span(s) (longest %dmm)" % (
-                    width, key, len(spans), longest,
+                unfit[key] = (
+                    "a %dmm door into %r does not fit any of its %d shared span(s) (longest %dmm)"
+                    % (
+                        width,
+                        key,
+                        len(spans),
+                        longest,
+                    )
                 )
                 still_pending.append(key)
                 continue
@@ -413,21 +416,30 @@ def _pick_entry_room(
     layout: CellLayout,
     network: WallNetwork,
     circulation: set,
-    entry_outward: Optional[str],
+    entry_outward: str | None,
 ) -> str:
     """The room the main door opens into. Deterministic preference order:
     circulation room with frontage on the entry side, then any frontage,
     then any circulation room; ties by type priority then key."""
-    priority = {"foyer": 0, "lobby": 1, "passage": 2, "staircase": 3, "living": 4, "living_dining": 5}
+    priority = {
+        "foyer": 0,
+        "lobby": 1,
+        "passage": 2,
+        "staircase": 3,
+        "living": 4,
+        "living_dining": 5,
+    }
 
-    def type_rank(key: str) -> Tuple[int, str]:
+    def type_rank(key: str) -> tuple[int, str]:
         return (priority.get(layout.room(key).room_type, 9), key)
 
     with_entry_frontage = sorted(
         {
             s.room_key
             for s in network.external_spans
-            if s.room_key in circulation and entry_outward is not None and s.outward == entry_outward
+            if s.room_key in circulation
+            and entry_outward is not None
+            and s.outward == entry_outward
         },
         key=type_rank,
     )
@@ -449,15 +461,13 @@ def _place_main_door(
     entry_key: str,
     limits: NbcOpeningLimits,
     door_height_mm: int,
-    entry_outward: Optional[str],
-) -> Optional[OpeningSpec]:
+    entry_outward: str | None,
+) -> OpeningSpec | None:
     spans = network.external_spans_of(entry_key)
     if not spans:
         return None
     preferred = [s for s in spans if entry_outward is not None and s.outward == entry_outward]
-    ordered = sorted(
-        preferred or list(spans), key=lambda s: (-(s.hi - s.lo), s.wall_index, s.lo)
-    )
+    ordered = sorted(preferred or list(spans), key=lambda s: (-(s.hi - s.lo), s.wall_index, s.lo))
     width = limits.door_main_min_mm
     room = layout.room(entry_key)
     centre = ((room.x1 + room.x2) // 2, (room.y1 + room.y2) // 2)
@@ -492,7 +502,7 @@ def _serving_spans(
     room_key: str,
     reached: set,
     circulation: set,
-) -> List[AdjacencySpan]:
+) -> list[AdjacencySpan]:
     """Every usable shared span with a reached room, best first: circulation
     rooms before en-suite chaining, longest span first, ties by wall then start.
 
@@ -503,14 +513,14 @@ def _serving_spans(
     of the pipeline showed exactly that failure.
     """
 
-    def usable(span: AdjacencySpan) -> Optional[Tuple[int, AdjacencySpan]]:
+    def usable(span: AdjacencySpan) -> tuple[int, AdjacencySpan] | None:
         other = span.high_room if span.low_room == room_key else span.low_room
         if other not in reached:
             return None
         rank = 0 if other in circulation else 1
         return (rank, span)
 
-    candidates: List[Tuple[int, int, int, int, AdjacencySpan]] = []
+    candidates: list[tuple[int, int, int, int, AdjacencySpan]] = []
     for span in network.adjacencies_of(room_key):
         entry = usable(span)
         if entry is None:
@@ -538,7 +548,7 @@ def _place_room_door(
     spans: Sequence[AdjacencySpan],
     limits: NbcOpeningLimits,
     door_height_mm: int,
-) -> Optional[OpeningSpec]:
+) -> OpeningSpec | None:
     """The room's door on the first span (in preference order) it fits.
 
     ``None`` when no span can take it — the caller decides whether that is
@@ -592,26 +602,36 @@ def place_windows(
     sill_mm: int = 900,
     lintel_mm: int = 2100,
     road_outwards: frozenset = frozenset(),
-) -> Tuple[OpeningSpec, ...]:
+) -> tuple[OpeningSpec, ...]:
     """Windows for habitable rooms + kitchens, ventilators for baths.
 
     ``clear_areas`` maps room key → clear floor area (mm²) — the same number the
     rules engine will divide by, so requirement and check cannot disagree.
     """
-    out: List[OpeningSpec] = []
+    out: list[OpeningSpec] = []
     for room in layout.rooms:  # already sorted by key — deterministic
         if room.room_type in _HABITABLE_TYPES or room.room_type in _KITCHEN_TYPES:
             out.extend(
                 _room_windows(
-                    layout, network, occupancy, room.key, clear_areas[room.key],
-                    limits=limits, sill_mm=sill_mm, lintel_mm=lintel_mm,
+                    layout,
+                    network,
+                    occupancy,
+                    room.key,
+                    clear_areas[room.key],
+                    limits=limits,
+                    sill_mm=sill_mm,
+                    lintel_mm=lintel_mm,
                 )
             )
         elif room.room_type in _BATH_TYPES:
             out.append(
                 _bath_ventilation(
-                    layout, network, occupancy, room.key,
-                    limits=limits, road_outwards=road_outwards,
+                    layout,
+                    network,
+                    occupancy,
+                    room.key,
+                    limits=limits,
+                    road_outwards=road_outwards,
                 )
             )
     return tuple(out)
@@ -627,7 +647,7 @@ def _room_windows(
     limits: NbcOpeningLimits,
     sill_mm: int,
     lintel_mm: int,
-) -> List[OpeningSpec]:
+) -> list[OpeningSpec]:
     height = lintel_mm - sill_mm
     if height <= 0:
         raise OpeningError(
@@ -644,7 +664,7 @@ def _room_windows(
             "NO_EXTERNAL_FACE",
             "Room %r has no external wall to put a window on." % room_key,
         )
-    placed: List[OpeningSpec] = []
+    placed: list[OpeningSpec] = []
     remaining = required
     for span in spans:
         if remaining <= 0:
@@ -762,7 +782,7 @@ def _bath_ventilation(
 
 def swing_clearance_rect(
     door: OpeningSpec, network: WallNetwork, layout: CellLayout
-) -> Tuple[int, int, int, int]:
+) -> tuple[int, int, int, int]:
     """The keep-out square a door leaf sweeps, ``(x1, y1, x2, y2)`` in plot mm.
 
     width × width, inside the served room, starting at the hinge jamb. The §5.4

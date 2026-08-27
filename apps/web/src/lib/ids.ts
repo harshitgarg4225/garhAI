@@ -34,7 +34,8 @@ export function newClientOpId(): string {
  * property worth having in an op log.
  */
 export function newUuid(): string {
-  const c: Crypto | undefined = typeof globalThis.crypto === 'undefined' ? undefined : globalThis.crypto;
+  const c: Crypto | undefined =
+    typeof globalThis.crypto === 'undefined' ? undefined : globalThis.crypto;
   if (c && typeof c.randomUUID === 'function') return c.randomUUID();
   if (c && typeof c.getRandomValues === 'function') {
     const bytes = c.getRandomValues(new Uint8Array(16));

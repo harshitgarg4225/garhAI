@@ -34,7 +34,9 @@ function clampMinutes(minutes: number): number {
 }
 
 /** Initial state — exported so specs can pin a deterministic "now". */
-export function initialSunFields(nowMs: number = Date.now()): Pick<SunState, 'day' | 'minutesOfDay'> {
+export function initialSunFields(
+  nowMs: number = Date.now(),
+): Pick<SunState, 'day' | 'minutesOfDay'> {
   const ist = utcMsToIst(nowMs);
   return { day: ist.date, minutesOfDay: clampMinutes(ist.minutesOfDay) };
 }

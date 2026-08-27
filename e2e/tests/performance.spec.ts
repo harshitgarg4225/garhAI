@@ -83,7 +83,9 @@ export async function frameStatistics(
     // Drop the first sample: it spans the gap between instrumenting and interacting.
     const samples = raw.slice(1).sort((a, b) => a - b);
     const at = (fraction: number): number =>
-      samples.length === 0 ? 0 : (samples[Math.min(samples.length - 1, Math.floor(samples.length * fraction))] ?? 0);
+      samples.length === 0
+        ? 0
+        : (samples[Math.min(samples.length - 1, Math.floor(samples.length * fraction))] ?? 0);
     return {
       count: samples.length,
       medianMs: at(0.5),
@@ -132,9 +134,10 @@ test.describe('@perf §14 budgets', () => {
     });
     await reportStats('instrumentation-check', stats);
 
-    expect(stats.count, 'no frames were sampled — the helper is broken, not the app').toBeGreaterThan(
-      5,
-    );
+    expect(
+      stats.count,
+      'no frames were sampled — the helper is broken, not the app',
+    ).toBeGreaterThan(5);
     expect(stats.medianMs).toBeGreaterThan(0);
   });
 
@@ -201,7 +204,7 @@ test.describe('@perf §14 budgets', () => {
     expect(Date.now() - started).toBeLessThan(OPEN_PROJECT_BUDGET_MS);
   });
 
-  test('a mock render returns in under a second', async () => {
+  test('a mock render returns in under a second', () => {
     test.skip(true, 'Phase 7: the render worker and the Renders tab UI are later.');
 
     const started = Date.now();

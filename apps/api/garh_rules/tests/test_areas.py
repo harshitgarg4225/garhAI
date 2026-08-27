@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The area statement — §7's "same numbers, one source", tested as such.
 
 §7: "area statement per municipal format: plot area, per-storey built-up, total,
@@ -17,8 +15,10 @@ stack — a city front-setback table indexed by plot size *and* road width is tw
 rule families whose maximum is the real requirement).
 """
 
+from __future__ import annotations
+
 from fractions import Fraction
-from typing import Any, Dict, List
+from typing import Any
 
 from garh_rules import area_statement, evaluate, load_pack_set
 from garh_rules.areas import build_area_statement
@@ -33,13 +33,13 @@ PLOT_300_AREA = 300_000_000
 
 
 def blr_context(**overrides: Any) -> Any:
-    edges: List[Dict[str, Any]] = [
+    edges: list[dict[str, Any]] = [
         {"index": 0, "role": "front", "roadWidthMm": 9000, "setbackProvidedMm": 3000},
         {"index": 1, "role": "side-a", "roadWidthMm": None, "setbackProvidedMm": 1500},
         {"index": 2, "role": "rear", "roadWidthMm": None, "setbackProvidedMm": 2000},
         {"index": 3, "role": "side-b", "roadWidthMm": None, "setbackProvidedMm": 1500},
     ]
-    model: Dict[str, Any] = {
+    model: dict[str, Any] = {
         "storeyCount": 2,
         "buildingHeightMm": 7500,
         "heightComponentsMm": {"parapet": 900, "mumty": 2400, "oht": 1200},
@@ -52,7 +52,7 @@ def blr_context(**overrides: Any) -> Any:
         ],
     }
     model.update(overrides.pop("model", {}) or {})
-    profile: Dict[str, Any] = {"cityPack": "blr", "parkingSpacesProvided": 2, "dwellingUnits": 1}
+    profile: dict[str, Any] = {"cityPack": "blr", "parkingSpacesProvided": 2, "dwellingUnits": 1}
     profile.update(overrides.pop("profile", {}) or {})
     return make_context(
         packs=("blr",),
@@ -104,7 +104,7 @@ class TestNumbersComeFromTheRules:
         from dataclasses import replace
 
         tighter = replace(far_row, rule_id="test.far.tighter", limit=100_000_000)
-        rebuilt = build_area_statement(blr_context(), pack_set, results + [tighter])
+        rebuilt = build_area_statement(blr_context(), pack_set, [*results, tighter])
         assert rebuilt.far_allowed_mm2 == 100_000_000
         assert rebuilt.rule_ids["far"] == ("blr.far.road.9-18m", "test.far.tighter")
 
@@ -150,9 +150,7 @@ class TestNumbersComeFromTheRules:
         )
         report = evaluate(context, root=RULEPACK_DIR)
         ids = [row.element_id for row in report.areas.setbacks]
-        assert ids == [
-            edge_element_id(edge, context.plot.edges) for edge in context.plot.edges
-        ]
+        assert ids == [edge_element_id(edge, context.plot.edges) for edge in context.plot.edges]
         assert len(set(ids)) == len(ids)
         assert "plot.edge.other.1" in ids and "plot.edge.other.2" in ids
         front = next(row for row in report.areas.setbacks if row.role == "front")
@@ -190,9 +188,7 @@ class TestNotRegulated:
         assert areas.far_allowed_mm2 is None
         assert areas.coverage_allowed_mm2 is None
         assert areas.far_allowed is None
-        assert "not regulated" in (
-            next(row for row in areas.rows() if row.key == "far").note or ""
-        )
+        assert "not regulated" in (next(row for row in areas.rows() if row.key == "far").note or "")
         assert any("No FAR rule applied" in w for w in areas.warnings)
 
     def test_an_unregulated_setback_row_still_reports_what_was_provided(self) -> None:
@@ -226,8 +222,8 @@ class TestRowsAndWarnings:
         keys = [row.key for row in statement().rows()]
         assert keys[:2] == ["plot_area", "coverage"]
         assert "built_up_total" in keys
-        assert keys.index("far") < keys.index("floors") < keys.index("height") < keys.index(
-            "parking"
+        assert (
+            keys.index("far") < keys.index("floors") < keys.index("height") < keys.index("parking")
         )
         assert [k for k in keys if k.startswith("built_up.")] == [
             "built_up.storey_g",
@@ -243,7 +239,7 @@ class TestRowsAndWarnings:
         assert rows["plot_area"].limit_label == ""
 
     def test_text_rows_are_formatted_for_the_sheet(self) -> None:
-        text = dict((label, (value, limit)) for label, value, limit, _ in statement().text_rows())
+        text = {label: (value, limit) for label, value, limit, _ in statement().text_rows()}
         assert text["Plot area"][0] == "300.00 m2"
         assert text["Ground coverage"] == ("150.00 m2", "180.00 m2")
         assert text["Front setback"] == ("3.00 m", "3.00 m")

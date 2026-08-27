@@ -78,7 +78,11 @@ export function ComplianceStrip({
     };
   }, [issues]);
 
-  const visible = [...failures, ...warnings, ...(showPasses ? issues.filter((i) => i.status === 'pass') : [])];
+  const visible = [
+    ...failures,
+    ...warnings,
+    ...(showPasses ? issues.filter((i) => i.status === 'pass') : []),
+  ];
 
   return (
     <div
@@ -135,7 +139,9 @@ export function ComplianceStrip({
                     : () => onSelectElements(issue.elementIds)
                 }
                 onFix={
-                  issue.fixAvailable && onApplyFix !== undefined ? () => onApplyFix(issue) : undefined
+                  issue.fixAvailable && onApplyFix !== undefined
+                    ? () => onApplyFix(issue)
+                    : undefined
                 }
               />
             </li>
@@ -171,11 +177,7 @@ export function ComplianceStrip({
             </Badge>
           </Tooltip>
         ) : null}
-        {failures.length > 0 ? (
-          <Badge tone="fail">
-            {failures.length} to fix
-          </Badge>
-        ) : null}
+        {failures.length > 0 ? <Badge tone="fail">{failures.length} to fix</Badge> : null}
         {onOpenAll === undefined ? null : (
           <Button size="sm" variant="ghost" iconRight="chevron-right" onClick={onOpenAll}>
             All checks

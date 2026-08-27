@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The evaluator. Pure, deterministic, integer-only, under 100 ms for a house.
 
     results = evaluate(context).results
@@ -31,9 +29,12 @@ limit differs per room, so raw values are not comparable across rooms but margin
 are.
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from .areas import AreaStatement, build_area_statement
 from .checks import (
@@ -69,45 +70,43 @@ PERFORMANCE_BUDGET_MS = 100
 #: Every ``when`` field that only exists inside a scope. A rule whose gate uses none
 #: of these can be decided once instead of once per instance — which is most city
 #: rules, and most of the speed.
-_SCOPE_ONLY_FIELDS = frozenset(
-    name for names in SCOPE_WHEN_FIELDS.values() for name in names
-)
+_SCOPE_ONLY_FIELDS = frozenset(name for names in SCOPE_WHEN_FIELDS.values() for name in names)
 
 
 @dataclass(frozen=True)
 class EvaluationReport:
     """One compliance run: rows, counts, the Vastu score, and the area statement."""
 
-    results: Tuple[RuleResult, ...]
-    packs: Tuple[str, ...]
+    results: tuple[RuleResult, ...]
+    packs: tuple[str, ...]
     pack_versions: Mapping[str, str]
     counts: Mapping[str, int]
     areas: AreaStatement
-    scores: Tuple[VastuScore, ...] = ()
-    warnings: Tuple[str, ...] = ()
-    disclaimers: Tuple[Tuple[str, str], ...] = ()
+    scores: tuple[VastuScore, ...] = ()
+    warnings: tuple[str, ...] = ()
+    disclaimers: tuple[tuple[str, str], ...] = ()
 
     # -- views -------------------------------------------------------------
     @property
-    def score(self) -> Optional[VastuScore]:
+    def score(self) -> VastuScore | None:
         """The Vastu score, when a scoring pack was loaded and the mode is not ``off``."""
         return self.scores[0] if self.scores else None
 
     @property
-    def applicable(self) -> Tuple[RuleResult, ...]:
+    def applicable(self) -> tuple[RuleResult, ...]:
         return tuple(r for r in self.results if r.applicable)
 
-    def by_status(self, status: str) -> Tuple[RuleResult, ...]:
+    def by_status(self, status: str) -> tuple[RuleResult, ...]:
         return tuple(r for r in self.results if r.status == status)
 
     def worst_status(self) -> str:
         return worst_status([r.status for r in self.results])
 
-    def failures(self) -> Tuple[RuleResult, ...]:
+    def failures(self) -> tuple[RuleResult, ...]:
         """Every ``fail`` row, overrides included — the honest list."""
         return tuple(r for r in self.results if r.status == FAIL)
 
-    def blocking_failures(self) -> Tuple[RuleResult, ...]:
+    def blocking_failures(self) -> tuple[RuleResult, ...]:
         """``fail`` rows the architect has **not** knowingly accepted.
 
         This is the §5.6 solver gate ("all hard rules pass") and the export
@@ -125,13 +124,13 @@ class EvaluationReport:
         """§5.6's hard-rule gate: no un-overridden ``fail`` row."""
         return not self.blocking_failures()
 
-    def rule(self, rule_id: str) -> Optional[RuleResult]:
+    def rule(self, rule_id: str) -> RuleResult | None:
         for result in self.results:
             if result.rule_id == rule_id:
                 return result
         return None
 
-    def to_json(self, *, include_not_applicable: bool = True, full: bool = False) -> Dict[str, Any]:
+    def to_json(self, *, include_not_applicable: bool = True, full: bool = False) -> dict[str, Any]:
         """The shape ``compliance_reports.results`` / ``GET /compliance`` carry.
 
         ``not_applicable`` rows are included by default: "12 of 118 rules applied to
@@ -170,9 +169,9 @@ def _not_applicable(
     rule: Rule,
     unit: str,
     reason: str,
-    failing_field: Optional[str],
+    failing_field: str | None,
     overridden: bool,
-    override_reason: Optional[str],
+    override_reason: str | None,
     effective_severity: str,
 ) -> RuleResult:
     """A row for a rule that did not apply.
@@ -231,7 +230,7 @@ def _evaluate_rule(
     rule: Rule,
     env: CheckEnv,
     project_fields: Mapping[str, Any],
-    ceilings: Mapping[str, Optional[str]],
+    ceilings: Mapping[str, str | None],
 ) -> RuleResult:
     context = env.context
     unit = result_unit_of(rule.check)
@@ -263,11 +262,11 @@ def _evaluate_rule(
     # for the governing row's `original_limit`, and a fail against the overridden
     # limit still fails: overrides move the line, they never silence the check.
     value_overrides = context.profile.value_overrides
-    matched: List[Tuple[Instance, Outcome, Optional[AppliedValueOverride]]] = []
-    gate_failure: Optional[str] = None
+    matched: list[tuple[Instance, Outcome, AppliedValueOverride | None]] = []
+    gate_failure: str | None = None
     for instance in instances:
         if not gate_is_project_only and rule.when:
-            fields: Dict[str, Any] = dict(project_fields)
+            fields: dict[str, Any] = dict(project_fields)
             fields.update(instance.fields)
             ok, failing = when_matches(rule.when, fields)
             if not ok:
@@ -312,18 +311,20 @@ def _evaluate_rule(
     if governing_applied is not None:
         original_limit = run_check(rule.check, governing_instance, env).limit
 
-    offenders: List[str] = []
+    offenders: list[str] = []
     for instance, outcome, _applied in matched:
         if outcome.satisfied:
             continue
-        ids = outcome.elements if outcome.elements is not None else (
-            (instance.element_id,) if instance.element_id else ()
+        ids = (
+            outcome.elements
+            if outcome.elements is not None
+            else ((instance.element_id,) if instance.element_id else ())
         )
         for element_id in ids:
             if element_id and element_id not in offenders:
                 offenders.append(element_id)
 
-    satisfaction: Optional[Fraction] = None
+    satisfaction: Fraction | None = None
     if rule.scoring:
         # Arithmetic mean over matched targets, exact. Several toilets share one
         # rule and one score contribution.
@@ -397,16 +398,18 @@ def _evaluate_rule(
 # ---------------------------------------------------------------------------
 
 
-def _active(pack_set: PackSet, vastu_mode: str) -> Tuple[Tuple[Rule, ...], Dict[str, Optional[str]], List[str]]:
+def _active(
+    pack_set: PackSet, vastu_mode: str
+) -> tuple[tuple[Rule, ...], dict[str, str | None], list[str]]:
     """Drop scoring packs the brief turned off; collect each pack's severity ceiling.
 
     ``vastuMode: off`` means the Vastu pack "is not loaded at all" — so its rules
     produce no rows, not nine ``not_applicable`` ones. A wall of grey Vastu rows on
     a project that opted out is noise, and the pack's own README says it plainly.
     """
-    ceilings: Dict[str, Optional[str]] = {}
-    dropped: List[str] = []
-    warnings: List[str] = []
+    ceilings: dict[str, str | None] = {}
+    dropped: list[str] = []
+    warnings: list[str] = []
     for pack_id in pack_set.load_order:
         pack = pack_set.packs[pack_id]
         if pack.scoring is None:
@@ -429,7 +432,7 @@ def evaluate(
     context: Any,
     *,
     packs: Any = None,
-    root: Optional[str] = None,
+    root: str | None = None,
 ) -> EvaluationReport:
     """Run every applicable rule against one design.
 
@@ -452,13 +455,13 @@ def evaluate(
 
     results = tuple(_evaluate_rule(rule, env, project_fields, ceilings) for rule in rules)
 
-    counts: Dict[str, int] = {PASS: 0, WARN: 0, FAIL: 0, NOT_APPLICABLE: 0, "overridden": 0}
+    counts: dict[str, int] = {PASS: 0, WARN: 0, FAIL: 0, NOT_APPLICABLE: 0, "overridden": 0}
     for result in results:
         counts[result.status] = counts.get(result.status, 0) + 1
         if result.overridden:
             counts["overridden"] += 1
 
-    scores: List[VastuScore] = []
+    scores: list[VastuScore] = []
     for pack in pack_set.scoring_packs():
         if pack.id not in ceilings:
             continue  # dropped: the brief's vastuMode has no matching scoring mode
@@ -468,7 +471,9 @@ def evaluate(
                 title=result.title,
                 group=result.group or "",
                 weight=result.weight or 0,
-                satisfaction=result.satisfaction if result.satisfaction is not None else Fraction(0),
+                satisfaction=result.satisfaction
+                if result.satisfaction is not None
+                else Fraction(0),
                 status=result.status,
                 hard=result.hard,
             )
@@ -499,8 +504,7 @@ def evaluate(
         warnings.append(
             "Room type(s) %s are outside the packs' vocabulary, so no room rule selected them and "
             "they were not checked. Map them in garh_rules.context.ROOM_TYPE_ALIASES if they are a "
-            "spelling drift rather than genuinely unclassified space."
-            % ", ".join(unclassified)
+            "spelling drift rather than genuinely unclassified space." % ", ".join(unclassified)
         )
 
     areas = build_area_statement(ctx, pack_set, results)
@@ -524,8 +528,8 @@ def evaluate_parts(
     packs: Sequence[str],
     *,
     vastu_mode: str = "off",
-    root: Optional[str] = None,
-    pack_set: Optional[PackSet] = None,
+    root: str | None = None,
+    pack_set: PackSet | None = None,
 ) -> EvaluationReport:
     """§6's literal signature: ``(model, plot, profile, packs) -> results``.
 

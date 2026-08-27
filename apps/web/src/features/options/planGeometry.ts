@@ -60,8 +60,8 @@ export function storeyIndexById(ops: readonly OptionOp[]): ReadonlyMap<string, n
   const byId = new Map<string, number>();
   for (const op of ops) {
     if (op.type !== 'storey.add') continue;
-    const id = op.payload['id'];
-    const index = op.payload['index'];
+    const id = op.payload.id;
+    const index = op.payload.index;
     if (typeof id === 'string' && typeof index === 'number' && Number.isInteger(index)) {
       byId.set(id, index);
     }
@@ -72,7 +72,7 @@ export function storeyIndexById(ops: readonly OptionOp[]): ReadonlyMap<string, n
   let next = 0;
   for (const op of ops) {
     if (op.type !== 'wall.add') continue;
-    const storeyId = op.payload['storeyId'];
+    const storeyId = op.payload.storeyId;
     if (typeof storeyId === 'string' && !byId.has(storeyId)) {
       byId.set(storeyId, next);
       next += 1;
@@ -87,12 +87,12 @@ export function extractWalls(ops: readonly OptionOp[]): WallSeg[] {
   const walls: WallSeg[] = [];
   for (const op of ops) {
     if (op.type !== 'wall.add') continue;
-    const a = readPt(op.payload['a']);
-    const b = readPt(op.payload['b']);
+    const a = readPt(op.payload.a);
+    const b = readPt(op.payload.b);
     if (a === null || b === null) continue;
-    const thickness = op.payload['thicknessMm'];
-    const storeyId = op.payload['storeyId'];
-    const kind = op.payload['kind'];
+    const thickness = op.payload.thicknessMm;
+    const storeyId = op.payload.storeyId;
+    const kind = op.payload.kind;
     walls.push({
       a,
       b,
@@ -247,9 +247,9 @@ export interface MiniPlanGeometry {
 export function miniPlanFromOption(option: PlanOption): MiniPlanGeometry {
   const walls = extractWalls(option.ops);
   const labels = roomLabels(option.placements);
-  const indices = [...new Set([...walls.map((w) => w.storeyIndex), ...labels.map((l) => l.storeyIndex)])].sort(
-    (a, b) => a - b,
-  );
+  const indices = [
+    ...new Set([...walls.map((w) => w.storeyIndex), ...labels.map((l) => l.storeyIndex)]),
+  ].sort((a, b) => a - b);
   return { walls, labels, bounds: boundsOfWalls(walls), storeyIndices: indices };
 }
 

@@ -68,7 +68,7 @@ import multiprocessing
 import os
 import shutil
 import tempfile
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from services.common.errors import PermanentError
 
@@ -85,7 +85,7 @@ SPAWN_GRACE_SECONDS = 5
 #: ``$INSUNITS`` → exact millimetres per drawing unit. Only units that plausibly
 #: appear in an Indian architectural survey are mapped; anything else assumes mm.
 #: (4=mm is the value our own exporter writes — see ``services/drawings/dxf.py``.)
-MM_PER_INSUNIT: Dict[int, float] = {
+MM_PER_INSUNIT: dict[int, float] = {
     1: 25.4,  # inches
     2: 304.8,  # feet
     4: 1.0,  # millimetres
@@ -113,7 +113,7 @@ class DxfUnreadableError(DxfImportError):
 
     code = "dxf_unreadable"
 
-    def __init__(self, detail: Optional[str] = None) -> None:
+    def __init__(self, detail: str | None = None) -> None:
         super().__init__(
             "We couldn't read that DXF drawing.",
             action="Re-export it from your CAD software (R12 or newer) and try again.",
@@ -153,7 +153,7 @@ class DxfNoBoundaryError(DxfImportError):
 
     code = "dxf_no_boundary"
 
-    def __init__(self, layer_names: Optional[List[str]] = None) -> None:
+    def __init__(self, layer_names: list[str] | None = None) -> None:
         super().__init__(
             "We couldn't find a closed boundary in that drawing.",
             action="In your CAD software, close the plot boundary polyline "
@@ -179,7 +179,7 @@ def round_half_away_from_zero(value: float) -> int:
     return int(math.ceil(value - 0.5))
 
 
-def mm_per_insunit(insunits: int) -> Tuple[float, bool]:
+def mm_per_insunit(insunits: int) -> tuple[float, bool]:
     """``(mm_per_unit, assumed)`` for an ``$INSUNITS`` code.
 
     ``assumed`` is True when the code is 0/unknown and we fell back to millimetres —
@@ -191,7 +191,7 @@ def mm_per_insunit(insunits: int) -> Tuple[float, bool]:
     return factor, False
 
 
-def shoelace_twice_area(points: List[Tuple[int, int]]) -> int:
+def shoelace_twice_area(points: list[tuple[int, int]]) -> int:
     """Twice the signed area of an integer ring. Positive = counter-clockwise."""
     total = 0
     count = len(points)
@@ -202,7 +202,7 @@ def shoelace_twice_area(points: List[Tuple[int, int]]) -> int:
     return total
 
 
-def normalise_ring(points: List[Tuple[int, int]]) -> Optional[Dict[str, Any]]:
+def normalise_ring(points: list[tuple[int, int]]) -> dict[str, Any] | None:
     """Turn a raw closed ring into the canonical candidate dict, or ``None`` if degenerate.
 
     Canonical means: consecutive duplicates removed, CCW, rotated to start at the
@@ -210,7 +210,7 @@ def normalise_ring(points: List[Tuple[int, int]]) -> Optional[Dict[str, Any]]:
     origin (plot-local coordinates, §3). Deterministic by construction so the same
     file always yields byte-identical results.
     """
-    deduped: List[Tuple[int, int]] = []
+    deduped: list[tuple[int, int]] = []
     for point in points:
         if not deduped or point != deduped[-1]:
             deduped.append(point)
@@ -258,7 +258,7 @@ def _apply_memory_cap(memory_limit_mb: int) -> None:
             continue
 
 
-def _extract_layers(doc: Any) -> Dict[str, Any]:
+def _extract_layers(doc: Any) -> dict[str, Any]:
     """Walk modelspace once; group closed LWPOLYLINE/POLYLINE rings by layer."""
     insunits = 0
     try:
@@ -275,11 +275,11 @@ def _extract_layers(doc: Any) -> Dict[str, Any]:
         "polylinesOverCap": 0,
         "layersOverCap": 0,
     }
-    per_layer: Dict[str, List[Dict[str, Any]]] = {}
+    per_layer: dict[str, list[dict[str, Any]]] = {}
 
     for entity in doc.modelspace():
         kind = entity.dxftype()
-        raw_points: List[Tuple[float, float]]
+        raw_points: list[tuple[float, float]]
         if kind == "LWPOLYLINE":
             raw_points = [(float(p[0]), float(p[1])) for p in entity.get_points("xy")]
             closed = bool(entity.closed)
@@ -320,7 +320,7 @@ def _extract_layers(doc: Any) -> Dict[str, Any]:
     try:
         for layer_record in doc.layers:
             per_layer.setdefault(str(layer_record.dxf.name), [])
-    except Exception:  # noqa: BLE001 - a broken layer table must not sink the parse
+    except Exception:
         pass
 
     for candidates in per_layer.values():
@@ -329,7 +329,7 @@ def _extract_layers(doc: Any) -> Dict[str, Any]:
             skipped["polylinesOverCap"] += len(candidates) - MAX_POLYLINES_PER_LAYER
             del candidates[MAX_POLYLINES_PER_LAYER:]
 
-    def layer_sort_key(name: str) -> Tuple[int, int, str]:
+    def layer_sort_key(name: str) -> tuple[int, int, str]:
         candidates = per_layer[name]
         largest = int(candidates[0]["closedArea"]) if candidates else 0
         return (0 if candidates else 1, -largest, name)
@@ -339,7 +339,9 @@ def _extract_layers(doc: Any) -> Dict[str, Any]:
         skipped["layersOverCap"] += len(ordered) - MAX_LAYERS
         ordered = ordered[:MAX_LAYERS]
 
-    factor_text = ("%f" % factor).rstrip("0").rstrip(".") if factor != int(factor) else str(int(factor))
+    factor_text = (
+        ("%f" % factor).rstrip("0").rstrip(".") if factor != int(factor) else str(int(factor))
+    )
     return {
         "layers": [{"name": name, "polylines": per_layer[name]} for name in ordered],
         "units": {"insunits": insunits, "mmPerUnit": factor_text, "assumed": assumed},
@@ -351,7 +353,7 @@ def _child_main(dxf_path: str, result_path: str, memory_limit_mb: int) -> None:
     """Entry point of the sandboxed parser. Must never raise — the result file is the
     whole conversation with the parent."""
     _apply_memory_cap(memory_limit_mb)
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     try:
         from ezdxf import recover  # the tolerant loader, built for hostile files
 
@@ -359,7 +361,7 @@ def _child_main(dxf_path: str, result_path: str, memory_limit_mb: int) -> None:
         payload = {"ok": True, "result": _extract_layers(doc)}
     except MemoryError:
         payload = {"ok": False, "error": {"code": "dxf_too_complex"}}
-    except BaseException as exc:  # noqa: BLE001 - the child reports, the parent decides
+    except BaseException as exc:
         payload = {
             "ok": False,
             "error": {
@@ -386,7 +388,7 @@ def parse_dxf_bytes(
     *,
     timeout_seconds: int = 10,
     memory_limit_mb: int = 512,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Parse an (already size-capped, already sniffed) DXF into the layer/candidate shape.
 
     Blocking — the handler wraps it in ``asyncio.to_thread``. Raises a
@@ -423,7 +425,7 @@ def parse_dxf_bytes(
                 detail="child parser died without a result (exit code %r)" % child.exitcode
             )
         try:
-            with open(result_path, "r", encoding="utf-8") as handle:
+            with open(result_path, encoding="utf-8") as handle:
                 payload = json.load(handle)
         except (OSError, ValueError) as exc:
             raise DxfUnreadableError(detail="unreadable child result: %s" % exc) from exc
@@ -445,7 +447,7 @@ def parse_dxf_bytes(
         shutil.rmtree(workdir, ignore_errors=True)
 
 
-def candidate_count(result: Dict[str, Any]) -> Tuple[int, int]:
+def candidate_count(result: dict[str, Any]) -> tuple[int, int]:
     """``(polylines, layers_with_candidates)`` for progress copy."""
     layers = [layer for layer in result.get("layers", []) if layer.get("polylines")]
     return sum(len(layer["polylines"]) for layer in layers), len(layers)

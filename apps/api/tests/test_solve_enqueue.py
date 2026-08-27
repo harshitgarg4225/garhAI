@@ -22,12 +22,12 @@ from __future__ import annotations
 import json
 import sys
 import uuid
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 
-from tests import factories
 from tests.conftest import REQUIRE_INTEGRATION
 from tests.helpers import problem
 
@@ -137,9 +137,10 @@ async def test_solve_enqueues_what_the_worker_parses(
     # the G+1 document resolves to two storeys.
     keys = [room.key for room in params.rooms]
     assert len(keys) == len(set(keys)), keys
-    assert {"living", "kitchen", "bedroom_master", "bedroom", "bedroom2"} <= set(keys)
+    assert {"living_dining", "kitchen", "guest_bedroom", "bedroom_master", "bedroom"} <= set(keys)
     assert params.storeys == 2
-    assert params.vastu_mode == "advisory"
+    # The seed authors the demo brief with vastu off (garh_api.seed.demo says why).
+    assert params.vastu_mode == "off"
 
     # The request's own knobs still ride along.
     assert params.seed == 7
@@ -207,9 +208,7 @@ async def test_solve_with_plot_but_no_brief_rooms_is_a_409(
 ) -> None:
     from garh_api.seed.demo import demo_op_log, load_demo_brief
 
-    plot_only = [
-        op for op in demo_op_log(load_demo_brief()) if not op["type"].startswith("brief.")
-    ]
+    plot_only = [op for op in demo_op_log(load_demo_brief()) if not op["type"].startswith("brief.")]
     response = await client.post(
         "%s/projects/%s/ops" % (api, project_a.id),
         json={"ops": plot_only, "baseIdx": -1, "source": "manual"},

@@ -81,7 +81,14 @@ describe('group enumeration', () => {
   });
 
   it('no storeys ⇒ no groups (empty document renders nothing)', () => {
-    const empty = { ...baseDoc().house, storeys: [], walls: [], slabs: [], rooms: [], openings: [] };
+    const empty = {
+      ...baseDoc().house,
+      storeys: [],
+      walls: [],
+      slabs: [],
+      rooms: [],
+      openings: [],
+    };
     expect(groupKeysOf(empty)).toEqual([]);
     expect(roofSolids(empty)).toEqual([]);
   });

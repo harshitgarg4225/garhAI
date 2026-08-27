@@ -106,17 +106,18 @@ os.environ.setdefault("DEV_ECHO_OTP", "1")
 os.environ.setdefault("TRUSTED_PROXY_HOPS", "1")
 
 import httpx  # noqa: E402
-from sqlalchemy import text  # noqa: E402
-
 from garh_api import db as db_module  # noqa: E402
 from garh_api.config import Settings, get_settings, reset_settings_cache  # noqa: E402
 from garh_api.models import ALL_TABLES, Base  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
 #: Truthy here means "a missing Postgres/Redis is a failure, not a skip".
-REQUIRE_INTEGRATION = (
-    os.environ.get("GARH_REQUIRE_INTEGRATION", "").strip().lower() in ("1", "true", "yes", "on")
-    or os.environ.get("CI", "").strip().lower() in ("1", "true", "yes", "on")
-)
+REQUIRE_INTEGRATION = os.environ.get("GARH_REQUIRE_INTEGRATION", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+) or os.environ.get("CI", "").strip().lower() in ("1", "true", "yes", "on")
 
 _TRUNCATE_SQL = "TRUNCATE TABLE %s RESTART IDENTITY CASCADE" % ", ".join(
     '"%s"' % name for name in ALL_TABLES
@@ -175,10 +176,10 @@ def database(settings: Settings) -> Iterator[Any]:
     try:
         with engine.begin() as conn:
             conn.execute(text("SELECT 1"))
-    except Exception as exc:  # noqa: BLE001 - any driver error means "not available"
+    except Exception as exc:
         _unavailable("Postgres", "%s: %s" % (type(exc).__name__, exc))
     with engine.begin() as conn:
-        present = set(
+        present = {
             row[0]
             for row in conn.execute(
                 text(
@@ -186,7 +187,7 @@ def database(settings: Settings) -> Iterator[Any]:
                     "WHERE table_schema = current_schema()"
                 )
             )
-        )
+        }
         missing = [name for name in ALL_TABLES if name not in present]
         if missing:
             # gen_random_uuid() lives in pgcrypto; the Alembic migration creates the
@@ -206,7 +207,7 @@ def redis_available(settings: Settings) -> Iterator[Any]:
     client = SyncRedis.from_url(settings.redis_url, socket_timeout=2, decode_responses=True)
     try:
         client.ping()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _unavailable("Redis", "%s: %s" % (type(exc).__name__, exc))
     yield client
     client.close()

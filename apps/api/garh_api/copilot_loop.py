@@ -31,7 +31,8 @@ interpreter (plus the ``services/dev_stubs.py`` shims) and in CI without a datab
 from __future__ import annotations
 
 import time
-from typing import Any, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from garh_model.fold import try_fold
 from garh_model.model import ProjectDoc, empty_project_doc
@@ -64,7 +65,7 @@ class ModelFolder:
     repository, which is the §13 containment boundary in code.
     """
 
-    def __init__(self, catalog: Optional[OpCatalog] = None) -> None:
+    def __init__(self, catalog: OpCatalog | None = None) -> None:
         self.catalog = catalog or get_op_catalog()
         #: Duration of the most recent :meth:`dry_run`, for the §14 budget check.
         self.last_duration_ms: float = 0.0
@@ -73,7 +74,7 @@ class ModelFolder:
         return "garh_model fold (invariants + geometry, dry-run on a fork)"
 
     def dry_run(
-        self, ops: Sequence[Mapping[str, Any]], *, model: Optional[Mapping[str, Any]]
+        self, ops: Sequence[Mapping[str, Any]], *, model: Mapping[str, Any] | None
     ) -> FoldOutcome:
         started = time.perf_counter()
         try:
@@ -123,7 +124,7 @@ class ModelFolder:
         )
 
 
-def _document_of(model: Optional[Mapping[str, Any]]) -> ProjectDoc:
+def _document_of(model: Mapping[str, Any] | None) -> ProjectDoc:
     """JSON snapshot → a fresh :class:`ProjectDoc` fork (or an empty document)."""
     if model is None:
         return empty_project_doc()
@@ -151,7 +152,7 @@ class NewFailureRulesGate:
     the route logs it rather than pretending a green light was a check.
     """
 
-    def __init__(self, baseline_document: Optional[Mapping[str, Any]] = None) -> None:
+    def __init__(self, baseline_document: Mapping[str, Any] | None = None) -> None:
         self.available = False
         self._baseline_fail_ids: frozenset = frozenset()
         if baseline_document is not None:
@@ -211,9 +212,9 @@ STEM_MAX_CHARS = 60
 
 def describe_op(
     op: Mapping[str, Any],
-    document: Optional[ProjectDoc] = None,
+    document: ProjectDoc | None = None,
     *,
-    catalog: Optional[OpCatalog] = None,
+    catalog: OpCatalog | None = None,
 ) -> str:
     """One line of UI copy for the diff panel.
 
@@ -252,7 +253,7 @@ def describe_op(
     return stem
 
 
-def _sentence(spec: Optional[OpSpec], op_type: str) -> str:
+def _sentence(spec: OpSpec | None, op_type: str) -> str:
     if spec is not None and spec.summary and spec.summary != spec.type:
         text = spec.summary.strip()
         # Schema titles carry a "12. wall.delete" ordinal; descriptions do not, but be
@@ -283,7 +284,7 @@ def _humanise(field_name: str) -> str:
     }.get(field_name, field_name)
 
 
-def _element_name(payload: Mapping[str, Any], document: Optional[ProjectDoc]) -> str:
+def _element_name(payload: Mapping[str, Any], document: ProjectDoc | None) -> str:
     """Best human name for whatever element the payload points at."""
     if document is None:
         return ""
@@ -322,7 +323,7 @@ def _lookup(document: ProjectDoc, element_id: str) -> str:
 
 
 def _article(word: str) -> str:
-    """"a" or "an" — "a internal wall" in the diff panel reads as a bug in the product.
+    """ "a" or "an" — "a internal wall" in the diff panel reads as a bug in the product.
 
     Note the explicit tuple rather than ``word[:1] in "aeiou"``: for an empty string
     that idiom is ``"" in "aeiou"``, which is ``True``, and would render "an  wall".
@@ -336,10 +337,10 @@ def _article(word: str) -> str:
 
 
 def build_copilot_service(
-    provider: Optional[LlmProvider] = None,
+    provider: LlmProvider | None = None,
     *,
-    document: Optional[Mapping[str, Any]] = None,
-    catalog: Optional[OpCatalog] = None,
+    document: Mapping[str, Any] | None = None,
+    catalog: OpCatalog | None = None,
 ) -> tuple[CopilotService, ModelFolder, NewFailureRulesGate]:
     """Wire the §10 pipeline: provider → schema gate → real fold → rules diff.
 
@@ -360,10 +361,10 @@ def build_copilot_service(
 async def run_copilot_command(
     command: str,
     *,
-    document: Optional[Mapping[str, Any]],
+    document: Mapping[str, Any] | None,
     violations: Sequence[Mapping[str, Any]] = (),
-    provider: Optional[LlmProvider] = None,
-    active_storey_id: Optional[str] = None,
+    provider: LlmProvider | None = None,
+    active_storey_id: str | None = None,
     selection_ids: Sequence[str] = (),
 ) -> CopilotProposal:
     """One copilot command through every gate. Pure with respect to persistence.

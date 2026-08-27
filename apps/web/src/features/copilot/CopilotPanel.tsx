@@ -29,7 +29,13 @@ import { useUiStore } from '../../stores/ui';
 import { MiniDocPlan } from './MiniDocPlan';
 import { registerCopilotInput } from './focus';
 import { clarificationChips } from './plain';
-import { issueSummary, selectBusy, selectHistory, selectTurns, useCopilotStore } from './useCopilot';
+import {
+  issueSummary,
+  selectBusy,
+  selectHistory,
+  selectTurns,
+  useCopilotStore,
+} from './useCopilot';
 import type { CopilotTurn } from './types';
 
 /** Example commands the empty state teaches with (§15 "empty states teach"). */
@@ -120,8 +126,8 @@ function EmptyState(): JSX.Element {
   return (
     <div className="mb-3 rounded-lg border border-dashed border-line p-3">
       <p className="text-sm leading-6 text-ink-muted">
-        Describe a change in plain words and I&rsquo;ll turn it into a previewable edit —
-        you see before and after, then apply or reject. One undo reverses anything I do.
+        Describe a change in plain words and I&rsquo;ll turn it into a previewable edit — you see
+        before and after, then apply or reject. One undo reverses anything I do.
       </p>
       <p className="mt-2 text-2xs font-semibold uppercase tracking-wider text-ink-subtle">
         Try one
@@ -157,12 +163,7 @@ function TurnBody({ turn }: { turn: CopilotTurn }): JSX.Element | null {
     case 'thinking':
       return (
         <div className="flex flex-col gap-1.5">
-          <DiffPreview
-            diff={null}
-            loading
-            onApply={() => undefined}
-            onReject={() => undefined}
-          />
+          <DiffPreview diff={null} loading onApply={() => undefined} onReject={() => undefined} />
           <div className="flex items-center justify-between px-0.5">
             {/* Honest by wiring: this row exists only while the request is live. */}
             <span className="text-2xs text-ink-subtle">Thinking…</span>

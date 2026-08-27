@@ -57,7 +57,7 @@ describe('generator determinism', () => {
       const comps = generateFacadeComponents(doc.house, CONTEMPORARY_KIT, seed);
       const chajja = comps.find((c) => c.kind === 'chajja');
       expect(chajja).toBeDefined();
-      const projection = chajja?.params['projectionMm'];
+      const projection = chajja?.params.projectionMm;
       expect(typeof projection).toBe('number');
       expect(allowed).toContain(projection);
       if (typeof projection === 'number') seen.add(projection);
@@ -73,7 +73,7 @@ describe('generator determinism', () => {
       const comps = generateFacadeComponents(doc.house, MODERN_MINIMAL_KIT, seed);
       for (const c of comps) {
         if (c.kind !== 'chajja') continue;
-        expect(c.params['projectionMm']).toBe(600);
+        expect(c.params.projectionMm).toBe(600);
       }
     }
   });
@@ -84,7 +84,7 @@ describe('generator determinism', () => {
       colorwayId: 'warm-grey',
     });
     const cladding = explicit.find((c) => c.kind === 'cladding_zone');
-    expect(cladding?.params['colorHex']).toBe('#8B6A45'); // warm-grey accent
+    expect(cladding?.params.colorHex).toBe('#8B6A45'); // warm-grey accent
 
     const a = generateFacadeComponents(doc.house, CONTEMPORARY_KIT, 5);
     const b = generateFacadeComponents(doc.house, CONTEMPORARY_KIT, 5);
@@ -144,7 +144,9 @@ describe('component tagging', () => {
 describe('facade.edit_component', () => {
   it('applies a merge patch to one component and only that component', () => {
     const doc = docWithOpenings();
-    const applied = applyGroup(doc, [applyKitOp(doc.house, CONTEMPORARY_KIT, 7, 'mono-wood')]).model;
+    const applied = applyGroup(doc, [
+      applyKitOp(doc.house, CONTEMPORARY_KIT, 7, 'mono-wood'),
+    ]).model;
     const chajja = applied.house.facade.components.find((c) => c.kind === 'chajja');
     expect(chajja).toBeDefined();
     if (chajja === undefined) return;
@@ -158,9 +160,9 @@ describe('facade.edit_component', () => {
       const prev = before.find((b) => b.id === c.id);
       expect(prev).toBeDefined();
       if (c.id === chajja.id) {
-        expect(c.params['projectionMm']).toBe(750);
+        expect(c.params.projectionMm).toBe(750);
         // untouched keys survive the merge
-        expect(c.params['thicknessMm']).toBe(chajja.params['thicknessMm']);
+        expect(c.params.thicknessMm).toBe(chajja.params.thicknessMm);
       } else {
         expect(canonicalJson(c)).toBe(canonicalJson(prev));
       }

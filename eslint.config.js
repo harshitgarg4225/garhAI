@@ -25,6 +25,8 @@ export default tseslint.config(
       '**/playwright-report/**',
       '**/test-results/**',
       '**/*.tsbuildinfo',
+      // Vendored JS inside a local virtualenv (flat config does not read .gitignore).
+      '**/.venv/**',
       // Python side is Ruff's job.
       'apps/api/**',
       'services/**',
@@ -89,6 +91,11 @@ export default tseslint.config(
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
       ],
       '@typescript-eslint/no-non-null-assertion': 'error',
+      // stylisticTypeChecked turns this on, and its fix REWRITES `x as T` into `x!`
+      // — the exact assertion no-non-null-assertion above bans. The two rules are
+      // contradictory; this repo's policy is the explicit `as` cast, so the
+      // stylistic rule loses.
+      '@typescript-eslint/non-nullable-type-assertion-style': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
 
       eqeqeq: ['error', 'always', { null: 'ignore' }],
@@ -144,6 +151,46 @@ export default tseslint.config(
             'Float literal in the model core. Geometry is integer millimetres — express this as mm (e.g. 2750 not 2.75).',
         },
       ],
+    },
+  },
+
+  // units.ts IS the float→mm boundary the two rules above point at: it owns the
+  // 25.4/304.8 conversion constants and implements half-away-from-zero AS
+  // Math.floor(x + 0.5) (golden-tested against units.py). Its tests feed it the
+  // real-world float input ("3.8m", "12'6\"") it exists to parse. sha256.ts and
+  // ids.ts do byte-count and base-32 encoding arithmetic — no geometry at all.
+  {
+    files: [
+      'packages/model/src/units.ts',
+      'packages/model/src/units.test.ts',
+      'packages/model/src/sha256.ts',
+      'packages/model/src/ids.ts',
+    ],
+    rules: {
+      'no-restricted-properties': 'off',
+      'no-restricted-syntax': 'off',
+    },
+  },
+
+  // Model tests express real-world inputs and thresholds as floats on purpose;
+  // the float-literal guard protects shipped geometry, which tests are not.
+  {
+    files: ['packages/model/src/*.test.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
+
+  // The model core is compiled under noUncheckedIndexedAccess, so every indexed
+  // read is `T | undefined` even inside a loop that just proved its bounds. In
+  // the geometry/room-detection/hash hot paths (138 sites when this was settled,
+  // 2026-08-26) the bounds-checked `arr[i]!` is the idiom; rewriting them all
+  // with runtime guards would churn the exact code whose state hashes must stay
+  // byte-identical with the Python twin. Everywhere else the ban stands.
+  {
+    files: ['packages/model/src/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
 
@@ -212,10 +259,12 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
 
-  // Plain JS (this file included) has no type information to work from.
+  // Plain JS (this file included) has no type information to work from, and it
+  // runs in Node (configs, presets), so Node's globals are the vocabulary.
   {
     files: ['**/*.{js,mjs,cjs}'],
     ...tseslint.configs.disableTypeChecked,
+    languageOptions: { globals: globals.node },
   },
 
   // Must stay last: turns off every rule Prettier already owns.

@@ -58,8 +58,7 @@ class OpRepository(ProjectScopedRepository[models.Op, Op]):
     # ------------------------------------------------------------------
     async def _row_by_id(self, entity_id: object, *, for_update: bool = False) -> models.Op:
         raise RepositoryUsageError(
-            "Ops have no uuid id — address them by (project_id, version_branch, idx) "
-            "or by seq."
+            "Ops have no uuid id — address them by (project_id, version_branch, idx) " "or by seq."
         )
 
     async def delete(self, entity_id: object) -> bool:
@@ -92,9 +91,8 @@ class OpRepository(ProjectScopedRepository[models.Op, Op]):
 
     async def head_seq(self, project_id: uuid.UUID, version_branch: uuid.UUID) -> int | None:
         """Highest global ``seq`` on the branch — becomes ``design_versions.op_seq_end``."""
-        stmt = (
-            self._project_scoped_select(project_id, func.max(models.Op.seq))
-            .where(models.Op.version_branch == version_branch)
+        stmt = self._project_scoped_select(project_id, func.max(models.Op.seq)).where(
+            models.Op.version_branch == version_branch
         )
         result = await self._session.execute(stmt)
         value = result.scalar_one_or_none()
@@ -171,10 +169,7 @@ class OpRepository(ProjectScopedRepository[models.Op, Op]):
         return await self._count(stmt)
 
     async def list_branches(self, project_id: uuid.UUID) -> list[uuid.UUID]:
-        stmt = (
-            self._project_scoped_select(project_id, models.Op.version_branch)
-            .distinct()
-        )
+        stmt = self._project_scoped_select(project_id, models.Op.version_branch).distinct()
         result = await self._session.execute(stmt)
         return [row[0] for row in result.all()]
 
@@ -242,13 +237,10 @@ class OpRepository(ProjectScopedRepository[models.Op, Op]):
             raise RepositoryUsageError("append() needs at least one op.")
         if len(ops) > settings.max_ops_per_append:
             raise RepositoryUsageError(
-                "Too many ops in one append (%d > %d)."
-                % (len(ops), settings.max_ops_per_append)
+                "Too many ops in one append (%d > %d)." % (len(ops), settings.max_ops_per_append)
             )
         if source not in models.OP_SOURCES:
-            raise RepositoryUsageError(
-                "source must be one of %s." % ", ".join(models.OP_SOURCES)
-            )
+            raise RepositoryUsageError("source must be one of %s." % ", ".join(models.OP_SOURCES))
         if base_idx < EMPTY_BRANCH_HEAD:
             raise RepositoryUsageError("base_idx must be >= %d." % EMPTY_BRANCH_HEAD)
         for i, op in enumerate(ops):

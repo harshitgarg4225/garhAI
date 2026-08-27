@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The 3x3 Vastu grid and the 8 compass sectors, oriented to TRUE north.
 
 Derivation, verbatim from ``rulepacks/README.md`` (the tiebreaker) and the
@@ -26,8 +24,10 @@ though the intermediate is a float64 (the four cardinal bearings are exact
 integer swaps and skip it entirely).
 """
 
+from __future__ import annotations
+
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence, Tuple
 
 from .context import PlotSummary
 from .geometry import Point, Ring, polygon_bbox, rotate_ccw_deg
@@ -43,13 +43,13 @@ __all__ = [
 
 #: The nine cells. Declaration order is the schema's; :func:`sorted` is what the
 #: engine uses when a rule's ``actual`` lists several (see ``engine.py``).
-ZONES: Tuple[str, ...] = ("N", "NE", "E", "SE", "S", "SW", "W", "NW", "C")
+ZONES: tuple[str, ...] = ("N", "NE", "E", "SE", "S", "SW", "W", "NW", "C")
 
 #: The eight facing sectors. ``C`` is not a facing.
-COMPASS8: Tuple[str, ...] = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+COMPASS8: tuple[str, ...] = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
 
 #: (row, col) -> zone. row 2 is the most northerly, col 2 the most easterly.
-_CELL_NAMES: Tuple[Tuple[str, str, str], ...] = (
+_CELL_NAMES: tuple[tuple[str, str, str], ...] = (
     ("SW", "S", "SE"),
     ("W", "C", "E"),
     ("NW", "N", "NE"),
@@ -85,7 +85,7 @@ class ZoneGrid:
     row_split_2: int
 
     @classmethod
-    def from_ring(cls, boundary_mm: Ring, north_deg: int) -> "ZoneGrid":
+    def from_ring(cls, boundary_mm: Ring, north_deg: int) -> ZoneGrid:
         rotated = [rotate_ccw_deg(p, north_deg) for p in boundary_mm]
         min_x, min_y, max_x, max_y = polygon_bbox(rotated)
         width = max_x - min_x
@@ -120,7 +120,7 @@ class ZoneGrid:
         row = 0 if y < self.row_split_1 else (1 if y < self.row_split_2 else 2)
         return _CELL_NAMES[row][col]
 
-    def cell_rect(self, zone: str) -> Tuple[int, int, int, int]:
+    def cell_rect(self, zone: str) -> tuple[int, int, int, int]:
         """``(x0, y0, x1, y1)`` of one cell, in the **rotated** frame."""
         for row, names in enumerate(_CELL_NAMES):
             for col, name in enumerate(names):
@@ -130,11 +130,11 @@ class ZoneGrid:
                     return (xs[col], ys[row], xs[col + 1], ys[row + 1])
         raise KeyError("unknown zone %r" % (zone,))
 
-    def centre_cell_rect(self) -> Tuple[int, int, int, int]:
+    def centre_cell_rect(self) -> tuple[int, int, int, int]:
         """The brahmasthan, in the rotated frame."""
         return self.cell_rect("C")
 
-    def rotate_ring(self, ring: Ring) -> Tuple[Point, ...]:
+    def rotate_ring(self, ring: Ring) -> tuple[Point, ...]:
         """Rotate a whole polygon into the grid's frame (rotation preserves area)."""
         if self.north_deg == 0:
             return tuple(ring)
@@ -159,7 +159,7 @@ def facing_of(outward_normal_deg: int, north_deg: int) -> str:
 
 
 def format_zone_list(zones: Sequence[str]) -> str:
-    """"N, NE or E" — for the ``{limit}`` placeholder in a Vastu chip."""
+    """ "N, NE or E" — for the ``{limit}`` placeholder in a Vastu chip."""
     items = list(zones)
     if not items:
         return ""

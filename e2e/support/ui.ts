@@ -234,8 +234,7 @@ export async function drawWallChain(
   let cursor = { ...startPx };
   for (const leg of legs) {
     const vector = LEG_VECTOR[leg.dir];
-    const advancePx =
-      opts.mmPerPx === undefined ? DIRECTION_NUDGE_PX : leg.lengthMm / opts.mmPerPx;
+    const advancePx = opts.mmPerPx === undefined ? DIRECTION_NUDGE_PX : leg.lengthMm / opts.mmPerPx;
     cursor = {
       x: cursor.x + vector.dx * advancePx,
       y: cursor.y + vector.dy * advancePx,
@@ -254,7 +253,10 @@ export async function drawWallChain(
 
 /** The autosave badge's text — "Saved · v14", "Saving…", "Offline". */
 export function saveBadge(page: Page): Locator {
-  return page.getByRole('status').filter({ hasText: /Saved|Saving|Offline|couldn/i }).first();
+  return page
+    .getByRole('status')
+    .filter({ hasText: /Saved|Saving|Offline|couldn/i })
+    .first();
 }
 
 /** Wait until the op queue has drained and the badge says so. */
@@ -404,7 +406,9 @@ export async function openCopilotWithSlash(page: Page): Promise<Locator> {
   await page.keyboard.press('/');
 
   const panel = copilotPanel(page);
-  await expect(panel, 'pressing "/" did not open the copilot rail').toBeVisible({ timeout: 15_000 });
+  await expect(panel, 'pressing "/" did not open the copilot rail').toBeVisible({
+    timeout: 15_000,
+  });
 
   const box = copilotInput(page);
   await expect(box, 'the copilot rail opened but its command box never appeared').toBeVisible();

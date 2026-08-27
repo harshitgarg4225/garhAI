@@ -33,7 +33,7 @@ the fixture; if the model core changes its convention, that test fails loudly.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 __all__ = [
     "FLIGHT_GAP_MM",
@@ -45,7 +45,7 @@ __all__ = [
 
 #: ``direction -> (forward, right)``. Right is 90° clockwise from forward, matching
 #: ``garh_model.fold._STAIR_VECTORS`` exactly.
-STAIR_VECTORS: Dict[str, Tuple[Tuple[int, int], Tuple[int, int]]] = {
+STAIR_VECTORS: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {
     "N": ((0, 1), (1, 0)),
     "E": ((1, 0), (0, -1)),
     "S": ((0, -1), (-1, 0)),
@@ -57,13 +57,21 @@ STAIR_VECTORS: Dict[str, Tuple[Tuple[int, int], Tuple[int, int]]] = {
 FLIGHT_GAP_MM = 100
 
 #: An axis-aligned model-space rectangle ``(x_lo, y_lo, x_hi, y_hi)``.
-Rect = Tuple[int, int, int, int]
+Rect = tuple[int, int, int, int]
 
 
-def _rect_of(origin: Tuple[int, int], forward: Tuple[int, int], right: Tuple[int, int], along_lo: int, along_hi: int, across_lo: int, across_hi: int) -> Rect:
+def _rect_of(
+    origin: tuple[int, int],
+    forward: tuple[int, int],
+    right: tuple[int, int],
+    along_lo: int,
+    along_hi: int,
+    across_lo: int,
+    across_hi: int,
+) -> Rect:
     """Rectangle from stair-local (along, across) bounds, in model coordinates."""
-    xs: List[int] = []
-    ys: List[int] = []
+    xs: list[int] = []
+    ys: list[int] = []
     for along in (along_lo, along_hi):
         for across in (across_lo, across_hi):
             xs.append(origin[0] + forward[0] * along + right[0] * across)
@@ -79,9 +87,9 @@ class StairGeometry:
     storey_id: str
     kind: str
     direction: str
-    origin: Tuple[int, int]
-    forward: Tuple[int, int]
-    right: Tuple[int, int]
+    origin: tuple[int, int]
+    forward: tuple[int, int]
+    right: tuple[int, int]
     riser_mm: int
     tread_mm: int
     width_mm: int
@@ -93,7 +101,7 @@ class StairGeometry:
     landing_depth_mm: int
     footprint: Rect
     flight_rect: Rect
-    landing_rect: Optional[Rect]
+    landing_rect: Rect | None
     #: True when the model cannot describe the whole stair (see the module docstring).
     partial: bool
 
@@ -106,7 +114,7 @@ class StairGeometry:
     def total_rise_mm(self) -> int:
         return self.risers_count * self.riser_mm
 
-    def note(self) -> Optional[str]:
+    def note(self) -> str | None:
         """The honest sentence a partial stair puts on the sheet."""
         if not self.partial:
             return None
@@ -123,7 +131,7 @@ class StairGeometry:
             )
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "stairId": self.stair_id,
             "storeyId": self.storey_id,
@@ -164,7 +172,7 @@ def stair_geometry(stair: Any) -> StairGeometry:
         landing_depth = 0
         depth = going
         footprint_width = width
-        landing_rect: Optional[Rect] = None
+        landing_rect: Rect | None = None
         partial = False
     else:
         drawn = -((-risers) // 2)  # ceil(risers / 2)

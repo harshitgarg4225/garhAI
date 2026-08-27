@@ -34,7 +34,7 @@ describe('ProgressRing accessibility', () => {
     const el = ProgressRing({ value: 78, label: 'Composite score' }) as unknown as {
       props: Record<string, unknown>;
     };
-    expect(el.props['role']).toBe('progressbar');
+    expect(el.props.role).toBe('progressbar');
     expect(el.props['aria-valuenow']).toBe(78);
     expect(el.props['aria-valuetext']).toBe('78 out of 100');
     expect(el.props['aria-label']).toBe('Composite score');

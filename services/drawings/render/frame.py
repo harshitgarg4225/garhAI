@@ -19,7 +19,8 @@ title block whose values vanish with the room labels is a nuisance nobody expect
 
 from __future__ import annotations
 
-from typing import Any, List, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from services.drawings.layers import A_TEXT, A_TITL
 from services.drawings.render.primitives import (
@@ -64,7 +65,7 @@ class RevisionRow(tuple):
 
     __slots__ = ()
 
-    def __new__(cls, revision: str, date: str, description: str) -> "RevisionRow":
+    def __new__(cls, revision: str, date: str, description: str) -> RevisionRow:
         return super().__new__(cls, (revision, date, description))
 
     @property
@@ -96,8 +97,8 @@ def _rect(x: int, y: int, width: int, height: int, layer: str) -> Polyline:
 def title_block_primitives(
     frame: Any,
     *,
-    revisions: Sequence[Tuple[str, str, str]] = (),
-) -> Tuple[Primitive, ...]:
+    revisions: Sequence[tuple[str, str, str]] = (),
+) -> tuple[Primitive, ...]:
     """The title block: box, field rules, labels, values and the revision table.
 
     ``frame`` is a :class:`services.drawings.sheets.Frame`. Field values come from its
@@ -114,11 +115,13 @@ def title_block_primitives(
     left = paper.width_mm - frame.margin_right_mm - width
     top = paper.height_mm - frame.margin_bottom_mm - height
 
-    out: List[Primitive] = [_rect(left, top, width, height, A_TITL)]
+    out: list[Primitive] = [_rect(left, top, width, height, A_TITL)]
 
     # -- upper band: drawing title + sheet number ---------------------------
     title_band_height = 14
-    out.append(Line((left, top + title_band_height), (left + width, top + title_band_height), A_TITL))
+    out.append(
+        Line((left, top + title_band_height), (left + width, top + title_band_height), A_TITL)
+    )
     number_column = width - 40
     out.append(
         Line(
@@ -157,7 +160,7 @@ def title_block_primitives(
     )
 
     # -- field grid: two columns of labelled fields -------------------------
-    fields: Tuple[Tuple[str, str], ...] = (
+    fields: tuple[tuple[str, str], ...] = (
         ("PROJECT", block.project_name),
         ("CLIENT", block.client_name),
         ("ARCHITECT", block.firm_name),
@@ -183,7 +186,9 @@ def title_block_primitives(
     # collision assertion exists to catch. When the cell is too short we fall back to a
     # single line, "LABEL  value", which is legible rather than overprinted.
     stacked = row_height >= 6
-    out.append(Line((left + column_width, grid_top), (left + column_width, grid_top + grid_height), A_TITL))
+    out.append(
+        Line((left + column_width, grid_top), (left + column_width, grid_top + grid_height), A_TITL)
+    )
     for index, (label, value) in enumerate(fields):
         column, row = divmod(index, rows)
         x = left + column * column_width
@@ -236,7 +241,7 @@ def title_block_primitives(
         table_top = grid_top + grid_height + notes_height
         columns = (10, 24, width - 34)
         header = ("REV", "DATE", "DESCRIPTION")
-        for row_index, row in enumerate((header,) + tuple(revisions)):
+        for row_index, row in enumerate((header, *tuple(revisions))):
             y = table_top + row_index * REVISION_ROW_HEIGHT_MM
             out.append(Line((left, y), (left + width, y), A_TITL))
             x = left
@@ -266,12 +271,12 @@ def title_block_primitives(
 def frame_group(
     frame: Any,
     *,
-    revisions: Sequence[Tuple[str, str, str]] = (),
+    revisions: Sequence[tuple[str, str, str]] = (),
     group_id: str = "frame",
 ) -> DrawingGroup:
     """Border + trim line + title block as one paper-space drawing group."""
     paper = frame.paper
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     # Trim line, then the border. Two lines is the convention; the outer one is the
     # cut line and the inner one is the drawing border.
     out.append(

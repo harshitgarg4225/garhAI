@@ -44,7 +44,11 @@ import {
   WORLD_UNITS_PER_MM,
   useCanvasCore,
 } from '../../../features/canvas/core';
-import { toolPreviewBus, type PreviewShape, type ToolPreview } from '../../../features/canvas/tools';
+import {
+  toolPreviewBus,
+  type PreviewShape,
+  type ToolPreview,
+} from '../../../features/canvas/tools';
 import { getPlanMaterials } from './planMaterials';
 
 /** Segments a fresh buffer holds before it has to grow. */
@@ -134,12 +138,7 @@ class SegmentWriter {
 // ---------------------------------------------------------------------------
 
 /** The rectangle of a preview wall, from its centreline and thickness. */
-function pushWallOutline(
-  w: SegmentWriter,
-  a: Pt,
-  b: Pt,
-  thicknessMm: number,
-): void {
+function pushWallOutline(w: SegmentWriter, a: Pt, b: Pt, thicknessMm: number): void {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len = Math.hypot(dx, dy);

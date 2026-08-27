@@ -20,7 +20,6 @@ scales it.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
 
 #: §7: chain offsets from the building line, in **paper-scaled model mm**.
 #: "Offsets: L1 at 2400mm from building line (paper-scaled), L2 1800, L3 1200."
@@ -42,7 +41,7 @@ DEFAULT_DIM_TO_JAMB = False
 #: ``dxf.DIM_TEXT_HEIGHT_PAPER_MM`` puts in the DIMSTYLE. §7 step 4 allows shrinking
 #: "one step" on collision; the third step exists for the pathological cases and is
 #: reported in the stats so a human can see it happened.
-TEXT_HEIGHT_STEPS_PAPER_TENTHS: Tuple[int, ...] = (25, 18, 14)
+TEXT_HEIGHT_STEPS_PAPER_TENTHS: tuple[int, ...] = (25, 18, 14)
 
 #: Advance width per character as a fraction (numerator/denominator) of text height.
 #: The CAD default ``txt``/ISO fonts sit near 0.7 of height once inter-character spacing
@@ -96,9 +95,7 @@ class AutoDimConfig:
 
     def __post_init__(self) -> None:
         if self.scale_denominator <= 0:
-            raise ValueError(
-                "scale_denominator must be positive, got %d" % self.scale_denominator
-            )
+            raise ValueError("scale_denominator must be positive, got %d" % self.scale_denominator)
 
     # -- paper → model -----------------------------------------------------
     def paper_to_model(self, paper_tenths: int) -> int:

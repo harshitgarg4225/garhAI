@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The area statement (§7) — derived from the rule results, never recomputed.
 
 §7 is explicit about why this lives here and not in the drawings engine: "area
@@ -26,9 +24,12 @@ area statement contradicts its own compliance annexure is a rejected drawing. So
 runs the same evaluation underneath, so there is exactly one code path.
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from .context import EvaluationContext
 from .formatting import format_area_mm2, format_count, format_length_mm, format_ratio, storey_label
@@ -51,9 +52,9 @@ class StoreyAreaRow:
     storey_id: str
     index: int
     label: str
-    built_up_area_mm2: Optional[int]
+    built_up_area_mm2: int | None
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "storeyId": self.storey_id,
             "index": self.index,
@@ -70,8 +71,8 @@ class SetbackRow:
     role: str
     element_id: str
     provided_mm: int
-    required_mm: Optional[int]
-    rule_ids: Tuple[str, ...]
+    required_mm: int | None
+    rule_ids: tuple[str, ...]
 
     @property
     def status(self) -> str:
@@ -85,7 +86,7 @@ class SetbackRow:
             return 0
         return max(0, self.required_mm - self.provided_mm)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "edgeIndex": self.edge_index,
             "role": self.role,
@@ -114,8 +115,8 @@ class AreaRow:
     unit: str
     allowed: Any = None
     kind: str = "informational"  # allowance | requirement | informational
-    note: Optional[str] = None
-    rule_ids: Tuple[str, ...] = ()
+    note: str | None = None
+    rule_ids: tuple[str, ...] = ()
 
     @property
     def limit_label(self) -> str:
@@ -125,8 +126,8 @@ class AreaRow:
             return "Required"
         return ""
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
             "key": self.key,
             "label": self.label,
             "value": self.value,
@@ -149,22 +150,22 @@ class AreaStatement:
 
     plot_area_mm2: int
     footprint_area_mm2: int
-    coverage_allowed_mm2: Optional[int]
+    coverage_allowed_mm2: int | None
     total_built_up_area_mm2: int
     far_countable_area_mm2: int
-    far_allowed_mm2: Optional[int]
-    per_storey: Tuple[StoreyAreaRow, ...]
-    setbacks: Tuple[SetbackRow, ...]
+    far_allowed_mm2: int | None
+    per_storey: tuple[StoreyAreaRow, ...]
+    setbacks: tuple[SetbackRow, ...]
     storey_count: int
-    floors_counted: Optional[int]
-    floors_allowed: Optional[int]
+    floors_counted: int | None
+    floors_allowed: int | None
     building_height_mm: int
-    height_counted_mm: Optional[int]
-    height_allowed_mm: Optional[int]
+    height_counted_mm: int | None
+    height_allowed_mm: int | None
     parking_provided: int
-    parking_required: Optional[int]
-    rule_ids: Mapping[str, Tuple[str, ...]]
-    warnings: Tuple[str, ...] = ()
+    parking_required: int | None
+    rule_ids: Mapping[str, tuple[str, ...]]
+    warnings: tuple[str, ...] = ()
 
     # -- exact achieved ratios --------------------------------------------
     @property
@@ -172,7 +173,7 @@ class AreaStatement:
         return Fraction(self.far_countable_area_mm2, max(1, self.plot_area_mm2))
 
     @property
-    def far_allowed(self) -> Optional[Fraction]:
+    def far_allowed(self) -> Fraction | None:
         if self.far_allowed_mm2 is None:
             return None
         return Fraction(self.far_allowed_mm2, max(1, self.plot_area_mm2))
@@ -182,14 +183,14 @@ class AreaStatement:
         return Fraction(self.footprint_area_mm2, max(1, self.plot_area_mm2))
 
     @property
-    def coverage_allowed(self) -> Optional[Fraction]:
+    def coverage_allowed(self) -> Fraction | None:
         if self.coverage_allowed_mm2 is None:
             return None
         return Fraction(self.coverage_allowed_mm2, max(1, self.plot_area_mm2))
 
-    def rows(self) -> Tuple[AreaRow, ...]:
+    def rows(self) -> tuple[AreaRow, ...]:
         """The statement as printable rows, in municipal reading order."""
-        rows: List[AreaRow] = [
+        rows: list[AreaRow] = [
             AreaRow("plot_area", "Plot area", self.plot_area_mm2, "mm2"),
             AreaRow(
                 "coverage",
@@ -283,7 +284,7 @@ class AreaStatement:
         return tuple(rows)
 
     @staticmethod
-    def _ratio_note(achieved: Fraction, allowed: Optional[Fraction]) -> Optional[str]:
+    def _ratio_note(achieved: Fraction, allowed: Fraction | None) -> str | None:
         if allowed is None:
             return "%s achieved; not regulated by the loaded packs" % format_ratio(achieved)
         return "%s achieved against %s allowed" % (
@@ -291,7 +292,7 @@ class AreaStatement:
             format_ratio(allowed),
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "plotAreaMm2": self.plot_area_mm2,
             "footprintAreaMm2": self.footprint_area_mm2,
@@ -320,9 +321,9 @@ class AreaStatement:
             "rows": [r.to_json() for r in self.rows()],
         }
 
-    def text_rows(self) -> Tuple[Tuple[str, str, str, str], ...]:
+    def text_rows(self) -> tuple[tuple[str, str, str, str], ...]:
         """``(label, value, limit, limitLabel)`` already formatted — what the sheet prints."""
-        out: List[Tuple[str, str, str, str]] = []
+        out: list[tuple[str, str, str, str]] = []
         for row in self.rows():
             if row.unit == "mm2":
                 value = format_area_mm2(row.value) if row.value is not None else "-"
@@ -342,12 +343,12 @@ class AreaStatement:
 # ---------------------------------------------------------------------------
 
 
-def _strictest(values: Sequence[int]) -> Optional[int]:
+def _strictest(values: Sequence[int]) -> int | None:
     """The binding allowance when several bands apply: the smallest."""
     return min(values) if values else None
 
 
-def _largest(values: Sequence[int]) -> Optional[int]:
+def _largest(values: Sequence[int]) -> int | None:
     """The binding requirement when several minima stack: the largest."""
     return max(values) if values else None
 
@@ -359,22 +360,22 @@ def build_area_statement(
     model = context.model
     plot = context.plot
 
-    far_limits: List[int] = []
-    coverage_limits: List[int] = []
-    height_limits: List[int] = []
-    height_counted: List[int] = []
-    floor_limits: List[int] = []
-    floors_counted: List[int] = []
-    parking_required: List[int] = []
-    rule_ids: Dict[str, List[str]] = {
+    far_limits: list[int] = []
+    coverage_limits: list[int] = []
+    height_limits: list[int] = []
+    height_counted: list[int] = []
+    floor_limits: list[int] = []
+    floors_counted: list[int] = []
+    parking_required: list[int] = []
+    rule_ids: dict[str, list[str]] = {
         "far": [],
         "coverage": [],
         "height": [],
         "floors": [],
         "parking": [],
     }
-    setback_required: Dict[str, int] = {}
-    setback_rules: Dict[str, List[str]] = {}
+    setback_required: dict[str, int] = {}
+    setback_rules: dict[str, list[str]] = {}
 
     for result in results:
         if result.status == NOT_APPLICABLE:
@@ -414,7 +415,7 @@ def build_area_statement(
                 )
                 setback_rules.setdefault(key, []).append(result.rule_id)
 
-    setbacks: List[SetbackRow] = []
+    setbacks: list[SetbackRow] = []
     for edge in plot.edges:
         # Same id the compliance chip uses, from the same function — a setback row and
         # its chip must never disagree about which edge they mean.
@@ -440,7 +441,7 @@ def build_area_statement(
         for storey in sorted(model.storeys, key=lambda s: s.index)
     )
 
-    warnings: List[str] = []
+    warnings: list[str] = []
     known = [s.built_up_area_mm2 for s in per_storey if s.built_up_area_mm2 is not None]
     if len(known) == len(per_storey) and per_storey:
         total = sum(known)
@@ -484,7 +485,7 @@ def build_area_statement(
     )
 
 
-def area_statement(context: Any, *, packs: Any = None, root: Optional[str] = None) -> AreaStatement:
+def area_statement(context: Any, *, packs: Any = None, root: str | None = None) -> AreaStatement:
     """One call the drawings engine and the UI both use.
 
     Runs the rules and returns only the statement — same evaluation, same numbers,

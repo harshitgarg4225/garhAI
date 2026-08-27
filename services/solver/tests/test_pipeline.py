@@ -21,7 +21,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from services.solver import gates
 from services.solver.pipeline import (
@@ -54,8 +55,7 @@ from services.solver.types import (
 #: thirds are exactly 5000 mm — so anchor-indexed x-offsets land in distinct zones.
 PLOT = ((0, 0), (18_000, 0), (18_000, 18_000), (0, 18_000))
 EDGES = tuple(
-    PlotEdge(index=i, role=("front" if i == 0 else "side"), setback_mm=1_500)
-    for i in range(4)
+    PlotEdge(index=i, role=("front" if i == 0 else "side"), setback_mm=1_500) for i in range(4)
 )
 PROFILE_BLR = RegProfile(
     city_pack="blr", coverage_percent=60, far_x100=175, max_height_mm=10_000, max_floors=3
@@ -63,18 +63,18 @@ PROFILE_BLR = RegProfile(
 
 
 def make_params(**overrides: Any) -> SolveParams:
-    base: dict[str, Any] = dict(
-        plot_polygon=PLOT,
-        edges=EDGES,
-        profile=PROFILE_BLR,
-        rooms=(
+    base: dict[str, Any] = {
+        "plot_polygon": PLOT,
+        "edges": EDGES,
+        "profile": PROFILE_BLR,
+        "rooms": (
             RoomRequest("living", "living", 12_000_000, 16_000_000, 3_000),
             RoomRequest("kitchen", "kitchen", 5_000_000, 9_000_000, 1_800, is_wet=True),
             RoomRequest("master", "bedroom_master", 9_500_000, 16_000_000, 2_400),
         ),
-        storeys=1,
-        seed=7,
-    )
+        "storeys": 1,
+        "seed": 7,
+    }
     base.update(overrides)
     return SolveParams(**base)
 
@@ -96,7 +96,7 @@ class FakeSolver:
         self,
         *,
         anchor_count: int = 3,
-        composite_by_index: Optional[dict[int, int]] = None,
+        composite_by_index: dict[int, int] | None = None,
         stage_a_none: Sequence[str] = (),
         stage_a_relaxed_ok: Sequence[str] = (),
         stage_b_none: Sequence[str] = (),
@@ -121,8 +121,13 @@ class FakeSolver:
         )
 
     def _solve(
-        self, grid: GridSpec, params: SolveParams, anchor: StairAnchor, profile: SolverProfile, relaxed: bool
-    ) -> Optional[Candidate]:
+        self,
+        grid: GridSpec,
+        params: SolveParams,
+        anchor: StairAnchor,
+        profile: SolverProfile,
+        relaxed: bool,
+    ) -> Candidate | None:
         self.stage_a_calls.append((anchor.id, relaxed, profile))
         if not relaxed and anchor.id in self.stage_a_none:
             return None
@@ -144,18 +149,18 @@ class FakeSolver:
         *,
         profile: SolverProfile,
         relaxed: bool = False,
-    ) -> Optional[Candidate]:
+    ) -> Candidate | None:
         return self._solve(grid, params, anchor, profile, relaxed)
 
     def stage_a_no_relax(
         self, grid: GridSpec, params: SolveParams, anchor: StairAnchor, *, profile: SolverProfile
-    ) -> Optional[Candidate]:
+    ) -> Candidate | None:
         """A stage A that predates the relax keyword — the driver must cope."""
         return self._solve(grid, params, anchor, profile, False)
 
     def stage_b(
         self, candidate: Candidate, params: SolveParams, envelope: Any
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Mapping[str, Any] | None:
         self.stage_b_calls.append(candidate.stair_anchor.id)
         if candidate.stair_anchor.id in self.stage_b_none:
             return None
@@ -164,13 +169,9 @@ class FakeSolver:
     def build_ops(
         self, placements: Sequence[RoomPlacement], params: SolveParams, *, model: Any = None
     ) -> list[dict[str, Any]]:
-        return [
-            {"type": "room.assign", "payload": {"key": p.room_key}} for p in placements
-        ]
+        return [{"type": "room.assign", "payload": {"key": p.room_key}} for p in placements]
 
-    def compliance(
-        self, model: Mapping[str, Any], params: SolveParams
-    ) -> list[dict[str, Any]]:
+    def compliance(self, model: Mapping[str, Any], params: SolveParams) -> list[dict[str, Any]]:
         anchor = str(model.get("anchor"))
         if anchor in self.compliance_fail:
             return [{"ruleId": "blr.setback.front.9m", "status": "fail"}]
@@ -205,7 +206,9 @@ class FakeSolver:
     def stage_set(self, *, relax_capable: bool = True) -> StageSet:
         return StageSet(
             anchors=self.anchors,
-            stage_a=self.stage_a if (relax_capable and self.supports_relax) else self.stage_a_no_relax,
+            stage_a=self.stage_a
+            if (relax_capable and self.supports_relax)
+            else self.stage_a_no_relax,
             stage_b=self.stage_b,
             build_ops=self.build_ops,
             compliance=self.compliance,
@@ -220,9 +223,7 @@ class Recorder:
         self.events: list[dict[str, Any]] = []
 
     async def __call__(self, stage: str, message: str, percent: Any = None, **data: Any) -> None:
-        self.events.append(
-            {"stage": stage, "message": message, "percent": percent, "data": data}
-        )
+        self.events.append({"stage": stage, "message": message, "percent": percent, "data": data})
 
     def stage_ids(self) -> list[str]:
         return [event["stage"] for event in self.events]
@@ -233,13 +234,13 @@ class Recorder:
 
 def make_context(fake: FakeSolver, **overrides: Any) -> tuple[SolveContext, Recorder]:
     recorder = Recorder()
-    fields: dict[str, Any] = dict(
-        params=make_params(),
-        progress=recorder,
-        check_cancelled=lambda: None,
-        profile=DETERMINISTIC_TEST_PROFILE,
-        stages=fake.stage_set(),
-    )
+    fields: dict[str, Any] = {
+        "params": make_params(),
+        "progress": recorder,
+        "check_cancelled": lambda: None,
+        "profile": DETERMINISTIC_TEST_PROFILE,
+        "stages": fake.stage_set(),
+    }
     fields.update(overrides)
     return SolveContext(**fields), recorder
 
@@ -314,8 +315,15 @@ def test_one_artifact_event_per_presented_option() -> None:
 def test_stage_table_is_the_single_source_of_copy() -> None:
     ids = [entry[0] for entry in STAGES]
     assert ids == [
-        "envelope", "program", "stairs", "topology", "refine",
-        "critic", "vastu", "diversity", "relax",
+        "envelope",
+        "program",
+        "stairs",
+        "topology",
+        "refine",
+        "critic",
+        "vastu",
+        "diversity",
+        "relax",
     ]
     percents = [entry[2] for entry in STAGES]
     assert percents == sorted(percents)
@@ -337,9 +345,9 @@ def test_options_are_ranked_scored_and_carry_rationale_seeds() -> None:
         assert option.compliance, "the critic's rules results ride along"
         assert any(fact.startswith("composite:") for fact in option.rationale_facts)
         assert any(fact.startswith("zone:") for fact in option.rationale_facts)
-        assert all(":" in fact for fact in option.rationale_facts), (
-            "rationale seeds are structured facts, never prose (§5.5)"
-        )
+        assert all(
+            ":" in fact for fact in option.rationale_facts
+        ), "rationale seeds are structured facts, never prose (§5.5)"
 
 
 def test_result_json_is_deterministic() -> None:
@@ -387,7 +395,7 @@ def test_infeasible_stage_a_candidate_is_discarded_with_reason() -> None:
     fake = FakeSolver(stage_a_none=("st1",))
     context, recorder = make_context(fake)
     result = solve(context)
-    diversity = [e for e in recorder.events if e["stage"] == "diversity"][0]
+    diversity = next(e for e in recorder.events if e["stage"] == "diversity")
     discards = diversity["data"]["discards"]
     assert any(d["anchor"] == "st1" and d["stage"] == "stage-a" for d in discards)
     # The §5.6 relax pass then recovers st1 (soft weights loosened), so the final
@@ -401,10 +409,9 @@ def test_unrefinable_candidate_is_discarded_with_reason() -> None:
     context, recorder = make_context(fake)
     result = solve(context)
     assert result.considered == 2, "st2 cannot refine even relaxed"
-    diversity = [e for e in recorder.events if e["stage"] == "diversity"][0]
+    diversity = next(e for e in recorder.events if e["stage"] == "diversity")
     assert any(
-        d["anchor"] == "st2" and d["stage"] == "stage-b"
-        for d in diversity["data"]["discards"]
+        d["anchor"] == "st2" and d["stage"] == "stage-b" for d in diversity["data"]["discards"]
     )
     assert result.banner == "2 strong options found for this plot."
 
@@ -441,9 +448,9 @@ def test_relax_skipped_when_stage_a_cannot_honour_it() -> None:
     fake = FakeSolver(stage_a_none=("st1", "st2"))
     context, recorder = make_context(fake, stages=fake.stage_set(relax_capable=False))
     result = solve(context)
-    assert not [e for e in recorder.events if e["stage"] == "relax"], (
-        "re-running an identical solve is not a relax pass; skip and stay honest"
-    )
+    assert not [
+        e for e in recorder.events if e["stage"] == "relax"
+    ], "re-running an identical solve is not a relax pass; skip and stay honest"
     assert len(result.options) == 1
     assert result.banner == "1 strong option found for this plot."
 
@@ -564,9 +571,9 @@ def test_profiles_match_the_spec() -> None:
 
     assert DETERMINISTIC_TEST_PROFILE.num_search_workers == 1
     assert DETERMINISTIC_TEST_PROFILE.random_seed is not None
-    assert DETERMINISTIC_TEST_PROFILE.time_budget_seconds is None, (
-        "wall-clock budgets are machine-dependent; tests use solution/branch limits"
-    )
+    assert (
+        DETERMINISTIC_TEST_PROFILE.time_budget_seconds is None
+    ), "wall-clock budgets are machine-dependent; tests use solution/branch limits"
     assert DETERMINISTIC_TEST_PROFILE.max_solutions is not None
     assert DETERMINISTIC_TEST_PROFILE.max_branches is not None
     assert DETERMINISTIC_TEST_PROFILE.candidate_parallelism == 1
@@ -599,7 +606,7 @@ if __name__ == "__main__":  # pragma: no cover
             try:
                 fn()
                 print("PASS %s" % name)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 failures += 1
                 print("FAIL %s" % name)
                 traceback.print_exc()

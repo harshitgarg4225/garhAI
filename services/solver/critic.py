@@ -13,9 +13,10 @@ alone are implemented here.
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
-from services.solver.geometry import ZONE_NAMES, Pt, bbox, zone_for_point
+from services.solver.geometry import Pt, bbox, zone_for_point
 from services.solver.types import (
     BuildableEnvelope,
     RoomPlacement,
@@ -28,15 +29,11 @@ PHASE = "Phase 3 (Layout solver)"
 
 #: Rooms with plumbing. Stacking these across storeys is the buildability signal
 #: §5.4 asks for — one shaft instead of a drop through a habitable ceiling.
-WET_TYPES = frozenset(
-    {"bath", "bath_wc", "wc", "kitchen", "kitchen_dining", "utility"}
-)
+WET_TYPES = frozenset({"bath", "bath_wc", "wc", "kitchen", "kitchen_dining", "utility"})
 
 #: Rooms you pass through rather than occupy. They do not screen a sightline —
 #: a passage between the door and the master bedroom is exactly how you see in.
-CIRCULATION_ROOM_TYPES = frozenset(
-    {"passage", "corridor", "foyer", "lobby", "staircase", "porch"}
-)
+CIRCULATION_ROOM_TYPES = frozenset({"passage", "corridor", "foyer", "lobby", "staircase", "porch"})
 
 #: §5.4 weights. They sum to 100 so the composite is directly a 0-100 score, and
 #: ``assert sum(COMPONENT_WEIGHTS.values()) == 100`` below keeps that true.
@@ -92,9 +89,7 @@ def score_target_area_fit(
     return max(0, 100 - sum(penalties) // len(penalties))
 
 
-def circulation_percent(
-    placements: Sequence[RoomPlacement], footprint_mm2: int
-) -> int:
+def circulation_percent(placements: Sequence[RoomPlacement], footprint_mm2: int) -> int:
     """Circulation as an integer percent of the footprint. **Implemented.**
 
     Circulation is the footprint the rooms do not occupy PLUS the rooms whose whole
@@ -162,8 +157,17 @@ def score_daylight(
     north_deg: int,
     *,
     habitable_types: frozenset[str] = frozenset(
-        {"living", "dining", "living_dining", "bedroom", "bedroom_master", "guest_bedroom",
-         "study", "kitchen", "kitchen_dining"}
+        {
+            "living",
+            "dining",
+            "living_dining",
+            "bedroom",
+            "bedroom_master",
+            "guest_bedroom",
+            "study",
+            "kitchen",
+            "kitchen_dining",
+        }
     ),
 ) -> int:
     """§5.4's daylight orientation bonus: habitable rooms facing E/N/NE. **Implemented.**"""
@@ -189,9 +193,7 @@ def _rects_overlap(a: RoomPlacement, b: RoomPlacement) -> bool:
     )
 
 
-def _entry_point(
-    params: SolveParams, placements: Sequence[RoomPlacement]
-) -> Pt | None:
+def _entry_point(params: SolveParams, placements: Sequence[RoomPlacement]) -> Pt | None:
     """Where the front door is, approximately: the midpoint of the front edge.
 
     Falls back to the first road-facing edge, then to ``None`` — an unknown entry
@@ -243,9 +245,7 @@ def _segments_cross(p1: Pt, p2: Pt, p3: Pt, p4: Pt) -> bool:
         return True
     if d3 == 0 and _on_span(x1, y1, x2, y2, x3, y3):
         return True
-    if d4 == 0 and _on_span(x1, y1, x2, y2, x4, y4):
-        return True
-    return False
+    return bool(d4 == 0 and _on_span(x1, y1, x2, y2, x4, y4))
 
 
 def _segment_crosses_rect(origin: Pt, target: Pt, rect: RoomPlacement) -> bool:

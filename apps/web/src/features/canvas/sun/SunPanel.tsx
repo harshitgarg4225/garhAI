@@ -84,8 +84,8 @@ export function SunPanel({ className }: SunPanelProps): JSX.Element {
       </div>
       {city === null ? (
         <p className="text-2xs leading-4 text-ink-subtle">
-          No city pack on this plot yet — using {DEFAULT_CITY.name}&apos;s latitude. Set the city
-          in Plot &amp; Rules to place the sun for real.
+          No city pack on this plot yet — using {DEFAULT_CITY.name}&apos;s latitude. Set the city in
+          Plot &amp; Rules to place the sun for real.
         </p>
       ) : null}
 
@@ -159,16 +159,21 @@ export function SunPanel({ className }: SunPanelProps): JSX.Element {
 
       {/* Compass readout */}
       <div className="flex items-center gap-3">
-        <Compass northDeg={northDeg} sunModelAzimuthDeg={frame.modelAzimuthDeg} sunUp={frame.aboveHorizon} />
+        <Compass
+          northDeg={northDeg}
+          sunModelAzimuthDeg={frame.modelAzimuthDeg}
+          sunUp={frame.aboveHorizon}
+        />
         <div className="flex flex-col text-2xs leading-4 text-ink-muted garh-nums">
           {frame.aboveHorizon ? (
             <>
               <span>
-                Azimuth {Math.round(frame.solar.azimuthDeg)}°{' '}
-                {compassLabel(frame.solar.azimuthDeg)}
+                Azimuth {Math.round(frame.solar.azimuthDeg)}° {compassLabel(frame.solar.azimuthDeg)}
               </span>
               <span>Elevation {frame.solar.apparentElevationDeg.toFixed(1)}°</span>
-              <span className="text-ink-subtle">Shadows fall {compassLabel(frame.solar.azimuthDeg + 180)}</span>
+              <span className="text-ink-subtle">
+                Shadows fall {compassLabel(frame.solar.azimuthDeg + 180)}
+              </span>
             </>
           ) : (
             <span>Sun is below the horizon — scrub into daylight to cast shadows.</span>

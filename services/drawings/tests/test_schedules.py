@@ -36,10 +36,11 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Mapping
 from dataclasses import replace
 from fractions import Fraction
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 for _path in (str(_REPO_ROOT), str(_REPO_ROOT / "apps" / "api")):
@@ -52,6 +53,7 @@ STUBBED = install_worker_dep_stubs()
 
 from garh_model.fold import replay, storey_built_up_area_mm2, storey_carpet_area_mm2  # noqa: E402
 from garh_rules import evaluate  # noqa: E402
+
 from services.drawings.layers import LAYER_NAMES  # noqa: E402
 from services.drawings.schedules import (  # noqa: E402
     CARPET_EXCLUDED_ROOM_TYPES,
@@ -64,7 +66,12 @@ from services.drawings.schedules import (  # noqa: E402
     carpet_by_storey,
     opening_tags,
 )
-from services.drawings.schedules.display import area_cell, gaj_text, sqft_text, sqm_text  # noqa: E402
+from services.drawings.schedules.display import (  # noqa: E402
+    area_cell,
+    gaj_text,
+    sqft_text,
+    sqm_text,
+)
 from services.drawings.schedules.door_window import assign_tags, tagged_openings  # noqa: E402
 from services.drawings.schedules.openings import ScheduleOpening  # noqa: E402
 from services.drawings.schedules.sheet_primitives import (  # noqa: E402
@@ -85,9 +92,9 @@ REGEN = "--regen" in sys.argv
 # ---------------------------------------------------------------------------
 # fixtures
 # ---------------------------------------------------------------------------
-def rules_context() -> Dict[str, Any]:
+def rules_context() -> dict[str, Any]:
     """The committed BLR fixture's evaluation context (JSON form, as the engine takes it)."""
-    with open(RULES_FIXTURE, "r", encoding="utf-8") as handle:
+    with open(RULES_FIXTURE, encoding="utf-8") as handle:
         return json.load(handle)["context"]
 
 
@@ -119,7 +126,7 @@ def _opening_op(
     height_mm: int,
     sill_mm: int,
     offset_mm: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "type": "opening.add",
         "payload": {
@@ -137,7 +144,7 @@ def _opening_op(
 
 #: A G+1 opening set: 11 openings in 6 groups across two storeys, including one group
 #: that appears on both floors (W1) and one that appears twice on one wall run.
-DEMO_OPENING_OPS: Tuple[Dict[str, Any], ...] = (
+DEMO_OPENING_OPS: tuple[dict[str, Any], ...] = (
     _opening_op("GD1", WALL_GF_S, "door", 1000, 2100, 0, 1500),
     _opening_op("GD2", WALL_GF_INT, "door", 900, 2100, 0, 800),
     _opening_op("GD3", WALL_GF_INT, "door", 800, 2100, 0, 2400),
@@ -152,8 +159,8 @@ DEMO_OPENING_OPS: Tuple[Dict[str, Any], ...] = (
 )
 
 
-def _model_case(name: str) -> Dict[str, Any]:
-    with open(MODEL_GOLDENS, "r", encoding="utf-8") as handle:
+def _model_case(name: str) -> dict[str, Any]:
+    with open(MODEL_GOLDENS, encoding="utf-8") as handle:
         cases = json.load(handle)["cases"]
     for case in cases:
         if case["name"] == name:
@@ -161,7 +168,7 @@ def _model_case(name: str) -> Dict[str, Any]:
     raise AssertionError("golden-states.json has no case %r" % name)
 
 
-def demo_doc(extra_ops: Tuple[Dict[str, Any], ...] = ()) -> Any:
+def demo_doc(extra_ops: tuple[dict[str, Any], ...] = ()) -> Any:
     """The committed two-storey golden fold, plus our openings. Real ops, real fold."""
     ops = list(_model_case("storeys-stair-levels")["ops"])
     ops.extend(DEMO_OPENING_OPS)
@@ -315,9 +322,10 @@ def test_counts_per_storey_sum_exactly_to_group_and_schedule_totals() -> None:
         assert group.total == len(group.opening_ids), group.tag
     assert sum(group.total for group in schedule.groups) == len(doc.house.openings)
     assert schedule.total == len(doc.house.openings)
-    assert sum(
-        schedule.total_for_storey(storey_id) for storey_id in schedule.storey_ids
-    ) == schedule.total
+    assert (
+        sum(schedule.total_for_storey(storey_id) for storey_id in schedule.storey_ids)
+        == schedule.total
+    )
 
 
 def test_counts_are_per_storey_not_per_building() -> None:
@@ -368,7 +376,7 @@ def test_an_opening_on_a_missing_wall_is_surfaced_not_dropped() -> None:
     doc = demo_doc()
     house = doc.house
     orphan = replace(house.openings[0], id="opening_orphan", wall_id="wall_does_not_exist")
-    broken = replace(doc, house=replace(house, openings=house.openings + (orphan,)))
+    broken = replace(doc, house=replace(house, openings=(*house.openings, orphan)))
     schedule = build_schedule(broken)
     assert schedule.total == len(house.openings) + 1
     assert UNKNOWN_STOREY in schedule.storey_ids
@@ -378,7 +386,12 @@ def test_an_opening_on_a_missing_wall_is_surfaced_not_dropped() -> None:
 def test_openings_reject_non_integer_millimetres() -> None:
     try:
         ScheduleOpening(
-            id="o1", storey_id=GF, kind="door", width_mm=900.5, height_mm=2100, sill_mm=0  # type: ignore[arg-type]
+            id="o1",
+            storey_id=GF,
+            kind="door",
+            width_mm=900.5,
+            height_mm=2100,
+            sill_mm=0,  # type: ignore[arg-type]
         )
     except TypeError as error:
         assert "integer" in str(error)
@@ -419,7 +432,7 @@ def test_area_statement_numbers_are_the_rules_engine_results() -> None:
     assert sheet.statement.parking_required == parking.limit
 
     # setbacks: per edge, the strictest requirement across every rule that named it
-    required: Dict[str, int] = {}
+    required: dict[str, int] = {}
     for result in report.results:
         if result.check_type != "setback_min" or not result.applicable:
             continue
@@ -430,9 +443,7 @@ def test_area_statement_numbers_are_the_rules_engine_results() -> None:
                 required.get(instance.element_id, 0), instance.limit
             )
     assert required, "the fixture must exercise setback rules for this test to mean anything"
-    statement_required = {
-        row.element_id: row.required_mm for row in sheet.statement.setbacks
-    }
+    statement_required = {row.element_id: row.required_mm for row in sheet.statement.setbacks}
     for element_id, limit in required.items():
         assert statement_required[element_id] == limit, element_id
 
@@ -550,7 +561,7 @@ def test_carpet_excludes_covered_but_unusable_area() -> None:
     shaft.update({"id": "room_shaft", "type": "shaft", "areaMm2": 900_000})
     store = json.loads(json.dumps(rooms[0]))
     store.update({"id": "room_store", "type": "store", "areaMm2": 2_000_000})
-    context["model"]["rooms"] = rooms + [balcony, shaft, store]
+    context["model"]["rooms"] = [*rooms, balcony, shaft, store]
     row = carpet_by_storey(context)[GROUND_ID]
     assert row.carpet_area_mm2 == baseline + 2_000_000  # only the store counts
     assert row.excluded_rooms == 2
@@ -573,13 +584,12 @@ def test_carpet_exceeding_built_up_is_reported_not_printed() -> None:
     context = rules_context()
     honest = build_area_statement_sheet(context, rulepack_root=RULEPACK_ROOT)
     tiny = replace(
-        honest.statement.per_storey[0], built_up_area_mm2=1_000_000  # 1 m2 of slab
+        honest.statement.per_storey[0],
+        built_up_area_mm2=1_000_000,  # 1 m2 of slab
     )
     broken = build_area_statement_sheet(
         context,
-        statement=replace(
-            honest.statement, per_storey=(tiny,) + honest.statement.per_storey[1:]
-        ),
+        statement=replace(honest.statement, per_storey=(tiny,) + honest.statement.per_storey[1:]),
         rulepack_root=RULEPACK_ROOT,
     )
     assert any("exceeds its built-up area" in warning for warning in broken.warnings)
@@ -633,13 +643,12 @@ def test_tables_convert_into_the_shared_projection_stream() -> None:
     would be noise, not signal.
     """
     try:
-        from services.drawings.projection.primitives import (  # noqa: WPS433
+        from services.drawings.projection.primitives import (
             Line,
             Text,
             find_unsafe_text,
         )
-
-        from services.drawings.schedules.projection_adapter import (  # noqa: WPS433
+        from services.drawings.schedules.projection_adapter import (
             primitive_counts,
             table_to_primitives,
         )
@@ -651,7 +660,7 @@ def test_tables_convert_into_the_shared_projection_stream() -> None:
     stream = table_to_primitives(table, scale_denominator=100, owner_id="sheet_A-05")
     texts, lines = primitive_counts(stream)
     assert texts and lines
-    assert all(isinstance(item, (Text, Line)) for item in stream)
+    assert all(isinstance(item, Text | Line) for item in stream)
     assert find_unsafe_text(stream) == ()  # §13 backstop on the other side of the seam
     assert all(item.owner_id == "sheet_A-05" for item in stream)
     assert all(item.layer in LAYER_NAMES for item in stream)
@@ -728,9 +737,7 @@ def test_display_boundary_is_indian_and_exact() -> None:
 def test_plot_area_is_the_only_row_quoted_in_gaj() -> None:
     sheet = build_area_statement_sheet(rules_context(), rulepack_root=RULEPACK_ROOT)
     text = sheet.table().to_text()
-    rows_with_gaj = [
-        line for line in text.splitlines() if line.startswith("|") and "gaj" in line
-    ]
+    rows_with_gaj = [line for line in text.splitlines() if line.startswith("|") and "gaj" in line]
     assert len(rows_with_gaj) == 1, rows_with_gaj
     assert rows_with_gaj[0].startswith("| Plot area")
     # every other area row carries m2 and sq ft, and only those
@@ -763,7 +770,7 @@ def _golden(name: str, produced: str) -> None:
         if REGEN:
             print("regenerated %s" % path.relative_to(_REPO_ROOT))
         return
-    with open(path, "r", encoding="utf-8") as handle:
+    with open(path, encoding="utf-8") as handle:
         expected = handle.read()
     assert produced == expected, (
         "%s differs from its golden. If the change is intended, re-run with --regen and "
@@ -834,7 +841,7 @@ def _report() -> None:
     print("== ONE-SOURCE CROSS-CHECK: sheet numbers vs an independent evaluate() ==")
     report = evaluate(context, root=RULEPACK_ROOT)
     rows = {result.check_type: result for result in report.results if result.applicable}
-    checks: List[Tuple[str, Any, Any, str]] = [
+    checks: list[tuple[str, Any, Any, str]] = [
         (
             "FAR countable / allowed",
             (sheet.statement.far_countable_area_mm2, sheet.statement.far_allowed_mm2),
@@ -898,7 +905,7 @@ def _report() -> None:
         )
 
 
-def _element_id_of(line: Any, sheet: AreaStatementSheet) -> Optional[str]:
+def _element_id_of(line: Any, sheet: AreaStatementSheet) -> str | None:
     for row in sheet.statement.setbacks:
         if row.edge_index == line.edge_index:
             return row.element_id
@@ -914,14 +921,13 @@ if __name__ == "__main__":  # pragma: no cover
             try:
                 fn()
                 print("PASS %s" % name)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 failures += 1
                 print("FAIL %s" % name)
                 traceback.print_exc()
     if not REGEN:
         _report()
     print(
-        "\n%d test(s) failed. Stubbed dependencies: %s"
-        % (failures, ", ".join(STUBBED) or "none")
+        "\n%d test(s) failed. Stubbed dependencies: %s" % (failures, ", ".join(STUBBED) or "none")
     )
     sys.exit(1 if failures else 0)

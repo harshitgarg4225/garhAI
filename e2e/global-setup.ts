@@ -15,7 +15,8 @@ import { request } from '@playwright/test';
 import { API_URL, APP_URL, DEMO_EMAIL, apiBase } from './support/env';
 
 const HINT_STACK = 'Start it with `docker compose up -d --wait` from the repo root.';
-const HINT_SEED = 'Seed it with `make seed` (or `docker compose exec api python -m garh_api.seed`).';
+const HINT_SEED =
+  'Seed it with `make seed` (or `docker compose exec api python -m garh_api.seed`).';
 
 async function main(): Promise<void> {
   const context = await request.newContext({ timeout: 10_000 });
@@ -36,7 +37,9 @@ async function main(): Promise<void> {
     const page = await context.get(APP_URL);
     if (!page.ok()) problems.push(`GET ${APP_URL} returned ${page.status()}. ${HINT_STACK}`);
   } catch (error) {
-    problems.push(`Cannot reach the web app at ${APP_URL}: ${(error as Error).message}. ${HINT_STACK}`);
+    problems.push(
+      `Cannot reach the web app at ${APP_URL}: ${(error as Error).message}. ${HINT_STACK}`,
+    );
   }
 
   if (apiUp) {
@@ -55,7 +58,7 @@ async function main(): Promise<void> {
           );
         }
       }
-      if (providers['modelEngine'] !== 'ready') {
+      if (providers.modelEngine !== 'ready') {
         problems.push('The API reports modelEngine != ready, so no op can be validated.');
       }
     } catch (error) {

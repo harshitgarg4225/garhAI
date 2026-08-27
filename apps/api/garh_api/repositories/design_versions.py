@@ -112,9 +112,8 @@ class DesignVersionRepository(ProjectScopedRepository[models.DesignVersion, Desi
         the op log is what makes a snapshot usable as a replay base, and a version row
         can be written slightly out of wall-clock order by a worker.
         """
-        stmt = (
-            self._project_scoped_select(project_id)
-            .where(models.DesignVersion.snapshot.is_not(None))
+        stmt = self._project_scoped_select(project_id).where(
+            models.DesignVersion.snapshot.is_not(None)
         )
         if version_branch is not None:
             stmt = stmt.where(models.DesignVersion.version_branch == version_branch)
@@ -347,9 +346,7 @@ class DesignVersionRepository(ProjectScopedRepository[models.DesignVersion, Desi
         await self.flush()
         return self.to_domain(row)
 
-    async def prune_auto_snapshots(
-        self, project_id: uuid.UUID, *, keep_latest: int = 5
-    ) -> int:
+    async def prune_auto_snapshots(self, project_id: uuid.UUID, *, keep_latest: int = 5) -> int:
         """Drop snapshot payloads from old ``auto`` checkpoints, keeping the rows.
 
         Storage hygiene: a G+2 house snapshot is not small and every 200 ops writes

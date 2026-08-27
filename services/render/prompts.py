@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from services.render.types import RenderMode, RenderRequest
 
 #: §9. Do not "tune" these without changing what the UI promises.
-MODE_PARAMS: dict[RenderMode, "ModeParams"] = {}
+MODE_PARAMS: dict[RenderMode, ModeParams] = {}
 
 #: Users type freely; models do not need an essay, and neither does our log budget.
 MAX_PROMPT_EXTRAS_CHARS = 400
@@ -103,8 +103,7 @@ PROMPT_TEMPLATES: dict[str, str] = {
     ),
     "interior-bedroom": (
         "Interior photograph of an Indian master bedroom, {scene_extra}, queen bed with "
-        "wardrobe wall, soft morning daylight, curtains, ceiling fan, 24mm lens, "
-        + _QUALITY
+        "wardrobe wall, soft morning daylight, curtains, ceiling fan, 24mm lens, " + _QUALITY
     ),
     "interior-kitchen": (
         "Interior photograph of a modern Indian kitchen, {scene_extra}, L-shaped counter "

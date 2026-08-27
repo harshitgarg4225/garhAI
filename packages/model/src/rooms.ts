@@ -207,8 +207,8 @@ export function buildHalfEdgeGraph(walls: readonly WallLike[]): HalfEdgeGraph {
   // CLOCKWISE from the twin. This walks bounded faces counter-clockwise, i.e.
   // with the face interior on the left. (Verified on a unit square in the tests.)
   const positionInOutgoing = new Map<number, number>();
-  for (let n = 0; n < outgoing.length; n++) {
-    outgoing[n]!.forEach((heId, pos) => positionInOutgoing.set(heId, pos));
+  for (const bucket of outgoing) {
+    bucket.forEach((heId, pos) => positionInOutgoing.set(heId, pos));
   }
   for (const he of halfEdges) {
     const list = outgoing[he.to];
@@ -283,6 +283,7 @@ export function planarFaces(graph: HalfEdgeGraph): PlanarFace[] {
     }
     if (ids.length < 3) continue;
     const ring = ids.map((id) => nodes[halfEdges[id]!.from]!);
+    // eslint-disable-next-line no-restricted-properties -- exact integer halving of a wall thickness (floor == // for non-negative ints), mirrored bit-for-bit by the Python twin; not a length rounding
     const insetMm = ids.map((id) => Math.floor(halfEdges[id]!.thicknessMm / 2));
     const wallIds = Array.from(new Set(ids.map((id) => halfEdges[id]!.wallId)));
     faces.push({
@@ -373,6 +374,7 @@ export interface RoomDetectionOptions {
   readonly jaccardThreshold?: number;
 }
 
+// eslint-disable-next-line no-restricted-syntax -- a Jaccard overlap ratio, not a geometry length
 export const DEFAULT_JACCARD_THRESHOLD = 0.3;
 
 export interface RoomCandidatesResult {
@@ -513,7 +515,8 @@ export function matchRooms(
       const room = existing[ei]!;
       if (room.polygon.length < 3) continue;
       const rb = bbox(room.polygon);
-      if (cb.maxX < rb.minX || rb.maxX < cb.minX || cb.maxY < rb.minY || rb.maxY < cb.minY) continue;
+      if (cb.maxX < rb.minX || rb.maxX < cb.minX || cb.maxY < rb.minY || rb.maxY < cb.minY)
+        continue;
       const j = jaccard(cand.polygon, room.polygon);
       if (j < threshold) continue;
       pairs.push({ ci, ei, j, inter: polygonIntersectionAreaMm2(cand.polygon, room.polygon) });

@@ -45,11 +45,7 @@ export type { SelectionLayerProps } from './SelectionLayer';
 export { RoomTagEditor } from './RoomTagEditor';
 export type { RoomTagEditorProps, RoomTagEditSession, RoomTagPart } from './RoomTagEditor';
 
-export {
-  getPlanMaterials,
-  refreshPlanMaterials,
-  disposePlanMaterials,
-} from './planMaterials';
+export { getPlanMaterials, refreshPlanMaterials, disposePlanMaterials } from './planMaterials';
 export type { PlanMaterials } from './planMaterials';
 
 export {

@@ -326,7 +326,10 @@ describe('document preconditions', () => {
       reject({ type: 'opening.delete', payload: { openingId: fixedId('opening', 'NOPE') } }),
     ).toContain('OPENING_UNKNOWN');
     expect(
-      reject({ type: 'room.assign', payload: { roomId: fixedId('room', 'NOPE'), type: 'bedroom' } }),
+      reject({
+        type: 'room.assign',
+        payload: { roomId: fixedId('room', 'NOPE'), type: 'bedroom' },
+      }),
     ).toContain('ROOM_UNKNOWN');
     expect(
       reject({ type: 'stair.delete', payload: { stairId: fixedId('stair', 'NOPE') } }),
@@ -469,7 +472,10 @@ describe('rejection reasons are usable by the copilot', () => {
 
   it('throws OpRejectedError from fold, naming the op and keeping the issues', () => {
     try {
-      fold(makeTwoRoomPlan(), { type: 'wall.delete', payload: { wallId: fixedId('wall', 'NOPE') } });
+      fold(makeTwoRoomPlan(), {
+        type: 'wall.delete',
+        payload: { wallId: fixedId('wall', 'NOPE') },
+      });
       expect.unreachable('fold should have thrown');
     } catch (e) {
       expect(e).toBeInstanceOf(OpRejectedError);

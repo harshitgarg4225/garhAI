@@ -22,7 +22,7 @@ import hmac
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import delete, select, update
@@ -121,13 +121,13 @@ class OtpCodeRepository:
                 update(models.OtpCode)
                 .where(models.OtpCode.email == clean_email)
                 .where(models.OtpCode.consumed_at.is_(None))
-                .values(consumed_at=datetime.now(timezone.utc))
+                .values(consumed_at=datetime.now(UTC))
             )
 
         row = models.OtpCode(
             email=clean_email,
             code_hash=hash_otp_code(clean_email, code),
-            expires_at=datetime.now(timezone.utc) + timedelta(seconds=ttl),
+            expires_at=datetime.now(UTC) + timedelta(seconds=ttl),
             attempts=0,
             meta=meta or {},
         )
@@ -150,7 +150,7 @@ class OtpCodeRepository:
         """
         clean_email = normalise_email(email)
         settings = get_settings()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         stmt = (
             select(models.OtpCode)
@@ -167,9 +167,7 @@ class OtpCodeRepository:
         if row.expires_at <= now:
             row.consumed_at = now
             await self._session.flush()
-            return OtpVerification(
-                outcome=VERIFY_EXPIRED, challenge=OtpChallenge.from_row(row)
-            )
+            return OtpVerification(outcome=VERIFY_EXPIRED, challenge=OtpChallenge.from_row(row))
         if row.attempts >= settings.otp_max_attempts:
             row.consumed_at = now
             await self._session.flush()
@@ -207,13 +205,13 @@ class OtpCodeRepository:
             update(models.OtpCode)
             .where(models.OtpCode.id == otp_id)
             .where(models.OtpCode.consumed_at.is_(None))
-            .values(consumed_at=datetime.now(timezone.utc))
+            .values(consumed_at=datetime.now(UTC))
         )
         return bool(result.rowcount)
 
     async def purge_expired(self, *, before: datetime | None = None) -> int:
         """Delete spent/expired challenges. Housekeeping for a worker."""
-        cutoff = before or datetime.now(timezone.utc)
+        cutoff = before or datetime.now(UTC)
         result = await self._session.execute(
             delete(models.OtpCode).where(models.OtpCode.expires_at <= cutoff)
         )
@@ -228,7 +226,7 @@ class OtpCodeRepository:
             select(models.OtpCode)
             .where(models.OtpCode.email == normalise_email(email))
             .where(models.OtpCode.consumed_at.is_(None))
-            .where(models.OtpCode.expires_at > datetime.now(timezone.utc))
+            .where(models.OtpCode.expires_at > datetime.now(UTC))
             .order_by(models.OtpCode.created_at.desc())
             .limit(1)
         )

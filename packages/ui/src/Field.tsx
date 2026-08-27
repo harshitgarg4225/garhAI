@@ -80,7 +80,11 @@ export function Field({
       ) : null}
 
       {invalid ? (
-        <p id={errorId} role="alert" className="flex items-start gap-1.5 text-2xs leading-4 text-fail-ink">
+        <p
+          id={errorId}
+          role="alert"
+          className="flex items-start gap-1.5 text-2xs leading-4 text-fail-ink"
+        >
           <Icon name="alert-circle" size={13} className="mt-px" />
           <span>{error}</span>
         </p>

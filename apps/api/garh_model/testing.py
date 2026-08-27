@@ -11,7 +11,8 @@ test folder) only so other modules can import it; nothing on a request path may.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from .fold import apply_group
 from .model import DEFAULTS, ProjectDoc, empty_project_doc
@@ -62,7 +63,7 @@ FIXTURE_IDS: Mapping[str, str] = {
 }
 
 #: The demo plot: 30 x 40 ft (9144 x 12192 mm) Bengaluru plot, north up.
-DEMO_PLOT_POLYGON: List[Dict[str, int]] = [
+DEMO_PLOT_POLYGON: list[dict[str, int]] = [
     {"x": 0, "y": 0},
     {"x": 9144, "y": 0},
     {"x": 9144, "y": 12192},
@@ -75,11 +76,11 @@ def make_empty_doc() -> ProjectDoc:
     return empty_project_doc("ft-in")
 
 
-def _pt(x: int, y: int) -> Dict[str, int]:
+def _pt(x: int, y: int) -> dict[str, int]:
     return {"x": x, "y": y}
 
 
-def two_room_plan_ops() -> List[Op]:
+def two_room_plan_ops() -> list[Op]:
     """Ops that build a ground floor with TWO rooms.
 
     .. code-block:: text
@@ -159,7 +160,7 @@ def make_two_room_plan() -> ProjectDoc:
     return apply_group(make_empty_doc(), two_room_plan_ops()).model
 
 
-def opening_ops() -> List[Op]:
+def opening_ops() -> list[Op]:
     """A main door on the south wall and a window on the west wall."""
     return [
         op(
@@ -193,6 +194,6 @@ def make_two_room_plan_with_openings() -> ProjectDoc:
     return apply_group(doc, opening_ops()).model
 
 
-def ops_to_json(ops: List[Op]) -> List[Dict[str, Any]]:
+def ops_to_json(ops: list[Op]) -> list[dict[str, Any]]:
     """Wire form of an op list — what ``fixtures/model/golden-states.json`` stores."""
     return [o.to_json() for o in ops]

@@ -170,7 +170,13 @@ export {
   snapWalls,
   toSnapView,
 } from './snapping';
-export type { SegmentProjection, SnapCandidate, SnapKind, SnapOptions, SnapResolution } from './snapping';
+export type {
+  SegmentProjection,
+  SnapCandidate,
+  SnapKind,
+  SnapOptions,
+  SnapResolution,
+} from './snapping';
 
 // ── Numeric entry ─────────────────────────────────────────────────────────
 export {
@@ -188,10 +194,22 @@ export {
   resetBuffer,
   wantsKey,
 } from './numericEntry';
-export type { EntryAction, EntryStep, NumericEntryState, NumericField, NumericUnit } from './numericEntry';
+export type {
+  EntryAction,
+  EntryStep,
+  NumericEntryState,
+  NumericField,
+  NumericUnit,
+} from './numericEntry';
 
 // ── Stair maths ───────────────────────────────────────────────────────────
-export { comfortTreadMm, flightIssues, landingFor, solveFlight, STAIR_WELL_GAP_MM } from './stairFlight';
+export {
+  comfortTreadMm,
+  flightIssues,
+  landingFor,
+  solveFlight,
+  STAIR_WELL_GAP_MM,
+} from './stairFlight';
 export type { FlightInput, FlightIssue, FlightResult, FlightSolution } from './stairFlight';
 
 // ── Constants worth sharing ───────────────────────────────────────────────

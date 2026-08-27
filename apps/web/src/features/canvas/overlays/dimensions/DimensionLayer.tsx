@@ -40,7 +40,14 @@
 
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Text } from '@react-three/drei';
-import { BufferAttribute, BufferGeometry, Matrix4, PlaneGeometry, Quaternion, Vector3 } from 'three';
+import {
+  BufferAttribute,
+  BufferGeometry,
+  Matrix4,
+  PlaneGeometry,
+  Quaternion,
+  Vector3,
+} from 'three';
 import type { InstancedMesh, LineSegments, Object3D } from 'three';
 
 import type { UnitsDisplay } from '@garh/model';
@@ -194,7 +201,7 @@ export function DimensionLayer({
   }, []);
 
   // ── Label groups, indexed the same way as `items` ────────────────────────
-  const labelRefs = useRef<Array<Object3D | null>>([]);
+  const labelRefs = useRef<(Object3D | null)[]>([]);
   labelRefs.current.length = items.length;
 
   // ── Pick proxies ─────────────────────────────────────────────────────────

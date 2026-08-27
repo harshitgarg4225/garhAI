@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """``garh_rules`` — the NBC / municipal / Vastu rules engine (playbook §6).
 
 Regulations are **data** (``rulepacks/*.json``); this package is the only code
@@ -33,7 +31,16 @@ Three invariants worth knowing before reading further:
    and the compliance panel to quote the same numbers, so there is one source.
 """
 
-from .areas import AreaRow, AreaStatement, SetbackRow, StoreyAreaRow, area_statement, build_area_statement
+from __future__ import annotations
+
+from .areas import (
+    AreaRow,
+    AreaStatement,
+    SetbackRow,
+    StoreyAreaRow,
+    area_statement,
+    build_area_statement,
+)
 from .checks import CHECK_SCOPES, CHECK_TYPES, RESULT_UNITS, result_unit_of, run_check, scope_of
 from .context import (
     MODEL_FIELDS_NOT_IN_MODEL_CORE,

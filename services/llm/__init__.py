@@ -27,7 +27,7 @@ Typical use::
 from __future__ import annotations
 
 from services.llm.adapters import BriefParserAdapter, get_brief_parser
-from services.llm.brief import BriefParseResult, BriefParser
+from services.llm.brief import BriefParser, BriefParseResult
 from services.llm.brief_mock import synthesize_brief_parse
 from services.llm.copilot import (
     CopilotProposal,

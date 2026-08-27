@@ -12,15 +12,7 @@
 
 import { useState } from 'react';
 
-import {
-  AssumptionChip,
-  Button,
-  Chip,
-  Icon,
-  ProgressRing,
-  Tooltip,
-  cn,
-} from '@garh/ui';
+import { AssumptionChip, Button, Chip, Icon, ProgressRing, Tooltip, cn } from '@garh/ui';
 
 import { MiniPlanSvg } from './MiniPlanSvg';
 import { VastuWheel } from './VastuWheel';

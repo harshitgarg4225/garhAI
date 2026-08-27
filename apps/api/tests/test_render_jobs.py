@@ -28,7 +28,7 @@ import time
 import uuid
 import zipfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 import pytest
@@ -45,10 +45,8 @@ from garh_api.routers.jobs import apply_lifecycle_record  # noqa: E402
 
 from services.render import pack as service_pack  # noqa: E402
 from services.render.types import PRESETS as SERVICE_PRESETS  # noqa: E402
-
 from tests import factories  # noqa: E402
 from tests.helpers import op_payload, problem  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # Test data
@@ -96,8 +94,8 @@ def _lifecycle(
     firm_id: Any,
     event_type: str,
     *,
-    percent: Optional[int] = None,
-    data: Optional[dict[str, Any]] = None,
+    percent: int | None = None,
+    data: dict[str, Any] | None = None,
 ) -> queue.LifecycleRecord:
     """A worker lifecycle record, exactly as ``read_job_events`` would parse one."""
     return queue.LifecycleRecord(
@@ -132,19 +130,23 @@ def test_client_pack_mirror_matches_the_service() -> None:
 
 def test_preset_mode_mirror_matches_the_service() -> None:
     service = {pid: tuple(p.modes) for pid, p in SERVICE_PRESETS.items()}
-    assert renders_router.PRESET_MODES == service
+    assert service == renders_router.PRESET_MODES
 
 
 def test_pack_is_six_exteriors_plus_living_and_kitchen() -> None:
     scenes = [SERVICE_PRESETS[preset].scene for _, preset, _ in renders_router.CLIENT_PACK_SHOTS]
     assert scenes.count("exterior") == 6
-    interiors = [p for _, p, _ in renders_router.CLIENT_PACK_SHOTS if SERVICE_PRESETS[p].scene == "interior"]
+    interiors = [
+        p for _, p, _ in renders_router.CLIENT_PACK_SHOTS if SERVICE_PRESETS[p].scene == "interior"
+    ]
     assert interiors == ["interior-living", "interior-kitchen"]
 
 
 def test_render_object_key_is_deterministic() -> None:
     firm, job = uuid.uuid4(), uuid.uuid4()
-    assert renders_router.render_object_key(firm, job) == renders_router.render_object_key(firm, job)
+    assert renders_router.render_object_key(firm, job) == renders_router.render_object_key(
+        firm, job
+    )
     assert str(firm) in renders_router.render_object_key(firm, job)
 
 
@@ -191,6 +193,7 @@ def test_mock_provider_is_deterministic_by_seed_and_under_budget() -> None:
 # ---------------------------------------------------------------------------
 # 3. Job flow: enqueue → envelope → lifecycle → row (integration)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration
 async def test_start_render_writes_row_and_a_complete_envelope(
@@ -256,14 +259,10 @@ async def test_lifecycle_events_progress_then_succeed_the_row(
     row = await repo.require(uuid.UUID(job_id))
     assert row.status == "running"
 
-    image_url = "https://storage.test/%s" % renders_router.render_object_key(
-        firm_a.firm_id, job_id
-    )
+    image_url = "https://storage.test/%s" % renders_router.render_object_key(firm_a.firm_id, job_id)
     assert await apply_lifecycle_record(
         session,
-        _lifecycle(
-            job, firm_a.firm_id, "succeeded", percent=100, data={"outputUrl": image_url}
-        ),
+        _lifecycle(job, firm_a.firm_id, "succeeded", percent=100, data={"outputUrl": image_url}),
     )
     await session.commit()
     row = await repo.require(uuid.UUID(job_id))

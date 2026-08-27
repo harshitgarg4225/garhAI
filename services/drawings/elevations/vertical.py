@@ -57,13 +57,13 @@ frame does not get thicker when you print at 1:50.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, replace
-from typing import Any, ClassVar, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, ClassVar
 
 from services.drawings.autodim.config import DEFAULT_CONFIG, AutoDimConfig
 from services.drawings.dimensions import DimChain, DimSegment, LabelBox, assert_chains_sum
 from services.drawings.layers import A_DIM, A_TEXT
-from services.drawings.projection.style import Style, style_of
 from services.drawings.projection.primitives import (
     Line,
     Point,
@@ -76,6 +76,7 @@ from services.drawings.projection.primitives import (
     primitives_to_json,
     sanitise_text,
 )
+from services.drawings.projection.style import Style, style_of
 
 __all__ = [
     "DIRECTIONS_4",
@@ -127,10 +128,10 @@ __all__ = [
 ]
 
 #: The four orthogonal projection planes. MVP is orthogonal-only (§7 step 1).
-DIRECTIONS_4: Tuple[str, ...] = ("N", "E", "S", "W")
+DIRECTIONS_4: tuple[str, ...] = ("N", "E", "S", "W")
 
 #: Outward normal ``n̂`` per direction, in plot-local model space (+X east, +Y north).
-NORMALS: Dict[str, Tuple[int, int]] = {
+NORMALS: dict[str, tuple[int, int]] = {
     "N": (0, 1),
     "E": (1, 0),
     "S": (0, -1),
@@ -139,7 +140,7 @@ NORMALS: Dict[str, Tuple[int, int]] = {
 
 #: Horizontal drawing axis ``u = ẑ × n̂`` per direction. Tabulated rather than computed
 #: so the one thing that is easy to get backwards is visible and reviewable.
-U_AXES: Dict[str, Tuple[int, int]] = {
+U_AXES: dict[str, tuple[int, int]] = {
     "N": (-1, 0),
     "E": (0, 1),
     "S": (1, 0),
@@ -147,7 +148,7 @@ U_AXES: Dict[str, Tuple[int, int]] = {
 }
 
 #: Human names for the sheet title.
-DIRECTION_NAMES: Dict[str, str] = {
+DIRECTION_NAMES: dict[str, str] = {
     "N": "NORTH",
     "E": "EAST",
     "S": "SOUTH",
@@ -208,10 +209,13 @@ class VerticalStyle:
     dim: AutoDimConfig
 
     @classmethod
-    def of(cls, scale: Any = 100) -> "VerticalStyle":
+    def of(cls, scale: Any = 100) -> VerticalStyle:
         """Build from a ``Scale``, a :class:`Style`, or a bare denominator."""
         resolved = style_of(scale)
-        return cls(style=resolved, dim=replace(DEFAULT_CONFIG, scale_denominator=resolved.scale_denominator))
+        return cls(
+            style=resolved,
+            dim=replace(DEFAULT_CONFIG, scale_denominator=resolved.scale_denominator),
+        )
 
     @property
     def scale_denominator(self) -> int:
@@ -271,7 +275,7 @@ class VerticalStyle:
 # ---------------------------------------------------------------------------
 # Axes
 # ---------------------------------------------------------------------------
-def normals_of(direction: str) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+def normals_of(direction: str) -> tuple[tuple[int, int], tuple[int, int]]:
     """``(n̂, û)`` for a direction, validated."""
     try:
         return NORMALS[direction], U_AXES[direction]
@@ -282,17 +286,17 @@ def normals_of(direction: str) -> Tuple[Tuple[int, int], Tuple[int, int]]:
         ) from None
 
 
-def u_of(x: int, y: int, u_axis: Tuple[int, int]) -> int:
+def u_of(x: int, y: int, u_axis: tuple[int, int]) -> int:
     """Horizontal drawing coordinate of a model point (before the origin shift)."""
     return x * u_axis[0] + y * u_axis[1]
 
 
-def depth_of(x: int, y: int, normal: Tuple[int, int]) -> int:
+def depth_of(x: int, y: int, normal: tuple[int, int]) -> int:
     """Depth toward the viewer. Larger is **nearer** — the hidden-line ordering key."""
     return x * normal[0] + y * normal[1]
 
 
-def u_origin_of(points: Iterable[Tuple[int, int]], u_axis: Tuple[int, int]) -> int:
+def u_origin_of(points: Iterable[tuple[int, int]], u_axis: tuple[int, int]) -> int:
     """The single ``u`` shift for a drawing: the leftmost model point becomes ``u = 0``.
 
     Computed from the building's whole extent — never per element, or two primitives in
@@ -345,7 +349,7 @@ class LevelSet:
 
     plinth_mm: int
     parapet_height_mm: int
-    storeys: Tuple[StoreyLevels, ...]
+    storeys: tuple[StoreyLevels, ...]
     datum_mm: int = 0
 
     @property
@@ -357,13 +361,13 @@ class LevelSet:
     def parapet_top_mm(self) -> int:
         return self.terrace_mm + self.parapet_height_mm
 
-    def storey(self, storey_id: str) -> Optional[StoreyLevels]:
+    def storey(self, storey_id: str) -> StoreyLevels | None:
         for item in self.storeys:
             if item.storey_id == storey_id:
                 return item
         return None
 
-    def markers(self) -> Tuple["LevelMarker", ...]:
+    def markers(self) -> tuple[LevelMarker, ...]:
         """Every §7 level marker, merged by value and sorted bottom-up.
 
         §7 is explicit that an elevation carries *markers*, not chains: "plinth/FFL/
@@ -372,7 +376,7 @@ class LevelSet:
         labels, because drawing two ticks at the same height is how a sheet starts
         looking careless.
         """
-        raw: List[Tuple[int, str]] = [(self.datum_mm, "GROUND LVL (NGL)")]
+        raw: list[tuple[int, str]] = [(self.datum_mm, "GROUND LVL (NGL)")]
         for storey in self.storeys:
             name = storey.name.upper() if storey.name else "STOREY %d" % (storey.index + 1)
             raw.append((storey.ffl_mm, "%s FFL" % name))
@@ -382,7 +386,7 @@ class LevelSet:
         raw.append((self.terrace_mm, "TERRACE LVL"))
         raw.append((self.parapet_top_mm, "PARAPET TOP"))
 
-        merged: Dict[int, List[str]] = {}
+        merged: dict[int, list[str]] = {}
         for level_mm, label in raw:
             merged.setdefault(level_mm, [])
             if label not in merged[level_mm]:
@@ -392,7 +396,7 @@ class LevelSet:
             for level_mm, labels in sorted(merged.items())
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "datumMm": self.datum_mm,
             "plinthMm": self.plinth_mm,
@@ -418,13 +422,13 @@ class LevelMarker:
     """A level marker: one height, one or more labels, in millimetres."""
 
     level_mm: int
-    labels: Tuple[str, ...]
+    labels: tuple[str, ...]
 
     def text(self) -> str:
         """§7: dim text is millimetres regardless of the project's display units."""
         return "%s %s" % (format_level_mm(self.level_mm), " / ".join(self.labels))
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {"levelMm": self.level_mm, "labels": list(self.labels), "text": self.text()}
 
 
@@ -450,7 +454,7 @@ def build_levels(house: Any) -> LevelSet:
     """
     levels = house.levels
     ffls = tuple(int(v) for v in getattr(levels, "ffl_per_storey_mm", ()) or ())
-    storeys: List[StoreyLevels] = []
+    storeys: list[StoreyLevels] = []
     for index, storey in enumerate(house.storeys):
         level = storey.level
         ffl_mm = ffls[index] if index < len(ffls) else int(level.ffl_mm)
@@ -483,7 +487,7 @@ def height_chain(
     *,
     chain_id: str,
     offset_mm: int,
-    storey_id: Optional[str] = None,
+    storey_id: str | None = None,
 ) -> DimChain:
     """The single overall height chain: plinth + every storey height + parapet.
 
@@ -494,7 +498,7 @@ def height_chain(
     notice later — because the numbers are integer millimetres precisely so this can be
     an equality.
     """
-    segments: List[DimSegment] = []
+    segments: list[DimSegment] = []
     cursor = levels.datum_mm
     if levels.plinth_mm != levels.datum_mm:
         segments.append(
@@ -533,7 +537,7 @@ def height_chain_primitives(
     *,
     sizes: VerticalStyle,
     witness_from_u_mm: int,
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """Draw a vertical chain: dimension line, oblique ticks, witness lines, segment texts.
 
     The :class:`~services.drawings.dimensions.DimChain` is the data a golden file pins;
@@ -548,14 +552,14 @@ def height_chain_primitives(
     numbers are shared, and they are shared through
     :class:`~services.drawings.autodim.config.AutoDimConfig` rather than by being copied.
     """
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     height = sizes.dim_text_mm
     tick = max(1, sizes.dim_tick_mm // 2)
     u = chain.offset_mm
     lo = chain.origin_mm
     hi = chain.origin_mm + chain.overall_mm
     out.append(Line(A_DIM, (u, lo), (u, hi), kind=K_HEIGHT_CHAIN, owner_id=chain.id))
-    breakpoints: List[int] = [lo]
+    breakpoints: list[int] = [lo]
     cursor = lo
     for segment in chain.segments:
         cursor += segment.length_mm
@@ -608,7 +612,7 @@ def level_marker_primitives(
     *,
     u_left_mm: int,
     sizes: VerticalStyle,
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """Marker line + filled tick + text, stacked left of the building, collision-free.
 
     The text is nudged upward when two levels are closer together than a label is tall,
@@ -617,14 +621,14 @@ def level_marker_primitives(
     drawing owns — :func:`~services.drawings.dimensions.find_label_collisions` is the
     assertion, and the tests run it.
     """
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     height = sizes.dim_text_mm
     stick = sizes.level_marker_offset_mm
     gap = sizes.level_text_gap_mm
     tick = sizes.level_tick_mm
     pitch = height * LEVEL_TEXT_PITCH_FACTOR
     text_u = u_left_mm - stick - gap
-    last_text_z: Optional[int] = None
+    last_text_z: int | None = None
     for marker in sorted(markers, key=lambda m: m.level_mm):
         z = marker.level_mm
         out.append(
@@ -640,7 +644,11 @@ def level_marker_primitives(
         out.append(
             Polyline(
                 A_DIM,
-                ((u_left_mm - stick + tick, z), (u_left_mm - stick, z + tick), (u_left_mm - stick, z - tick)),
+                (
+                    (u_left_mm - stick + tick, z),
+                    (u_left_mm - stick, z + tick),
+                    (u_left_mm - stick, z - tick),
+                ),
                 closed=True,
                 kind="level-marker",
             )
@@ -674,13 +682,13 @@ def level_marker_primitives(
 # Interval arithmetic — the whole of the hidden-line and cut-extent maths
 # ---------------------------------------------------------------------------
 #: A closed ``[lo, hi]`` span in drawing ``u`` (or in ``z``), integer millimetres.
-Interval = Tuple[int, int]
+Interval = tuple[int, int]
 
 
-def merge_intervals(intervals: Sequence[Interval]) -> Tuple[Interval, ...]:
+def merge_intervals(intervals: Sequence[Interval]) -> tuple[Interval, ...]:
     """Sort and union touching/overlapping spans. Degenerate spans are dropped."""
     clean = sorted((lo, hi) for lo, hi in intervals if hi > lo)
-    out: List[Interval] = []
+    out: list[Interval] = []
     for lo, hi in clean:
         if out and lo <= out[-1][1]:
             if hi > out[-1][1]:
@@ -690,13 +698,11 @@ def merge_intervals(intervals: Sequence[Interval]) -> Tuple[Interval, ...]:
     return tuple(out)
 
 
-def subtract_intervals(
-    base: Sequence[Interval], holes: Sequence[Interval]
-) -> Tuple[Interval, ...]:
+def subtract_intervals(base: Sequence[Interval], holes: Sequence[Interval]) -> tuple[Interval, ...]:
     """``base`` minus ``holes`` — how a stair well is taken out of a cut slab."""
     result = list(merge_intervals(base))
     for h_lo, h_hi in merge_intervals(holes):
-        next_result: List[Interval] = []
+        next_result: list[Interval] = []
         for lo, hi in result:
             if h_hi <= lo or h_lo >= hi:
                 next_result.append((lo, hi))
@@ -713,7 +719,7 @@ def contains(outer: Interval, inner: Interval) -> bool:
     return outer[0] <= inner[0] and outer[1] >= inner[1]
 
 
-def point_in_ring(ring: Sequence[Tuple[int, int]], x: int, y: int) -> bool:
+def point_in_ring(ring: Sequence[tuple[int, int]], x: int, y: int) -> bool:
     """Even-odd ray cast, integer arithmetic, for a closed ring without a repeated end.
 
     Deliberately a local implementation rather than an import of
@@ -741,12 +747,12 @@ def point_in_ring(ring: Sequence[Tuple[int, int]], x: int, y: int) -> bool:
 
 
 def ring_line_intervals(
-    ring: Sequence[Tuple[int, int]],
+    ring: Sequence[tuple[int, int]],
     *,
     axis: str,
     position_mm: int,
-    u_axis: Tuple[int, int],
-) -> Tuple[Interval, ...]:
+    u_axis: tuple[int, int],
+) -> tuple[Interval, ...]:
     """Where an axis-aligned cut line crosses a ring, as spans in drawing ``u``.
 
     ``axis="x"`` is a cut plane at constant ``x`` (the line runs along ``+Y``);
@@ -758,7 +764,7 @@ def ring_line_intervals(
     """
     if axis not in ("x", "y"):
         raise ValueError("axis must be 'x' or 'y', got %r" % (axis,))
-    crossings: List[int] = []
+    crossings: list[int] = []
     count = len(ring)
     for index in range(count):
         x1, y1 = ring[index]
@@ -777,7 +783,7 @@ def ring_line_intervals(
             )
         crossings.append(other_a)
     crossings.sort()
-    spans: List[Interval] = []
+    spans: list[Interval] = []
     for index in range(0, len(crossings) - 1, 2):
         a, b = crossings[index], crossings[index + 1]
         if axis == "x":
@@ -804,11 +810,11 @@ class VerticalDrawing:
     kind: str
     name: str
     direction: str
-    primitives: Tuple[Primitive, ...]
-    level_markers: Tuple[LevelMarker, ...]
-    chains: Tuple[DimChain, ...]
+    primitives: tuple[Primitive, ...]
+    level_markers: tuple[LevelMarker, ...]
+    chains: tuple[DimChain, ...]
     levels: LevelSet
-    notes: Tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
     #: The scale the paper-relative sizes were resolved at (1:``scale_denominator``).
     scale_denominator: int = 100
 
@@ -818,10 +824,10 @@ class VerticalDrawing:
     CHAR_ADVANCE_NUM: ClassVar[int] = 7
     CHAR_ADVANCE_DEN: ClassVar[int] = 10
 
-    def extent_mm(self) -> Optional[Tuple[int, int, int, int]]:
+    def extent_mm(self) -> tuple[int, int, int, int] | None:
         return bbox_of(self.primitives)
 
-    def counts(self) -> Dict[str, int]:
+    def counts(self) -> dict[str, int]:
         return {
             "primitives": len(self.primitives),
             "levelMarkers": len(self.level_markers),
@@ -829,7 +835,7 @@ class VerticalDrawing:
             "notes": len(self.notes),
         }
 
-    def label_boxes(self) -> Tuple[LabelBox, ...]:
+    def label_boxes(self) -> tuple[LabelBox, ...]:
         """Text bounding boxes for §16's collision assertion.
 
         Width is the same monospaced-digit bound ``autodim.config.text_width_mm`` uses
@@ -837,14 +843,13 @@ class VerticalDrawing:
         feeds asks whether two labels are in the same place, not how wide a glyph is, and
         it must never be *narrower* than the truth.
         """
-        boxes: List[LabelBox] = []
+        boxes: list[LabelBox] = []
         for index, item in enumerate(self.primitives):
             if not isinstance(item, Text):
                 continue
             width = max(
                 1,
-                (len(item.text) * item.height_mm * self.CHAR_ADVANCE_NUM)
-                // self.CHAR_ADVANCE_DEN,
+                (len(item.text) * item.height_mm * self.CHAR_ADVANCE_NUM) // self.CHAR_ADVANCE_DEN,
             )
             height = item.height_mm
             x, y = item.position
@@ -869,7 +874,7 @@ class VerticalDrawing:
             )
         return tuple(boxes)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         extent = self.extent_mm()
         return {
             "kind": self.kind,
@@ -884,13 +889,13 @@ class VerticalDrawing:
             "primitives": primitives_to_json(self.primitives),
         }
 
-    def by_layer(self) -> Dict[str, int]:
+    def by_layer(self) -> dict[str, int]:
         return count_by_layer(self.primitives)
 
-    def by_kind(self) -> Dict[str, int]:
+    def by_kind(self) -> dict[str, int]:
         return count_by_kind(self.primitives)
 
-    def with_primitives(self, primitives: Sequence[Primitive]) -> "VerticalDrawing":
+    def with_primitives(self, primitives: Sequence[Primitive]) -> VerticalDrawing:
         return replace(self, primitives=tuple(primitives))
 
 
@@ -901,7 +906,7 @@ class VerticalDrawing:
 PROBE_MM = 10
 
 
-def rect_ring(u_lo: int, z_lo: int, u_hi: int, z_hi: int) -> Tuple[Point, ...]:
+def rect_ring(u_lo: int, z_lo: int, u_hi: int, z_hi: int) -> tuple[Point, ...]:
     """A closed CCW ring for a ``(u, z)`` rectangle, no repeated last vertex."""
     return ((u_lo, z_lo), (u_hi, z_lo), (u_hi, z_hi), (u_lo, z_hi))
 

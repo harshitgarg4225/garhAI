@@ -69,7 +69,9 @@ const SECTIONS: readonly { title: string; commands: readonly CommandId[] }[] = [
 ];
 
 /** One row per command, with every key that triggers it. */
-function rowsFor(commands: readonly CommandId[]): { command: CommandId; binding: KeyBinding; keys: string[] }[] {
+function rowsFor(
+  commands: readonly CommandId[],
+): { command: CommandId; binding: KeyBinding; keys: string[] }[] {
   const rows: { command: CommandId; binding: KeyBinding; keys: string[] }[] = [];
   for (const command of commands) {
     const matches = KEY_BINDINGS.filter((b) => b.command === command);
@@ -91,7 +93,8 @@ export interface ShortcutsDialogProps {
 export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps): JSX.Element {
   const listed = new Set(SECTIONS.flatMap((s) => s.commands));
   const leftovers = [...new Set(KEY_BINDINGS.map((b) => b.command))].filter((c) => !listed.has(c));
-  const sections = leftovers.length === 0 ? SECTIONS : [...SECTIONS, { title: 'More', commands: leftovers }];
+  const sections =
+    leftovers.length === 0 ? SECTIONS : [...SECTIONS, { title: 'More', commands: leftovers }];
 
   return (
     <Dialog

@@ -40,8 +40,9 @@ import hashlib
 import json
 import os
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Iterable
+from typing import Any
 
 from garh_api.logging import get_logger
 
@@ -63,9 +64,7 @@ _ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 #: Room types that legitimately hold no furniture. Listed rather than inferred so
 #: "nothing fits here" is a decision on the record (see fixtures/catalog/index.json).
-ROOM_TYPES_WITHOUT_FURNITURE: frozenset[str] = frozenset(
-    {"duct", "shaft", "void", "unassigned"}
-)
+ROOM_TYPES_WITHOUT_FURNITURE: frozenset[str] = frozenset({"duct", "shaft", "void", "unassigned"})
 
 
 class SeedDataError(RuntimeError):
@@ -153,9 +152,7 @@ def _items_of(payload: Any, path: str) -> list[Any]:
         return payload
     if isinstance(payload, dict) and isinstance(payload.get("items"), list):
         return list(payload["items"])
-    raise SeedDataError(
-        "%s must be a JSON array (or an object with an 'items' array)." % path
-    )
+    raise SeedDataError("%s must be a JSON array (or an object with an 'items' array)." % path)
 
 
 # ---------------------------------------------------------------------------
@@ -255,12 +252,12 @@ def validate_materials(items: Iterable[Any]) -> list[dict[str, Any]]:
                 "assigned to is dead data." % where
             )
         price = raw.get("priceInrPerSqm")
-        if price is not None:
-            if isinstance(price, bool) or not isinstance(price, int) or price <= 0:
-                raise SeedDataError(
-                    "%s.priceInrPerSqm must be whole rupees > 0 or absent, got %r."
-                    % (where, price)
-                )
+        if price is not None and (
+            isinstance(price, bool) or not isinstance(price, int) or price <= 0
+        ):
+            raise SeedDataError(
+                "%s.priceInrPerSqm must be whole rupees > 0 or absent, got %r." % (where, price)
+            )
         colour = raw.get("colorHex")
         if colour is not None and not re.match(r"^#[0-9A-Fa-f]{6}$", str(colour)):
             raise SeedDataError("%s.colorHex must look like '#RRGGBB', got %r." % (where, colour))
@@ -274,7 +271,7 @@ def validate_materials(items: Iterable[Any]) -> list[dict[str, Any]]:
 
 
 def validate_facade_kits(items: Iterable[Any]) -> list[dict[str, Any]]:
-    rows = [raw for raw in items]
+    rows = list(items)
     ids = []
     for index, raw in enumerate(rows):
         where = "facade-kits[%d]" % index
@@ -361,9 +358,7 @@ def load_catalog_bundle(*, room_types: Iterable[str] | None = None) -> CatalogBu
 
     directory: str | None = None
     for candidate in catalog_search_paths():
-        if all(
-            os.path.isfile(os.path.join(candidate, "%s.json" % name)) for name in CATALOG_FILES
-        ):
+        if all(os.path.isfile(os.path.join(candidate, "%s.json" % name)) for name in CATALOG_FILES):
             directory = candidate
             break
 
@@ -392,8 +387,7 @@ def load_catalog_bundle(*, room_types: Iterable[str] | None = None) -> CatalogBu
         warning = (
             "Validated %s, but the API reads %s — so GET /catalog/* will serve the "
             "compiled-in table instead. Set GARH_CATALOG_DIR=%s (compose: add it to the "
-            "api service environment) to serve these files."
-            % (directory, serving, directory)
+            "api service environment) to serve these files." % (directory, serving, directory)
         )
         _log.warning("seed.catalog_not_served", validated=directory, api_reads=serving)
 
@@ -468,8 +462,7 @@ def load_rulepack_registry() -> RulepackRegistry:
         pack_file = os.path.join(directory, "%s.json" % pack_id)
         if not os.path.isfile(pack_file):
             raise SeedDataError(
-                "Rule pack %r is listed in index.json but %s does not exist."
-                % (pack_id, pack_file)
+                "Rule pack %r is listed in index.json but %s does not exist." % (pack_id, pack_file)
             )
         body = _read_json(pack_file)
         if not isinstance(body, dict) or not isinstance(body.get("rules"), list):

@@ -18,12 +18,12 @@ failure this module exists to prevent.
 
 from __future__ import annotations
 
-from typing import Any, Tuple
+from typing import Any
 
 __all__ = ["AreaStatementRow", "ScheduleRow", "shared_primitive_origin"]
 
 
-def _resolve() -> Tuple[Any, Any, str]:
+def _resolve() -> tuple[Any, Any, str]:
     try:  # sheets.py as a module (today), or a package that re-exports them
         from services.drawings.sheets import AreaStatementRow as _Area
         from services.drawings.sheets import ScheduleRow as _Schedule

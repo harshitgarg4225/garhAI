@@ -365,7 +365,11 @@ export function timeoutError(endpoint: string, ms: number): AppError {
   });
 }
 
-export function malformedResponseError(endpoint: string, detail: string, cause?: unknown): AppError {
+export function malformedResponseError(
+  endpoint: string,
+  detail: string,
+  cause?: unknown,
+): AppError {
   return new AppError({
     code: ERROR_CODES.malformedResponse,
     message: "Garh AI sent back something this version of the app doesn't understand.",
@@ -482,9 +486,7 @@ export function problemToAppError(
 
   if (code === ERROR_CODES.opRejected || (status === 422 && Array.isArray(record.issues))) {
     const rawIssues = Array.isArray(record.issues) ? record.issues : [];
-    const issues = rawIssues
-      .map(normaliseIssue)
-      .filter((i): i is ApiValidationIssue => i !== null);
+    const issues = rawIssues.map(normaliseIssue).filter((i): i is ApiValidationIssue => i !== null);
     return new OpRejectionError({
       ...base,
       issues,

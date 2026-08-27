@@ -331,19 +331,13 @@ export class BalconyTool extends BaseTool {
   private projectionMm(ctx: ToolContext, ring: Polygon): number {
     const storeyId = ctx.storeyId;
     if (storeyId === null) return 0;
-    const slab = ctx.doc.house.slabs.find(
-      (s) => s.storeyId === storeyId && s.kind === 'floor',
-    );
+    const slab = ctx.doc.house.slabs.find((s) => s.storeyId === storeyId && s.kind === 'floor');
     if (slab === undefined || slab.polygon.length < 3) return 0;
     return maxDistanceOutside(ring, slab.polygon);
   }
 
   /** The non-blocking projection / setback chips (§15 severity + cite + fix). */
-  private projectionChips(
-    ctx: ToolContext,
-    ring: Polygon,
-    projectionMm: number,
-  ): ToolChip[] {
+  private projectionChips(ctx: ToolContext, ring: Polygon, projectionMm: number): ToolChip[] {
     const out: ToolChip[] = [];
     const setback = ctx.setback;
     if (setback === null) return out;

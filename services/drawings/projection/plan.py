@@ -44,8 +44,9 @@ composer.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.projection.primitives import (
     Arc,
@@ -79,7 +80,7 @@ from services.drawings.projection.walls import (
 )
 
 #: Back-to-front paint order by primitive type. Hatch behind, text in front.
-PAINT_ORDER: Dict[type, int] = {Hatch: 0, Line: 1, Polyline: 1, Arc: 1, Text: 2}
+PAINT_ORDER: dict[type, int] = {Hatch: 0, Line: 1, Polyline: 1, Arc: 1, Text: 2}
 
 #: §7: "openings dimensioned to centreline (config flag ``dimToJamb`` for firm
 #: preference)". Mirrors ``services.drawings.dimensions.DEFAULT_DIM_TO_JAMB``; the test
@@ -96,14 +97,14 @@ class PlanOptions:
     north_deg: int = 0
     show_north: bool = True
     #: Where the north dart goes, in model mm. None = just outside the plan's top-right.
-    north_position: Optional[Point] = None
+    north_position: Point | None = None
     show_room_labels: bool = True
     show_ffl_marker: bool = True
     show_opening_tags: bool = True
     #: Column rectangles are always drawn when columns exist; the numbered/lettered
     #: grid is what this switches off (a plan with two columns does not need a grid).
     show_column_grid: bool = True
-    section_markers: Tuple[SectionMarker, ...] = ()
+    section_markers: tuple[SectionMarker, ...] = ()
     #: §7 firm preference. Consumed by the dimension engine via
     #: :func:`opening_dim_stations`; the projection itself does not dimension anything.
     dim_to_jamb: bool = DEFAULT_DIM_TO_JAMB
@@ -115,10 +116,10 @@ class PlanProjection:
 
     storey_id: str
     style: Style
-    primitives: Tuple[Primitive, ...]
-    bands: Tuple[WallBand, ...]
+    primitives: tuple[Primitive, ...]
+    bands: tuple[WallBand, ...]
     #: ``(min_x, min_y, max_x, max_y)`` of the built fabric, before outside symbols.
-    extent: Optional[Tuple[int, int, int, int]] = None
+    extent: tuple[int, int, int, int] | None = None
     options: PlanOptions = field(default_factory=PlanOptions)
 
 
@@ -127,8 +128,8 @@ def project_plan(
     storey_id: str,
     scale: Any = 100,
     *,
-    options: Optional[PlanOptions] = None,
-) -> Tuple[Primitive, ...]:
+    options: PlanOptions | None = None,
+) -> tuple[Primitive, ...]:
     """Project one storey to primitives. The §7 signature, and the one renderers call."""
     return project_plan_detail(house, storey_id, scale, options=options).primitives
 
@@ -138,7 +139,7 @@ def project_plan_detail(
     storey_id: str,
     scale: Any = 100,
     *,
-    options: Optional[PlanOptions] = None,
+    options: PlanOptions | None = None,
 ) -> PlanProjection:
     """Project one storey, keeping the intermediate geometry for the dimension engine."""
     style = style_of(scale)
@@ -155,7 +156,7 @@ def project_plan_detail(
     bands = wall_bands(walls, openings)
     by_wall = {band.wall.id: band for band in bands}
 
-    fabric: List[Primitive] = []
+    fabric: list[Primitive] = []
     for band in bands:
         fabric.extend(wall_primitives(band, hatch_spacing_mm=style.hatch_spacing_mm))
     for opening in openings:
@@ -188,7 +189,7 @@ def project_plan_detail(
             options=opts,
         )
 
-    annotations: List[Primitive] = []
+    annotations: list[Primitive] = []
     if opts.show_room_labels:
         for ordinal, room in enumerate(rooms, start=1):
             annotations.extend(room_label(room, style, ordinal=ordinal))
@@ -225,7 +226,7 @@ def project_plan_detail(
     )
 
 
-def _paint_ordered(primitives: Sequence[Primitive]) -> Tuple[Primitive, ...]:
+def _paint_ordered(primitives: Sequence[Primitive]) -> tuple[Primitive, ...]:
     """Stable sort into :data:`PAINT_ORDER` groups. Deterministic — goldens depend on it."""
     return tuple(sorted(primitives, key=lambda item: PAINT_ORDER.get(type(item), 1)))
 
@@ -234,8 +235,8 @@ def _ffl_marker(
     house: Any,
     storey_id: str,
     style: Style,
-    extent: Optional[Tuple[int, int, int, int]],
-) -> Tuple[Primitive, ...]:
+    extent: tuple[int, int, int, int] | None,
+) -> tuple[Primitive, ...]:
     """The storey's FFL, placed just below the plan.
 
     The level comes from the model's own levels — ``storey.level.ffl_mm``, falling back
@@ -265,7 +266,7 @@ def _ffl_marker(
     )
 
 
-def _default_north_position(style: Style, extent: Optional[Tuple[int, int, int, int]]) -> Point:
+def _default_north_position(style: Style, extent: tuple[int, int, int, int] | None) -> Point:
     """Just off the plan's top-right corner — the corner a title block never occupies."""
     length = style.north_arrow_length_mm
     if extent is None:
@@ -282,7 +283,7 @@ def opening_dim_stations(
     openings: Sequence[Any],
     *,
     dim_to_jamb: bool = DEFAULT_DIM_TO_JAMB,
-) -> Tuple[Tuple[str, int], ...]:
+) -> tuple[tuple[str, int], ...]:
     """``(opening_id, station_mm)`` along a wall, for a level-3 dimension chain.
 
     §7: "openings dimensioned to centreline (config flag ``dimToJamb`` for firm
@@ -290,7 +291,7 @@ def opening_dim_stations(
     with, so the dimension lands on the jamb that is drawn and not 1mm away from it.
     Stations are returned sorted along the wall, which is the order a chain consumes.
     """
-    stations: List[Tuple[str, int]] = []
+    stations: list[tuple[str, int]] = []
     for opening in openings:
         if opening.wall_id != band.wall.id:
             continue

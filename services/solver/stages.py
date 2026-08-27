@@ -18,10 +18,11 @@ bite if ignored:
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
-from services.solver.geometry import Polygon, Pt, bbox, point_in_polygon
+from services.solver.geometry import Pt, bbox, point_in_polygon
 from services.solver.types import (
     COARSE_MODULE_MM,
     BuildableEnvelope,
@@ -68,9 +69,7 @@ class Candidate:
     objective: int
 
 
-def grid_envelope(
-    envelope: BuildableEnvelope, *, module_mm: int = COARSE_MODULE_MM
-) -> GridSpec:
+def grid_envelope(envelope: BuildableEnvelope, *, module_mm: int = COARSE_MODULE_MM) -> GridSpec:
     """Overlay the §5.2 coarse grid on the envelope. **Implemented.**
 
     Pure integer geometry, so it is real today: a cell is buildable when its centre
@@ -94,9 +93,7 @@ def grid_envelope(
         )
         for row in range(rows)
     )
-    return GridSpec(
-        origin=(min_x, min_y), module_mm=module_mm, cols=cols, rows=rows, mask=mask
-    )
+    return GridSpec(origin=(min_x, min_y), module_mm=module_mm, cols=cols, rows=rows, mask=mask)
 
 
 def enumerate_stair_anchors(
@@ -120,8 +117,8 @@ def stage_a_topology(
     *,
     profile: Any = None,
     relaxed: bool = False,
-    time_budget_seconds: Optional[int] = None,
-    num_search_workers: Optional[int] = None,
+    time_budget_seconds: int | None = None,
+    num_search_workers: int | None = None,
 ) -> Candidate | None:
     """§5.2 stage A: CP-SAT room topology on the 300mm module.
 
@@ -166,7 +163,7 @@ def placements_to_ops(
     placements: Sequence[RoomPlacement],
     params: SolveParams,
     *,
-    model: Optional[Mapping[str, Any]] = None,
+    model: Mapping[str, Any] | None = None,
 ) -> tuple[Mapping[str, Any], ...]:
     """Express a refined layout as §4 ops — the only way the solver touches the model.
 

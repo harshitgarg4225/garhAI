@@ -41,7 +41,18 @@ WORKDIR /app
 # hatchling would need both garh_api/ and garh_model/ to exist at build time and
 # would fail while the tree is still being filled in. tomllib is stdlib on 3.11.
 COPY ["apps/api/pyproject.toml", "/app/apps/api/pyproject.toml"]
-RUN python -c "import tomllib; d = tomllib.load(open('/app/apps/api/pyproject.toml','rb')); print('\n'.join(d['project']['dependencies']))" > /tmp/requirements.txt \
+# services/pyproject.toml rides along for exactly one thing: its `llm` extra
+# (the `anthropic` SDK). The API process is what runs the copilot
+# (services.llm is imported in-process), so without the SDK in this image
+# PROVIDER_LLM=anthropic would die on import. Installing it here makes the
+# real provider a config flip plus a key — the mock stays the default and the
+# SDK stays unimported until services/llm/provider.py lazily selects it.
+COPY ["services/pyproject.toml", "/app/services/pyproject.toml"]
+RUN python -c "import tomllib;\
+api = tomllib.load(open('/app/apps/api/pyproject.toml','rb'));\
+svc = tomllib.load(open('/app/services/pyproject.toml','rb'));\
+deps = api['project']['dependencies'] + svc['project']['optional-dependencies']['llm'];\
+print('\n'.join(dict.fromkeys(deps)))" > /tmp/requirements.txt \
     && cat /tmp/requirements.txt \
     && python -m pip install --upgrade pip \
     && python -m pip install -r /tmp/requirements.txt

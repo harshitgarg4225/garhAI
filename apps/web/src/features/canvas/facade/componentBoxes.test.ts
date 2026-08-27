@@ -103,10 +103,7 @@ describe('chajja geometry', () => {
     const chajja = componentOf(doc.house, 'chajja');
     const before = boxesForComponent(doc.house, chajja)[0];
     const edited = applyGroup(doc, [editComponentOp(chajja.id, { projectionMm: 750 })]).model;
-    const after = boxesForComponent(
-      edited.house,
-      componentOf(edited.house, 'chajja'),
-    )[0];
+    const after = boxesForComponent(edited.house, componentOf(edited.house, 'chajja'))[0];
     expect(before).toBeDefined();
     expect(after).toBeDefined();
     expect(after?.depthMm).toBe(750);

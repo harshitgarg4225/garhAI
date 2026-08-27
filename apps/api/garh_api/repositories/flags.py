@@ -67,9 +67,7 @@ class FlagRepository:
         return merged
 
     async def list_flags(self) -> list[Flag]:
-        result = await self._session.execute(
-            select(models.Flag).order_by(models.Flag.key.asc())
-        )
+        result = await self._session.execute(select(models.Flag).order_by(models.Flag.key.asc()))
         return [Flag.from_row(row) for row in result.scalars().all()]
 
     async def is_enabled(self, key: str) -> bool:
@@ -82,9 +80,7 @@ class FlagRepository:
             return DEFAULT_FLAGS.get(normalised, False)
         return bool(row[0])
 
-    async def upsert(
-        self, key: str, *, enabled: bool, description: str | None = None
-    ) -> Flag:
+    async def upsert(self, key: str, *, enabled: bool, description: str | None = None) -> Flag:
         """Create or flip a flag. Ops/seed use only — never a tenant-facing endpoint."""
         normalised = _normalise_key(key)
         stmt = (

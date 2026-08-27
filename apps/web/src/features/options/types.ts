@@ -156,9 +156,7 @@ export type SolveResultJson = z.infer<typeof solveResultSchema>;
 export const solverJobDetailSchema = z.object({
   id: z.string(),
   projectId: z.string().optional(),
-  status: z
-    .enum(['queued', 'running', 'succeeded', 'failed', 'cancelled'])
-    .catch('queued'),
+  status: z.enum(['queued', 'running', 'succeeded', 'failed', 'cancelled']).catch('queued'),
   progress: z.number().int().catch(0).default(0),
   stage: z.string().nullish(),
   error: z.string().nullish(),
@@ -196,8 +194,8 @@ export interface SolveOutcome {
 export function readSolveOutcome(row: SolverJobDetail): SolveOutcome {
   const rawList: unknown[] = Array.isArray(row.options)
     ? row.options
-    : Array.isArray(row.result?.['options'])
-      ? (row.result?.['options'] as unknown[])
+    : Array.isArray(row.result?.options)
+      ? (row.result?.options as unknown[])
       : [];
 
   const options: PlanOption[] = [];
@@ -207,11 +205,11 @@ export function readSolveOutcome(row: SolverJobDetail): SolveOutcome {
   }
   options.sort((a, b) => a.rank - b.rank);
 
-  const resultEnvelope = row.result?.['envelope'];
+  const resultEnvelope = row.result?.envelope;
   const envelope = envelopeSchema.safeParse(resultEnvelope);
-  const banner = row.result?.['banner'];
-  const considered = row.result?.['considered'];
-  const rejected = row.result?.['rejectedByGates'];
+  const banner = row.result?.banner;
+  const considered = row.result?.considered;
+  const rejected = row.result?.rejectedByGates;
 
   return {
     jobId: row.id,

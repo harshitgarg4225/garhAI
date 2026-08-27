@@ -45,14 +45,7 @@
  * where the `floor`/`ceil` asymmetry is the thing that drifts.
  */
 
-import {
-  distMm,
-  findStorey,
-  type OpeningKind,
-  type Op,
-  type Pt,
-  type Wall,
-} from '@garh/model';
+import { distMm, findStorey, type OpeningKind, type Op, type Pt, type Wall } from '@garh/model';
 
 import { formatLength, snapMm } from '../../../lib/units';
 import { pointAtLengthMm } from '../core/coords';
@@ -213,7 +206,11 @@ export class OpeningTool extends BaseTool {
       // 1200 mm windows should mean typing 1200 once.
       const next = { ...params, widthMm: typedWidth };
       this.pendingSettings =
-        kind === 'door' ? { door: next } : kind === 'window' ? { window: next } : { ventilator: next };
+        kind === 'door'
+          ? { door: next }
+          : kind === 'window'
+            ? { window: next }
+            : { ventilator: next };
     }
 
     const label =
@@ -325,11 +322,7 @@ export class OpeningTool extends BaseTool {
    * renderer at all, which is what makes this tool testable; and a wall whose
    * mesh is hidden behind a room fill still hosts a door.
    */
-  private recompute(
-    ctx: ToolContext,
-    point: Pt | null,
-    event: ToolPointerInput | null,
-  ): void {
+  private recompute(ctx: ToolContext, point: Pt | null, event: ToolPointerInput | null): void {
     this.placement = null;
     this.blocked = null;
     this.placementWasClamped = false;
@@ -417,10 +410,7 @@ export class OpeningTool extends BaseTool {
       const projection = projectOnSegment(point, wall.a, wall.b);
       // Anywhere within the wall's own thickness counts as "on the wall", plus
       // the usual screen-constant slop so a thin partition is still clickable.
-      const tolerance = Math.max(
-        snapToleranceMm(ctx.mmPerPx),
-        Math.ceil(wall.thicknessMm / 2),
-      );
+      const tolerance = Math.max(snapToleranceMm(ctx.mmPerPx), Math.ceil(wall.thicknessMm / 2));
       if (projection.distanceMm > tolerance) continue;
       if (projection.distanceMm < bestDistance) {
         bestDistance = projection.distanceMm;

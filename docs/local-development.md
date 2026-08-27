@@ -12,13 +12,13 @@ No keys, no GPU, no secrets. Providers default to mocks, a dev JWT keypair is mi
 on first boot, migrations run before the API serves, and the MinIO bucket is created
 by a one-shot init container.
 
-| Service | URL |
-|---|---|
-| Web | http://localhost:5173 |
-| API | http://localhost:8000 (`/healthz`, `/docs`) |
-| MinIO console | http://localhost:9001 |
-| Postgres | `localhost:5432` |
-| Redis | `localhost:6379` |
+| Service       | URL                                         |
+| ------------- | ------------------------------------------- |
+| Web           | http://localhost:5173                       |
+| API           | http://localhost:8000 (`/healthz`, `/docs`) |
+| MinIO console | http://localhost:9001                       |
+| Postgres      | `localhost:5432`                            |
+| Redis         | `localhost:6379`                            |
 
 ## Everyday commands
 

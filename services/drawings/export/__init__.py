@@ -27,8 +27,6 @@ an export either produces the real artefact or says exactly what is missing.
 
 from __future__ import annotations
 
-from typing import Dict
-
 __all__ = [
     "EXPORTERS",
     "EXPORT_KINDS",
@@ -42,7 +40,7 @@ __all__ = [
 EXPORT_KINDS = ("pdf-set", "dxf", "gltf", "png-pack")
 
 #: kind -> ``(module, entry point, hard requirement or None)``.
-EXPORTERS: Dict[str, Dict[str, object]] = {
+EXPORTERS: dict[str, dict[str, object]] = {
     "pdf-set": {
         "module": "services.drawings.export.pdf",
         "entry": "svg_set_to_pdf",
@@ -80,12 +78,11 @@ assert tuple(sorted(EXPORTERS)) == tuple(sorted(EXPORT_KINDS)), (
 )
 
 
-def requirements_for(kind: str) -> Dict[str, object]:
+def requirements_for(kind: str) -> dict[str, object]:
     """What an export kind needs, for a pre-flight check or an honest error message."""
     try:
         return dict(EXPORTERS[kind])
     except KeyError:
         raise KeyError(
-            "%r is not an export kind. Expected one of: %s."
-            % (kind, ", ".join(sorted(EXPORTERS)))
+            "%r is not an export kind. Expected one of: %s." % (kind, ", ".join(sorted(EXPORTERS)))
         ) from None

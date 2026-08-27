@@ -47,7 +47,7 @@ test.describe('@visual Phase 5 — 3D with facade, 0.1% tolerance', () => {
   test.skip(
     true,
     'Skipped until CI holds the baseline: (1) no committed three-d-facade.png — a first ' +
-      'run would self-bless this machine\'s GPU/fonts as truth; (2) /fonts/inter-medium.woff ' +
+      "run would self-bless this machine's GPU/fonts as truth; (2) /fonts/inter-medium.woff " +
       'is a known asset gap (make asset-audit), so canvas text still differs per machine; ' +
       '(3) needs the seeded §17 demo project (make seed) with its solved plan + facade. ' +
       'To enable: font in, run once on the CI runner with --update-snapshots, commit the ' +

@@ -35,11 +35,11 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 import pytest
-
 from garh_api.tenancy import EntityNotFoundError
+
 from tests.helpers import problem
 
 # ---------------------------------------------------------------------------
@@ -81,7 +81,7 @@ class Case:
     #: Path template using the same names FastAPI uses, e.g. ``/projects/{project_id}``.
     template: str
     #: JSON body for the methods that need one. ``None`` sends no body.
-    body: Optional[dict[str, Any]] = None
+    body: dict[str, Any] | None = None
     #: Query string appended verbatim (no leading ``?``).
     query: str = ""
     #: Headers merged over the auth header.
@@ -227,6 +227,7 @@ async def estate_a(session: Any, firm_a: Any, project_a: Any, clean_redis: Any) 
     """
     from garh_api import queue
     from garh_api.repositories import SheetRepository
+
     from tests import factories
 
     version = await factories.create_version(session, firm_a, project_a.id, name="v1")
@@ -304,9 +305,10 @@ async def test_cross_tenant_access_is_404(
         headers={**firm_b.headers, **case.headers},
     )
 
-    assert response.status_code == 404, (
-        "%s leaked across tenants: expected 404, got %s\n%s"
-        % (case.id, response.status_code, response.text[:400])
+    assert response.status_code == 404, "%s leaked across tenants: expected 404, got %s\n%s" % (
+        case.id,
+        response.status_code,
+        response.text[:400],
     )
     body = problem(response)
     assert body["code"] == "not_found", body
@@ -383,7 +385,8 @@ def test_every_tenant_scoped_route_is_covered(app_routes: Any, api: str) -> None
     stale = sorted(covered - live)
     assert not stale, (
         "%d case(s) name a route that no longer exists:\n  %s\n"
-        "Delete the Case, or fix its template." % (len(stale), "\n  ".join("%s %s" % p for p in stale))
+        "Delete the Case, or fix its template."
+        % (len(stale), "\n  ".join("%s %s" % p for p in stale))
     )
 
 
@@ -431,6 +434,7 @@ async def test_tenancy_op_log_is_invisible_across_firms(
     """An op log is the design. Firm B must not see its length, let alone its contents."""
     from garh_api.repositories import OpRepository
     from garh_api.repositories.domain import NewOp
+
     from tests.helpers import main_branch
 
     branch = main_branch(project_a.id)
@@ -458,6 +462,7 @@ async def test_cross_tenant_write_does_not_mutate(
 ) -> None:
     """A rejected cross-tenant write must leave zero trace, not merely return 404."""
     from garh_api.repositories import OpRepository, ProjectRepository
+
     from tests.helpers import main_branch
 
     rename = await client.patch(
@@ -497,9 +502,7 @@ async def test_member_cannot_delete_a_project_403(
     client: Any, api: str, member_a: Any, project_a: Any
 ) -> None:
     """Inside the firm, role is enforced with 403 — existence is not a secret here."""
-    response = await client.delete(
-        "%s/projects/%s" % (api, project_a.id), headers=member_a.headers
-    )
+    response = await client.delete("%s/projects/%s" % (api, project_a.id), headers=member_a.headers)
     assert response.status_code == 403, response.text
     body = problem(response)
     assert body["code"] == "permission_denied", body
@@ -542,7 +545,7 @@ async def test_member_can_still_read_and_write_the_design(
     ],
 )
 async def test_unauthenticated_access_is_401(
-    client: Any, api: str, project_a: Any, header: Optional[str], expected_code: str
+    client: Any, api: str, project_a: Any, header: str | None, expected_code: str
 ) -> None:
     """A tenant-scoped route with no usable token is 401, and says so in problem+json."""
     headers = {} if header is None else {"Authorization": header}

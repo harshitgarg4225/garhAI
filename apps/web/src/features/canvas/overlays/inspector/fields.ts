@@ -167,7 +167,10 @@ function readonlyField(
   };
 }
 
-function enumOptions(values: readonly string[], labels?: Readonly<Record<string, string>>): EnumOption[] {
+function enumOptions(
+  values: readonly string[],
+  labels?: Readonly<Record<string, string>>,
+): EnumOption[] {
   return values.map((value) => ({ value, label: labels?.[value] ?? value }));
 }
 
@@ -199,7 +202,14 @@ export function inspectorSelection(
   options: InspectorOptions,
 ): InspectorSelection {
   if (ids.length === 0) {
-    return { kind: 'none', count: 0, title: 'Nothing selected', subtitle: null, fields: [], actions: [] };
+    return {
+      kind: 'none',
+      count: 0,
+      title: 'Nothing selected',
+      subtitle: null,
+      fields: [],
+      actions: [],
+    };
   }
 
   const types = new Set(ids.map((id) => idType(id)).filter((t): t is ElementType => t !== null));
@@ -216,7 +226,14 @@ export function inspectorSelection(
 
   const type = Array.from(types)[0];
   if (type === undefined) {
-    return { kind: 'none', count: 0, title: 'Nothing selected', subtitle: null, fields: [], actions: [] };
+    return {
+      kind: 'none',
+      count: 0,
+      title: 'Nothing selected',
+      subtitle: null,
+      fields: [],
+      actions: [],
+    };
   }
 
   switch (type) {
@@ -488,7 +505,10 @@ function openingInspector(
         const value = next as OpeningSwing;
         return openings
           .filter((o) => o.swing !== value)
-          .map((o) => ({ type: 'opening.flip' as const, payload: { openingId: o.id, swing: value } }));
+          .map((o) => ({
+            type: 'opening.flip' as const,
+            payload: { openingId: o.id, swing: value },
+          }));
       },
       undoLabel: 'Swing flipped',
     },
@@ -509,7 +529,10 @@ function openingInspector(
   return {
     kind: 'opening',
     count: openings.length,
-    title: openings.length === 1 ? humanEnum(String(kind.value ?? 'Opening')) : `${String(openings.length)} openings`,
+    title:
+      openings.length === 1
+        ? humanEnum(String(kind.value ?? 'Opening'))
+        : `${String(openings.length)} openings`,
     subtitle:
       openings.length === 1 && !width.mixed && !height.mixed
         ? `${formatLen(width.value, options.display)} × ${formatLen(height.value, options.display)}`
@@ -518,9 +541,13 @@ function openingInspector(
     actions: [
       {
         key: 'delete',
-        label: openings.length === 1 ? 'Delete opening' : `Delete ${String(openings.length)} openings`,
+        label:
+          openings.length === 1 ? 'Delete opening' : `Delete ${String(openings.length)} openings`,
         tone: 'danger',
-        ops: openings.map((o) => ({ type: 'opening.delete' as const, payload: { openingId: o.id } })),
+        ops: openings.map((o) => ({
+          type: 'opening.delete' as const,
+          payload: { openingId: o.id },
+        })),
         undoLabel: 'Opening deleted',
       },
     ],
@@ -567,7 +594,7 @@ function roomInspector(
       label: 'Name',
       kind: 'text',
       value: name.mixed ? null : (name.value ?? ''),
-      displayText: name.mixed ? 'Mixed' : (name.value === '' ? '—' : String(name.value)),
+      displayText: name.mixed ? 'Mixed' : name.value === '' ? '—' : String(name.value),
       mixed: name.mixed,
       editable: true,
       hint: 'Leave it empty to use the room type as the label.',
@@ -632,7 +659,10 @@ function roomInspector(
         const value = next === '' ? null : (next as Direction8);
         return rooms
           .filter((r) => r.mustFace !== value)
-          .map((r) => ({ type: 'room.set_target' as const, payload: { roomId: r.id, mustFace: value } }));
+          .map((r) => ({
+            type: 'room.set_target' as const,
+            payload: { roomId: r.id, mustFace: value },
+          }));
       },
       undoLabel: 'Facing set',
     },
@@ -655,9 +685,9 @@ function roomInspector(
     count: rooms.length,
     title:
       rooms.length === 1
-        ? (name.value !== '' && name.value !== null
-            ? String(name.value)
-            : ROOM_TYPE_LABELS[type.value ?? 'unassigned'])
+        ? name.value !== '' && name.value !== null
+          ? String(name.value)
+          : ROOM_TYPE_LABELS[type.value ?? 'unassigned']
         : `${String(rooms.length)} rooms`,
     subtitle: area.mixed ? null : roomAreaText(area.value ?? 0, options.display),
     fields,
@@ -722,20 +752,41 @@ function stairInspector(house: HouseModel, ids: readonly string[]): InspectorSel
   };
 
   const fields: InspectorField[] = [
-    patchField('riser', 'Riser', 'length', stairs.map((s) => s.riserMm), (n) => ({ riserMm: n }), {
-      hint: 'NBC allows 190 mm at most.',
-      minMm: 100,
-      maxMm: 250,
-    }),
-    patchField('tread', 'Tread', 'length', stairs.map((s) => s.treadMm), (n) => ({ treadMm: n }), {
-      hint: 'NBC needs at least 250 mm.',
-      minMm: 150,
-      maxMm: 450,
-    }),
-    patchField('width', 'Clear width', 'length', stairs.map((s) => s.widthMm), (n) => ({ widthMm: n }), {
-      hint: 'NBC needs at least 900 mm for a dwelling.',
-      minMm: 600,
-    }),
+    patchField(
+      'riser',
+      'Riser',
+      'length',
+      stairs.map((s) => s.riserMm),
+      (n) => ({ riserMm: n }),
+      {
+        hint: 'NBC allows 190 mm at most.',
+        minMm: 100,
+        maxMm: 250,
+      },
+    ),
+    patchField(
+      'tread',
+      'Tread',
+      'length',
+      stairs.map((s) => s.treadMm),
+      (n) => ({ treadMm: n }),
+      {
+        hint: 'NBC needs at least 250 mm.',
+        minMm: 150,
+        maxMm: 450,
+      },
+    ),
+    patchField(
+      'width',
+      'Clear width',
+      'length',
+      stairs.map((s) => s.widthMm),
+      (n) => ({ widthMm: n }),
+      {
+        hint: 'NBC needs at least 900 mm for a dwelling.',
+        minMm: 600,
+      },
+    ),
     patchField(
       'risers',
       'Number of risers',
@@ -750,7 +801,14 @@ function stairInspector(house: HouseModel, ids: readonly string[]): InspectorSel
       'enum',
       stairs.map((s) => s.kind),
       (n) => ({ kind: n as StairKind }),
-      { options: enumOptions(STAIR_KINDS, { straight: 'Straight', dogleg: 'Dog-leg', L: 'L-shaped', U: 'U-shaped' }) },
+      {
+        options: enumOptions(STAIR_KINDS, {
+          straight: 'Straight',
+          dogleg: 'Dog-leg',
+          L: 'L-shaped',
+          U: 'U-shaped',
+        }),
+      },
     ),
     patchField(
       'direction',
@@ -771,7 +829,8 @@ function stairInspector(house: HouseModel, ids: readonly string[]): InspectorSel
     actions: [
       {
         key: 'delete',
-        label: stairs.length === 1 ? 'Delete staircase' : `Delete ${String(stairs.length)} staircases`,
+        label:
+          stairs.length === 1 ? 'Delete staircase' : `Delete ${String(stairs.length)} staircases`,
         tone: 'danger',
         ops: stairs.map((s) => ({ type: 'stair.delete' as const, payload: { stairId: s.id } })),
         undoLabel: 'Staircase deleted',
@@ -947,7 +1006,8 @@ function storeyInspector(house: HouseModel, ids: readonly string[]): InspectorSe
   return {
     kind: 'storey',
     count: storeys.length,
-    title: storeys.length === 1 ? (storeys[0]?.name ?? 'Storey') : `${String(storeys.length)} storeys`,
+    title:
+      storeys.length === 1 ? (storeys[0]?.name ?? 'Storey') : `${String(storeys.length)} storeys`,
     subtitle: null,
     fields: [
       {

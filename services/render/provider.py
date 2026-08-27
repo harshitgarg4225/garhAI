@@ -7,9 +7,10 @@
 compositing are CPU/GPU-bound, so the async worker calls providers through
 ``asyncio.to_thread``; making the interface async would only hide that.
 
-Selection is by ``PROVIDER_RENDER`` (``mock`` | ``diffusers``). The mock is the default
-everywhere including CI, and importing this module pulls in **no** ML dependency: the
-diffusers implementation is imported inside the factory branch that needs it.
+Selection is by ``PROVIDER_RENDER`` (``mock`` | ``diffusers`` | ``stability``). The
+mock is the default everywhere including CI, and importing this module pulls in **no**
+ML dependency: the diffusers and stability implementations are imported inside the
+factory branch that needs them.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from services.render.types import RenderRequest, RenderResult
 
 log = get_logger("render.provider")
 
-PROVIDER_NAMES: tuple[str, ...] = ("mock", "diffusers")
+PROVIDER_NAMES: tuple[str, ...] = ("mock", "diffusers", "stability")
 
 
 @runtime_checkable
@@ -63,10 +64,34 @@ def get_render_provider(settings: WorkerSettings | None = None) -> RenderProvide
         )
         return DiffusersRenderProvider(cfg)
 
+    if provider_name == "stability":
+        # Imported here for symmetry with diffusers. The stability path needs only
+        # httpx (already a base dependency), but keeping the import inside the branch
+        # means the registry's import cost and graph never grow for unused providers.
+        from services.render.stability_provider import StabilityRenderProvider
+
+        if not cfg.stability_api_key:
+            raise ValueError(
+                "PROVIDER_RENDER=stability but STABILITY_API_KEY is empty. Set the "
+                "key, or use PROVIDER_RENDER=mock (the default) to run without one."
+            )
+        log.info(
+            "render.provider.selected",
+            provider="stability",
+            base_url=cfg.stability_base_url,
+        )
+        return StabilityRenderProvider(cfg)
+
     raise ValueError(
         "Unknown PROVIDER_RENDER=%r. Expected one of: %s."
         % (provider_name, ", ".join(PROVIDER_NAMES))
     )
 
 
-__all__ = ["PROVIDER_NAMES", "RenderProvider", "RenderRequest", "RenderResult", "get_render_provider"]
+__all__ = [
+    "PROVIDER_NAMES",
+    "RenderProvider",
+    "RenderRequest",
+    "RenderResult",
+    "get_render_provider",
+]

@@ -51,7 +51,7 @@ import {
 // ---------------------------------------------------------------------------
 
 /** What an unqualified number means in a dimension edit box. See module docs. */
-export const DIMENSION_BARE_UNIT = 'mm' as const;
+export const DIMENSION_BARE_UNIT = 'mm';
 
 /**
  * The label printed on a dimension segment, in the project's display units.
@@ -110,7 +110,7 @@ const DIMENSION_EXAMPLES = `3600, 12'6", 3.6m or 12-6`;
  * display layer solves it. The leading space matters: `10⅛` has to become
  * `10 1/8`, which is the mixed-number form the parser understands.
  */
-const FRACTION_GLYPHS: ReadonlyArray<readonly [RegExp, string]> = [
+const FRACTION_GLYPHS: readonly (readonly [RegExp, string])[] = [
   [/½/g, ' 1/2'],
   [/¼/g, ' 1/4'],
   [/¾/g, ' 3/4'],

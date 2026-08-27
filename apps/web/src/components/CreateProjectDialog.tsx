@@ -18,16 +18,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { formatPlotArea, parseLengthMm } from '@garh/model';
 import type { UnitsDisplay } from '@garh/model';
-import {
-  Button,
-  Dialog,
-  Field,
-  Icon,
-  Input,
-  LengthInput,
-  SelectField,
-  cn,
-} from '@garh/ui';
+import { Button, Dialog, Field, Icon, Input, LengthInput, SelectField, cn } from '@garh/ui';
 
 /** City packs shipped in the MVP (playbook §6 seeds blr / ncr / hyd). */
 export const CITY_PACK_OPTIONS = [
@@ -40,13 +31,13 @@ export const CITY_PACK_OPTIONS = [
 export type CityPackValue = (typeof CITY_PACK_OPTIONS)[number]['value'];
 
 /** Sizes an Indian residential plot is usually quoted in. */
-const QUICK_SIZES: ReadonlyArray<{ label: string; width: string; depth: string }> = [
-  { label: "20 × 30 ft", width: "20'", depth: "30'" },
-  { label: "30 × 40 ft", width: "30'", depth: "40'" },
-  { label: "30 × 50 ft", width: "30'", depth: "50'" },
-  { label: "40 × 60 ft", width: "40'", depth: "60'" },
-  { label: "50 × 80 ft", width: "50'", depth: "80'" },
-  { label: "60 × 90 ft", width: "60'", depth: "90'" },
+const QUICK_SIZES: readonly { label: string; width: string; depth: string }[] = [
+  { label: '20 × 30 ft', width: "20'", depth: "30'" },
+  { label: '30 × 40 ft', width: "30'", depth: "40'" },
+  { label: '30 × 50 ft', width: "30'", depth: "50'" },
+  { label: '40 × 60 ft', width: "40'", depth: "60'" },
+  { label: '50 × 80 ft', width: "50'", depth: "80'" },
+  { label: '60 × 90 ft', width: "60'", depth: "90'" },
 ];
 
 export interface CreateProjectInput {
@@ -98,12 +89,12 @@ export function CreateProjectDialog({
   }, [open]);
 
   const areaMm2 = widthMm !== null && depthMm !== null ? widthMm * depthMm : null;
-  const nameError = touchedName && name.trim() === '' ? 'Give the project a name so you can find it later.' : undefined;
+  const nameError =
+    touchedName && name.trim() === ''
+      ? 'Give the project a name so you can find it later.'
+      : undefined;
 
-  const halfPlot = useMemo(
-    () => (widthMm === null) !== (depthMm === null),
-    [widthMm, depthMm],
-  );
+  const halfPlot = useMemo(() => (widthMm === null) !== (depthMm === null), [widthMm, depthMm]);
 
   const submit = (): void => {
     setTouchedName(true);
@@ -198,7 +189,7 @@ export function CreateProjectDialog({
             value={units}
             onValueChange={(v) => setUnits(v)}
             options={[
-              { value: 'ft-in', label: "Feet & inches (12'-6\")" },
+              { value: 'ft-in', label: 'Feet & inches (12\'-6")' },
               { value: 'm', label: 'Metres (3.81 m)' },
             ]}
             hint="Display only. Drawings are always dimensioned in mm."
@@ -271,7 +262,10 @@ export function CreateProjectDialog({
         </fieldset>
 
         {error === undefined ? null : (
-          <p role="alert" className="flex items-start gap-1.5 rounded-md bg-fail-soft p-2.5 text-xs text-fail-ink">
+          <p
+            role="alert"
+            className="flex items-start gap-1.5 rounded-md bg-fail-soft p-2.5 text-xs text-fail-ink"
+          >
             <Icon name="alert-circle" size={14} className="mt-px shrink-0" />
             <span>{error}</span>
           </p>

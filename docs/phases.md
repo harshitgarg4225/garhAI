@@ -43,19 +43,19 @@ UI in Phase 2).
 Monorepo per §1; compose stack; CI; DB migrations (§2 DDL); auth (email+OTP, JWT);
 firms/users/projects CRUD; tenancy repository layer; seed script.
 
-| Item | Status |
-|---|---|
-| Monorepo layout, workspace, TS config | ✅ |
-| `docker compose up` brings up 9 services | 🟡 written, **never executed** |
-| CI pipeline: lint → typecheck → unit → golden → e2e | 🟡 written; **cannot start** until `pnpm-lock.yaml` is committed |
-| Security guards: secret / tenancy / licence / env | ✅ written **and run**, all four pass |
-| DB schema + Alembic migrations | 🟡 18 tables, 110 named constraints; `models.py` ⇄ migration verified by text comparison, **never applied to a live Postgres** |
-| Tenancy repository layer | ✅ written; `_scoped_select()` is the only query builder, enforced by `make tenancy-audit` and an AST test |
-| Auth: email OTP + JWT RS256 + rotation + reuse detection + logout-all | 🟡 written; the Redis Lua scripts were property-tested via transliteration, the real thing never ran |
-| firms / users / projects CRUD | 🟡 written — 66 routes across 7 routers |
-| Seed script + demo project | 🟡 written (`python -m garh_api.seed`) |
-| `garh_api.main:app` | ✅ exists; mounts health at the root, auth and the API router under `/api/v1` |
-| Cross-tenant test | ✅ `apps/api/tests/test_cross_tenant.py`; CI fails if the file is missing |
+| Item                                                                  | Status                                                                                                                         |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Monorepo layout, workspace, TS config                                 | ✅                                                                                                                             |
+| `docker compose up` brings up 9 services                              | 🟡 written, **never executed**                                                                                                 |
+| CI pipeline: lint → typecheck → unit → golden → e2e                   | 🟡 written; **cannot start** until `pnpm-lock.yaml` is committed                                                               |
+| Security guards: secret / tenancy / licence / env                     | ✅ written **and run**, all four pass                                                                                          |
+| DB schema + Alembic migrations                                        | 🟡 18 tables, 110 named constraints; `models.py` ⇄ migration verified by text comparison, **never applied to a live Postgres** |
+| Tenancy repository layer                                              | ✅ written; `_scoped_select()` is the only query builder, enforced by `make tenancy-audit` and an AST test                     |
+| Auth: email OTP + JWT RS256 + rotation + reuse detection + logout-all | 🟡 written; the Redis Lua scripts were property-tested via transliteration, the real thing never ran                           |
+| firms / users / projects CRUD                                         | 🟡 written — 66 routes across 7 routers                                                                                        |
+| Seed script + demo project                                            | 🟡 written (`python -m garh_api.seed`)                                                                                         |
+| `garh_api.main:app`                                                   | ✅ exists; mounts health at the root, auth and the API router under `/api/v1`                                                  |
+| Cross-tenant test                                                     | ✅ `apps/api/tests/test_cross_tenant.py`; CI fails if the file is missing                                                      |
 
 **DoD:** `docker compose up` → login → create an empty project; CI green; a
 cross-tenant access attempt test proves 404/403.
@@ -102,16 +102,16 @@ Plot boundary editor, DXF boundary import, regulatory profiles + rules engine + 
 city packs + Vastu (§6), brief form + completeness meter, LLM brief-parse behind the
 provider interface.
 
-| Item | Status |
-|---|---|
-| Rule packs: `nbc-core`, `blr`, `ncr`, `hyd`, `vastu` | 🟡 authored early (spec **D9**) — 118 rules, all `confidence: seed`, all `review.status: unreviewed`; **no architect has reviewed one yet** |
-| Rules engine + 18 check types | ✅ written, with 238 fixtures — **all 238 EXECUTED through the real `garh_rules.evaluate()` locally**: expected status, actual and limit match on every one (see `phase-2-verification.md` §3) |
-| Model → engine projection | 🟡 `garh_api/compliance.py`; `GET /compliance` runs it live. Six documented approximations (edge roles, provided setback, opening role, ventilation area, stair headroom, FAR-countable area), each surfaced in the report's `notes` |
-| Plot boundary editor | 🟡 written — SVG canvas (`features/plot/`, decision in DECISIONS.md), rect quick-start, vertex/edge editing, north compass, road edges, area readout in ft-in + gaj; **never rendered in a browser** |
-| Regulatory profile panel | 🟡 written — city preset → pack resolution client-side (`rules.ts` mirrors `predicates.py`, drift pinned by tests), value overrides stored under `regProfile.overrides.values` (reserved key, see DECISIONS.md); **engine substitution of value overrides is Phase 3** |
-| DXF import | 🟡 written end-to-end — capped/sniffed upload (`routers/imports.py`), sandboxed subprocess parse with rlimits + kill (`services/drawings/dxf_import.py`), `$INSUNITS` whitelist with assumed-mm fallback, candidate picker dialog; **never run against real ezdxf (not installed here) — CI must** |
-| Brief form + completeness meter | 🟡 written — `features/brief/`: typed fields, Vastu selector, completeness meter, free-text parse → assumption chips; **never rendered in a browser** |
-| LLM brief-parse | ✅ written and wired — `services/llm.BriefParser` behind `get_brief_parser()`, schema-validated, PII-redacted, applied through the op path; 12-fixture corpus round-trips byte-exactly through the real synthesizer (**EXECUTED**) |
+| Item                                                 | Status                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rule packs: `nbc-core`, `blr`, `ncr`, `hyd`, `vastu` | 🟡 authored early (spec **D9**) — 118 rules, all `confidence: seed`, all `review.status: unreviewed`; **no architect has reviewed one yet**                                                                                                                                                        |
+| Rules engine + 18 check types                        | ✅ written, with 238 fixtures — **all 238 EXECUTED through the real `garh_rules.evaluate()` locally**: expected status, actual and limit match on every one (see `phase-2-verification.md` §3)                                                                                                     |
+| Model → engine projection                            | 🟡 `garh_api/compliance.py`; `GET /compliance` runs it live. Six documented approximations (edge roles, provided setback, opening role, ventilation area, stair headroom, FAR-countable area), each surfaced in the report's `notes`                                                               |
+| Plot boundary editor                                 | 🟡 written — SVG canvas (`features/plot/`, decision in DECISIONS.md), rect quick-start, vertex/edge editing, north compass, road edges, area readout in ft-in + gaj; **never rendered in a browser**                                                                                               |
+| Regulatory profile panel                             | 🟡 written — city preset → pack resolution client-side (`rules.ts` mirrors `predicates.py`, drift pinned by tests), value overrides stored under `regProfile.overrides.values` (reserved key, see DECISIONS.md); **engine substitution of value overrides is Phase 3**                             |
+| DXF import                                           | 🟡 written end-to-end — capped/sniffed upload (`routers/imports.py`), sandboxed subprocess parse with rlimits + kill (`services/drawings/dxf_import.py`), `$INSUNITS` whitelist with assumed-mm fallback, candidate picker dialog; **never run against real ezdxf (not installed here) — CI must** |
+| Brief form + completeness meter                      | 🟡 written — `features/brief/`: typed fields, Vastu selector, completeness meter, free-text parse → assumption chips; **never rendered in a browser**                                                                                                                                              |
+| LLM brief-parse                                      | ✅ written and wired — `services/llm.BriefParser` behind `get_brief_parser()`, schema-validated, PII-redacted, applied through the op path; 12-fixture corpus round-trips byte-exactly through the real synthesizer (**EXECUTED**)                                                                 |
 
 **DoD:** every rule has ≥1 passing and ≥1 failing fixture and they all pass —
 **EXECUTED, passes**; changing the city preset re-validates live — **traced**
@@ -120,7 +120,7 @@ UI — **traced**. The browser-path clauses stay open until the toolchain exists
 `phase-2-verification.md` names the command that settles each.
 
 > Rule packs landing before the solver is the one intentional reordering in the whole
-> plan. Solver constraints *are* rules — building the solver first means encoding the
+> plan. Solver constraints _are_ rules — building the solver first means encoding the
 > same limits twice and reconciling them later. See D9.
 
 ---
@@ -148,21 +148,21 @@ compliance chips; ≥30 furniture items at Indian sizes.
 compliance chip appears when a bedroom is <9.5m² and clears on fix; 60fps pan/zoom on
 the demo G+2, measured.
 
-| Piece | State |
-|---|---|
-| Canvas core — one `<Canvas>`, one camera rig, ONE picker, `frameloop="demand"` | 🟡 written |
-| Eight tool state machines (Esc / Enter / typed length, once, in `BaseTool`) | 🟡 written |
-| Plan renderer — walls with openings cut out, room washes, opening/stair symbols | 🟡 written (`pages/project/plan/`) |
-| Overlays — dimension chains (click-to-edit), room tags, compliance markers, inspector | 🟡 written |
-| Furniture — 45-item catalogue, placement controller, **box proxies, not modelled assets** | 🟡 written |
-| DoD Playwright spec (`e2e/tests/plan-canvas.spec.ts`) | 🟡 written, never run — asserts ops/folds/compliance, never pixels |
-| 60 fps on the demo G+2 | ⬜ not measurable — the seeded demo has no solved plan until Phase 3 runs |
-| `wall.split` from the canvas | ⬜ not built; the op, fold and inverse exist |
-| `apps/web/public/fonts/inter-medium.woff` | ⬜ **release blocker** — see `make asset-audit` |
+| Piece                                                                                     | State                                                                     |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Canvas core — one `<Canvas>`, one camera rig, ONE picker, `frameloop="demand"`            | 🟡 written                                                                |
+| Eight tool state machines (Esc / Enter / typed length, once, in `BaseTool`)               | 🟡 written                                                                |
+| Plan renderer — walls with openings cut out, room washes, opening/stair symbols           | 🟡 written (`pages/project/plan/`)                                        |
+| Overlays — dimension chains (click-to-edit), room tags, compliance markers, inspector     | 🟡 written                                                                |
+| Furniture — 45-item catalogue, placement controller, **box proxies, not modelled assets** | 🟡 written                                                                |
+| DoD Playwright spec (`e2e/tests/plan-canvas.spec.ts`)                                     | 🟡 written, never run — asserts ops/folds/compliance, never pixels        |
+| 60 fps on the demo G+2                                                                    | ⬜ not measurable — the seeded demo has no solved plan until Phase 3 runs |
+| `wall.split` from the canvas                                                              | ⬜ not built; the op, fold and inverse exist                              |
+| `apps/web/public/fonts/inter-medium.woff`                                                 | ⬜ **release blocker** — see `make asset-audit`                           |
 
 **Read `docs/phase-4-verification.md` before trusting any of the above.** No
 Node exists on the authoring machine, so `tsc`, `vitest`, `eslint`, `vite` and
-Playwright have never seen ~24,000 lines of this. What *is* mechanically
+Playwright have never seen ~24,000 lines of this. What _is_ mechanically
 checked: every import resolves to a real export (260 files), and every op
 payload field the canvas emits matches `ops.schema.json`.
 
@@ -193,17 +193,17 @@ that yet" for out-of-scope asks, logged.
 applicable diffs against the mock LLM, plus prompt-contract tests for the real
 provider; **zero ops bypass validation**.
 
-| Piece | State |
-|---|---|
-| `POST /projects/:id/copilot` — proposes, never writes; `…/copilot/decision` logs the human half | 🟡 written; **traced**, never served |
-| Validation pipeline (`garh_api/copilot_loop.py`) — real `garh_model` fold on a fork + no-new-hard-failure rules diff | ✅ **executed** — `make copilot-containment` |
-| 40-command eval corpus, one generator, `--check` drift gate | ✅ **executed** — 28/28 in-scope applicable (DoD floor 90%), refusals carry zero ops |
-| §14 dry-run fold < 10 ms | ✅ **executed** — worst 1.3 ms over the corpus, 1.4 ms on a 4-op batch |
-| **Zero ops bypass validation** | ✅ **executed** — 5 malformed classes never reach the fold; impossible ops never reach the caller; refusals never carry ops |
-| §13 containment — PII-free summaries, injection → `cannotDo`, one self-correction | ✅ **executed** — 46 checks, hostile provider |
-| Copilot panel, DiffPreview reuse, `/` focus, apply = one undo group | 🟡 written; imports resolve; never rendered |
-| Prompt-contract tests against a real provider | ⬜ needs a provider key — **the load-bearing gap.** 100% on the mock measures the pipeline, not comprehension |
-| A read side for the §10 eval log | ⬜ §11 defines none; none was invented (see DECISIONS) |
+| Piece                                                                                                                | State                                                                                                                       |
+| -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `POST /projects/:id/copilot` — proposes, never writes; `…/copilot/decision` logs the human half                      | 🟡 written; **traced**, never served                                                                                        |
+| Validation pipeline (`garh_api/copilot_loop.py`) — real `garh_model` fold on a fork + no-new-hard-failure rules diff | ✅ **executed** — `make copilot-containment`                                                                                |
+| 40-command eval corpus, one generator, `--check` drift gate                                                          | ✅ **executed** — 28/28 in-scope applicable (DoD floor 90%), refusals carry zero ops                                        |
+| §14 dry-run fold < 10 ms                                                                                             | ✅ **executed** — worst 1.3 ms over the corpus, 1.4 ms on a 4-op batch                                                      |
+| **Zero ops bypass validation**                                                                                       | ✅ **executed** — 5 malformed classes never reach the fold; impossible ops never reach the caller; refusals never carry ops |
+| §13 containment — PII-free summaries, injection → `cannotDo`, one self-correction                                    | ✅ **executed** — 46 checks, hostile provider                                                                               |
+| Copilot panel, DiffPreview reuse, `/` focus, apply = one undo group                                                  | 🟡 written; imports resolve; never rendered                                                                                 |
+| Prompt-contract tests against a real provider                                                                        | ⬜ needs a provider key — **the load-bearing gap.** 100% on the mock measures the pipeline, not comprehension               |
+| A read side for the §10 eval log                                                                                     | ⬜ §11 defines none; none was invented (see DECISIONS)                                                                      |
 
 **Read `docs/phase-6-7-verification.md`.** Two §13 holes were found and fixed after
 the wave shipped, one of them behind a PII test that was passing vacuously.
@@ -220,18 +220,18 @@ change; client-pack batch.
 **DoD:** e2e green with the mock provider; a real-provider integration test behind an
 env flag; renders carry a version id; concurrent job limit and queue UI states work.
 
-| Piece | State |
-|---|---|
-| `mint_render_outputs` — the presigned PUT the worker's `require_output("image")` needs | 🟡 written; closes a real Phase-0 gap (every render would have died "nowhere to save its result") |
-| Render history, version pinning, re-presigned links | 🟡 written; traced |
-| **Stale flag** — ops marks → API serves → UI banner | 🟡 all three legs written; a real hole (in-flight renders never marked) found and fixed this pass; **never executed** |
-| 8-shot client pack as one job group, derived seeds, pack zip → `/downloads/{token}` | 🟡 written; traced |
-| Per-firm concurrency 4 (once per pack, by design) | 🟡 written; firm-scoped by construction |
-| Catalogue mirrors: API + web vs `services/render` | ✅ **executed** — `make render-mirrors`, negative-tested |
-| Mock determinism by seed (the derivation) | ✅ **executed** — `RenderRequest.grade_seed_material()`, no clock/urandom in the grade path |
-| **Mock determinism in bytes, the composite, §14 <1 s** | ⬜ **no Pillow here.** The test exists and `importorskip`s — it has never run |
-| GL capture: viewport + depth + Sobel edges from the ONE canvas | 🟡 written; correct by construction only — needs a browser |
-| diffusers + ControlNet path, licence guard | 🟡 licence guard executed (FLUX.1-dev refused); the provider has never run |
+| Piece                                                                                  | State                                                                                                                 |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `mint_render_outputs` — the presigned PUT the worker's `require_output("image")` needs | 🟡 written; closes a real Phase-0 gap (every render would have died "nowhere to save its result")                     |
+| Render history, version pinning, re-presigned links                                    | 🟡 written; traced                                                                                                    |
+| **Stale flag** — ops marks → API serves → UI banner                                    | 🟡 all three legs written; a real hole (in-flight renders never marked) found and fixed this pass; **never executed** |
+| 8-shot client pack as one job group, derived seeds, pack zip → `/downloads/{token}`    | 🟡 written; traced                                                                                                    |
+| Per-firm concurrency 4 (once per pack, by design)                                      | 🟡 written; firm-scoped by construction                                                                               |
+| Catalogue mirrors: API + web vs `services/render`                                      | ✅ **executed** — `make render-mirrors`, negative-tested                                                              |
+| Mock determinism by seed (the derivation)                                              | ✅ **executed** — `RenderRequest.grade_seed_material()`, no clock/urandom in the grade path                           |
+| **Mock determinism in bytes, the composite, §14 <1 s**                                 | ⬜ **no Pillow here.** The test exists and `importorskip`s — it has never run                                         |
+| GL capture: viewport + depth + Sobel edges from the ONE canvas                         | 🟡 written; correct by construction only — needs a browser                                                            |
+| diffusers + ControlNet path, licence guard                                             | 🟡 licence guard executed (FLUX.1-dev refused); the provider has never run                                            |
 
 ---
 
@@ -262,13 +262,13 @@ walkthroughs; load test (50 concurrent solver jobs queue gracefully).
 copilot → 3D → facade → render(mock) → sheets → PDF+DXF download → share link opens
 read-only; Lighthouse ≥85 on the dashboard; security checklist all ✅.
 
-| Piece | State |
-|---|---|
-| Share API — scoped tokens (stored hashed), anonymous project/model/renders/sheets/comments | ✅ **executed** — pytest + the live share e2e below |
+| Piece                                                                                       | State                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Share API — scoped tokens (stored hashed), anonymous project/model/renders/sheets/comments  | ✅ **executed** — pytest + the live share e2e below                                                                                                                                    |
 | `/share/:token` client viewer — plan through the real canvas, renders, sheet list, comments | ✅ **executed** — `pages/share/ShareViewerPage.tsx`; the happy-path share test runs for real against a live stack (create link → anonymous read-only view → comment → revoke kills it) |
-| Happy-path e2e — the share step | ✅ **live**; the other steps remain written-and-skipped with their blocking phase named |
-| Billing | 🟡 mock provider behind `billing_live` flag, by design until Razorpay onboarding |
-| Onboarding tour, §15 delight walkthrough, load test, Lighthouse | ⬜ not started |
+| Happy-path e2e — the share step                                                             | ✅ **live**; the other steps remain written-and-skipped with their blocking phase named                                                                                                |
+| Billing                                                                                     | 🟡 mock provider behind `billing_live` flag, by design until Razorpay onboarding                                                                                                       |
+| Onboarding tour, §15 delight walkthrough, load test, Lighthouse                             | ⬜ not started                                                                                                                                                                         |
 
 ---
 
@@ -276,10 +276,10 @@ read-only; Lighthouse ≥85 on the dashboard; security checklist all ✅.
 
 Independent of the phases — these gate launch, and they're measured, not asserted:
 
-| Gate | Target |
-|---|---|
-| Blind architect panel (5 architects, monthly) | mean ≥3.5/5; ≥70% of briefs yield ≥1 shortlistable option |
-| Dimension edit-rate on municipal sheets | ≤10% |
-| Copilot apply-rate | ≥60% |
-| Activation | ≥60% of new firms generate options on a real plot in week 1 |
-| Money metric | ≥35% of *paid* projects export a submission set by month 3 |
+| Gate                                          | Target                                                      |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| Blind architect panel (5 architects, monthly) | mean ≥3.5/5; ≥70% of briefs yield ≥1 shortlistable option   |
+| Dimension edit-rate on municipal sheets       | ≤10%                                                        |
+| Copilot apply-rate                            | ≥60%                                                        |
+| Activation                                    | ≥60% of new firms generate options on a real plot in week 1 |
+| Money metric                                  | ≥35% of _paid_ projects export a submission set by month 3  |

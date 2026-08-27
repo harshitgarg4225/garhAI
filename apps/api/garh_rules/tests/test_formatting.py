@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Numbers and labels on a chip. Small module, disproportionate user impact.
 
 Two decisions are pinned here because both are easy to "clean up" into a bug:
@@ -16,8 +14,9 @@ Everything is ASCII (``m2``, never ``m²``) to match the packs' own ``fix`` stri
 a chip that mixes the two in one sentence looks like an encoding bug.
 """
 
+from __future__ import annotations
+
 from fractions import Fraction
-from typing import Optional
 
 from garh_rules.context import OpeningSummary, PlotEdge, RoomSummary, StoreySummary
 from garh_rules.formatting import (
@@ -40,7 +39,7 @@ from garh_rules.formatting import (
 from .conftest import make_context, make_room
 
 
-def room(name: Optional[str] = None, room_type: str = "bedroom") -> RoomSummary:
+def room(name: str | None = None, room_type: str = "bedroom") -> RoomSummary:
     return RoomSummary.from_json(make_room("r1", room_type, name=name), "room")
 
 

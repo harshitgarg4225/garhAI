@@ -26,10 +26,10 @@ path; it says exactly that in its own ``describe()`` and must never serve a requ
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Protocol, Sequence, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
-from services.common.jsonschema_lite import format_errors
 from services.common.logging import get_logger
 from services.llm.op_catalog import OpCatalog, get_op_catalog
 from services.llm.prompts import copilot_repair_user, copilot_system, copilot_user
@@ -280,8 +280,7 @@ class CopilotService:
                     applicable=True,
                     intent=str(payload.get("intent") or "Apply the requested change."),
                     ops=tuple(ops),
-                    plain_language=outcome.plain_language
-                    or tuple(_plain(op) for op in ops),
+                    plain_language=outcome.plain_language or tuple(_plain(op) for op in ops),
                     model_after=outcome.model_after,
                     attempts=attempts,
                     self_corrected=round_index > 0,

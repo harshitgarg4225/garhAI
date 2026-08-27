@@ -98,9 +98,7 @@ class ProgressEvent:
         return out
 
     def encode(self) -> str:
-        return json.dumps(
-            self.to_json(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
-        )
+        return json.dumps(self.to_json(), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
     @classmethod
     def decode(cls, raw: str | bytes) -> ProgressEvent:
@@ -200,7 +198,9 @@ class ProgressReporter:
 
     async def failed(self, problem: dict[str, Any]) -> ProgressEvent:
         """Terminal failure. ``problem`` is ``{code, message, action}`` (§11)."""
-        return await self.emit("failed", message=str(problem.get("message", "")), **_data_of(problem))
+        return await self.emit(
+            "failed", message=str(problem.get("message", "")), **_data_of(problem)
+        )
 
     async def cancelled(self) -> ProgressEvent:
         return await self.emit("cancelled", message="Cancelled.")
@@ -254,7 +254,7 @@ class ProgressReporter:
             value = await self.redis.incr(self.seq_key)
             await self.redis.expire(self.seq_key, self.ttl_seconds)
             return int(value)
-        except Exception as exc:  # noqa: BLE001 - telemetry must never fail a job
+        except Exception as exc:
             log.warning("progress.seq_failed", job_id=self.job_id, error=str(exc))
             return 0
 
@@ -265,7 +265,7 @@ class ProgressReporter:
             await self.redis.ltrim(self.log_key, -self.log_maxlen, -1)
             await self.redis.expire(self.log_key, self.ttl_seconds)
             await self.redis.publish(self.channel, raw)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("progress.publish_failed", job_id=self.job_id, error=str(exc))
 
         if event.type in TERMINAL_EVENT_TYPES or event.type == "started":
@@ -288,7 +288,7 @@ class ProgressReporter:
             await self.redis.xadd(
                 self.events_stream, fields, maxlen=self.events_maxlen, approximate=True
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.error("progress.lifecycle_failed", job_id=self.job_id, error=str(exc))
 
 
@@ -299,7 +299,7 @@ class NullProgressReporter(ProgressReporter):
     and in order — which is exactly the §15 property worth testing.
     """
 
-    def __init__(self, envelope: JobEnvelope) -> None:  # noqa: D107 - see class docstring
+    def __init__(self, envelope: JobEnvelope) -> None:
         self.envelope = envelope
         self.job_id = envelope.job_id
         self.events: list[ProgressEvent] = []

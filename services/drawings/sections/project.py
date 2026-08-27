@@ -36,25 +36,11 @@ and says so.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.dimensions import DEFAULT_DIM_TO_JAMB, DimChain
-from services.drawings.layers import A_STAIR, A_TEXT, A_WALL, A_WALL_PART
-from services.drawings.projection.primitives import (
-    PATTERN_CONCRETE,
-    PATTERN_MASONRY,
-    K_STAIR_LABEL,
-    K_WALL_FACE,
-    K_WALL_HATCH,
-    Hatch,
-    Line,
-    Polyline,
-    Primitive,
-    Text,
-    sanitise_text,
-    validate_primitives,
-)
 from services.drawings.elevations.facade import footprint_rings, wall_rect
 from services.drawings.elevations.vertical import (
     K_FOUNDATION_LABEL,
@@ -80,6 +66,21 @@ from services.drawings.elevations.vertical import (
     ring_line_intervals,
     subtract_intervals,
     u_of,
+)
+from services.drawings.layers import A_STAIR, A_TEXT, A_WALL, A_WALL_PART
+from services.drawings.projection.primitives import (
+    K_STAIR_LABEL,
+    K_WALL_FACE,
+    K_WALL_HATCH,
+    PATTERN_CONCRETE,
+    PATTERN_MASONRY,
+    Hatch,
+    Line,
+    Polyline,
+    Primitive,
+    Text,
+    sanitise_text,
+    validate_primitives,
 )
 from services.drawings.sections.choose import CutLine, SectionChoice, choose_section_line
 from services.drawings.sections.stair import StairGeometry, stair_geometry
@@ -141,12 +142,12 @@ class SectionResult:
     """
 
     drawing: VerticalDrawing
-    line: Optional[CutLine]
-    choice: Optional[SectionChoice]
-    stairs: Tuple[StairGeometry, ...] = ()
-    viewport_line: Optional[Tuple[Tuple[int, int], Tuple[int, int]]] = None
+    line: CutLine | None
+    choice: SectionChoice | None
+    stairs: tuple[StairGeometry, ...] = ()
+    viewport_line: tuple[tuple[int, int], tuple[int, int]] | None = None
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "line": self.line.to_json() if self.line else None,
             "sectionLine": [list(point) for point in self.viewport_line]
@@ -158,9 +159,9 @@ class SectionResult:
         }
 
 
-def _model_bbox(house: Any) -> Tuple[int, int, int, int]:
-    xs: List[int] = []
-    ys: List[int] = []
+def _model_bbox(house: Any) -> tuple[int, int, int, int]:
+    xs: list[int] = []
+    ys: list[int] = []
     for wall in house.walls:
         for point in (wall.a, wall.b):
             xs.append(int(point.x))
@@ -170,22 +171,20 @@ def _model_bbox(house: Any) -> Tuple[int, int, int, int]:
     return (min(xs), min(ys), max(xs), max(ys))
 
 
-def _openings_of_wall(house: Any, wall_id: str) -> List[Any]:
-    return sorted(
-        (o for o in house.openings if str(o.wall_id) == wall_id), key=lambda o: str(o.id)
-    )
+def _openings_of_wall(house: Any, wall_id: str) -> list[Any]:
+    return sorted((o for o in house.openings if str(o.wall_id) == wall_id), key=lambda o: str(o.id))
 
 
 def _block(
     u_span: Interval,
     z_span: Interval,
     *,
-    owner_id: Optional[str],
+    owner_id: str | None,
     kind: str,
     pattern: str,
     sizes: VerticalStyle,
     layer: str = A_WALL,
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """A cut solid: outline plus poché.
 
     Both ride on ``A-WALL``. The nine §7 layers have no dedicated poché layer, and
@@ -210,14 +209,14 @@ def _block(
 def build_section(
     house: Any,
     *,
-    line: Optional[CutLine] = None,
-    options: Optional[SectionOptions] = None,
+    line: CutLine | None = None,
+    options: SectionOptions | None = None,
 ) -> SectionResult:
     """Project the §7 section. Chooses its own cut line unless one is given."""
     opts = options or SectionOptions()
     scale = opts.scale_denominator
     sizes = VerticalStyle.of(scale)
-    choice: Optional[SectionChoice] = None
+    choice: SectionChoice | None = None
     if line is None:
         choice = choose_section_line(house, label=opts.label)
         if choice.best is None:
@@ -242,8 +241,8 @@ def build_section(
     normal, u_axis = normals_of(line.view_direction)
     levels: LevelSet = build_levels(house)
     footprints = footprint_rings(house)
-    notes: List[str] = list(choice.notes) if choice else []
-    primitives: List[Primitive] = []
+    notes: list[str] = list(choice.notes) if choice else []
+    primitives: list[Primitive] = []
 
     if not levels.storeys or not footprints:
         notes.append("Nothing built yet on any storey, so the section has nothing to cut.")
@@ -263,7 +262,7 @@ def build_section(
             choice=choice,
         )
 
-    all_points: List[Tuple[int, int]] = []
+    all_points: list[tuple[int, int]] = []
     for ring in footprints.values():
         all_points.extend(ring)
     u_origin = min(u_of(x, y, u_axis) for x, y in all_points)
@@ -271,7 +270,7 @@ def build_section(
     def su(value: int) -> int:
         return value - u_origin
 
-    def shift(spans: Sequence[Interval]) -> Tuple[Interval, ...]:
+    def shift(spans: Sequence[Interval]) -> tuple[Interval, ...]:
         return tuple((su(lo), su(hi)) for lo, hi in spans)
 
     storeys = levels.storeys
@@ -300,7 +299,7 @@ def build_section(
             u_hi = max(u_of(rect[0], rect[1], u_axis), u_of(rect[2], rect[3], u_axis))
             span = (su(u_lo), su(u_hi))
 
-            voids: List[Interval] = []
+            voids: list[Interval] = []
             for opening in _openings_of_wall(house, str(wall.id)):
                 o_rect = _opening_model_rect(house, wall, opening)
                 if o_rect is None or not line.straddles(o_rect):
@@ -342,7 +341,7 @@ def build_section(
             position_mm=line.position_mm,
             u_axis=u_axis,
         )
-        holes: List[Interval] = []
+        holes: list[Interval] = []
         for cutout in slab.cutouts:
             holes.extend(
                 ring_line_intervals(
@@ -367,7 +366,7 @@ def build_section(
 
     # ---- plinth: solid from the datum up to the ground FFL -----------------
     ground_ring = footprints.get(storeys[0].storey_id)
-    ground_spans: Tuple[Interval, ...] = ()
+    ground_spans: tuple[Interval, ...] = ()
     if ground_ring is not None:
         ground_spans = shift(
             ring_line_intervals(
@@ -388,12 +387,12 @@ def build_section(
 
     # ---- terrace slab, parapet, mumty --------------------------------------
     top_ring = footprints.get(storeys[-1].storey_id)
-    terrace_spans: Tuple[Interval, ...] = ()
+    terrace_spans: tuple[Interval, ...] = ()
     if top_ring is not None:
         raw_terrace = ring_line_intervals(
             top_ring, axis=line.axis, position_mm=line.position_mm, u_axis=u_axis
         )
-        top_stair_wells: List[Interval] = []
+        top_stair_wells: list[Interval] = []
         for stair in house.stairs:
             if str(stair.storey_id) != storeys[-1].storey_id:
                 continue
@@ -441,7 +440,7 @@ def build_section(
     notes.extend(mumty_notes)
 
     # ---- the stairs the cut actually crosses -------------------------------
-    geometries: List[StairGeometry] = []
+    geometries: list[StairGeometry] = []
     for stair in sorted(house.stairs, key=lambda s: str(s.id)):
         geometry = stair_geometry(stair)
         if not line.straddles(geometry.footprint):
@@ -503,9 +502,7 @@ def build_section(
         chain_id="section-%s-height" % opts.label.lower(),
         offset_mm=u_right + sizes.chain_offset_mm,
     )
-    primitives.extend(
-        height_chain_primitives(chain, sizes=sizes, witness_from_u_mm=u_right)
-    )
+    primitives.extend(height_chain_primitives(chain, sizes=sizes, witness_from_u_mm=u_right))
 
     title = "%s — LOOKING %s" % (line.name(), line.looking)
     title_height = sizes.title_text_mm
@@ -544,14 +541,14 @@ def build_section(
 # ---------------------------------------------------------------------------
 # Pieces
 # ---------------------------------------------------------------------------
-def _floor_slab_of(house: Any, storey_id: str) -> Optional[Any]:
+def _floor_slab_of(house: Any, storey_id: str) -> Any | None:
     for slab in getattr(house, "slabs", ()) or ():
         if str(slab.storey_id) == storey_id and slab.kind == "floor" and len(slab.polygon) >= 3:
             return slab
     return None
 
 
-def _rect_u_span(rect: Tuple[int, int, int, int], u_axis: Tuple[int, int]) -> Interval:
+def _rect_u_span(rect: tuple[int, int, int, int], u_axis: tuple[int, int]) -> Interval:
     """``u`` span of an axis-aligned model rectangle (raw, before the origin shift)."""
     values = [
         u_of(rect[0], rect[1], u_axis),
@@ -562,7 +559,7 @@ def _rect_u_span(rect: Tuple[int, int, int, int], u_axis: Tuple[int, int]) -> In
     return (min(values), max(values))
 
 
-def _opening_model_rect(house: Any, wall: Any, opening: Any) -> Optional[Tuple[int, int, int, int]]:
+def _opening_model_rect(house: Any, wall: Any, opening: Any) -> tuple[int, int, int, int] | None:
     """The opening's plan rectangle: jamb to jamb along the wall, wall-thick across it."""
     rect = wall_rect(wall)
     if rect is None:
@@ -586,14 +583,14 @@ def _stair_primitives(
     geometry: StairGeometry,
     *,
     line: CutLine,
-    u_axis: Tuple[int, int],
+    u_axis: tuple[int, int],
     shift_one: Callable[[int], int],
     ffl_mm: int,
     sizes: VerticalStyle,
-) -> Tuple[Tuple[Primitive, ...], Tuple[str, ...]]:
+) -> tuple[tuple[Primitive, ...], tuple[str, ...]]:
     """The stair as the cut sees it: a stepped profile, or an honest cross-cut block."""
-    out: List[Primitive] = []
-    notes: List[str] = []
+    out: list[Primitive] = []
+    notes: list[str] = []
     height = sizes.dim_text_mm
 
     travel_axis = "x" if geometry.direction in ("N", "S") else "y"
@@ -620,7 +617,7 @@ def _stair_primitives(
         return tuple(out), tuple(notes)
 
     # Stepped profile, riser by riser, along the direction of travel.
-    points: List[Tuple[int, int]] = []
+    points: list[tuple[int, int]] = []
     origin = geometry.origin
     forward = geometry.forward
 
@@ -669,15 +666,15 @@ def _mumty(
     house: Any,
     *,
     line: CutLine,
-    u_axis: Tuple[int, int],
-    shift: Callable[[Sequence[Interval]], Tuple[Interval, ...]],
+    u_axis: tuple[int, int],
+    shift: Callable[[Sequence[Interval]], tuple[Interval, ...]],
     levels: LevelSet,
     options: SectionOptions,
     sizes: VerticalStyle,
-) -> Tuple[Tuple[LevelMarker, ...], Tuple[Primitive, ...], Tuple[str, ...]]:
+) -> tuple[tuple[LevelMarker, ...], tuple[Primitive, ...], tuple[str, ...]]:
     """The mumty over the stair: from the model if it exists, derived if it does not."""
-    out: List[Primitive] = []
-    notes: List[str] = []
+    out: list[Primitive] = []
+    notes: list[str] = []
     top_storey_id = levels.storeys[-1].storey_id
 
     modelled = [
@@ -685,10 +682,10 @@ def _mumty(
         for slab in getattr(house, "slabs", ()) or ()
         if slab.kind == "mumty" and len(slab.polygon) >= 3
     ]
-    spans: Tuple[Interval, ...] = ()
+    spans: tuple[Interval, ...] = ()
     derived = False
     if modelled:
-        raw: List[Interval] = []
+        raw: list[Interval] = []
         for slab in modelled:
             raw.extend(
                 ring_line_intervals(
@@ -700,7 +697,7 @@ def _mumty(
             )
         spans = shift(merge_intervals(raw))
     elif options.include_derived_mumty:
-        wells: List[Interval] = []
+        wells: list[Interval] = []
         for stair in sorted(house.stairs, key=lambda s: str(s.id)):
             if str(stair.storey_id) != top_storey_id:
                 continue

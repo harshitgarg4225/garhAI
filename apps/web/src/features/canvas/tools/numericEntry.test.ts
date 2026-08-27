@@ -150,7 +150,7 @@ describe('parsing — a bare number is millimetres, per §12', () => {
     expect(parseEntry(typed([LENGTH], "12'"))?.value).toBe(3658);
   });
 
-  it("reads 12'6\" as twelve foot six", () => {
+  it('reads 12\'6" as twelve foot six', () => {
     expect(parseEntry(typed([LENGTH], '12\'6"'))?.value).toBe(3810);
   });
 

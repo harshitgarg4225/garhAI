@@ -23,8 +23,8 @@ same eight images on the mock provider — which is what makes the pack testable
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from services.render.types import PRESETS, RenderMode
 
@@ -50,7 +50,9 @@ CLIENT_PACK_SHOTS: tuple[PackShot, ...] = (
     PackShot(slug="exterior-street-day-explore", preset="exterior-street-day", mode="explore"),
     PackShot(slug="exterior-34-dusk-explore", preset="exterior-34-dusk", mode="explore"),
     PackShot(slug="interior-living", preset="interior-living", mode="explore", room_type="living"),
-    PackShot(slug="interior-kitchen", preset="interior-kitchen", mode="explore", room_type="kitchen"),
+    PackShot(
+        slug="interior-kitchen", preset="interior-kitchen", mode="explore", room_type="kitchen"
+    ),
 )
 
 #: Exactly the spec's arithmetic, asserted so a careless edit cannot ship.
@@ -76,9 +78,7 @@ def shot_seed(base_seed: int, index: int) -> int:
 
 def pack_filenames(shots: Iterable[PackShot] = CLIENT_PACK_SHOTS) -> list[str]:
     """Zip member names, ordered: ``01-exterior-street-day.png`` …"""
-    return [
-        "%02d-%s.png" % (index + 1, shot.slug) for index, shot in enumerate(shots)
-    ]
+    return ["%02d-%s.png" % (index + 1, shot.slug) for index, shot in enumerate(shots)]
 
 
 __all__ = ["CLIENT_PACK_SHOTS", "PackShot", "pack_filenames", "shot_seed"]

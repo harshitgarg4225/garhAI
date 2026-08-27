@@ -293,7 +293,10 @@ describe('the stair tool', () => {
 
   it('blocks with the reason when no flight fits the storey height', () => {
     const doc = withOps(makeCtx().doc, [
-      { type: 'storey.set_height', payload: { storeyId: FIXTURE_IDS.groundStorey, heightMm: 8000 } },
+      {
+        type: 'storey.set_height',
+        payload: { storeyId: FIXTURE_IDS.groundStorey, heightMm: 8000 },
+      },
     ]);
     const ctx = makeCtx({ doc });
     const tool = new StairTool();

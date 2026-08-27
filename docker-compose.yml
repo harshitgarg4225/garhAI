@@ -66,7 +66,7 @@ x-backend-env: &backend-env
   # setting it here means the warning never has to fire in the standard stack.
   GARH_CATALOG_DIR: ${GARH_CATALOG_DIR:-/app/fixtures/catalog}
   PYTHONPATH: /app:/app/apps/api
-  PYTHONUNBUFFERED: '1'
+  PYTHONUNBUFFERED: "1"
 
 # Provider selection. All three default to deterministic mocks: the stack is
 # fully functional and e2e-testable with no API keys and no GPU (§9, §10).
@@ -84,12 +84,12 @@ x-provider-env: &provider-env
 
 # Python source trees, mounted read-write so every worker hot-reloads on save.
 x-python-mounts: &python-mounts
-  - './apps/api:/app/apps/api'
-  - './services:/app/services'
-  - './packages/model:/app/packages/model'
-  - './rulepacks:/app/rulepacks'
-  - './fixtures:/app/fixtures'
-  - 'jwt-keys:/run/secrets:ro'
+  - "./apps/api:/app/apps/api"
+  - "./services:/app/services"
+  - "./packages/model:/app/packages/model"
+  - "./rulepacks:/app/rulepacks"
+  - "./fixtures:/app/fixtures"
+  - "jwt-keys:/run/secrets:ro"
 
 x-worker-base: &worker-base
   build:
@@ -109,7 +109,11 @@ x-worker-base: &worker-base
   healthcheck:
     # A worker is healthy when it can still reach its queue. Cheap, and it
     # catches the common failure (Redis went away, worker is spinning).
-    test: ['CMD-SHELL', 'python -c "import os,redis;redis.Redis.from_url(os.environ[''REDIS_URL'']).ping()"']
+    test:
+      [
+        "CMD-SHELL",
+        'python -c "import os,redis;redis.Redis.from_url(os.environ[''REDIS_URL'']).ping()"',
+      ]
     interval: 30s
     timeout: 5s
     retries: 3
@@ -130,13 +134,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-garh}
       # Deterministic collation: ordering differences would show up as
       # golden-file diffs on anything that sorts by name.
-      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
-      - '${POSTGRES_PORT:-5432}:5432'
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - 'pgdata:/var/lib/postgresql/data'
+      - "pgdata:/var/lib/postgresql/data"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER:-garh}" -d "$${POSTGRES_DB:-garh}"']
+      test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER:-garh}" -d "$${POSTGRES_DB:-garh}"']
       interval: 5s
       timeout: 5s
       retries: 12
@@ -148,13 +152,13 @@ services:
     restart: unless-stopped
     # Queues are durable enough for local work; appendonly keeps a restart from
     # silently dropping enqueued solver jobs.
-    command: ['redis-server', '--appendonly', 'yes', '--save', '60', '1']
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
     ports:
-      - '${REDIS_PORT:-6379}:6379'
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - 'redisdata:/data'
+      - "redisdata:/data"
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -164,18 +168,18 @@ services:
   minio:
     image: minio/minio:latest
     restart: unless-stopped
-    command: ['server', '/data', '--console-address', ':9001']
+    command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-garhminio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-garhminio_local_dev}
       MINIO_REGION_NAME: ${S3_REGION:-ap-south-1}
     ports:
-      - '${MINIO_PORT:-9000}:9000'
-      - '${MINIO_CONSOLE_PORT:-9001}:9001' # web console
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001" # web console
     volumes:
-      - 'miniodata:/data'
+      - "miniodata:/data"
     healthcheck:
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:9000/minio/health/live']
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -186,7 +190,7 @@ services:
   # re-runs it harmlessly on every start.
   minio-init:
     image: minio/mc:latest
-    restart: 'no'
+    restart: "no"
     depends_on:
       minio:
         condition: service_healthy
@@ -194,7 +198,7 @@ services:
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-garhminio}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-garhminio_local_dev}
       S3_BUCKET: ${S3_BUCKET:-garh-local}
-    entrypoint: ['/bin/sh', '-c']
+    entrypoint: ["/bin/sh", "-c"]
     command:
       - >
         set -e;
@@ -222,7 +226,7 @@ services:
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
     working_dir: /app/apps/api
     ports:
-      - '${API_PORT:-8000}:8000'
+      - "${API_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -231,14 +235,14 @@ services:
       minio-init:
         condition: service_completed_successfully
     volumes:
-      - './apps/api:/app/apps/api'
-      - './services:/app/services'
-      - './packages/model:/app/packages/model'
-      - './rulepacks:/app/rulepacks'
-      - './fixtures:/app/fixtures'
+      - "./apps/api:/app/apps/api"
+      - "./services:/app/services"
+      - "./packages/model:/app/packages/model"
+      - "./rulepacks:/app/rulepacks"
+      - "./fixtures:/app/fixtures"
       # Read-write (workers mount it :ro) because the API is what generates the
       # dev keypair on first boot.
-      - 'jwt-keys:/run/secrets'
+      - "jwt-keys:/run/secrets"
     # Three steps, in order, so a fresh clone needs no preparation:
     #   1. mint a dev RS256 keypair if JWT_PRIVATE_KEY is empty
     #   2. apply migrations (fail loudly — serving on a stale schema is worse)
@@ -271,7 +275,7 @@ services:
         if [ "$${API_MIGRATE_ON_BOOT}" = "true" ]; then echo "[api] alembic upgrade head"; alembic upgrade head; fi;
         exec uvicorn garh_api.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/apps/api --reload-dir /app/packages/model
     healthcheck:
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:8000/healthz']
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -296,42 +300,41 @@ services:
       VITE_DEFAULT_UNITS: ${VITE_DEFAULT_UNITS:-ft-in}
       # Bind-mounted source on macOS/Windows does not deliver inotify events;
       # without polling the dev server simply never rebuilds.
-      CHOKIDAR_USEPOLLING: 'true'
-      WATCHPACK_POLLING: 'true'
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
     working_dir: /app
     ports:
-      - '${WEB_PORT:-5173}:5173' # dev server
-      - '${WEB_HMR_PORT:-24678}:24678' # HMR websocket
+      - "${WEB_PORT:-5173}:5173" # dev server
+      - "${WEB_HMR_PORT:-24678}:24678" # HMR websocket
     depends_on:
       api:
         condition: service_started
     volumes:
-      - './apps/web:/app/apps/web'
-      - './packages:/app/packages'
-      - './e2e:/app/e2e'
-      - './package.json:/app/package.json'
-      - './pnpm-workspace.yaml:/app/pnpm-workspace.yaml'
-      - './tsconfig.base.json:/app/tsconfig.base.json'
-      - './eslint.config.js:/app/eslint.config.js'
-      - './.prettierrc:/app/.prettierrc'
+      - "./apps/web:/app/apps/web"
+      - "./packages:/app/packages"
+      - "./e2e:/app/e2e"
+      - "./package.json:/app/package.json"
+      - "./pnpm-workspace.yaml:/app/pnpm-workspace.yaml"
+      - "./tsconfig.base.json:/app/tsconfig.base.json"
+      - "./eslint.config.js:/app/eslint.config.js"
+      - "./.prettierrc:/app/.prettierrc"
       # Named volumes keep the image's installed dependency trees from being
       # shadowed by the bind mounts above.
-      - 'web-root-modules:/app/node_modules'
-      - 'web-app-modules:/app/apps/web/node_modules'
-      - 'web-model-modules:/app/packages/model/node_modules'
-      - 'web-ui-modules:/app/packages/ui/node_modules'
+      - "web-root-modules:/app/node_modules"
+      - "web-app-modules:/app/apps/web/node_modules"
+      - "web-model-modules:/app/packages/model/node_modules"
+      - "web-ui-modules:/app/packages/ui/node_modules"
       # e2e is a workspace member, so `pnpm install` in the image created
       # /app/e2e/node_modules; the './e2e:/app/e2e' bind above would shadow it and
       # leave a workspace member with no dependency tree. Nothing in this container
       # runs Playwright, but a half-installed workspace is a confusing state to
       # debug into.
-      - 'web-e2e-modules:/app/e2e/node_modules'
-    command:
-      ['pnpm', '--filter', '@garh/web', 'dev', '--host', '0.0.0.0', '--port', '5173']
+      - "web-e2e-modules:/app/e2e/node_modules"
+    command: ["pnpm", "--filter", "@garh/web", "dev", "--host", "0.0.0.0", "--port", "5173"]
     healthcheck:
       # curl is installed explicitly in apps/web/Dockerfile — node:20-slim
       # ships with neither curl nor wget.
-      test: ['CMD', 'curl', '-fsS', 'http://localhost:5173/']
+      test: ["CMD", "curl", "-fsS", "http://localhost:5173/"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -347,7 +350,7 @@ services:
       WORKER_CONCURRENCY: ${WORKER_SOLVER_CONCURRENCY:-2}
       SOLVER_NUM_SEARCH_WORKERS: ${SOLVER_NUM_SEARCH_WORKERS:-8}
       SOLVER_TIME_BUDGET_SECONDS: ${SOLVER_TIME_BUDGET_SECONDS:-15}
-    command: ['python', '-m', 'services.solver.worker']
+    command: ["python", "-m", "services.solver.worker"]
 
   # ─── worker-render — provider interface: mock (default) | diffusers (§9) ────
   worker-render:
@@ -358,15 +361,15 @@ services:
       WORKER_QUEUE: ${QUEUE_RENDER:-garh:queue:render}
       WORKER_CONCURRENCY: ${WORKER_RENDER_CONCURRENCY:-1}
     volumes:
-      - './apps/api:/app/apps/api'
-      - './services:/app/services'
-      - './packages/model:/app/packages/model'
-      - './rulepacks:/app/rulepacks'
-      - './fixtures:/app/fixtures'
-      - 'jwt-keys:/run/secrets:ro'
+      - "./apps/api:/app/apps/api"
+      - "./services:/app/services"
+      - "./packages/model:/app/packages/model"
+      - "./rulepacks:/app/rulepacks"
+      - "./fixtures:/app/fixtures"
+      - "jwt-keys:/run/secrets:ro"
       # Model weights are multi-GB; never re-download them on rebuild.
-      - 'hfcache:/app/.cache/huggingface'
-    command: ['python', '-m', 'services.render.worker']
+      - "hfcache:/app/.cache/huggingface"
+    command: ["python", "-m", "services.render.worker"]
 
   # ─── worker-drawings — auto-dim, sheets, ezdxf/PDF export (§7) ──────────────
   worker-drawings:
@@ -376,7 +379,7 @@ services:
       WORKER_NAME: drawings
       WORKER_QUEUE: ${QUEUE_DRAWINGS:-garh:queue:drawings}
       WORKER_CONCURRENCY: ${WORKER_DRAWINGS_CONCURRENCY:-2}
-    command: ['python', '-m', 'services.drawings.worker']
+    command: ["python", "-m", "services.drawings.worker"]
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Volumes — `docker compose down -v` wipes all of this (see `make reset`)

@@ -109,52 +109,242 @@ export interface KeyBinding {
  */
 export const KEY_BINDINGS: readonly KeyBinding[] = [
   // ── Tools (§12) ──────────────────────────────────────────────────────────
-  { command: 'tool.select', key: 'v', modifiers: 'none', scope: 'global', label: 'V', description: 'Select and move things.', tool: 'select' },
-  { command: 'tool.wall', key: 'w', modifiers: 'none', scope: 'global', label: 'W', description: 'Draw walls.', tool: 'wall' },
-  { command: 'tool.door', key: 'd', modifiers: 'none', scope: 'global', label: 'D', description: 'Place a door.', tool: 'door' },
-  { command: 'tool.window', key: 'n', modifiers: 'none', scope: 'global', label: 'N', description: 'Place a window.', tool: 'window' },
-  { command: 'tool.stair', key: 's', modifiers: 'none', scope: 'global', label: 'S', description: 'Place a staircase.', tool: 'stair' },
-  { command: 'tool.balcony', key: 'b', modifiers: 'none', scope: 'global', label: 'B', description: 'Draw a balcony or projection.', tool: 'balcony' },
-  { command: 'tool.measure', key: 'm', modifiers: 'none', scope: 'global', label: 'M', description: 'Measure a distance.', tool: 'measure' },
-  { command: 'tool.furniture', key: 'f', modifiers: 'none', scope: 'global', label: 'F', description: 'Place furniture.', tool: 'furniture' },
+  {
+    command: 'tool.select',
+    key: 'v',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'V',
+    description: 'Select and move things.',
+    tool: 'select',
+  },
+  {
+    command: 'tool.wall',
+    key: 'w',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'W',
+    description: 'Draw walls.',
+    tool: 'wall',
+  },
+  {
+    command: 'tool.door',
+    key: 'd',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'D',
+    description: 'Place a door.',
+    tool: 'door',
+  },
+  {
+    command: 'tool.window',
+    key: 'n',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'N',
+    description: 'Place a window.',
+    tool: 'window',
+  },
+  {
+    command: 'tool.stair',
+    key: 's',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'S',
+    description: 'Place a staircase.',
+    tool: 'stair',
+  },
+  {
+    command: 'tool.balcony',
+    key: 'b',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'B',
+    description: 'Draw a balcony or projection.',
+    tool: 'balcony',
+  },
+  {
+    command: 'tool.measure',
+    key: 'm',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'M',
+    description: 'Measure a distance.',
+    tool: 'measure',
+  },
+  {
+    command: 'tool.furniture',
+    key: 'f',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'F',
+    description: 'Place furniture.',
+    tool: 'furniture',
+  },
 
   // ── Undo / redo (§15 "everything undoable, visibly") ────────────────────
-  { command: 'edit.undo', key: 'z', modifiers: 'mod', scope: 'global', label: 'Z', description: 'Undo the last change.' },
-  { command: 'edit.redo', key: 'y', modifiers: 'mod', scope: 'global', label: 'Y', description: 'Redo the change you undid.' },
+  {
+    command: 'edit.undo',
+    key: 'z',
+    modifiers: 'mod',
+    scope: 'global',
+    label: 'Z',
+    description: 'Undo the last change.',
+  },
+  {
+    command: 'edit.redo',
+    key: 'y',
+    modifiers: 'mod',
+    scope: 'global',
+    label: 'Y',
+    description: 'Redo the change you undid.',
+  },
   // The Mac idiom. Both are registered so muscle memory from either platform works.
-  { command: 'edit.redo', key: 'z', modifiers: 'mod+shift', scope: 'global', label: '⇧Z', description: 'Redo the change you undid.' },
+  {
+    command: 'edit.redo',
+    key: 'z',
+    modifiers: 'mod+shift',
+    scope: 'global',
+    label: '⇧Z',
+    description: 'Redo the change you undid.',
+  },
 
   // ── Editing the selection ───────────────────────────────────────────────
   // Canvas-scoped, both of them. Delete outside the canvas belongs to whatever
   // list or field has focus, and Cmd-A must still select the text in an input
   // or the paragraph in a panel — hijacking either globally is the kind of
   // shortcut that makes a keyboard user distrust the whole app.
-  { command: 'edit.delete', key: 'Delete', modifiers: 'none', scope: 'canvas', label: 'Del', description: 'Delete what is selected.' },
-  { command: 'edit.delete', key: 'Backspace', modifiers: 'none', scope: 'canvas', label: '⌫', description: 'Delete what is selected.' },
-  { command: 'edit.selectAll', key: 'a', modifiers: 'mod', scope: 'canvas', label: 'A', description: 'Select everything on this floor.' },
+  {
+    command: 'edit.delete',
+    key: 'Delete',
+    modifiers: 'none',
+    scope: 'canvas',
+    label: 'Del',
+    description: 'Delete what is selected.',
+  },
+  {
+    command: 'edit.delete',
+    key: 'Backspace',
+    modifiers: 'none',
+    scope: 'canvas',
+    label: '⌫',
+    description: 'Delete what is selected.',
+  },
+  {
+    command: 'edit.selectAll',
+    key: 'a',
+    modifiers: 'mod',
+    scope: 'canvas',
+    label: 'A',
+    description: 'Select everything on this floor.',
+  },
 
   // ── Storeys and views ───────────────────────────────────────────────────
-  { command: 'storey.1', key: '1', modifiers: 'none', scope: 'global', label: '1', description: 'Go to the ground floor.' },
-  { command: 'storey.2', key: '2', modifiers: 'none', scope: 'global', label: '2', description: 'Go to the first floor.' },
-  { command: 'storey.3', key: '3', modifiers: 'none', scope: 'global', label: '3', description: 'Go to the second floor.' },
-  { command: 'view.toggle', key: 'Tab', modifiers: 'none', scope: 'canvas', label: 'Tab', description: 'Switch between the plan and the 3D view.' },
+  {
+    command: 'storey.1',
+    key: '1',
+    modifiers: 'none',
+    scope: 'global',
+    label: '1',
+    description: 'Go to the ground floor.',
+  },
+  {
+    command: 'storey.2',
+    key: '2',
+    modifiers: 'none',
+    scope: 'global',
+    label: '2',
+    description: 'Go to the first floor.',
+  },
+  {
+    command: 'storey.3',
+    key: '3',
+    modifiers: 'none',
+    scope: 'global',
+    label: '3',
+    description: 'Go to the second floor.',
+  },
+  {
+    command: 'view.toggle',
+    key: 'Tab',
+    modifiers: 'none',
+    scope: 'canvas',
+    label: 'Tab',
+    description: 'Switch between the plan and the 3D view.',
+  },
   // "brick grid", not "brick module": `keymap.test.ts` bans jargon words, and
   // it is right to — the sentence a tooltip shows should read the way an
   // architect talks, and "grid" is what everyone says out loud anyway.
-  { command: 'snap.toggle', key: 'g', modifiers: 'none', scope: 'global', label: 'G', description: 'Switch between the 115 mm brick grid and the 25 mm fine grid.' },
+  {
+    command: 'snap.toggle',
+    key: 'g',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'G',
+    description: 'Switch between the 115 mm brick grid and the 25 mm fine grid.',
+  },
 
   // ── Zoom and layers ─────────────────────────────────────────────────────
   // Unmodified on purpose. Cmd-0 / Cmd-plus / Cmd-minus are the browser's own
   // page zoom, and a page that fights them is a page that zooms twice.
-  { command: 'view.fit', key: '0', modifiers: 'none', scope: 'global', label: '0', description: 'Fit the whole floor on screen.' },
-  { command: 'view.zoomIn', key: '=', modifiers: 'none', scope: 'global', label: '=', description: 'Zoom in.' },
-  { command: 'view.zoomOut', key: '-', modifiers: 'none', scope: 'global', label: '-', description: 'Zoom out.' },
-  { command: 'view.grid', key: 'g', modifiers: 'shift', scope: 'global', label: '⇧G', description: 'Show or hide the grid.' },
-  { command: 'view.dimensions', key: 'd', modifiers: 'shift', scope: 'global', label: '⇧D', description: 'Show or hide the dimensions.' },
+  {
+    command: 'view.fit',
+    key: '0',
+    modifiers: 'none',
+    scope: 'global',
+    label: '0',
+    description: 'Fit the whole floor on screen.',
+  },
+  {
+    command: 'view.zoomIn',
+    key: '=',
+    modifiers: 'none',
+    scope: 'global',
+    label: '=',
+    description: 'Zoom in.',
+  },
+  {
+    command: 'view.zoomOut',
+    key: '-',
+    modifiers: 'none',
+    scope: 'global',
+    label: '-',
+    description: 'Zoom out.',
+  },
+  {
+    command: 'view.grid',
+    key: 'g',
+    modifiers: 'shift',
+    scope: 'global',
+    label: '⇧G',
+    description: 'Show or hide the grid.',
+  },
+  {
+    command: 'view.dimensions',
+    key: 'd',
+    modifiers: 'shift',
+    scope: 'global',
+    label: '⇧D',
+    description: 'Show or hide the dimensions.',
+  },
 
   // ── Tool state machine (§12: "Esc cancels, Enter commits") ──────────────
-  { command: 'tool.cancel', key: 'Escape', modifiers: 'none', scope: 'global', label: 'Esc', description: 'Cancel what you are drawing.' },
-  { command: 'tool.commit', key: 'Enter', modifiers: 'none', scope: 'canvas', label: 'Enter', description: 'Finish what you are drawing.' },
+  {
+    command: 'tool.cancel',
+    key: 'Escape',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'Esc',
+    description: 'Cancel what you are drawing.',
+  },
+  {
+    command: 'tool.commit',
+    key: 'Enter',
+    modifiers: 'none',
+    scope: 'canvas',
+    label: 'Enter',
+    description: 'Finish what you are drawing.',
+  },
 
   // ── Copilot (§10) ───────────────────────────────────────────────────────
   // `/` is the chat-input idiom every messaging app trained people on, and it
@@ -162,14 +352,35 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
   // fields, so typing a slash into a room name or the brief never yanks focus
   // into the copilot. The handler is registered by the project shell, not by
   // `defaultCommandHandlers` — see `lib/shortcuts.ts`.
-  { command: 'copilot.focus', key: '/', modifiers: 'none', scope: 'global', label: '/', description: 'Ask the copilot to change something.' },
+  {
+    command: 'copilot.focus',
+    key: '/',
+    modifiers: 'none',
+    scope: 'global',
+    label: '/',
+    description: 'Ask the copilot to change something.',
+  },
 
   // ── Help ────────────────────────────────────────────────────────────────
   // Two bindings for one glyph: `?` needs Shift on a US layout and arrives
   // unshifted on several others. Matching only the shifted form would make the
   // shortcut sheet unreachable on the layouts that need it most.
-  { command: 'help.shortcuts', key: '?', modifiers: 'shift', scope: 'global', label: '?', description: 'Show the keyboard shortcuts.' },
-  { command: 'help.shortcuts', key: '?', modifiers: 'none', scope: 'global', label: '?', description: 'Show the keyboard shortcuts.' },
+  {
+    command: 'help.shortcuts',
+    key: '?',
+    modifiers: 'shift',
+    scope: 'global',
+    label: '?',
+    description: 'Show the keyboard shortcuts.',
+  },
+  {
+    command: 'help.shortcuts',
+    key: '?',
+    modifiers: 'none',
+    scope: 'global',
+    label: '?',
+    description: 'Show the keyboard shortcuts.',
+  },
 ];
 
 /** Bindings grouped for a shortcuts sheet. */
@@ -334,10 +545,7 @@ export interface KeyboardMapOptions {
  * Commands with no handler do nothing and do not consume the keystroke, so a
  * screen can adopt a subset of the map without swallowing the rest.
  */
-export function useKeyboardMap(
-  handlers: CommandHandlers,
-  options: KeyboardMapOptions = {},
-): void {
+export function useKeyboardMap(handlers: CommandHandlers, options: KeyboardMapOptions = {}): void {
   const { enabled = true, target, onCommand } = options;
 
   // The handlers object is read through a ref-like closure captured on each

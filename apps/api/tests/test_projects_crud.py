@@ -21,8 +21,8 @@ import uuid
 from typing import Any
 
 import pytest
-
 from garh_api.models import PROJECT_STATUSES, PROJECT_UNITS
+
 from tests.helpers import problem
 
 pytestmark = pytest.mark.integration
@@ -174,7 +174,9 @@ async def test_status_filter_matches_the_dashboard_chips(
     assert [item["name"] for item in response.json()["items"]] == ["In brief"]
 
 
-async def test_plot_and_brief_round_trip(client: Any, api: str, firm_a: Any, project_a: Any) -> None:
+async def test_plot_and_brief_round_trip(
+    client: Any, api: str, firm_a: Any, project_a: Any
+) -> None:
     """The form endpoints are op-log-backed (golden rule 1), and the projections mirror them."""
     plot = await client.put(
         "%s/projects/%s/plot" % (api, project_a.id),
@@ -220,7 +222,9 @@ async def test_plot_and_brief_round_trip(client: Any, api: str, firm_a: Any, pro
     assert any(t.startswith("brief.") for t in op_types), op_types
 
 
-async def test_plot_rejects_a_float_length(client: Any, api: str, firm_a: Any, project_a: Any) -> None:
+async def test_plot_rejects_a_float_length(
+    client: Any, api: str, firm_a: Any, project_a: Any
+) -> None:
     """Geometry is integer millimetres everywhere (locked decision, §3)."""
     response = await client.put(
         "%s/projects/%s/plot" % (api, project_a.id),
@@ -285,9 +289,9 @@ async def test_unknown_units_is_a_client_error(client: Any, api: str, firm_a: An
         json={"name": "Bad units", "units": "cubits"},
         headers=firm_a.headers,
     )
-    assert 400 <= response.status_code < 500, (
-        "unknown units returned %s; allowed values are %s"
-        % (response.status_code, ", ".join(PROJECT_UNITS))
+    assert 400 <= response.status_code < 500, "unknown units returned %s; allowed values are %s" % (
+        response.status_code,
+        ", ".join(PROJECT_UNITS),
     )
 
 
@@ -315,7 +319,7 @@ async def test_bad_input_never_returns_a_traceback(client: Any, api: str, firm_a
         response = await client.post("%s/projects" % api, json=payload, headers=firm_a.headers)
         body = problem(response)
         text = response.text
-        for leak in ("Traceback", "sqlalchemy", "RepositoryUsageError", "File \""):
+        for leak in ("Traceback", "sqlalchemy", "RepositoryUsageError", 'File "'):
             assert leak not in text, (payload, leak, text[:300])
         assert body["action"], body
 
@@ -360,7 +364,9 @@ async def test_deleting_twice_is_404_the_second_time(
     assert problem(second)["code"] == "not_found"
 
 
-async def test_delete_is_audited(client: Any, api: str, session: Any, firm_a: Any, project_a: Any) -> None:
+async def test_delete_is_audited(
+    client: Any, api: str, session: Any, firm_a: Any, project_a: Any
+) -> None:
     """§13 audits deletions. A hard-deleted op log has to leave a trail behind it."""
     from garh_api.repositories import AuditLogRepository
 

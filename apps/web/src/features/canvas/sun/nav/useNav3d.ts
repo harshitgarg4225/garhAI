@@ -36,13 +36,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import {
-  ndcFromPixel,
-  orbitByPx,
-  wheelZoomFactor,
-  type CanvasCore,
-  type PtF3,
-} from '../../core';
+import { ndcFromPixel, orbitByPx, wheelZoomFactor, type CanvasCore, type PtF3 } from '../../core';
 import { useModelStore } from '../../../../stores/model';
 import { buildingExtentOf, type BuildingExtent } from '../buildingBbox';
 import {
@@ -235,9 +229,7 @@ export function useNav3d(element: HTMLElement | null, options: Nav3dOptions): Na
         hit.pointMm !== null ? { x: hit.pointMm.x, y: hit.pointMm.y, z: hit.elevationMm } : null;
       if (anchor === null) {
         // Pointer above the horizon: dolly about the target, honestly centred.
-        viewport.setOrbit(
-          dollyOrbitAboutAnchor(viewport.orbit, factor, viewport.orbit.targetMm),
-        );
+        viewport.setOrbit(dollyOrbitAboutAnchor(viewport.orbit, factor, viewport.orbit.targetMm));
         return;
       }
       viewport.setOrbit(dollyOrbitAboutAnchor(viewport.orbit, factor, anchor));
@@ -316,7 +308,6 @@ export function useNav3d(element: HTMLElement | null, options: Nav3dOptions): Na
       element.style.cursor = '';
     };
     // Options are read through `latest`; only the element and the switch re-attach.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [element, options.enabled, fitToBuilding]);
 
   return useMemo(

@@ -308,11 +308,7 @@ export interface PointerToMmOptions {
  * whenever the pointer is above the horizon, and a tool that ignores the null
  * places a wall at whatever garbage a parallel-ray intersection produces.
  */
-export function pointerToMmRaw(
-  ndc: Ndc,
-  camera: Camera,
-  planeElevationMm = 0,
-): Pt | null {
+export function pointerToMmRaw(ndc: Ndc, camera: Camera, planeElevationMm = 0): Pt | null {
   scratchNdc.set(ndc.x, ndc.y);
   scratchRaycaster.setFromCamera(scratchNdc, camera);
   // Plane y = elevation, normal +Y ⇒ constant = −elevation.
@@ -326,11 +322,7 @@ export function pointerToMmRaw(
  * THE tool-facing helper: pointer → snapped integer-mm model point, ready to be
  * an op payload. One call, no room for a module to invent its own snapping.
  */
-export function pointerToMm(
-  ndc: Ndc,
-  camera: Camera,
-  options: PointerToMmOptions = {},
-): Pt | null {
+export function pointerToMm(ndc: Ndc, camera: Camera, options: PointerToMmOptions = {}): Pt | null {
   const raw = pointerToMmRaw(ndc, camera, options.planeElevationMm ?? 0);
   if (raw === null) return null;
   return snapPtMm(raw, options.snapModuleMm ?? SNAP_COARSE_MM);

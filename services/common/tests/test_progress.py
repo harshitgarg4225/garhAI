@@ -12,12 +12,13 @@ against the old code.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
 from services.common.envelope import JobEnvelope
 from services.common.progress import ProgressReporter
+from services.common.queue import RedisLike
 
 pytestmark = pytest.mark.asyncio
 
@@ -49,7 +50,9 @@ class _RecordingRedis:
 
 def _reporter(redis: _RecordingRedis) -> ProgressReporter:
     envelope = JobEnvelope(job_id="job-1", kind="solver.generate", firm_id="firm-1")
-    return ProgressReporter(redis, envelope)
+    # The fake records the subset of RedisLike the reporter touches; the cast is
+    # the test's statement that this subset is the contract under test.
+    return ProgressReporter(cast(RedisLike, redis), envelope)
 
 
 #: What ``user_facing`` actually produces for every classified error — the

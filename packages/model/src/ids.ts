@@ -255,7 +255,9 @@ export function idType(value: unknown): ElementType | null {
 /** Assert an id of a given type, returning it narrowed. */
 export function assertIdOf<T extends ElementType>(type: T, value: unknown, field: string): Id<T> {
   if (!isIdOf(type, value)) {
-    throw new IdError(`${field} must be a ${type} id (${type}_<ulid>), got ${JSON.stringify(value)}`);
+    throw new IdError(
+      `${field} must be a ${type} id (${type}_<ulid>), got ${JSON.stringify(value)}`,
+    );
   }
   return value;
 }

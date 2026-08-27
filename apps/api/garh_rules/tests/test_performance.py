@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """§14's budget: a full compliance run on a house in under 100 ms.
 
     | Compliance run | <100ms model, <=500ms debounce | pytest timing |
@@ -23,9 +21,11 @@ is on the **median of several runs** and the budget is quoted from
 ``PERFORMANCE_BUDGET_MS``.
 """
 
+from __future__ import annotations
+
 import statistics
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from garh_rules import PERFORMANCE_BUDGET_MS, evaluate, load_pack_set
 from garh_rules.scope import CheckEnv, instances_for
@@ -34,7 +34,7 @@ from .conftest import PACK_IDS, RULEPACK_DIR, make_context, make_room, rect
 
 #: One storey of a 3BHK: 12 rooms, sized so nothing is a violation (a failing run
 #: does slightly more work rendering messages, and we want the common case).
-STOREY_PLAN: Tuple[Tuple[str, int, int, int, int], ...] = (
+STOREY_PLAN: tuple[tuple[str, int, int, int, int], ...] = (
     ("living", 0, 0, 4200, 4800),
     ("kitchen", 4400, 0, 2600, 3000),
     ("dining", 4400, 3200, 2600, 2600),
@@ -50,11 +50,11 @@ STOREY_PLAN: Tuple[Tuple[str, int, int, int, int], ...] = (
 )
 
 
-def _house(storey_count: int = 3) -> Dict[str, Any]:
-    rooms: List[Dict[str, Any]] = []
-    openings: List[Dict[str, Any]] = []
-    stairs: List[Dict[str, Any]] = []
-    storeys: List[Dict[str, Any]] = []
+def _house(storey_count: int = 3) -> dict[str, Any]:
+    rooms: list[dict[str, Any]] = []
+    openings: list[dict[str, Any]] = []
+    stairs: list[dict[str, Any]] = []
+    storeys: list[dict[str, Any]] = []
     for index in range(storey_count):
         storey_id = "storey_%d" % index
         storeys.append(
@@ -134,7 +134,7 @@ def _house(storey_count: int = 3) -> Dict[str, Any]:
     }
 
 
-def house_context(packs: Tuple[str, ...] = PACK_IDS, vastu_mode: str = "advisory") -> Any:
+def house_context(packs: tuple[str, ...] = PACK_IDS, vastu_mode: str = "advisory") -> Any:
     house = _house()
     return make_context(
         packs=packs,
@@ -172,7 +172,7 @@ def house_context(packs: Tuple[str, ...] = PACK_IDS, vastu_mode: str = "advisory
 
 
 def _median_ms(context: Any, pack_set: Any, runs: int = 12) -> float:
-    samples: List[float] = []
+    samples: list[float] = []
     for _ in range(runs):
         started = time.perf_counter()
         evaluate(context, packs=pack_set)
@@ -206,7 +206,7 @@ def test_the_evaluator_does_no_io() -> None:
 
     pack_set = load_pack_set(PACK_IDS, root=RULEPACK_DIR)
     context = house_context()
-    opened: List[str] = []
+    opened: list[str] = []
     real_open = builtins.open
 
     def watching_open(*args: Any, **kwargs: Any) -> Any:

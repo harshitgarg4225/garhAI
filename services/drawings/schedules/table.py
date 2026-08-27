@@ -28,8 +28,9 @@ dataclasses, so nothing here has to import a module that Phase 8 is still writin
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.layers import A_TEXT, A_TITL, layer_for
 
@@ -44,7 +45,7 @@ __all__ = [
     "svg_escape",
 ]
 
-ALIGNMENTS: Tuple[str, ...] = ("left", "right", "centre")
+ALIGNMENTS: tuple[str, ...] = ("left", "right", "centre")
 
 
 @dataclass(frozen=True)
@@ -115,7 +116,7 @@ class TextItem:
     align: str = "left"
     bold: bool = False
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "type": "text",
             "xMm": self.x_mm,
@@ -138,7 +139,7 @@ class LineItem:
     y2_mm: int
     layer: str
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "type": "line",
             "x1Mm": self.x1_mm,
@@ -173,15 +174,15 @@ class Table:
     """
 
     title: str
-    columns: Tuple[Column, ...]
-    rows: Tuple[Tuple[str, ...], ...]
+    columns: tuple[Column, ...]
+    rows: tuple[tuple[str, ...], ...]
     style: TableStyle = field(default_factory=TableStyle)
-    origin_mm: Tuple[int, int] = (0, 0)
+    origin_mm: tuple[int, int] = (0, 0)
     #: Rows the reader should see as separators/subtotals — indices into ``rows``.
-    rule_after: Tuple[int, ...] = ()
+    rule_after: tuple[int, ...] = ()
     #: Row indices printed bold (totals, and the FAR/coverage lines that get queried).
-    bold_rows: Tuple[int, ...] = ()
-    footnotes: Tuple[str, ...] = ()
+    bold_rows: tuple[int, ...] = ()
+    footnotes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         width = len(self.columns)
@@ -192,13 +193,14 @@ class Table:
                 raise ValueError(
                     "Row %d has %d cells but the table has %d columns (%s). A ragged "
                     "table means a caller built cells positionally against the wrong "
-                    "column list." % (index, len(row), width, ", ".join(c.key for c in self.columns))
+                    "column list."
+                    % (index, len(row), width, ", ".join(c.key for c in self.columns))
                 )
 
     # -- layout ------------------------------------------------------------
-    def cell_widths_mm(self) -> Tuple[int, ...]:
+    def cell_widths_mm(self) -> tuple[int, ...]:
         """Column widths from the longest string in each column, plus padding."""
-        widths: List[int] = []
+        widths: list[int] = []
         for index, column in enumerate(self.columns):
             longest = len(column.header)
             for row in self.rows:
@@ -229,13 +231,13 @@ class Table:
         """Does this table fit the frame's drawable area? (A2 landscape: 564 × 400.)"""
         return self.width_mm() <= drawable_width_mm and self.height_mm() <= drawable_height_mm
 
-    def at(self, x_mm: int, y_mm: int) -> "Table":
+    def at(self, x_mm: int, y_mm: int) -> Table:
         """The same table placed elsewhere on the sheet."""
         return replace(self, origin_mm=(x_mm, y_mm))
 
-    def _column_x_mm(self) -> Tuple[int, ...]:
+    def _column_x_mm(self) -> tuple[int, ...]:
         x = self.origin_mm[0]
-        out: List[int] = []
+        out: list[int] = []
         for width in self.cell_widths_mm():
             out.append(x)
             x += width
@@ -243,15 +245,19 @@ class Table:
 
     def _top_y_mm(self) -> int:
         """Y of the top edge of the header band."""
-        return self.origin_mm[1] + self.body_height_mm() + len(self.footnotes) * self.style.row_height_mm
+        return (
+            self.origin_mm[1]
+            + self.body_height_mm()
+            + len(self.footnotes) * self.style.row_height_mm
+        )
 
     # -- primitives --------------------------------------------------------
     def emit(
         self,
         *,
-        text: Optional[Callable[..., Any]] = None,
-        line: Optional[Callable[..., Any]] = None,
-    ) -> Tuple[Any, ...]:
+        text: Callable[..., Any] | None = None,
+        line: Callable[..., Any] | None = None,
+    ) -> tuple[Any, ...]:
         """Build the primitive stream, optionally with the caller's constructors.
 
         The sheet renderer passes its own factories —
@@ -268,7 +274,7 @@ class Table:
         table_width = self.width_mm()
         left = self.origin_mm[0]
         top = self._top_y_mm()
-        items: List[Any] = []
+        items: list[Any] = []
 
         if self.title:
             items.append(
@@ -284,7 +290,9 @@ class Table:
             )
 
         # Header band.
-        header_baseline = top - style.header_height_mm + (style.header_height_mm - style.text_height_mm) // 2
+        header_baseline = (
+            top - style.header_height_mm + (style.header_height_mm - style.text_height_mm) // 2
+        )
         for index, column in enumerate(self.columns):
             items.append(
                 make_text(
@@ -299,17 +307,23 @@ class Table:
             )
 
         # Rows, top-down.
-        row_tops = [top - style.header_height_mm - i * style.row_height_mm for i in range(len(self.rows))]
+        row_tops = [
+            top - style.header_height_mm - i * style.row_height_mm for i in range(len(self.rows))
+        ]
         for row_index, row in enumerate(self.rows):
             row_top = row_tops[row_index]
-            baseline = row_top - style.row_height_mm + (style.row_height_mm - style.text_height_mm) // 2
+            baseline = (
+                row_top - style.row_height_mm + (style.row_height_mm - style.text_height_mm) // 2
+            )
             for col_index, column in enumerate(self.columns):
                 cell = row[col_index]
                 if not cell:
                     continue
                 items.append(
                     make_text(
-                        x_mm=_anchor_x(xs[col_index], widths[col_index], column.align, style.padding_mm),
+                        x_mm=_anchor_x(
+                            xs[col_index], widths[col_index], column.align, style.padding_mm
+                        ),
                         y_mm=baseline,
                         text=cell,
                         height_mm=style.text_height_mm,
@@ -323,7 +337,11 @@ class Table:
         # and the column separators. Not a full grid — a municipal schedule is read in
         # rows, and a line under every row turns into visual noise at 1:100.
         bottom = top - self.body_height_mm()
-        items.append(make_line(x1_mm=left, y1_mm=top, x2_mm=left + table_width, y2_mm=top, layer=style.grid_layer))
+        items.append(
+            make_line(
+                x1_mm=left, y1_mm=top, x2_mm=left + table_width, y2_mm=top, layer=style.grid_layer
+            )
+        )
         items.append(
             make_line(
                 x1_mm=left,
@@ -334,7 +352,13 @@ class Table:
             )
         )
         items.append(
-            make_line(x1_mm=left, y1_mm=bottom, x2_mm=left + table_width, y2_mm=bottom, layer=style.grid_layer)
+            make_line(
+                x1_mm=left,
+                y1_mm=bottom,
+                x2_mm=left + table_width,
+                y2_mm=bottom,
+                layer=style.grid_layer,
+            )
         )
         for row_index in self.rule_after:
             if not 0 <= row_index < len(self.rows):
@@ -349,16 +373,22 @@ class Table:
                 continue
             y = row_tops[row_index] - style.row_height_mm
             items.append(
-                make_line(x1_mm=left, y1_mm=y, x2_mm=left + table_width, y2_mm=y, layer=style.grid_layer)
+                make_line(
+                    x1_mm=left, y1_mm=y, x2_mm=left + table_width, y2_mm=y, layer=style.grid_layer
+                )
             )
-        for x in list(xs) + [left + table_width]:
-            items.append(make_line(x1_mm=x, y1_mm=bottom, x2_mm=x, y2_mm=top, layer=style.grid_layer))
+        for x in [*list(xs), left + table_width]:
+            items.append(
+                make_line(x1_mm=x, y1_mm=bottom, x2_mm=x, y2_mm=top, layer=style.grid_layer)
+            )
 
         for index, note in enumerate(self.footnotes):
             items.append(
                 make_text(
                     x_mm=left,
-                    y_mm=bottom - (index + 1) * style.row_height_mm + (style.row_height_mm - style.text_height_mm) // 2,
+                    y_mm=bottom
+                    - (index + 1) * style.row_height_mm
+                    + (style.row_height_mm - style.text_height_mm) // 2,
                     text=note,
                     height_mm=style.text_height_mm,
                     layer=style.text_layer,
@@ -368,23 +398,21 @@ class Table:
             )
         return tuple(items)
 
-    def primitives(self) -> Tuple[Any, ...]:
+    def primitives(self) -> tuple[Any, ...]:
         """The local-dataclass primitive stream (text items then line items, as emitted)."""
         return self.emit()
 
-    def text_items(self) -> Tuple[TextItem, ...]:
+    def text_items(self) -> tuple[TextItem, ...]:
         return tuple(item for item in self.emit() if isinstance(item, TextItem))
 
-    def line_items(self) -> Tuple[LineItem, ...]:
+    def line_items(self) -> tuple[LineItem, ...]:
         return tuple(item for item in self.emit() if isinstance(item, LineItem))
 
     # -- serialisations ----------------------------------------------------
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "title": self.title,
-            "columns": [
-                {"key": c.key, "header": c.header, "align": c.align} for c in self.columns
-            ],
+            "columns": [{"key": c.key, "header": c.header, "align": c.align} for c in self.columns],
             "rows": [list(row) for row in self.rows],
             "columnWidthsMm": list(self.cell_widths_mm()),
             "widthMm": self.width_mm(),
@@ -407,7 +435,7 @@ class Table:
             )
             for index, column in enumerate(self.columns)
         ]
-        lines: List[str] = []
+        lines: list[str] = []
         if self.title:
             lines.append(self.title)
             lines.append("=" * len(self.title))
@@ -434,7 +462,7 @@ class Table:
         width = self.width_mm() + 2 * margin_mm
         height = self.height_mm() + 2 * margin_mm
         placed = self.at(margin_mm, margin_mm)
-        parts: List[str] = [
+        parts: list[str] = [
             '<svg xmlns="http://www.w3.org/2000/svg" width="%dmm" height="%dmm" '
             'viewBox="0 0 %d %d" fill="none" stroke="none">' % (width, height, width, height),
             "<!-- Garh AI schedule table. Paper millimetres; y flipped for SVG. -->",
@@ -484,7 +512,7 @@ def _svg_anchor(align: str) -> str:
 
 
 def _text_row(cells: Sequence[str], widths: Sequence[int], columns: Sequence[Column]) -> str:
-    out: List[str] = []
+    out: list[str] = []
     for index, cell in enumerate(cells):
         width = widths[index]
         if columns[index].align == "right":

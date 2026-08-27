@@ -241,7 +241,9 @@
       "properties": {
         "id": { "$ref": "common.schema.json#/$defs/FacadeComponentId" },
         "kind": { "$ref": "common.schema.json#/$defs/FacadeComponentKind" },
-        "storeyId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/StoreyId" }, { "type": "null" }] },
+        "storeyId": {
+          "oneOf": [{ "$ref": "common.schema.json#/$defs/StoreyId" }, { "type": "null" }]
+        },
         "wallId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/WallId" }, { "type": "null" }] },
         "openingId": {
           "oneOf": [{ "$ref": "common.schema.json#/$defs/OpeningId" }, { "type": "null" }]
@@ -273,13 +275,7 @@
     },
     "Levels": {
       "type": "object",
-      "required": [
-        "plinthMm",
-        "fflPerStoreyMm",
-        "sillDefaultMm",
-        "lintelDefaultMm",
-        "parapetMm"
-      ],
+      "required": ["plinthMm", "fflPerStoreyMm", "sillDefaultMm", "lintelDefaultMm", "parapetMm"],
       "additionalProperties": false,
       "properties": {
         "plinthMm": { "$ref": "common.schema.json#/$defs/NonNegativeIntMm" },

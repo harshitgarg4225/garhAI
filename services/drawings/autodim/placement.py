@@ -36,15 +36,15 @@ turn every label into a leader.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
-
-from services.drawings.dimensions import LabelBox
+from typing import Any
 
 from services.drawings.autodim.chains import DimChainInfo
 from services.drawings.autodim.config import DEFAULT_CONFIG, AutoDimConfig
 from services.drawings.autodim.extract import HORIZONTAL
 from services.drawings.autodim.primitives import Point
+from services.drawings.dimensions import LabelBox
 
 STRATEGY_BASE = "base"
 STRATEGY_FLIP = "flip"
@@ -53,7 +53,7 @@ STRATEGY_SHRINK = "shrink"
 STRATEGY_LEADER = "leader"
 
 #: Reported in the order of escalation, which is also how the stats table reads.
-STRATEGIES: Tuple[str, ...] = (
+STRATEGIES: tuple[str, ...] = (
     STRATEGY_BASE,
     STRATEGY_FLIP,
     STRATEGY_SHIFT,
@@ -85,14 +85,14 @@ class CollisionGrid:
         if cell_mm <= 0:
             raise ValueError("collision grid cell must be positive, got %d" % cell_mm)
         self._cell_mm = cell_mm
-        self._cells: Dict[Tuple[int, int], List[int]] = {}
-        self._boxes: List[LabelBox] = []
+        self._cells: dict[tuple[int, int], list[int]] = {}
+        self._boxes: list[LabelBox] = []
 
     @property
     def cell_mm(self) -> int:
         return self._cell_mm
 
-    def _span(self, box: LabelBox) -> Tuple[int, int, int, int]:
+    def _span(self, box: LabelBox) -> tuple[int, int, int, int]:
         cell = self._cell_mm
         return (
             _floor_div(box.x_mm, cell),
@@ -111,7 +111,7 @@ class CollisionGrid:
 
     def collides(self, box: LabelBox) -> bool:
         x0, y0, x1, y1 = self._span(box)
-        seen: List[int] = []
+        seen: list[int] = []
         for cx in range(x0, x1 + 1):
             for cy in range(y0, y1 + 1):
                 for index in self._cells.get((cx, cy), ()):
@@ -122,7 +122,7 @@ class CollisionGrid:
                         return True
         return False
 
-    def boxes(self) -> Tuple[LabelBox, ...]:
+    def boxes(self) -> tuple[LabelBox, ...]:
         return tuple(self._boxes)
 
     def __len__(self) -> int:
@@ -169,14 +169,14 @@ class PlacedLabel:
     flipped: bool
     shift_mm: int
     shrink_step: int
-    leader_from: Optional[Point] = None
-    leader_to: Optional[Point] = None
+    leader_from: Point | None = None
+    leader_to: Point | None = None
 
     @property
     def has_leader(self) -> bool:
         return self.leader_from is not None
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "chainId": self.chain_id,
@@ -216,9 +216,9 @@ class PlacementStats:
     shrunk: int = 0
     leaders: int = 0
     #: Labels whose final strategy was each of :data:`STRATEGIES`.
-    by_strategy: Tuple[Tuple[str, int], ...] = ()
+    by_strategy: tuple[tuple[str, int], ...] = ()
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "labels": self.labels,
             "base": self.base,
@@ -226,7 +226,7 @@ class PlacementStats:
             "shifted": self.shifted,
             "shrunk": self.shrunk,
             "leaders": self.leaders,
-            "byStrategy": {name: count for name, count in self.by_strategy},
+            "byStrategy": dict(self.by_strategy),
         }
 
 
@@ -281,7 +281,7 @@ def _candidate_box(
     text_height_mm: int,
     pad_mm: int,
     owner_id: str,
-) -> Tuple[LabelBox, Point]:
+) -> tuple[LabelBox, Point]:
     """Turn a (position along, side, distance from line) triple into a box + anchor.
 
     ``distance_mm`` is the clearance between the dimension line and the near edge of the
@@ -291,19 +291,11 @@ def _candidate_box(
     if chain.orientation == HORIZONTAL:
         ink_w, ink_h = text_width_mm, text_height_mm
         ink_x0 = along_mm - ink_w // 2
-        ink_y0 = (
-            chain.line_mm + distance_mm
-            if side > 0
-            else chain.line_mm - distance_mm - ink_h
-        )
+        ink_y0 = chain.line_mm + distance_mm if side > 0 else chain.line_mm - distance_mm - ink_h
     else:
         ink_w, ink_h = text_height_mm, text_width_mm
         ink_y0 = along_mm - ink_h // 2
-        ink_x0 = (
-            chain.line_mm + distance_mm
-            if side > 0
-            else chain.line_mm - distance_mm - ink_w
-        )
+        ink_x0 = chain.line_mm + distance_mm if side > 0 else chain.line_mm - distance_mm - ink_w
     box = LabelBox(
         x_mm=ink_x0 - pad_mm,
         y_mm=ink_y0 - pad_mm,
@@ -315,7 +307,7 @@ def _candidate_box(
     return box, anchor
 
 
-def _shift_sequence(step_mm: int, max_steps: int) -> Tuple[int, ...]:
+def _shift_sequence(step_mm: int, max_steps: int) -> tuple[int, ...]:
     """``0, +d, -d, +2d, -2d, ...`` — symmetric, deterministic, zero first."""
     out = [0]
     for k in range(1, max_steps + 1):
@@ -329,8 +321,8 @@ def place_labels(
     *,
     config: AutoDimConfig = DEFAULT_CONFIG,
     obstacles: Sequence[LabelBox] = (),
-    grid: Optional[CollisionGrid] = None,
-) -> Tuple[Tuple[PlacedLabel, ...], CollisionGrid]:
+    grid: CollisionGrid | None = None,
+) -> tuple[tuple[PlacedLabel, ...], CollisionGrid]:
     """§7 step 4 for a whole sheet. Returns the labels and the grid they filled.
 
     Pure with respect to its inputs: ``chains`` and ``obstacles`` are not mutated, and a
@@ -348,7 +340,7 @@ def place_labels(
     gap = config.text_gap_mm()
     pad = max(1, gap // 2)
 
-    placed: List[PlacedLabel] = []
+    placed: list[PlacedLabel] = []
     for chain in ordered:
         for index, segment in enumerate(chain.chain.segments):
             label = _place_one(

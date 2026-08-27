@@ -175,7 +175,5 @@ export function enumParam<T extends string>(
   fallback: T,
 ): T {
   const v: JsonValue | undefined = params[key];
-  return typeof v === 'string' && (allowed as readonly string[]).includes(v)
-    ? (v as T)
-    : fallback;
+  return typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : fallback;
 }

@@ -59,7 +59,8 @@ import shutil
 import subprocess
 import tempfile
 import time
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from services.common.errors import InvalidJobError
 from services.common.jobstore import JobResult
@@ -111,9 +112,9 @@ EXPORT_KINDS = ("pdf-set", "dxf", "gltf", "png-pack")
 #: Formats a sheet is published in. SVG always works (pure string output); DXF needs
 #: ``ezdxf``; PDF needs a converter binary. A format that cannot be produced is
 #: reported as an unavailable format, never as a failed job — see :meth:`_publish`.
-DEFAULT_SHEET_FORMATS: Tuple[str, ...] = ("svg", "dxf")
+DEFAULT_SHEET_FORMATS: tuple[str, ...] = ("svg", "dxf")
 
-_CONTENT_TYPES: Dict[str, str] = {
+_CONTENT_TYPES: dict[str, str] = {
     # Not `image/svg+xml`: §13 requires sanitised SVG and forbids serving drawings as a
     # type a browser will execute scripts inside. `routers/jobs.py` makes the same call
     # for the same reason.
@@ -191,7 +192,7 @@ class DrawingsJobHandler(BaseJobHandler):
             sheetCount=len(requested),
         )
 
-        timings: Dict[str, int] = {}
+        timings: dict[str, int] = {}
         started = time.perf_counter()
         bundle = await self._load_bundle(ctx, kinds=requested)
         timings["loadMs"] = _ms_since(started)
@@ -205,15 +206,13 @@ class DrawingsJobHandler(BaseJobHandler):
         # keeps the heartbeat flowing if a pathological model ever makes it seconds —
         # a worker that stops answering gets its job redelivered while still running it.
         drawing_started = time.perf_counter()
-        progress_events: List[Tuple[int, int, str, bool]] = []
+        progress_events: list[tuple[int, int, str, bool]] = []
 
         def record(index: int, total: int, sheet: Any, slug: str) -> None:
             progress_events.append((index, total, slug, sheet is not None))
 
         try:
-            result: SheetSetResult = await asyncio.to_thread(
-                build_sheets, bundle, on_sheet=record
-            )
+            result: SheetSetResult = await asyncio.to_thread(build_sheets, bundle, on_sheet=record)
         except PipelineError as exc:
             raise InvalidJobError(
                 exc.message, action=exc.action or None, detail=exc.detail
@@ -240,7 +239,7 @@ class DrawingsJobHandler(BaseJobHandler):
         timings["publishMs"] = _ms_since(publish_started)
         timings["totalMs"] = _ms_since(started)
 
-        payload: Dict[str, Any] = result.to_json()
+        payload: dict[str, Any] = result.to_json()
         payload["designVersionId"] = ctx.envelope.design_version_id
         payload["notes"] = list(result.notes) + format_notes
         payload["timings"] = timings
@@ -280,7 +279,7 @@ class DrawingsJobHandler(BaseJobHandler):
         raw = await ctx.blobs.fetch(model_ref, what="design")
         document = _decode_json(raw, what="design")
 
-        areas: Optional[TransportStatement] = None
+        areas: TransportStatement | None = None
         areas_ref = ctx.envelope.assets.get(ASSET_AREAS)
         if areas_ref is not None:
             areas_raw = await ctx.blobs.fetch(areas_ref, what="area statement")
@@ -300,7 +299,7 @@ class DrawingsJobHandler(BaseJobHandler):
 
     async def _publish(
         self, ctx: JobContext, result: SheetSetResult, formats: Sequence[str]
-    ) -> Tuple[Dict[str, Dict[str, str]], List[str]]:
+    ) -> tuple[dict[str, dict[str, str]], list[str]]:
         """Write each sheet's artefacts to their presigned destinations.
 
         Returns ``({slug: {fmt: getUrl}}, notes)``. A format the server cannot produce
@@ -309,13 +308,13 @@ class DrawingsJobHandler(BaseJobHandler):
         instead of offering a button that 404s. Only SVG is treated as mandatory; it
         needs nothing installed, so its failure is a real failure.
         """
-        artifacts: Dict[str, Dict[str, str]] = {}
-        notes: List[str] = []
-        unavailable: Dict[str, str] = {}
+        artifacts: dict[str, dict[str, str]] = {}
+        notes: list[str] = []
+        unavailable: dict[str, str] = {}
         outputs = ctx.envelope.outputs
 
         for sheet in result.sheets:
-            per_sheet: Dict[str, str] = {}
+            per_sheet: dict[str, str] = {}
             for fmt in formats:
                 if fmt in unavailable:
                     continue
@@ -327,9 +326,7 @@ class DrawingsJobHandler(BaseJobHandler):
                 except PipelineError as exc:
                     unavailable[fmt] = exc.message
                     notes.append("%s %s" % (exc.message, exc.action or ""))
-                    log.warning(
-                        "drawings.format_unavailable", sheet_format=fmt, reason=exc.detail
-                    )
+                    log.warning("drawings.format_unavailable", sheet_format=fmt, reason=exc.detail)
                     continue
                 stored = await ctx.blobs.put(
                     ref,
@@ -380,12 +377,10 @@ class DrawingsJobHandler(BaseJobHandler):
         if kind == "gltf":
             # The 3D bridge needs the model and nothing else — no sheets, no rules.
             model_ref = ctx.envelope.require_asset(ASSET_MODEL)
-            document = _decode_json(
-                await ctx.blobs.fetch(model_ref, what="design"), what="design"
-            )
+            document = _decode_json(await ctx.blobs.fetch(model_ref, what="design"), what="design")
             await ctx.progress.stage("export", "Building the 3D model…", percent=40, kind=kind)
             data = await asyncio.to_thread(sheet_glb_bytes, document)
-            meta: Dict[str, Any] = {"bytes": len(data)}
+            meta: dict[str, Any] = {"bytes": len(data)}
         else:
             bundle = await self._load_bundle(ctx, kinds=_requested_kinds(ctx.payload))
             await ctx.progress.stage("export", "Drawing the sheets…", percent=30, kind=kind)
@@ -414,9 +409,7 @@ class DrawingsJobHandler(BaseJobHandler):
             what="%s export" % kind,
         )
         elapsed_ms = _ms_since(started)
-        log.info(
-            "drawings.export.done", export_kind=kind, bytes=len(data), duration_ms=elapsed_ms
-        )
+        log.info("drawings.export.done", export_kind=kind, bytes=len(data), duration_ms=elapsed_ms)
         await ctx.progress.stage("export", "Your download is ready.", percent=100, kind=kind)
         return JobResult(
             data={
@@ -431,7 +424,7 @@ class DrawingsJobHandler(BaseJobHandler):
 
     async def _render_export(
         self, ctx: JobContext, kind: str, sheets: Sequence[Any]
-    ) -> Tuple[bytes, Dict[str, Any]]:
+    ) -> tuple[bytes, dict[str, Any]]:
         if not sheets:
             raise InvalidJobError(
                 "There are no sheets to export.",
@@ -440,9 +433,7 @@ class DrawingsJobHandler(BaseJobHandler):
             )
         try:
             if kind == "dxf":
-                data = await asyncio.to_thread(
-                    sheet_dxf_bytes, [sheet.drawing for sheet in sheets]
-                )
+                data = await asyncio.to_thread(sheet_dxf_bytes, [sheet.drawing for sheet in sheets])
                 return (data, {"sheets": len(sheets)})
             if kind == "pdf-set":
                 data, report = await asyncio.to_thread(
@@ -545,7 +536,7 @@ class DrawingsJobHandler(BaseJobHandler):
 # ---------------------------------------------------------------------------
 # Payload helpers
 # ---------------------------------------------------------------------------
-def _requested_kinds(payload: Mapping[str, Any]) -> Tuple[str, ...]:
+def _requested_kinds(payload: Mapping[str, Any]) -> tuple[str, ...]:
     """The requested sheet kinds, in the canonical (DB) vocabulary.
 
     Accepts either spelling — ``floor`` or ``floor-plan``. It used to validate only
@@ -563,12 +554,10 @@ def _requested_kinds(payload: Mapping[str, Any]) -> Tuple[str, ...]:
     try:
         return canonical_sheet_kinds(raw)
     except PipelineError as exc:
-        raise InvalidJobError(
-            exc.message, action=exc.action or None, detail=exc.detail
-        ) from exc
+        raise InvalidJobError(exc.message, action=exc.action or None, detail=exc.detail) from exc
 
 
-def _requested_formats(payload: Mapping[str, Any]) -> Tuple[str, ...]:
+def _requested_formats(payload: Mapping[str, Any]) -> tuple[str, ...]:
     raw = payload.get("formats")
     if not isinstance(raw, list) or not raw:
         return DEFAULT_SHEET_FORMATS
@@ -590,7 +579,7 @@ def _requested_formats(payload: Mapping[str, Any]) -> Tuple[str, ...]:
     return tuple(formats)
 
 
-def _decode_json(raw: bytes, *, what: str) -> Dict[str, Any]:
+def _decode_json(raw: bytes, *, what: str) -> dict[str, Any]:
     try:
         value = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as exc:
@@ -608,7 +597,7 @@ def _decode_json(raw: bytes, *, what: str) -> Dict[str, Any]:
     return value
 
 
-def _select_sheets(result: SheetSetResult, sheet_ids: Any) -> List[Any]:
+def _select_sheets(result: SheetSetResult, sheet_ids: Any) -> list[Any]:
     """Honour ``payload.sheetIds`` (slugs, numbers or DB uuids) or take the whole set.
 
     Unknown ids are ignored rather than fatal: a stale UI selection referring to a
@@ -617,11 +606,7 @@ def _select_sheets(result: SheetSetResult, sheet_ids: Any) -> List[Any]:
     if not isinstance(sheet_ids, list) or not sheet_ids:
         return list(result.sheets)
     wanted = {str(item) for item in sheet_ids}
-    chosen = [
-        sheet
-        for sheet in result.sheets
-        if sheet.slug in wanted or sheet.number in wanted
-    ]
+    chosen = [sheet for sheet in result.sheets if sheet.slug in wanted or sheet.number in wanted]
     return chosen or list(result.sheets)
 
 
@@ -656,7 +641,7 @@ def _ms_since(started: float) -> int:
 # ---------------------------------------------------------------------------
 # PNG pack
 # ---------------------------------------------------------------------------
-def _png_pack_zip(sheets: Sequence[Any]) -> Tuple[bytes, Dict[str, Any]]:
+def _png_pack_zip(sheets: Sequence[Any]) -> tuple[bytes, dict[str, Any]]:
     """Rasterise each sheet and zip it, at the sizes ``pack_plan`` specified.
 
     Rasterising needs the same converter binary the PDF path needs; there is no pure
@@ -676,11 +661,10 @@ def _png_pack_zip(sheets: Sequence[Any]) -> Tuple[bytes, Dict[str, Any]]:
             "PNG export isn't available on this server yet.",
             action="Download the PDF or DXF instead, or ask your administrator to "
             "install an SVG renderer.",
-            detail="no rasteriser found; tried %s"
-            % ", ".join(name for name, _d, _h in CONVERTERS),
+            detail="no rasteriser found; tried %s" % ", ".join(name for name, _d, _h in CONVERTERS),
         )
     binary, name, _hint = converter
-    manifest = sheet_png_manifest([s for s in sheets])
+    manifest = sheet_png_manifest(list(sheets))
 
     buffer = tempfile.TemporaryDirectory(prefix="garh-png-")
     try:
@@ -688,7 +672,7 @@ def _png_pack_zip(sheets: Sequence[Any]) -> Tuple[bytes, Dict[str, Any]]:
 
         archive = io.BytesIO()
         with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
-            for sheet, entry in zip(sheets, manifest):
+            for sheet, entry in zip(sheets, manifest, strict=False):
                 svg_path = os.path.join(buffer.name, "%s.svg" % entry["filename"])
                 png_path = os.path.join(buffer.name, entry["filename"])
                 with open(svg_path, "w", encoding="utf-8") as handle:
@@ -696,10 +680,9 @@ def _png_pack_zip(sheets: Sequence[Any]) -> Tuple[bytes, Dict[str, Any]]:
                 argv = _png_command(
                     binary, name, svg_path, png_path, int(entry["widthPx"]), int(entry["heightPx"])
                 )
-                completed = subprocess.run(  # noqa: S603 - argv list, no shell
+                completed = subprocess.run(
                     argv,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    capture_output=True,
                     timeout=PNG_TIMEOUT_SECONDS,
                 )
                 if completed.returncode != 0 or not os.path.exists(png_path):
@@ -707,13 +690,19 @@ def _png_pack_zip(sheets: Sequence[Any]) -> Tuple[bytes, Dict[str, Any]]:
                         "We couldn't turn %s into an image." % sheet.number,
                         action="Download the PDF instead.",
                         detail="%s exit %d: %s"
-                        % (name, completed.returncode, completed.stderr.decode("utf-8", "replace")[:400]),
+                        % (
+                            name,
+                            completed.returncode,
+                            completed.stderr.decode("utf-8", "replace")[:400],
+                        ),
                     )
                 with open(png_path, "rb") as handle:
                     bundle.writestr(entry["filename"], handle.read())
             bundle.writestr(
                 "manifest.json",
-                json.dumps({"sheets": list(manifest), "rasteriser": name}, indent=2, sort_keys=True),
+                json.dumps(
+                    {"sheets": list(manifest), "rasteriser": name}, indent=2, sort_keys=True
+                ),
             )
         return (archive.getvalue(), {"images": len(manifest), "rasteriser": name})
     finally:
@@ -722,7 +711,7 @@ def _png_pack_zip(sheets: Sequence[Any]) -> Tuple[bytes, Dict[str, Any]]:
 
 def _png_command(
     binary: str, name: str, svg_path: str, png_path: str, width: int, height: int
-) -> List[str]:
+) -> list[str]:
     if name == "rsvg-convert":
         return [
             binary,

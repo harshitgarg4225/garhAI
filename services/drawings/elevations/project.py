@@ -25,25 +25,11 @@ projection returns its notes, and the sheet composer is expected to print them.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any
 
 from services.drawings.dimensions import DEFAULT_DIM_TO_JAMB
-from services.drawings.layers import A_DOOR, A_TEXT, A_WALL, A_WALL_PART, A_WIND
-from services.drawings.projection.primitives import (
-    K_BALCONY,
-    K_BALCONY_RAILING,
-    K_DOOR_LEAF,
-    K_OPENING_TAG,
-    K_VENT_GLAZING,
-    K_WINDOW_GLAZING,
-    Line,
-    Polyline,
-    Primitive,
-    Text,
-    sanitise_text,
-    validate_primitives,
-)
 from services.drawings.elevations.callouts import (
     CALLOUT_COLUMN_GAP_PAPER_MM,
     build_callouts,
@@ -77,6 +63,21 @@ from services.drawings.elevations.vertical import (
     normals_of,
     rect_ring,
     u_of,
+)
+from services.drawings.layers import A_DOOR, A_TEXT, A_WALL, A_WALL_PART, A_WIND
+from services.drawings.projection.primitives import (
+    K_BALCONY,
+    K_BALCONY_RAILING,
+    K_DOOR_LEAF,
+    K_OPENING_TAG,
+    K_VENT_GLAZING,
+    K_WINDOW_GLAZING,
+    Line,
+    Polyline,
+    Primitive,
+    Text,
+    sanitise_text,
+    validate_primitives,
 )
 
 __all__ = [
@@ -139,16 +140,14 @@ def elevation_title(direction: str, north_deg: int = 0) -> str:
     name = DIRECTION_NAMES[direction]
     azimuth = true_azimuth_deg(direction, north_deg)
     if azimuth % 90 == 0:
-        return "%s ELEVATION" % DIRECTION_NAMES[
-            {0: "N", 90: "E", 180: "S", 270: "W"}[azimuth]
-        ]
+        return "%s ELEVATION" % DIRECTION_NAMES[{0: "N", 90: "E", 180: "S", 270: "W"}[azimuth]]
     return "%s ELEVATION (TRUE AZIMUTH %d°)" % (name, azimuth)
 
 
 def build_elevation(
     house: Any,
     direction: str,
-    options: Optional[ElevationOptions] = None,
+    options: ElevationOptions | None = None,
 ) -> VerticalDrawing:
     """Project one elevation. Pure: same model in, same primitives out, every time."""
     opts = options or ElevationOptions()
@@ -157,18 +156,16 @@ def build_elevation(
     sizes = VerticalStyle.of(scale)
     levels: LevelSet = build_levels(house)
     footprints = footprint_rings(house)
-    storey_levels: Dict[str, Tuple[int, int]] = {
+    storey_levels: dict[str, tuple[int, int]] = {
         s.storey_id: (s.ffl_mm, s.top_mm) for s in levels.storeys
     }
-    storey_ffl: Dict[str, int] = {s.storey_id: s.ffl_mm for s in levels.storeys}
+    storey_ffl: dict[str, int] = {s.storey_id: s.ffl_mm for s in levels.storeys}
 
-    notes: List[str] = []
-    primitives: List[Primitive] = []
+    notes: list[str] = []
+    primitives: list[Primitive] = []
 
     if not footprints:
-        notes.append(
-            "This storey has no closed wall outline yet, so there is no facade to draw."
-        )
+        notes.append("This storey has no closed wall outline yet, so there is no facade to draw.")
         return VerticalDrawing(
             kind="elevation",
             name=elevation_title(direction, opts.north_deg),
@@ -182,7 +179,7 @@ def build_elevation(
         )
 
     # ---- one origin shift for the whole drawing -----------------------------
-    all_points: List[Tuple[int, int]] = []
+    all_points: list[tuple[int, int]] = []
     for ring in footprints.values():
         all_points.extend(ring)
     for balcony in getattr(house, "balconies", ()) or ():
@@ -216,7 +213,7 @@ def build_elevation(
     )
 
     # ---- silhouette: one band per storey, sharing its floor lines ----------
-    spans: List[Tuple[int, int]] = []
+    spans: list[tuple[int, int]] = []
     for storey in levels.storeys:
         ring = footprints.get(storey.storey_id)
         if ring is None:
@@ -408,9 +405,7 @@ def build_elevation(
         chain_id="elev-%s-height" % direction.lower(),
         offset_mm=u_right + sizes.chain_offset_mm,
     )
-    primitives.extend(
-        height_chain_primitives(chain, sizes=sizes, witness_from_u_mm=u_right)
-    )
+    primitives.extend(height_chain_primitives(chain, sizes=sizes, witness_from_u_mm=u_right))
 
     # ---- material callouts -------------------------------------------------
     if opts.include_callouts:
@@ -472,7 +467,7 @@ def build_elevation(
 
 
 def build_all_elevations(
-    house: Any, options: Optional[ElevationOptions] = None
-) -> Dict[str, VerticalDrawing]:
+    house: Any, options: ElevationOptions | None = None
+) -> dict[str, VerticalDrawing]:
     """All four §7 elevations, keyed by direction, in N-E-S-W order."""
     return {d: build_elevation(house, d, options) for d in DIRECTIONS_4}

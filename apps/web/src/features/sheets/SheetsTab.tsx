@@ -76,9 +76,7 @@ export function SheetsTab(): JSX.Element {
       setSummary(sum);
       setLoadError(null);
       setSelected((current) =>
-        current && set.sheets.some((s) => s.id === current)
-          ? current
-          : (set.sheets[0]?.id ?? null),
+        current && set.sheets.some((s) => s.id === current) ? current : (set.sheets[0]?.id ?? null),
       );
     } catch (cause: unknown) {
       setSheets([]);
@@ -114,9 +112,7 @@ export function SheetsTab(): JSX.Element {
   useEffect(() => {
     const state = sheetJobs.map((job) => `${job.id}:${job.status}`).join('|');
     if (state === lastJobState.current) return;
-    const finished = sheetJobs.some(
-      (job) => job.kind === 'sheets' && job.status === 'succeeded',
-    );
+    const finished = sheetJobs.some((job) => job.kind === 'sheets' && job.status === 'succeeded');
     lastJobState.current = state;
     if (finished) {
       void reload();
@@ -143,7 +139,9 @@ export function SheetsTab(): JSX.Element {
         severity: 'fail',
         title: "Couldn't start the drawing set",
         description:
-          cause instanceof AppError ? `${cause.message} ${cause.action}`.trim() : 'Something went wrong.',
+          cause instanceof AppError
+            ? `${cause.message} ${cause.action}`.trim()
+            : 'Something went wrong.',
         action: { label: 'Try again', onClick: () => void generate() },
       });
     } finally {
@@ -213,8 +211,8 @@ export function SheetsTab(): JSX.Element {
         <div>
           <h1 className="text-base font-semibold text-ink">Drawing set</h1>
           <p className="mt-0.5 max-w-2xl text-xs leading-5 text-ink-muted">
-            The municipal submission set, dimensioned from the model. Vector PDF and layered
-            DXF, print-true at 1:100.
+            The municipal submission set, dimensioned from the model. Vector PDF and layered DXF,
+            print-true at 1:100.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -282,8 +280,8 @@ export function SheetsTab(): JSX.Element {
             >
               <Icon name="alert-triangle" size={13} className="mt-px shrink-0" />
               <span>
-                <strong>{String(entry['number'] ?? entry['sheetId'] ?? 'A sheet')}</strong> was not
-                drawn: {String(entry['reason'] ?? 'no reason given')}
+                <strong>{String(entry.number ?? entry.sheetId ?? 'A sheet')}</strong> was not drawn:{' '}
+                {String(entry.reason ?? 'no reason given')}
               </span>
             </li>
           ))}
@@ -309,7 +307,10 @@ export function SheetsTab(): JSX.Element {
       {sheets === null ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="h-44 animate-pulse rounded-md border border-line bg-surface-muted" />
+            <div
+              key={i}
+              className="h-44 animate-pulse rounded-md border border-line bg-surface-muted"
+            />
           ))}
         </div>
       ) : hasSet ? (
@@ -396,14 +397,19 @@ export function SheetsTab(): JSX.Element {
             ))}
           </div>
           <p className="mt-2 text-2xs text-ink-muted">
-            Each download is a background job; the link it produces expires in ten minutes, so
-            start it when you are ready to save the file.
+            Each download is a background job; the link it produces expires in ten minutes, so start
+            it when you are ready to save the file.
           </p>
         </section>
       ) : null}
 
       {/* ── review tray ─────────────────────────────────────────────────── */}
-      <ReviewTray className="mt-6" tray={tray} loading={trayLoading} onRefresh={() => void reloadTray()} />
+      <ReviewTray
+        className="mt-6"
+        tray={tray}
+        loading={trayLoading}
+        onRefresh={() => void reloadTray()}
+      />
 
       {/* ── jobs ────────────────────────────────────────────────────────── */}
       <section className="mt-6" aria-label="Drawing jobs">
@@ -444,8 +450,8 @@ function SheetsEmptyState({
         <div>
           <h2 className="text-sm font-semibold text-ink">No drawings yet</h2>
           <p className="mt-0.5 text-xs text-ink-muted">
-            One click turns the current design into the six sheets below. It takes under a
-            minute for a G+1.
+            One click turns the current design into the six sheets below. It takes under a minute
+            for a G+1.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -471,10 +477,9 @@ function SheetsEmptyState({
       <div className="flex items-start gap-2 border-t border-line bg-surface-muted px-4 py-3 text-2xs leading-4 text-ink-muted">
         <Icon name="info" size={13} className="mt-px shrink-0" />
         <span>
-          Every dimension on a drawing is in millimetres regardless of what the units toggle
-          shows — that is the drafting convention, and it keeps chains summing exactly. GFC
-          depth (a second section, electrical and plumbing layouts, standard details) follows
-          in v1.1.
+          Every dimension on a drawing is in millimetres regardless of what the units toggle shows —
+          that is the drafting convention, and it keeps chains summing exactly. GFC depth (a second
+          section, electrical and plumbing layouts, standard details) follows in v1.1.
         </span>
       </div>
     </Card>

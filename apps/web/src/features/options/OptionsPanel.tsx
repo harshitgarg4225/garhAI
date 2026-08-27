@@ -33,12 +33,7 @@ import { useModelStore } from '../../stores/model';
 import { CompareTwo } from './CompareTwo';
 import { GenerationTheater } from './GenerationTheater';
 import { OptionCard, floorName } from './OptionCard';
-import {
-  assumptionEditOp,
-  effectiveBanner,
-  moreLikeThisParams,
-  newSeedParams,
-} from './stats';
+import { assumptionEditOp, effectiveBanner, moreLikeThisParams, newSeedParams } from './stats';
 import { theaterFromJob } from './theater';
 import { useOptionActions, useSolveOutcome, useSolverJob, useTheater } from './useOptions';
 import type { PlanOption, PtMm } from './types';
@@ -71,12 +66,8 @@ export function OptionsPanel({
   // gone, and reconnect-looping against it would be noise. The row state is
   // the honest fallback (theaterFromJob below).
   const liveTheater = useTheater(job !== null && !isTerminalStatus(job.status) ? job.id : null);
-  const theater =
-    liveTheater.status !== 'idle' || job === null ? liveTheater : theaterFromJob(job);
-  const { outcome, loading, error, reload } = useSolveOutcome(
-    job?.id ?? null,
-    job?.status ?? null,
-  );
+  const theater = liveTheater.status !== 'idle' || job === null ? liveTheater : theaterFromJob(job);
+  const { outcome, loading, error, reload } = useSolveOutcome(job?.id ?? null, job?.status ?? null);
   const actions = useOptionActions(projectId);
 
   const [pendingApply, setPendingApply] = useState<PendingApply | null>(null);
@@ -142,7 +133,7 @@ export function OptionsPanel({
     if (op === null) {
       toast({
         title: 'That value did not parse',
-        description: 'Lengths take "12\'6\"" or "3.8m"; areas take "120 sqft" or "11 sqm".',
+        description: 'Lengths take "12\'6"" or "3.8m"; areas take "120 sqft" or "11 sqm".',
         severity: 'warn',
       });
       return false;
@@ -173,7 +164,11 @@ export function OptionsPanel({
   const showEmptyState = job === null;
   const failed = job !== null && job.status === 'failed';
   const succeededEmpty =
-    job !== null && job.status === 'succeeded' && !loading && outcome !== null && options.length === 0;
+    job !== null &&
+    job.status === 'succeeded' &&
+    !loading &&
+    outcome !== null &&
+    options.length === 0;
 
   return (
     <div className={className}>
@@ -297,7 +292,10 @@ export function OptionsPanel({
                   toast({
                     title: 'Could not start the re-solve',
                     severity: 'fail',
-                    action: { label: 'Try again', onClick: () => void actions.regenerateFloor(floor) },
+                    action: {
+                      label: 'Try again',
+                      onClick: () => void actions.regenerateFloor(floor),
+                    },
                   });
                 });
               }}
@@ -371,8 +369,8 @@ function RegenControls({
       {lockableRooms.length > 0 ? (
         <div className="space-y-2">
           <p className="text-xs text-ink-muted">
-            Lock the rooms you want to keep, then regenerate the rest. Locked rooms come back
-            with the same shape in the same place.
+            Lock the rooms you want to keep, then regenerate the rest. Locked rooms come back with
+            the same shape in the same place.
           </p>
           <ul className="flex flex-wrap gap-1.5">
             {lockableRooms.map((room) => (

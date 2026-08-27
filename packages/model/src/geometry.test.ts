@@ -186,9 +186,9 @@ describe('segment intersection', () => {
     );
     expect(r.kind).toBe('point');
     if (r.kind === 'point') expect(r.onEndpoint).toBe(true);
-    expect(segmentsProperlyCross({ a: pt(0, 0), b: pt(1000, 0) }, { a: pt(1000, 0), b: pt(1000, 1000) })).toBe(
-      false,
-    );
+    expect(
+      segmentsProperlyCross({ a: pt(0, 0), b: pt(1000, 0) }, { a: pt(1000, 0), b: pt(1000, 1000) }),
+    ).toBe(false);
   });
 
   it('detects collinear overlap (the WALL_DUPLICATE invariant)', () => {
@@ -380,9 +380,9 @@ describe('jaccard (load-bearing for room-id matching)', () => {
 
 describe('ring cleanup helpers', () => {
   it('dedupeCollinear drops redundant vertices', () => {
-    expect(dedupeCollinear([pt(0, 0), pt(500, 0), pt(1000, 0), pt(1000, 1000), pt(0, 1000)])).toEqual(
-      square,
-    );
+    expect(
+      dedupeCollinear([pt(0, 0), pt(500, 0), pt(1000, 0), pt(1000, 1000), pt(0, 1000)]),
+    ).toEqual(square);
   });
 
   it('removeSpurs drops out-and-back excursions', () => {

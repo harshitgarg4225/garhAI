@@ -62,12 +62,17 @@ WORKDIR /app
 #
 # The heavy `ml` extra (torch/diffusers) is deliberately NOT installed: the
 # locked decision is that the whole product runs with zero GPUs and zero keys.
+# The tiny `llm` extra (the `anthropic` SDK) IS installed, so switching
+# PROVIDER_LLM=anthropic in production is a config flip plus a key — not an
+# image rebuild. The mock remains the default; the SDK sits unimported until
+# the env var selects it (services/llm/provider.py imports lazily).
 COPY ["apps/api/pyproject.toml", "/app/apps/api/pyproject.toml"]
 COPY ["services/pyproject.toml", "/app/services/pyproject.toml"]
 RUN python -c "\
 import tomllib;\
 paths = ('/app/apps/api/pyproject.toml', '/app/services/pyproject.toml');\
 deps = [d for p in paths for d in tomllib.load(open(p, 'rb'))['project']['dependencies']];\
+deps += tomllib.load(open('/app/services/pyproject.toml', 'rb'))['project']['optional-dependencies']['llm'];\
 print('\n'.join(dict.fromkeys(deps)))" > /tmp/requirements.txt \
     && cat /tmp/requirements.txt \
     && python -m pip install --upgrade pip \

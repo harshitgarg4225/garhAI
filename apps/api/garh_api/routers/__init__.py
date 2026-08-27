@@ -32,6 +32,7 @@ through to the catch-all and turn every deliberate 404 into a 500.
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 import hmac
 import json
@@ -39,9 +40,10 @@ import os
 import secrets
 import time
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Annotated, Any, Mapping, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -74,8 +76,8 @@ from garh_api.repositories import (
     TenantCtx,
 )
 from garh_api.tenancy import (
-    EntityNotFoundError,
     MAX_PAGE_SIZE,
+    EntityNotFoundError,
     PermissionDeniedError,
 )
 
@@ -115,13 +117,13 @@ class ApiError(_ProblemError):
 
     def __init__(
         self,
-        message: Optional[str] = None,
+        message: str | None = None,
         *,
-        status: Optional[int] = None,
-        code: Optional[str] = None,
-        action: Optional[str] = None,
-        extra: Optional[Mapping[str, Any]] = None,
-        headers: Optional[Mapping[str, str]] = None,
+        status: int | None = None,
+        code: str | None = None,
+        action: str | None = None,
+        extra: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> None:
         super().__init__(message, action=action, extra=extra, headers=headers)
         if status is not None:
@@ -166,12 +168,12 @@ require_admin_tenant = require_admin
 @dataclass(frozen=True)
 class PageParams:
     limit: int
-    cursor: Optional[str]
+    cursor: str | None
 
 
 def page_params(
     limit: int = Query(default=50, ge=1, le=MAX_PAGE_SIZE),
-    cursor: Optional[str] = Query(default=None, max_length=512),
+    cursor: str | None = Query(default=None, max_length=512),
 ) -> PageParams:
     return PageParams(limit=limit, cursor=cursor)
 
@@ -200,9 +202,7 @@ def main_branch_id(project_id: uuid.UUID) -> uuid.UUID:
     return uuid.uuid5(MAIN_BRANCH_NAMESPACE, str(project_id))
 
 
-async def active_branch(
-    session: AsyncSession, ctx: TenantCtx, project_id: uuid.UUID
-) -> uuid.UUID:
+async def active_branch(session: AsyncSession, ctx: TenantCtx, project_id: uuid.UUID) -> uuid.UUID:
     """Which branch writes and reads go to right now. See :data:`MAIN_BRANCH_NAMESPACE`."""
     latest = await DesignVersionRepository(session, ctx).latest(project_id)
     if latest is not None:
@@ -210,9 +210,7 @@ async def active_branch(
     return main_branch_id(project_id)
 
 
-async def require_project(
-    session: AsyncSession, ctx: TenantCtx, project_id: uuid.UUID
-) -> Project:
+async def require_project(session: AsyncSession, ctx: TenantCtx, project_id: uuid.UUID) -> Project:
     """Load a project or 404. A project from another firm is indistinguishable from a
     missing one — that is the cross-tenant guarantee, not an accident (§13)."""
     return await ProjectRepository(session, ctx).require(project_id)
@@ -272,7 +270,7 @@ def _humanise(seconds: int) -> str:
 # ---------------------------------------------------------------------------
 
 IdempotencyKeyDep = Annotated[
-    Optional[str],
+    str | None,
     Header(
         alias="Idempotency-Key",
         max_length=128,
@@ -302,7 +300,7 @@ class IdempotencyGuard:
     """
 
     scope: str
-    key: Optional[str]
+    key: str | None
     firm_id: Any
 
     @property
@@ -312,7 +310,7 @@ class IdempotencyGuard:
     def _redis_key(self) -> str:
         return queue.idempotency_key(self.firm_id, self.scope, str(self.key))
 
-    async def begin(self) -> Optional[dict[str, Any]]:
+    async def begin(self) -> dict[str, Any] | None:
         if not self.active:
             return None
         try:
@@ -326,7 +324,7 @@ class IdempotencyGuard:
             if claimed:
                 return None
             raw = await client.get(self._redis_key())
-        except Exception:  # noqa: BLE001 - Redis down => no idempotency, not no service
+        except Exception:
             return None
         if not raw:
             return None
@@ -350,17 +348,15 @@ class IdempotencyGuard:
                 json.dumps({"state": "done", "response": response}, default=str),
                 ex=queue.IDEMPOTENCY_TTL_SECONDS,
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _log.warning("idempotency.store_failed", scope=self.scope)
 
     async def release(self) -> None:
         """Drop the claim so a failed request can be retried with the same key."""
         if not self.active:
             return
-        try:
+        with contextlib.suppress(Exception):
             await queue.get_redis().delete(self._redis_key())
-        except Exception:  # noqa: BLE001
-            pass
 
 
 # ---------------------------------------------------------------------------
@@ -368,7 +364,7 @@ class IdempotencyGuard:
 # ---------------------------------------------------------------------------
 
 _DOWNLOAD_SIGNING_SALT = b"garh:download:v1"
-_process_fallback_secret: Optional[bytes] = None
+_process_fallback_secret: bytes | None = None
 
 
 def _download_secret(settings: Settings) -> bytes:
@@ -401,7 +397,7 @@ def _b64u_decode(value: str) -> bytes:
 
 
 def sign_download_token(
-    payload: dict[str, Any], *, ttl_seconds: Optional[int] = None
+    payload: dict[str, Any], *, ttl_seconds: int | None = None
 ) -> tuple[str, datetime]:
     """Mint an opaque, expiring, tamper-evident download token.
 
@@ -411,7 +407,7 @@ def sign_download_token(
     """
     settings = get_settings()
     ttl = min(int(ttl_seconds or settings.s3_signed_url_ttl_seconds), 600)
-    expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl)
+    expires_at = datetime.now(UTC) + timedelta(seconds=ttl)
     body = dict(payload)
     body["exp"] = int(expires_at.timestamp())
     encoded = _b64u(json.dumps(body, separators=(",", ":"), sort_keys=True).encode("utf-8"))

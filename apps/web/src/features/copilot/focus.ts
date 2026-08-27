@@ -37,7 +37,7 @@ export function registerCopilotInput(node: HTMLTextAreaElement | HTMLInputElemen
 export function focusCopilotInput(): void {
   useUiStore.getState().setPanel('copilot', true);
 
-  if (inputNode !== null && inputNode.isConnected) {
+  if (inputNode?.isConnected) {
     inputNode.focus();
     return;
   }
@@ -45,7 +45,7 @@ export function focusCopilotInput(): void {
   // the next frame, when the input has registered itself. Two frames covers
   // a lazy-mounted shell without resorting to polling.
   requestAnimationFrame(() => {
-    if (inputNode !== null && inputNode.isConnected) {
+    if (inputNode?.isConnected) {
       inputNode.focus();
       return;
     }

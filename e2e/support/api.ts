@@ -55,7 +55,9 @@ async function expectOk(
   response: { ok(): boolean; status(): number; text(): Promise<string> },
 ): Promise<void> {
   if (response.ok()) return;
-  throw new Error(`${label} failed with ${response.status()}: ${(await response.text()).slice(0, 500)}`);
+  throw new Error(
+    `${label} failed with ${response.status()}: ${(await response.text()).slice(0, 500)}`,
+  );
 }
 
 /** `POST /auth/otp`, returning the echoed code. Throws a useful error when the echo is off. */
@@ -117,10 +119,7 @@ export async function createProject(
   return (await response.json()) as Project;
 }
 
-export async function listProjects(
-  request: APIRequestContext,
-  token: string,
-): Promise<Project[]> {
+export async function listProjects(request: APIRequestContext, token: string): Promise<Project[]> {
   const response = await request.get(`${apiBase()}/projects`, { headers: authHeaders(token) });
   await expectOk('GET /projects', response);
   const body = (await response.json()) as { items: Project[] };

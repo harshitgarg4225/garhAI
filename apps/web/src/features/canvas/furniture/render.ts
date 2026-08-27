@@ -20,11 +20,7 @@
  */
 
 import { proxyCache } from './proxyMesh';
-import {
-  sceneScale,
-  writeScenePosition,
-  type PlanAxes,
-} from './sceneAxes';
+import { sceneScale, writeScenePosition, type PlanAxes } from './sceneAxes';
 import type { CatalogueItem, FurnitureCategory, PlacedFurniture, Pose } from './types';
 
 const DEG_TO_RAD = Math.PI / 180;
@@ -53,11 +49,7 @@ export interface BoxInstance {
 }
 
 /** Rotate a local offset into plan space and add the item's centre. */
-function placeOffset(
-  pose: Pose,
-  cx: number,
-  cy: number,
-): { px: number; py: number } {
+function placeOffset(pose: Pose, cx: number, cy: number): { px: number; py: number } {
   const deg = pose.rotationDeg;
   switch (deg) {
     case 0:
@@ -125,7 +117,7 @@ export function buildBoxInstances(placed: readonly PlacedFurniture[]): {
  * same code — an outline that shifts by a millimetre on commit is the kind of
  * detail that quietly erodes trust in the whole canvas.
  */
-export function footprintRingMm(item: CatalogueItem, pose: Pose): Array<{ x: number; y: number }> {
+export function footprintRingMm(item: CatalogueItem, pose: Pose): { x: number; y: number }[] {
   const hw = item.widthMm / 2;
   const hd = item.depthMm / 2;
   return [
@@ -140,7 +132,7 @@ export function footprintRingMm(item: CatalogueItem, pose: Pose): Array<{ x: num
 export function clearanceRingMm(
   item: CatalogueItem,
   pose: Pose,
-): Array<{ x: number; y: number }> | null {
+): { x: number; y: number }[] | null {
   if (item.clearanceMm <= 0) return null;
   const hw = item.widthMm / 2;
   const near = item.depthMm / 2;
@@ -159,15 +151,30 @@ export function clearanceRingMm(
 
 /** 12 edges of a unit cube, as pairs of corner indices. */
 const CUBE_EDGES: readonly (readonly [number, number])[] = [
-  [0, 1], [1, 3], [3, 2], [2, 0], // bottom
-  [4, 5], [5, 7], [7, 6], [6, 4], // top
-  [0, 4], [1, 5], [2, 6], [3, 7], // verticals
+  [0, 1],
+  [1, 3],
+  [3, 2],
+  [2, 0], // bottom
+  [4, 5],
+  [5, 7],
+  [7, 6],
+  [6, 4], // top
+  [0, 4],
+  [1, 5],
+  [2, 6],
+  [3, 7], // verticals
 ];
 
 /** Corner sign pattern, indexed to match {@link CUBE_EDGES}. */
 const CUBE_CORNERS: readonly (readonly [number, number, number])[] = [
-  [-1, -1, -1], [1, -1, -1], [-1, 1, -1], [1, 1, -1],
-  [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1],
+  [-1, -1, -1],
+  [1, -1, -1],
+  [-1, 1, -1],
+  [1, 1, -1],
+  [-1, -1, 1],
+  [1, -1, 1],
+  [-1, 1, 1],
+  [1, 1, 1],
 ];
 
 /**

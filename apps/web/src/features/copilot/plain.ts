@@ -31,7 +31,7 @@ export function opKind(opType: string, payload?: Readonly<Record<string, unknown
   const verb = opType.slice(opType.indexOf('.') + 1);
   // Composite ops (`column.set`, `furniture.set`, …) carry the real verb in
   // the payload's `action` field.
-  const action = typeof payload?.['action'] === 'string' ? (payload['action'] as string) : null;
+  const action = typeof payload?.action === 'string' ? payload.action : null;
   const effective = verb === 'set' && action !== null ? action : verb;
 
   if (effective === 'add' || effective === 'place' || effective === 'split') return 'add';
@@ -98,9 +98,9 @@ function str(value: unknown): string | null {
 
 /** "door" / "window" / "vent" for an opening payload, looked up when moving. */
 function openingNoun(op: CopilotWireOp, doc: ProjectDoc | null): string {
-  const kind = str(op.payload['kind']);
+  const kind = str(op.payload.kind);
   if (kind !== null) return kind;
-  const id = str(op.payload['openingId']);
+  const id = str(op.payload.openingId);
   if (doc !== null && id !== null) {
     const found = doc.house.openings.find((o) => o.id === id);
     if (found !== undefined) return found.kind;
@@ -109,7 +109,7 @@ function openingNoun(op: CopilotWireOp, doc: ProjectDoc | null): string {
 }
 
 function roomLabel(op: CopilotWireOp, doc: ProjectDoc | null): string {
-  const id = str(op.payload['roomId']);
+  const id = str(op.payload.roomId);
   if (doc !== null && id !== null) {
     const room = doc.house.rooms.find((r) => r.id === id);
     if (room !== undefined) return roomDisplayName(room);
@@ -128,7 +128,7 @@ export function describeOp(op: CopilotWireOp, doc: ProjectDoc | null = null): st
   const p = op.payload;
   switch (op.type) {
     case 'wall.add': {
-      const t = mm(p['thicknessMm'], doc);
+      const t = mm(p.thicknessMm, doc);
       return t === null ? 'Add a wall' : `Add a ${t} thick wall`;
     }
     case 'wall.move':
@@ -138,18 +138,18 @@ export function describeOp(op: CopilotWireOp, doc: ProjectDoc | null = null): st
     case 'wall.delete':
       return 'Remove a wall';
     case 'wall.set_thickness': {
-      const t = mm(p['thicknessMm'], doc);
+      const t = mm(p.thicknessMm, doc);
       return t === null ? 'Change a wall thickness' : `Make a wall ${t} thick`;
     }
     case 'opening.add': {
-      const w = mm(p['widthMm'], doc);
+      const w = mm(p.widthMm, doc);
       const noun = openingNoun(op, doc);
       return w === null ? `Add a ${noun}` : `Add a ${w} wide ${noun}`;
     }
     case 'opening.move':
       return `Move a ${openingNoun(op, doc)} along its wall`;
     case 'opening.resize': {
-      const w = mm(p['widthMm'], doc);
+      const w = mm(p.widthMm, doc);
       const noun = openingNoun(op, doc);
       return w === null ? `Resize a ${noun}` : `Make a ${noun} ${w} wide`;
     }
@@ -158,28 +158,28 @@ export function describeOp(op: CopilotWireOp, doc: ProjectDoc | null = null): st
     case 'opening.delete':
       return `Remove a ${openingNoun(op, doc)}`;
     case 'room.assign': {
-      const type = str(p['type']);
+      const type = str(p.type);
       const label =
         type !== null && type in ROOM_TYPE_LABELS
           ? ROOM_TYPE_LABELS[type as keyof typeof ROOM_TYPE_LABELS]
-          : (str(p['name']) ?? 'a new use');
+          : (str(p.name) ?? 'a new use');
       return `Make ${roomLabel(op, doc)} a ${label.toLowerCase()}`;
     }
     case 'room.set_target':
       return `Set a size target for ${roomLabel(op, doc)}`;
     case 'storey.add': {
-      const name = str(p['name']);
+      const name = str(p.name);
       return name === null ? 'Add a floor' : `Add ${name}`;
     }
     case 'storey.remove':
       return 'Remove a floor';
     case 'storey.set_height': {
-      const h = mm(p['heightMm'], doc);
+      const h = mm(p.heightMm, doc);
       return h === null ? 'Change a floor height' : `Make a floor ${h} tall`;
     }
     case 'brief.update':
-      return str(p['vastuMode']) !== null
-        ? `Set Vastu guidance to ${str(p['vastuMode'])}`
+      return str(p.vastuMode) !== null
+        ? `Set Vastu guidance to ${str(p.vastuMode)}`
         : 'Update the brief';
     case 'stair.add':
       return 'Add a staircase';
@@ -311,6 +311,9 @@ function lastPhrase(text: string): string | null {
 function firstPhrase(text: string): string | null {
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return null;
-  const phrase = words.slice(0, CHIP_MAX_WORDS).join(' ').replace(/[.!?]+$/, '');
+  const phrase = words
+    .slice(0, CHIP_MAX_WORDS)
+    .join(' ')
+    .replace(/[.!?]+$/, '');
   return phrase.length > 1 ? phrase : null;
 }

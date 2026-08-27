@@ -53,9 +53,7 @@ export function VastuWheel({
   const rInner = 18;
   const rLabel = 32;
 
-  const described = wheel.rules
-    .map((r) => `${r.title}: ${r.status}`)
-    .join('; ');
+  const described = wheel.rules.map((r) => `${r.title}: ${r.status}`).join('; ');
 
   return (
     <div className={cn('flex items-start gap-3', className)}>

@@ -70,7 +70,7 @@ class JobCheckpoint:
         """
         try:
             raw = await self.redis.get(self.key)
-        except Exception as exc:  # noqa: BLE001 - a lost checkpoint only costs time
+        except Exception as exc:
             log.warning("checkpoint.load_failed", job_id=self.job_id, error=str(exc))
             return {}
         if raw is None:
@@ -112,21 +112,21 @@ class JobCheckpoint:
             return
         try:
             await self.redis.set(self.key, payload, ex=self.ttl_seconds)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("checkpoint.save_failed", job_id=self.job_id, error=str(exc))
 
     async def clear(self) -> None:
         """Drop the checkpoint. Called once a job reaches a terminal state."""
         try:
             await self.redis.delete(self.key)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("checkpoint.clear_failed", job_id=self.job_id, error=str(exc))
 
 
 class NullCheckpoint(JobCheckpoint):
     """In-memory checkpoint for tests and for handlers invoked directly."""
 
-    def __init__(self, job_id: str = "test-job") -> None:  # noqa: D107
+    def __init__(self, job_id: str = "test-job") -> None:
         self.job_id = job_id
         self.ttl_seconds = 0
         self.key = CHECKPOINT_KEY_TEMPLATE % job_id

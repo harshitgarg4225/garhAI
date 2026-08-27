@@ -15,14 +15,14 @@ pnpm --filter @garh/web build      # typecheck, then bundle to dist/
 
 ## Layout
 
-| Path | Owns |
-|---|---|
-| `src/lib/` | env, errors (`AppError`), tokens, `HttpClient`, zod schemas, the `api` client, SSE, units, keymap, share helpers |
-| `src/stores/` | `useSessionStore` `useProjectStore` `useModelStore` `useSelectionStore` `useJobsStore` `useUiStore` — **`model` is the only writer of the document** |
-| `src/components/` | app shell, project layout, inspector, compliance strip, dialogs |
-| `src/pages/` | login, dashboard, project shell + the six project tabs |
-| `public/` | see below |
-| `nginx.conf` | the `prod` image's server config: SPA fallback + §13 headers |
+| Path              | Owns                                                                                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/`        | env, errors (`AppError`), tokens, `HttpClient`, zod schemas, the `api` client, SSE, units, keymap, share helpers                                     |
+| `src/stores/`     | `useSessionStore` `useProjectStore` `useModelStore` `useSelectionStore` `useJobsStore` `useUiStore` — **`model` is the only writer of the document** |
+| `src/components/` | app shell, project layout, inspector, compliance strip, dialogs                                                                                      |
+| `src/pages/`      | login, dashboard, project shell + the six project tabs                                                                                               |
+| `public/`         | see below                                                                                                                                            |
+| `nginx.conf`      | the `prod` image's server config: SPA fallback + §13 headers                                                                                         |
 
 ## Two tsconfigs, on purpose
 
@@ -45,10 +45,10 @@ transform. Only files referenced by absolute path from `index.html` (or fetched
 by the browser unprompted) belong here; anything TypeScript imports should live
 under `src/` so Vite fingerprints it.
 
-| File | Referenced by | Notes |
-|---|---|---|
-| `favicon.svg` | `<link rel="icon">` | Hand-drawn on the same 32-unit grid as `packages/ui/src/icons.tsx`. Colours are literal hex, not `--garh-*` — a favicon document gets no CSS custom properties from the page. A `prefers-color-scheme` block keeps it visible in dark browser chrome. |
-| `apple-touch-icon.png` | `<link rel="apple-touch-icon">` | 180×180 opaque RGB; iOS ignores alpha and rounds the corners itself. |
+| File                   | Referenced by                   | Notes                                                                                                                                                                                                                                                 |
+| ---------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `favicon.svg`          | `<link rel="icon">`             | Hand-drawn on the same 32-unit grid as `packages/ui/src/icons.tsx`. Colours are literal hex, not `--garh-*` — a favicon document gets no CSS custom properties from the page. A `prefers-color-scheme` block keeps it visible in dark browser chrome. |
+| `apple-touch-icon.png` | `<link rel="apple-touch-icon">` | 180×180 opaque RGB; iOS ignores alpha and rounds the corners itself.                                                                                                                                                                                  |
 
 Both were missing while `index.html` linked them, so every page load produced
 two 404s — noise that teaches a developer to ignore 404s.
@@ -61,10 +61,10 @@ capability that does not exist).
 
 ## Security notes that live in code, not here
 
-* Only `import.meta.env.VITE_*` may be read, and only in `src/lib/env.ts`
+- Only `import.meta.env.VITE_*` may be read, and only in `src/lib/env.ts`
   (`make secret-audit` is the gate; `eslint.config.js` bans `process.env` in this
   package so it also fails in the editor).
-* `index.html` has **no inline script**, which is what lets `nginx.conf` ship
+- `index.html` has **no inline script**, which is what lets `nginx.conf` ship
   `script-src 'self'` with no nonce and no `'unsafe-inline'`.
-* Every API response is zod-parsed before a store sees it; a shape drift becomes
+- Every API response is zod-parsed before a store sees it; a shape drift becomes
   a `malformed_response` `AppError` with a request id, never a silent `undefined`.

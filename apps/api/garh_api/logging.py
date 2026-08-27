@@ -32,6 +32,7 @@ Bind ids and, when a domain is genuinely useful, the email *domain* only.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import logging.config
 import sys
@@ -109,10 +110,8 @@ def error_hook_processor(
             exc = current
     if exc is None:
         return event_dict
-    try:
+    with contextlib.suppress(Exception):
         _error_hook(exc, dict(event_dict))
-    except Exception:  # noqa: BLE001 - never let telemetry raise
-        pass
     return event_dict
 
 
@@ -292,41 +291,18 @@ def set_error_hook(hook: Callable[[BaseException, MutableMapping[str, Any]], Non
 def init_error_reporting(settings: Settings | None = None) -> bool:
     """Wire Sentry if ``SENTRY_DSN`` is set and ``sentry_sdk`` is installed.
 
-    ``sentry_sdk`` is intentionally **not** a pinned dependency: the platform must
-    run with zero third-party telemetry. This is the seam, not the commitment.
-    Returns True when a sink was installed.
+    Kept as the seam this module's docstring (and ``apps/api/README.md``) always
+    advertised, but the implementation moved to
+    :func:`garh_api.observability.init_sentry`, which adds the pieces the
+    original lacked — the PII-scrubbing ``before_send`` hook and the
+    ``APP_VERSION``/``GIT_SHA`` release stamp. Returns True when a sink was
+    installed.
     """
-    cfg = settings or get_settings()
-    if not cfg.sentry_enabled:
-        return False
-    try:
-        import sentry_sdk  # type: ignore[import-not-found]
-    except ImportError:
-        get_logger(__name__).warning(
-            "sentry.unavailable",
-            reason="SENTRY_DSN is set but sentry_sdk is not installed",
-            action="pip install sentry-sdk, or unset SENTRY_DSN",
-        )
-        return False
+    # Local import: observability imports FROM this module (set_error_hook,
+    # scrub_pii), so importing it at module scope would be a cycle.
+    from garh_api.observability import init_sentry
 
-    sentry_sdk.init(
-        dsn=cfg.sentry_dsn,
-        environment=cfg.env,
-        release=cfg.app_name,
-        traces_sample_rate=cfg.sentry_traces_sample_rate,
-        send_default_pii=False,
-    )
-
-    def _hook(exc: BaseException, context: MutableMapping[str, Any]) -> None:
-        with sentry_sdk.new_scope() as scope:
-            for key in ("request_id", "firm_id", "user_id", "http_path", "http_method"):
-                if key in context:
-                    scope.set_tag(key, context[key])
-            scope.set_context("log_event", dict(context))
-            sentry_sdk.capture_exception(exc)
-
-    set_error_hook(_hook)
-    return True
+    return init_sentry(settings or get_settings())
 
 
 def report_exception(exc: BaseException, **context: Any) -> None:

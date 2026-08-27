@@ -50,11 +50,7 @@ import {
   wallQuad2x,
   type WallLike,
 } from './geometry';
-import {
-  deleteFurnitureOp,
-  placeFurnitureOp,
-  transformFurnitureOp,
-} from './ops';
+import { deleteFurnitureOp, placeFurnitureOp, transformFurnitureOp } from './ops';
 import { PlacementController, suggestRotationDeg } from './placement';
 import { boxProxyFor } from './proxyMesh';
 import { buildBoxInstances, clearanceRingMm, footprintRingMm } from './render';
@@ -465,7 +461,11 @@ describe('collision feedback', () => {
   });
 
   it('does not warn about a well-placed item at all', () => {
-    const issues = evaluatePlacement(QUEEN_BED, { pt: at(2800, 2800), rotationDeg: 180 }, context());
+    const issues = evaluatePlacement(
+      QUEEN_BED,
+      { pt: at(2800, 2800), rotationDeg: 180 },
+      context(),
+    );
     expect(issues.filter((i) => i.severity === 'warn')).toHaveLength(0);
   });
 
@@ -474,7 +474,13 @@ describe('collision feedback', () => {
       storeyId: STOREY_ID,
       snapStepMm: 115,
       walls: [
-        { id: 'wall_up', storeyId: FIXTURE_IDS.firstStorey, a: at(0, 0), b: at(4000, 0), thicknessMm: 230 },
+        {
+          id: 'wall_up',
+          storeyId: FIXTURE_IDS.firstStorey,
+          a: at(0, 0),
+          b: at(4000, 0),
+          thicknessMm: 230,
+        },
       ],
       furniture: [{ ...placedWardrobe, storeyId: FIXTURE_IDS.firstStorey }],
       rooms: [],
@@ -592,7 +598,7 @@ describe('placement state machine', () => {
     const c = controllerWithStorey();
     c.arm(QUEEN_BED);
     c.handleKey({ key: 'y' });
-    for (const ch of "12'6\"") c.handleKey({ key: ch });
+    for (const ch of '12\'6"') c.handleKey({ key: ch });
     // 12'6" = 3810 mm exactly.
     expect(c.getPoseState().pose.pt.y).toBe(3810);
   });

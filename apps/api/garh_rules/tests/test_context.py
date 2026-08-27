@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Carried Phase-2 finding (i): the ``buildingUse`` default drift.
 
 ``garh_api.compliance.build_evaluation_context`` used to default
@@ -37,11 +35,14 @@ asserted anywhere. In CI the real packages import first and the shims are dead
 code.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import sys
 import types
-from typing import Any, Dict, List, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from .conftest import REPO_ROOT, RULEPACK_DIR
 
@@ -72,7 +73,7 @@ class _NoopLogger:
     def _log(self, *args: Any, **kwargs: Any) -> None:
         return None
 
-    def bind(self, *args: Any, **kwargs: Any) -> "_NoopLogger":
+    def bind(self, *args: Any, **kwargs: Any) -> _NoopLogger:
         return self
 
     debug = info = warning = error = critical = exception = _log
@@ -127,23 +128,24 @@ from garh_api.compliance import (  # noqa: E402  (shims must land first)
     build_evaluation_context,
     packs_for,
 )
-from garh_rules import evaluate  # noqa: E402
 
+from garh_rules import evaluate  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
 
 
-def _read_json(path: str) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as handle:
-        data: Dict[str, Any] = json.load(handle)
+def _read_json(path: str) -> dict[str, Any]:
+    with open(path, encoding="utf-8") as handle:
+        data: dict[str, Any] = json.load(handle)
     return data
 
 
-def _building_use_enum() -> List[str]:
+def _building_use_enum() -> list[str]:
     schema = _read_json(os.path.join(RULEPACK_DIR, "schema", "rulepack.schema.json"))
     text = json.dumps(schema)
+
     # Resolve through $defs so this survives schema refactors: find the property.
     def find(node: Any) -> Any:
         if isinstance(node, dict):
@@ -167,23 +169,23 @@ def _building_use_enum() -> List[str]:
     return list(enum)
 
 
-def _clause_values(clause: Any) -> List[str]:
+def _clause_values(clause: Any) -> list[str]:
     """Every literal a when.buildingUse predicate can compare against."""
-    values: List[str] = []
+    values: list[str] = []
     if isinstance(clause, Mapping):
         for op in ("eq", "neq"):
             if isinstance(clause.get(op), str):
                 values.append(clause[op])
         for op in ("in", "nin"):
             entries = clause.get(op)
-            if isinstance(entries, (list, tuple)):
+            if isinstance(entries, list | tuple):
                 values.extend(str(v) for v in entries)
     elif isinstance(clause, str):
         values.append(clause)
     return values
 
 
-def _default_context_document() -> Dict[str, Any]:
+def _default_context_document() -> dict[str, Any]:
     """A house an architect has *just started*: plot drawn, road set, nothing else
     answered — exactly the state in which the default buildingUse governs."""
     return {
@@ -272,10 +274,8 @@ class TestBuildingUseVocabulary:
         """The client mirror computes the panel's instant numbers; if its default
         drifts from the server constant, the two band differently. String-level
         pin — the mirror is data, not importable from Python."""
-        mirror_path = os.path.join(
-            REPO_ROOT, "apps", "web", "src", "features", "plot", "rules.ts"
-        )
-        with open(mirror_path, "r", encoding="utf-8") as handle:
+        mirror_path = os.path.join(REPO_ROOT, "apps", "web", "src", "features", "plot", "rules.ts")
+        with open(mirror_path, encoding="utf-8") as handle:
             source = handle.read()
         assert "'%s'" % DEFAULT_BUILDING_USE in source or '"%s"' % DEFAULT_BUILDING_USE in source, (
             "apps/web/src/features/plot/rules.ts no longer contains the default "
@@ -319,9 +319,7 @@ class TestDefaultContextBindsCityRules:
             context = build_evaluation_context(document, packs=packs_for(document))
             report = evaluate(context, root=RULEPACK_DIR)
             bound = [
-                r
-                for r in report.results
-                if r.pack_id == city and r.status != "not_applicable"
+                r for r in report.results if r.pack_id == city and r.status != "not_applicable"
             ]
             assert bound, (
                 "%s: no rule bound for a default-context house — the buildingUse "
@@ -374,7 +372,7 @@ if __name__ == "__main__":  # pragma: no cover
     import traceback
 
     failures = 0
-    for cls_name, cls in sorted(list(globals().items())):
+    for cls_name, cls in sorted(globals().items()):
         if not (isinstance(cls, type) and cls_name.startswith("Test")):
             continue
         instance = cls()
@@ -384,7 +382,7 @@ if __name__ == "__main__":  # pragma: no cover
             try:
                 getattr(instance, name)()
                 print("PASS %s.%s" % (cls_name, name))
-            except Exception:  # noqa: BLE001
+            except Exception:
                 failures += 1
                 print("FAIL %s.%s" % (cls_name, name))
                 traceback.print_exc()

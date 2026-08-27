@@ -24,8 +24,9 @@ and tells a reviewer nothing about the rise.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import replace
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.sheets.frame import sheet_title_block
 from services.drawings.sheets.model import (
@@ -40,7 +41,7 @@ from services.drawings.sheets.model import (
 )
 
 #: The four elevations, in the order a municipal set presents them.
-ELEVATION_ORDER: Tuple[str, ...] = ("N", "E", "S", "W")
+ELEVATION_ORDER: tuple[str, ...] = ("N", "E", "S", "W")
 
 ELEVATION_NAMES = {
     "N": "North Elevation",
@@ -59,11 +60,11 @@ SITE_PLAN_SCALE = Scale(200)
 def build_sheet_set(
     house: Any,
     *,
-    title_block: Optional[TitleBlock] = None,
+    title_block: TitleBlock | None = None,
     paper: str = DEFAULT_PAPER,
     scale: Scale = DEFAULT_SCALE,
-    include: Optional[Sequence[SheetKind]] = None,
-) -> Tuple[Sheet, ...]:
+    include: Sequence[SheetKind] | None = None,
+) -> tuple[Sheet, ...]:
     """The six §7 sheet kinds, expanded over this model's storeys and elevations.
 
     ``include`` narrows the set to the kinds a job asked for (the drawings worker's
@@ -75,7 +76,7 @@ def build_sheet_set(
     base_frame = default_frame(paper, title_block=title_block or TitleBlock())
     storeys = list(house.storeys)
 
-    entries: List[Tuple[SheetKind, str, str, Viewport, Scale]] = []
+    entries: list[tuple[SheetKind, str, str, Viewport, Scale]] = []
     entries.append(
         ("site-plan", "site-plan", "Site Plan", _site_viewport(storeys), SITE_PLAN_SCALE)
     )
@@ -121,7 +122,7 @@ def build_sheet_set(
     )
     entries.append(("area-statement", "area-statement", "Area Statement", Viewport(), scale))
 
-    sheets: List[Sheet] = []
+    sheets: list[Sheet] = []
     for index, (kind, slug, title, viewport, sheet_scale) in enumerate(entries, start=1):
         number = "A-%02d" % index
         if wanted is not None and kind not in wanted:
@@ -159,10 +160,10 @@ def _site_viewport(storeys: Sequence[Any]) -> Viewport:
     return Viewport(storey_id=storeys[0].id)
 
 
-def building_extent_mm(house: Any) -> Optional[Tuple[int, int, int, int]]:
+def building_extent_mm(house: Any) -> tuple[int, int, int, int] | None:
     """Bounding box of every wall centreline in the building, across all storeys."""
-    xs: List[int] = []
-    ys: List[int] = []
+    xs: list[int] = []
+    ys: list[int] = []
     for wall in house.walls:
         xs.extend((wall.a.x, wall.b.x))
         ys.extend((wall.a.y, wall.b.y))
@@ -173,7 +174,7 @@ def building_extent_mm(house: Any) -> Optional[Tuple[int, int, int, int]]:
 
 def section_line_through_stair(
     house: Any,
-) -> Optional[Tuple[Tuple[int, int], Tuple[int, int]]]:
+) -> tuple[tuple[int, int], tuple[int, int]] | None:
     """§7's auto-chosen section line: along the first stair's flight, through its centre.
 
     Returns the cut line in model mm, running past the building by
@@ -214,7 +215,7 @@ def section_line_through_stair(
     )
 
 
-def section_markers_for(sheets: Sequence[Sheet]) -> Tuple[Any, ...]:
+def section_markers_for(sheets: Sequence[Sheet]) -> tuple[Any, ...]:
     """The section markers a floor plan should show, taken from the section sheets.
 
     The marker on the plan and the sheet it points to read the same
@@ -223,7 +224,7 @@ def section_markers_for(sheets: Sequence[Sheet]) -> Tuple[Any, ...]:
     """
     from services.drawings.projection.symbols import SectionMarker
 
-    markers: List[Any] = []
+    markers: list[Any] = []
     letters = "ABCDEFGH"
     index = 0
     for sheet in sheets:

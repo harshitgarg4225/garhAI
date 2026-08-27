@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The engine's input: a flattened, pre-derived projection of model + plot + profile.
 
 The shape is not ours to invent — it is
@@ -24,8 +22,11 @@ context from the parts they have (:func:`context_from_parts`), and the engine
 reports the affected rules honestly rather than passing them.
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from .errors import ContextError
 from .ratio import require_int
@@ -75,7 +76,7 @@ ROOM_TYPE_ALIASES: Mapping[str, str] = {
 
 #: Fields the EvaluationContext requires that ``garh_model``'s document cannot
 #: supply today. Named here so nobody papers over them with a guess.
-MODEL_FIELDS_NOT_IN_MODEL_CORE: Tuple[str, ...] = (
+MODEL_FIELDS_NOT_IN_MODEL_CORE: tuple[str, ...] = (
     "opening.role — openingRole (main-entrance|internal|bath|balcony|service|garage) "
     "drives every door-width minimum; the model core has no such field, so inferring it "
     "would mislabel the main door.",
@@ -88,20 +89,20 @@ MODEL_FIELDS_NOT_IN_MODEL_CORE: Tuple[str, ...] = (
 )
 
 
-def _opt_int(value: Any, what: str) -> Optional[int]:
+def _opt_int(value: Any, what: str) -> int | None:
     if value is None:
         return None
     return require_int(value, what)
 
 
-def _point(value: Any, what: str) -> Tuple[int, int]:
-    if not isinstance(value, (list, tuple)) or len(value) != 2:
+def _point(value: Any, what: str) -> tuple[int, int]:
+    if not isinstance(value, list | tuple) or len(value) != 2:
         raise ContextError("%s must be a [x, y] pair, got %r" % (what, value), field=what)
     return (require_int(value[0], "%s[0]" % what), require_int(value[1], "%s[1]" % what))
 
 
-def _ring(value: Any, what: str) -> Tuple[Tuple[int, int], ...]:
-    if not isinstance(value, (list, tuple)) or len(value) < 3:
+def _ring(value: Any, what: str) -> tuple[tuple[int, int], ...]:
+    if not isinstance(value, list | tuple) or len(value) < 3:
         raise ContextError("%s must be a ring of >= 3 points" % what, field=what)
     return tuple(_point(p, "%s[%d]" % (what, i)) for i, p in enumerate(value))
 
@@ -140,11 +141,11 @@ class PlotEdge:
 
     index: int
     role: str  # front | rear | side-a | side-b | other
-    road_width_mm: Optional[int]
+    road_width_mm: int | None
     setback_provided_mm: int
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], where: str) -> "PlotEdge":
+    def from_json(cls, data: Mapping[str, Any], where: str) -> PlotEdge:
         return cls(
             index=require_int(data.get("index"), "%s.index" % where),
             role=_str(data.get("role"), "%s.role" % where),
@@ -154,7 +155,7 @@ class PlotEdge:
             ),
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "index": self.index,
             "role": self.role,
@@ -165,35 +166,35 @@ class PlotEdge:
 
 @dataclass(frozen=True)
 class PlotSummary:
-    boundary_mm: Tuple[Tuple[int, int], ...]
+    boundary_mm: tuple[tuple[int, int], ...]
     area_mm2: int
     north_deg: int
     corner_plot: bool
-    edges: Tuple[PlotEdge, ...]
-    frontage_mm: Optional[int] = None
-    depth_mm: Optional[int] = None
+    edges: tuple[PlotEdge, ...]
+    frontage_mm: int | None = None
+    depth_mm: int | None = None
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any]) -> "PlotSummary":
+    def from_json(cls, data: Mapping[str, Any]) -> PlotSummary:
         edges = data.get("edges")
-        if not isinstance(edges, (list, tuple)) or len(edges) < 3:
+        if not isinstance(edges, list | tuple) or len(edges) < 3:
             raise ContextError("plot.edges must list at least 3 edges", field="plot.edges")
         north = require_int(data.get("northDeg"), "plot.northDeg")
         if not 0 <= north <= 359:
-            raise ContextError("plot.northDeg must be 0..359, got %d" % north, field="plot.northDeg")
+            raise ContextError(
+                "plot.northDeg must be 0..359, got %d" % north, field="plot.northDeg"
+            )
         return cls(
             boundary_mm=_ring(data.get("boundaryMm"), "plot.boundaryMm"),
             area_mm2=require_int(data.get("areaMm2"), "plot.areaMm2"),
             north_deg=north,
             corner_plot=_bool(data.get("cornerPlot"), "plot.cornerPlot"),
-            edges=tuple(
-                PlotEdge.from_json(e, "plot.edges[%d]" % i) for i, e in enumerate(edges)
-            ),
+            edges=tuple(PlotEdge.from_json(e, "plot.edges[%d]" % i) for i, e in enumerate(edges)),
             frontage_mm=_opt_int(data.get("frontageMm"), "plot.frontageMm"),
             depth_mm=_opt_int(data.get("depthMm"), "plot.depthMm"),
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "boundaryMm": [list(p) for p in self.boundary_mm],
             "areaMm2": self.area_mm2,
@@ -204,10 +205,10 @@ class PlotSummary:
             "edges": [e.to_json() for e in self.edges],
         }
 
-    def edges_with_role(self, role: str) -> Tuple[PlotEdge, ...]:
+    def edges_with_role(self, role: str) -> tuple[PlotEdge, ...]:
         return tuple(e for e in self.edges if e.role == role)
 
-    def front_road_width_mm(self) -> Optional[int]:
+    def front_road_width_mm(self) -> int | None:
         """The primary access road: the road on the ``front`` edge, else ``None``.
 
         ``None`` is load-bearing. Every numeric operator on a null context field
@@ -238,19 +239,19 @@ class RuleOverride:
     """
 
     reason: str
-    by_user_id: Optional[str] = None
-    at: Optional[str] = None
+    by_user_id: str | None = None
+    at: str | None = None
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], where: str) -> "RuleOverride":
+    def from_json(cls, data: Mapping[str, Any], where: str) -> RuleOverride:
         return cls(
             reason=_str(data.get("reason"), "%s.reason" % where),
             by_user_id=data.get("byUserId"),
             at=data.get("at"),
         )
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {"reason": self.reason}
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"reason": self.reason}
         if self.by_user_id is not None:
             out["byUserId"] = self.by_user_id
         if self.at is not None:
@@ -284,7 +285,7 @@ class ProfileSummary:
     value_overrides: Mapping[str, int] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any]) -> "ProfileSummary":
+    def from_json(cls, data: Mapping[str, Any]) -> ProfileSummary:
         raw_overrides = data.get("overrides") or {}
         if not isinstance(raw_overrides, Mapping):
             raise ContextError("profile.overrides must be an object", field="profile.overrides")
@@ -316,8 +317,8 @@ class ProfileSummary:
             },
         )
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
             "cityPack": self.city_pack,
             "zoneCategory": self.zone_category,
             "buildingUse": self.building_use,
@@ -326,15 +327,13 @@ class ProfileSummary:
             "rwhDeclared": self.rwh_declared,
         }
         if self.overrides or self.value_overrides:
-            merged: Dict[str, Any] = {
-                k: v.to_json() for k, v in sorted(self.overrides.items())
-            }
+            merged: dict[str, Any] = {k: v.to_json() for k, v in sorted(self.overrides.items())}
             if self.value_overrides:
                 merged[VALUE_OVERRIDES_KEY] = dict(sorted(self.value_overrides.items()))
             out["overrides"] = merged
         return out
 
-    def flag(self, name: str) -> Optional[bool]:
+    def flag(self, name: str) -> bool | None:
         """Boolean profile fields addressable by name, for ``custom.rwh_required``."""
         if name == "rwhDeclared":
             return self.rwh_declared
@@ -351,11 +350,11 @@ class StoreySummary:
     id: str
     index: int
     height_mm: int
-    clear_height_mm: Optional[int] = None
-    built_up_area_mm2: Optional[int] = None
+    clear_height_mm: int | None = None
+    built_up_area_mm2: int | None = None
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], where: str) -> "StoreySummary":
+    def from_json(cls, data: Mapping[str, Any], where: str) -> StoreySummary:
         return cls(
             id=_str(data.get("id"), "%s.id" % where),
             index=require_int(data.get("index"), "%s.index" % where),
@@ -364,8 +363,8 @@ class StoreySummary:
             built_up_area_mm2=_opt_int(data.get("builtUpAreaMm2"), "%s.builtUpAreaMm2" % where),
         )
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {"id": self.id, "index": self.index, "heightMm": self.height_mm}
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"id": self.id, "index": self.index, "heightMm": self.height_mm}
         if self.clear_height_mm is not None:
             out["clearHeightMm"] = self.clear_height_mm
         if self.built_up_area_mm2 is not None:
@@ -379,10 +378,10 @@ class RoomSummary:
     storey_id: str
     type: str
     name: str
-    polygon_mm: Tuple[Tuple[int, int], ...]
+    polygon_mm: tuple[tuple[int, int], ...]
     area_mm2: int
     least_width_mm: int
-    centroid_mm: Tuple[int, int]
+    centroid_mm: tuple[int, int]
     clear_ceiling_height_mm: int
     ventilation_opening_area_mm2: int
     is_internal: bool
@@ -391,7 +390,7 @@ class RoomSummary:
     raw_type: str = ""
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], where: str) -> "RoomSummary":
+    def from_json(cls, data: Mapping[str, Any], where: str) -> RoomSummary:
         raw_type = _str(data.get("type"), "%s.type" % where)
         return cls(
             id=_str(data.get("id"), "%s.id" % where),
@@ -413,7 +412,7 @@ class RoomSummary:
             raw_type=raw_type,
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "storeyId": self.storey_id,
@@ -438,14 +437,14 @@ class OpeningSummary:
     role: str
     width_mm: int
     height_mm: int
-    wall_id: Optional[str] = None
-    sill_mm: Optional[int] = None
-    room_ids: Tuple[str, ...] = ()
-    centroid_mm: Optional[Tuple[int, int]] = None
-    outward_normal_deg: Optional[int] = None
+    wall_id: str | None = None
+    sill_mm: int | None = None
+    room_ids: tuple[str, ...] = ()
+    centroid_mm: tuple[int, int] | None = None
+    outward_normal_deg: int | None = None
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], where: str) -> "OpeningSummary":
+    def from_json(cls, data: Mapping[str, Any], where: str) -> OpeningSummary:
         normal = data.get("outwardNormalDeg")
         if normal is not None:
             normal = require_int(normal, "%s.outwardNormalDeg" % where)
@@ -469,8 +468,8 @@ class OpeningSummary:
             outward_normal_deg=normal,
         )
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
             "id": self.id,
             "storeyId": self.storey_id,
             "kind": self.kind,
@@ -498,12 +497,12 @@ class StairSummary:
     tread_mm: int
     width_mm: int
     headroom_mm: int
-    kind: Optional[str] = None
-    risers_count: Optional[int] = None
-    centroid_mm: Optional[Tuple[int, int]] = None
+    kind: str | None = None
+    risers_count: int | None = None
+    centroid_mm: tuple[int, int] | None = None
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], where: str) -> "StairSummary":
+    def from_json(cls, data: Mapping[str, Any], where: str) -> StairSummary:
         centroid = data.get("centroidMm")
         return cls(
             id=_str(data.get("id"), "%s.id" % where),
@@ -517,8 +516,8 @@ class StairSummary:
             centroid_mm=_point(centroid, "%s.centroidMm" % where) if centroid else None,
         )
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
             "id": self.id,
             "storeyId": self.storey_id,
             "riserMm": self.riser_mm,
@@ -545,7 +544,7 @@ class ProjectionSummary:
     into_setback: bool = False
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], where: str) -> "ProjectionSummary":
+    def from_json(cls, data: Mapping[str, Any], where: str) -> ProjectionSummary:
         return cls(
             id=_str(data.get("id"), "%s.id" % where),
             storey_id=_str(data.get("storeyId"), "%s.storeyId" % where),
@@ -555,7 +554,7 @@ class ProjectionSummary:
             into_setback=bool(data.get("intoSetback", False)),
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "storeyId": self.storey_id,
@@ -570,11 +569,11 @@ class ProjectionSummary:
 class ServiceElementSummary:
     id: str
     kind: str
-    centroid_mm: Tuple[int, int]
-    storey_id: Optional[str] = None
+    centroid_mm: tuple[int, int]
+    storey_id: str | None = None
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any], where: str) -> "ServiceElementSummary":
+    def from_json(cls, data: Mapping[str, Any], where: str) -> ServiceElementSummary:
         return cls(
             id=_str(data.get("id"), "%s.id" % where),
             kind=_str(data.get("kind"), "%s.kind" % where),
@@ -582,8 +581,8 @@ class ServiceElementSummary:
             storey_id=data.get("storeyId"),
         )
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
             "id": self.id,
             "kind": self.kind,
             "centroidMm": list(self.centroid_mm),
@@ -602,16 +601,16 @@ class ModelSummary:
     footprint_area_mm2: int
     built_up_area_mm2: int
     far_countable_area_mm2: int
-    storeys: Tuple[StoreySummary, ...] = ()
-    rooms: Tuple[RoomSummary, ...] = ()
-    openings: Tuple[OpeningSummary, ...] = ()
-    stairs: Tuple[StairSummary, ...] = ()
-    projections: Tuple[ProjectionSummary, ...] = ()
-    service_elements: Tuple[ServiceElementSummary, ...] = ()
+    storeys: tuple[StoreySummary, ...] = ()
+    rooms: tuple[RoomSummary, ...] = ()
+    openings: tuple[OpeningSummary, ...] = ()
+    stairs: tuple[StairSummary, ...] = ()
+    projections: tuple[ProjectionSummary, ...] = ()
+    service_elements: tuple[ServiceElementSummary, ...] = ()
     height_components_mm: Mapping[str, int] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any]) -> "ModelSummary":
+    def from_json(cls, data: Mapping[str, Any]) -> ModelSummary:
         components_raw = data.get("heightComponentsMm") or {}
         if not isinstance(components_raw, Mapping):
             raise ContextError(
@@ -627,12 +626,8 @@ class ModelSummary:
             storey_count=require_int(data.get("storeyCount"), "model.storeyCount"),
             has_stilt=_bool(data.get("hasStilt"), "model.hasStilt"),
             has_basement=_bool(data.get("hasBasement"), "model.hasBasement"),
-            building_height_mm=require_int(
-                data.get("buildingHeightMm"), "model.buildingHeightMm"
-            ),
-            footprint_area_mm2=require_int(
-                data.get("footprintAreaMm2"), "model.footprintAreaMm2"
-            ),
+            building_height_mm=require_int(data.get("buildingHeightMm"), "model.buildingHeightMm"),
+            footprint_area_mm2=require_int(data.get("footprintAreaMm2"), "model.footprintAreaMm2"),
             built_up_area_mm2=require_int(data.get("builtUpAreaMm2"), "model.builtUpAreaMm2"),
             far_countable_area_mm2=require_int(
                 data.get("farCountableAreaMm2"), "model.farCountableAreaMm2"
@@ -664,8 +659,8 @@ class ModelSummary:
             height_components_mm=components,
         )
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
             "storeyCount": self.storey_count,
             "hasStilt": self.has_stilt,
             "hasBasement": self.has_basement,
@@ -696,22 +691,24 @@ class ModelSummary:
 class EvaluationContext:
     """Everything the engine is allowed to look at. Immutable, integer-only."""
 
-    packs: Tuple[str, ...]
+    packs: tuple[str, ...]
     vastu_mode: str
     plot: PlotSummary
     profile: ProfileSummary
     model: ModelSummary
 
     @classmethod
-    def from_json(cls, data: Mapping[str, Any]) -> "EvaluationContext":
+    def from_json(cls, data: Mapping[str, Any]) -> EvaluationContext:
         if not isinstance(data, Mapping):
             raise ContextError("EvaluationContext must be an object, got %r" % type(data).__name__)
         packs = data.get("packs")
-        if not isinstance(packs, (list, tuple)) or not packs:
+        if not isinstance(packs, list | tuple) or not packs:
             raise ContextError("context.packs must list at least one pack id", field="packs")
         mode = _str(data.get("vastuMode"), "vastuMode")
         if mode not in ("off", "advisory", "strict"):
-            raise ContextError("vastuMode must be off|advisory|strict, got %r" % mode, field="vastuMode")
+            raise ContextError(
+                "vastuMode must be off|advisory|strict, got %r" % mode, field="vastuMode"
+            )
         for key in ("plot", "profile", "model"):
             if not isinstance(data.get(key), Mapping):
                 raise ContextError("context.%s is missing or not an object" % key, field=key)
@@ -724,7 +721,7 @@ class EvaluationContext:
         )
 
     @classmethod
-    def coerce(cls, value: Any) -> "EvaluationContext":
+    def coerce(cls, value: Any) -> EvaluationContext:
         """Accept either a context object or its JSON form. One call site, one shape."""
         if isinstance(value, EvaluationContext):
             return value
@@ -734,7 +731,7 @@ class EvaluationContext:
             "expected an EvaluationContext or its JSON mapping, got %r" % type(value).__name__
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "packs": list(self.packs),
             "vastuMode": self.vastu_mode,
@@ -744,7 +741,7 @@ class EvaluationContext:
         }
 
     # -- lookups -----------------------------------------------------------
-    def storey_index(self, storey_id: str) -> Optional[int]:
+    def storey_index(self, storey_id: str) -> int | None:
         for storey in self.model.storeys:
             if storey.id == storey_id:
                 return storey.index
@@ -759,7 +756,7 @@ class EvaluationContext:
             )
         return index
 
-    def unclassified_room_types(self, known_types: Sequence[str]) -> Tuple[str, ...]:
+    def unclassified_room_types(self, known_types: Sequence[str]) -> tuple[str, ...]:
         """Room types no rule can select — reported, never assumed compliant.
 
         A room whose type is outside the packs' vocabulary matches no

@@ -33,7 +33,13 @@ beforeEach(() => {
     marquee: null,
   });
   useUiStore.setState({
-    canvasLayers: { grid: true, dimensions: true, roomTags: true, furniture: true, compliance: true },
+    canvasLayers: {
+      grid: true,
+      dimensions: true,
+      roomTags: true,
+      furniture: true,
+      compliance: true,
+    },
     mmPerPx: 10,
     scaleLabel: '',
     canvasFocus: null,

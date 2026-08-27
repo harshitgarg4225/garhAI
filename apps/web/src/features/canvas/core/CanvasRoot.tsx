@@ -154,7 +154,10 @@ export function CanvasRoot({
       // WebGL context is alpha-blended over it — one source of truth for the
       // paper colour in light and dark, with no colour-space conversion to get
       // subtly wrong on the GL side.
-      className={cn('relative h-full w-full touch-none overflow-hidden bg-surface-sunken', className)}
+      className={cn(
+        'relative h-full w-full touch-none overflow-hidden bg-surface-sunken',
+        className,
+      )}
       role="application"
       aria-label={ariaLabel}
       tabIndex={0}

@@ -284,9 +284,9 @@ async def test_parse_endpoint_writes_nothing_but_metering(
     assert body["brief"] is None
     assert body["data"], "a parse with no content is not a suggestion"
     assert body["assumptions"], "golden rule 4: the chips are the product"
-    assert any("apply" in w.lower() or "applies" in w.lower() for w in body["warnings"]), (
-        "ignoring `apply` silently would break the one client that sent it"
-    )
+    assert any(
+        "apply" in w.lower() or "applies" in w.lower() for w in body["warnings"]
+    ), "ignoring `apply` silently would break the one client that sent it"
 
     # The brief table is untouched — both over HTTP and straight at the repository.
     over_http = await client.get(
@@ -298,9 +298,7 @@ async def test_parse_endpoint_writes_nothing_but_metering(
     assert stored is None
 
     # The op log is untouched: a suggestion is not a mutation (golden rule 1).
-    branch = await client.get(
-        "%s/projects/%s/branch" % (api, project_a.id), headers=firm_a.headers
-    )
+    branch = await client.get("%s/projects/%s/branch" % (api, project_a.id), headers=firm_a.headers)
     assert branch.json()["headIdx"] == -1, "the endpoint appended ops"
 
     # The ONE row it must write: the llm metering event, provider named.

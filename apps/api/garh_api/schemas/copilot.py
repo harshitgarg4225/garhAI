@@ -10,7 +10,7 @@ copilot route proposes, the client applies via ``POST /ops`` after human review.
 from __future__ import annotations
 
 import uuid
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import Field, StrictBool, StrictInt, StrictStr
 
@@ -31,7 +31,7 @@ class CopilotCommandIn(CamelModel):
     """One natural-language editing command plus what the architect has open."""
 
     text: StrictStr = Field(min_length=1, max_length=MAX_COMMAND_LENGTH)
-    active_storey_id: Optional[StrictStr] = Field(
+    active_storey_id: StrictStr | None = Field(
         default=None,
         max_length=64,
         description="The storey tab the architect is looking at, e.g. storey_<ULID>.",
@@ -41,7 +41,7 @@ class CopilotCommandIn(CamelModel):
         max_length=20,
         description="Currently selected element ids — lets 'this wall' resolve.",
     )
-    version_branch: Optional[uuid.UUID] = Field(
+    version_branch: uuid.UUID | None = Field(
         default=None, description="Defaults to the project's active branch."
     )
 
@@ -61,7 +61,7 @@ class CopilotIssueOut(ResponseModel):
     message: str
     severity: str = "error"
     element_ids: list[str] = Field(default_factory=list)
-    field: Optional[str] = None
+    field: str | None = None
 
 
 class CopilotProposeOut(ResponseModel):
@@ -77,8 +77,8 @@ class CopilotProposeOut(ResponseModel):
     outcome: CopilotOutcome
     intent: str
     ops: list[CopilotOpOut] = Field(default_factory=list)
-    needs_clarification: Optional[str] = None
-    cannot_do: Optional[str] = None
+    needs_clarification: str | None = None
+    cannot_do: str | None = None
     issues: list[CopilotIssueOut] = Field(default_factory=list)
     #: Mint once per proposal; applying with it makes the whole diff one undo group.
     group_id: uuid.UUID
@@ -106,10 +106,10 @@ class CopilotDecisionIn(CamelModel):
     command: StrictStr = Field(min_length=1, max_length=MAX_COMMAND_LENGTH)
     outcome: CopilotDecision
     ops_count: StrictInt = Field(ge=0, le=64)
-    group_id: Optional[uuid.UUID] = Field(
+    group_id: uuid.UUID | None = Field(
         default=None, description="The proposal's groupId, for correlation."
     )
-    intent: Optional[StrictStr] = Field(default=None, max_length=300)
+    intent: StrictStr | None = Field(default=None, max_length=300)
 
 
 class CopilotDecisionOut(ResponseModel):

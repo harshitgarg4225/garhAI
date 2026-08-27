@@ -247,7 +247,7 @@ export function pickAt(options: PickOptions): PickHit {
     const target = registry.resolve(intersection);
     if (target === null) continue;
     if (kindFilter !== null && !kindFilter.has(target.kind)) continue;
-    if (excludeIds !== undefined && excludeIds.has(target.id)) continue;
+    if (excludeIds?.has(target.id)) continue;
     if (
       storeyId !== undefined &&
       storeyId !== null &&

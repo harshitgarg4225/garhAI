@@ -28,8 +28,9 @@ view and beside it in the other.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.layers import (
     A_AREA,
@@ -84,7 +85,7 @@ from services.drawings.projection.walls import WallBand, opening_span
 #: ``tests/test_projection.py`` asserts this table reproduces
 #: ``stair_footprint_polygon``'s corners for all four directions — so the drawing and the
 #: slab cut-out can never disagree about which way a stair runs.
-STAIR_VECTORS: Dict[str, Tuple[int, int, int, int]] = {
+STAIR_VECTORS: dict[str, tuple[int, int, int, int]] = {
     "N": (0, 1, 1, 0),
     "E": (1, 0, 0, -1),
     "S": (0, -1, -1, 0),
@@ -95,7 +96,7 @@ STAIR_VECTORS: Dict[str, Tuple[int, int, int, int]] = {
 # ---------------------------------------------------------------------------
 # North arrow
 # ---------------------------------------------------------------------------
-def north_arrow(centre: Point, north_deg: int, style: Style) -> Tuple[Primitive, ...]:
+def north_arrow(centre: Point, north_deg: int, style: Style) -> tuple[Primitive, ...]:
     """A north dart rotated by the plot's ``north_deg``, plus its "N".
 
     ``PlotDoc.north_deg`` is "rotation of TRUE north from +Y, measured **clockwise**"
@@ -137,7 +138,7 @@ def north_arrow(centre: Point, north_deg: int, style: Style) -> Tuple[Primitive,
 # ---------------------------------------------------------------------------
 # Stairs
 # ---------------------------------------------------------------------------
-def stair_symbol(stair: Any, style: Style) -> Tuple[Primitive, ...]:
+def stair_symbol(stair: Any, style: Style) -> tuple[Primitive, ...]:
     """Footprint, treads, UP arrow and the "UP 18R" label.
 
     Treads are drawn only for a ``straight`` flight. For ``dogleg``/``L``/``U`` the model
@@ -160,7 +161,7 @@ def stair_symbol(stair: Any, style: Style) -> Tuple[Primitive, ...]:
     def at(along_mm: float, across_mm: float) -> Point:
         return point_round(ox + fx * along_mm + rx * across_mm, oy + fy * along_mm + ry * across_mm)
 
-    out: List[Primitive] = [
+    out: list[Primitive] = [
         Polyline(
             layer=A_STAIR,
             points=tuple(footprint),
@@ -245,8 +246,8 @@ def level_marker(
     style: Style,
     *,
     prefix: str = "FFL",
-    owner_id: Optional[str] = None,
-) -> Tuple[Primitive, ...]:
+    owner_id: str | None = None,
+) -> tuple[Primitive, ...]:
     """A level triangle plus its text — ``FFL +600``, in millimetres per §7.
 
     §7: "All dim text in mm on drawings regardless of the project's display units."
@@ -296,7 +297,7 @@ class SectionMarker:
     view_left: bool = True
 
 
-def section_marker(marker: SectionMarker, style: Style) -> Tuple[Primitive, ...]:
+def section_marker(marker: SectionMarker, style: Style) -> tuple[Primitive, ...]:
     """The cut line, an arrow flag at each end, and the letter at both ends."""
     (ax, ay), (bx, by) = marker.a, marker.b
     dx, dy = bx - ax, by - ay
@@ -315,7 +316,7 @@ def section_marker(marker: SectionMarker, style: Style) -> Tuple[Primitive, ...]
 
     start = point_round(ax - ux * overshoot, ay - uy * overshoot)
     end = point_round(bx + ux * overshoot, by + uy * overshoot)
-    out: List[Primitive] = [
+    out: list[Primitive] = [
         Line(layer=A_DIM, a=start, b=end, dashed=True, kind=K_SECTION_LINE),
     ]
 
@@ -351,7 +352,7 @@ def section_marker(marker: SectionMarker, style: Style) -> Tuple[Primitive, ...]
 # ---------------------------------------------------------------------------
 # Room label block
 # ---------------------------------------------------------------------------
-def room_label(room: Any, style: Style, *, ordinal: Optional[int] = None) -> Tuple[Primitive, ...]:
+def room_label(room: Any, style: Style, *, ordinal: int | None = None) -> tuple[Primitive, ...]:
     """Dashed room outline on A-AREA, name and area on A-TEXT.
 
     The area string is ``garh_model.units.format_sqft(room.area_mm2, 1)`` — §7's "area in
@@ -401,7 +402,7 @@ def room_label(room: Any, style: Style, *, ordinal: Optional[int] = None) -> Tup
 # ---------------------------------------------------------------------------
 # Opening tags (D1 / W2 / V1)
 # ---------------------------------------------------------------------------
-def opening_tag(band: WallBand, opening: Any, style: Style) -> Tuple[Primitive, ...]:
+def opening_tag(band: WallBand, opening: Any, style: Style) -> tuple[Primitive, ...]:
     """The schedule tag beside an opening, when the schedule has assigned one.
 
     No tag is invented here: ``Opening.tag`` is written by the door/window schedule
@@ -449,7 +450,7 @@ class GridLine:
     at_mm: int
 
 
-def column_ring(column: Any) -> Tuple[Point, ...]:
+def column_ring(column: Any) -> tuple[Point, ...]:
     """A column's rectangle in plan. Mirrors ``columnRingMm`` in the canvas twin."""
     half_x = round_half_away(column.size_mm.x_mm / 2)
     half_y = round_half_away(column.size_mm.y_mm / 2)
@@ -462,7 +463,9 @@ def column_ring(column: Any) -> Tuple[Point, ...]:
     )
 
 
-def column_grid_lines(columns: Sequence[Any], *, tolerance_mm: int = GRID_TOLERANCE_MM) -> Tuple[GridLine, ...]:
+def column_grid_lines(
+    columns: Sequence[Any], *, tolerance_mm: int = GRID_TOLERANCE_MM
+) -> tuple[GridLine, ...]:
     """Cluster column centres into grid lines: numbers across X, letters up Y.
 
     Numbered 1, 2, 3 … left to right and lettered A, B, C … bottom to top, which is the
@@ -471,7 +474,7 @@ def column_grid_lines(columns: Sequence[Any], *, tolerance_mm: int = GRID_TOLERA
     """
     x_values = _cluster(sorted(column.pt.x for column in columns), tolerance_mm)
     y_values = _cluster(sorted(column.pt.y for column in columns), tolerance_mm)
-    lines: List[GridLine] = []
+    lines: list[GridLine] = []
     for index, value in enumerate(x_values):
         lines.append(GridLine(label=str(index + 1), axis="x", at_mm=value))
     for index, value in enumerate(y_values):
@@ -479,9 +482,9 @@ def column_grid_lines(columns: Sequence[Any], *, tolerance_mm: int = GRID_TOLERA
     return tuple(lines)
 
 
-def _cluster(values: Sequence[int], tolerance_mm: int) -> List[int]:
+def _cluster(values: Sequence[int], tolerance_mm: int) -> list[int]:
     """Group near-equal coordinates and return one representative each."""
-    groups: List[List[int]] = []
+    groups: list[list[int]] = []
     for value in values:
         if groups and value - groups[-1][-1] <= tolerance_mm:
             groups[-1].append(value)
@@ -503,9 +506,9 @@ def _letters(index: int) -> str:
             return label
 
 
-def column_symbols(columns: Sequence[Any], style: Style) -> Tuple[Primitive, ...]:
+def column_symbols(columns: Sequence[Any], style: Style) -> tuple[Primitive, ...]:
     """Column rectangles with a concrete hatch. Coordination only — never affects areas."""
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     for column in columns:
         ring = column_ring(column)
         out.append(
@@ -536,7 +539,7 @@ def column_bubbles(
     style: Style,
     *,
     tolerance_mm: int = GRID_TOLERANCE_MM,
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """§7's "grid of column bubbles if columns exist" — lines, bubbles, labels.
 
     Grid lines and bubbles go on **A-DIM**: they are a measuring and referencing
@@ -553,7 +556,7 @@ def column_bubbles(
     extension = style.grid_extension_mm
     radius = style.grid_bubble_radius_mm
 
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     for line in column_grid_lines(columns, tolerance_mm=tolerance_mm):
         if line.axis == "x":
             start = point(line.at_mm, min_y - extension)
@@ -591,7 +594,7 @@ def column_bubbles(
 # ---------------------------------------------------------------------------
 def balcony_symbol(
     balcony: Any, style: Style, *, walls: Sequence[Any] = ()
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """Slab edge plus a railing line inside each **open** edge.
 
     The railing is drawn per edge rather than as an offset polygon: an inset ring needs
@@ -608,7 +611,7 @@ def balcony_symbol(
     if len(balcony.polygon) < 3:
         return ()
     ring = [point_of(p) for p in ensure_ccw(balcony.polygon)]
-    out: List[Primitive] = [
+    out: list[Primitive] = [
         Polyline(
             layer=A_WALL_PART,
             points=tuple(ring),

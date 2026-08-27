@@ -51,7 +51,7 @@ describe('roundHalfAwayFromZero', () => {
 });
 
 describe('GOLDEN_UNIT_PAIRS (cross-language contract)', () => {
-  it.each(GOLDEN_UNIT_PAIRS as ReadonlyArray<[string, number]>)(
+  it.each(GOLDEN_UNIT_PAIRS as readonly [string, number][])(
     'parses %j to %i mm',
     (input: string, mm: number) => {
       expect(parseLengthMm(input)).toBe(mm);

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Turning integers into the one-line human sentence on a compliance chip.
 
 Two jobs, both narrow:
@@ -23,9 +21,12 @@ sentence looks like a bug.
 professional, and never blaming the user.
 """
 
+from __future__ import annotations
+
 import math
+from collections.abc import Mapping, Sequence
 from fractions import Fraction
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 from .context import (
     EvaluationContext,
@@ -159,14 +160,14 @@ def format_count(value: int) -> str:
     return "%d" % value
 
 
-def format_ratio(value: "Fraction", decimals: int = 2) -> str:
+def format_ratio(value: Fraction, decimals: int = 2) -> str:
     """A FAR or coverage ratio as a fixed-decimal string: ``1.82``, ``0.60``.
 
     Half-up on the last digit, computed on the exact rational so the printed value
     is the correctly rounded one — not a float that happened to land nearby. This
     is the "1.82 vs 1.75" the area statement and the FAR chip both read from.
     """
-    scale = 10 ** decimals
+    scale = 10**decimals
     scaled = value * scale
     whole = math.floor(scaled + Fraction(1, 2))
     sign = "-" if whole < 0 else ""
@@ -176,7 +177,7 @@ def format_ratio(value: "Fraction", decimals: int = 2) -> str:
     return "%s%d.%0*d" % (sign, whole // scale, decimals, whole % scale)
 
 
-def format_percent(value: "Fraction", decimals: int = 1) -> str:
+def format_percent(value: Fraction, decimals: int = 1) -> str:
     return "%s%%" % format_ratio(value * 100, decimals)
 
 
@@ -195,7 +196,7 @@ def format_value(value: Any, unit: str) -> str:
         return "%s%%" % _decimal(value // 100, value % 100, 2)
     if isinstance(value, bool):
         return "yes" if value else "no"
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return format_zone_list([str(v) for v in value])
     return str(value)
 
@@ -261,8 +262,8 @@ def edge_label(edge: PlotEdge) -> str:
     return "The %s setback" % EDGE_ROLE_LABELS.get(edge.role, edge.role)
 
 
-def opening_label(opening: OpeningSummary, context: Optional[EvaluationContext] = None) -> str:
-    """"The Bedroom 2 door" when we can name the room it serves, else its role."""
+def opening_label(opening: OpeningSummary, context: EvaluationContext | None = None) -> str:
+    """ "The Bedroom 2 door" when we can name the room it serves, else its role."""
     kind = opening.kind if opening.kind != "ventilator" else "ventilator"
     if context is not None and opening.room_ids:
         by_id = {r.id: r for r in context.model.rooms}

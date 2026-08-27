@@ -104,7 +104,9 @@ describe('cn — variants are part of the conflict key', () => {
 
   it('resolves within the same variant chain', () => {
     expect(cn('hover:bg-a', 'hover:bg-b')).toBe('hover:bg-b');
-    expect(cn('dark:hover:text-ink', 'dark:hover:text-ink-muted')).toBe('dark:hover:text-ink-muted');
+    expect(cn('dark:hover:text-ink', 'dark:hover:text-ink-muted')).toBe(
+      'dark:hover:text-ink-muted',
+    );
   });
 
   it('ignores colons inside arbitrary variants when splitting', () => {

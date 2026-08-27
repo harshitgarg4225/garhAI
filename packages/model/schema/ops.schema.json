@@ -123,10 +123,7 @@
       "title": "1. plot.set_boundary",
       "description": "Replace the plot boundary polygon. An EMPTY array clears it (the undo form).",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -134,9 +131,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "polygon"
-          ],
+          "required": ["polygon"],
           "additionalProperties": false,
           "properties": {
             "polygon": {
@@ -163,10 +158,7 @@
       "title": "2. plot.set_north",
       "description": "Rotate true north. Integer degrees 0-359, clockwise from +Y.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -174,9 +166,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "deg"
-          ],
+          "required": ["deg"],
           "additionalProperties": false,
           "properties": {
             "deg": {
@@ -200,10 +190,7 @@
       "title": "3. plot.set_road",
       "description": "Attach or remove the abutting road width on one plot edge (drives setback tables).",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -211,10 +198,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "edgeIndex",
-            "widthMm"
-          ],
+          "required": ["edgeIndex", "widthMm"],
           "additionalProperties": false,
           "properties": {
             "edgeIndex": {
@@ -259,10 +243,7 @@
       "title": "4. plot.set_reg_profile",
       "description": "Choose the city rule pack and per-project overrides. Overrides are audited (§13).",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -270,10 +251,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "cityPack",
-            "overrides"
-          ],
+          "required": ["cityPack", "overrides"],
           "additionalProperties": false,
           "properties": {
             "cityPack": {
@@ -307,10 +285,7 @@
       "title": "5. brief.update",
       "description": "RFC 7386 JSON merge patch on brief.data (null deletes a key).",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -318,9 +293,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "patch"
-          ],
+          "required": ["patch"],
           "additionalProperties": false,
           "properties": {
             "patch": {
@@ -352,10 +325,7 @@
       "title": "6. storey.add",
       "description": "Insert a storey at `index` (0 = ground). FFLs re-derive from storey heights.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -363,11 +333,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "id",
-            "index",
-            "heightMm"
-          ],
+          "required": ["id", "index", "heightMm"],
           "additionalProperties": false,
           "properties": {
             "id": {
@@ -406,10 +372,7 @@
       "title": "7. storey.remove",
       "description": "Remove the storey at `index` and everything on it.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -417,9 +380,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "index"
-          ],
+          "required": ["index"],
           "additionalProperties": false,
           "properties": {
             "index": {
@@ -444,10 +405,7 @@
       "title": "8. storey.set_height",
       "description": "Change one storey's floor-to-floor height; FFLs above shift, stairs re-check.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -455,10 +413,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "storeyId",
-            "heightMm"
-          ],
+          "required": ["storeyId", "heightMm"],
           "additionalProperties": false,
           "properties": {
             "storeyId": {
@@ -487,10 +442,7 @@
       "title": "9. wall.add",
       "description": "Add a wall centreline on a storey. Rooms re-detect afterwards.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -498,14 +450,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "id",
-            "storeyId",
-            "a",
-            "b",
-            "thicknessMm",
-            "kind"
-          ],
+          "required": ["id", "storeyId", "a", "b", "thicknessMm", "kind"],
           "additionalProperties": false,
           "properties": {
             "id": {
@@ -549,10 +494,7 @@
       "title": "10. wall.move",
       "description": "Set both wall endpoints. Joins re-resolve and rooms re-detect (ids preserved).",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -560,11 +502,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "wallId",
-            "a",
-            "b"
-          ],
+          "required": ["wallId", "a", "b"],
           "additionalProperties": false,
           "properties": {
             "wallId": {
@@ -594,10 +532,7 @@
       "title": "11. wall.split",
       "description": "Split a wall at `atMm` from its `a` end; openings re-host by position.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -605,11 +540,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "wallId",
-            "atMm",
-            "newWallId"
-          ],
+          "required": ["wallId", "atMm", "newWallId"],
           "additionalProperties": false,
           "properties": {
             "wallId": {
@@ -639,10 +570,7 @@
       "title": "12. wall.delete",
       "description": "Delete a wall and every opening hosted on it. Rooms re-detect.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -650,9 +578,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "wallId"
-          ],
+          "required": ["wallId"],
           "additionalProperties": false,
           "properties": {
             "wallId": {
@@ -676,10 +602,7 @@
       "title": "13. wall.set_thickness",
       "description": "Change wall thickness. Room clear areas shrink or grow accordingly.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -687,10 +610,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "wallId",
-            "thicknessMm"
-          ],
+          "required": ["wallId", "thicknessMm"],
           "additionalProperties": false,
           "properties": {
             "wallId": {
@@ -719,10 +639,7 @@
       "title": "14. opening.add",
       "description": "Host a door/window/ventilator on a wall. offsetMm is to the CENTRE from wall.a; 115mm end margins are enforced.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -794,10 +711,7 @@
       "title": "15. opening.move",
       "description": "Slide an opening along its wall, or re-host it by passing wallId.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -805,10 +719,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "openingId",
-            "offsetMm"
-          ],
+          "required": ["openingId", "offsetMm"],
           "additionalProperties": false,
           "properties": {
             "openingId": {
@@ -838,10 +749,7 @@
       "title": "16. opening.resize",
       "description": "Change width / height / sill. At least one must be present.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -849,25 +757,17 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "openingId"
-          ],
+          "required": ["openingId"],
           "additionalProperties": false,
           "anyOf": [
             {
-              "required": [
-                "widthMm"
-              ]
+              "required": ["widthMm"]
             },
             {
-              "required": [
-                "heightMm"
-              ]
+              "required": ["heightMm"]
             },
             {
-              "required": [
-                "sillMm"
-              ]
+              "required": ["sillMm"]
             }
           ],
           "properties": {
@@ -901,10 +801,7 @@
       "title": "17. opening.flip",
       "description": "Change the door swing / hand.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -912,10 +809,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "openingId",
-            "swing"
-          ],
+          "required": ["openingId", "swing"],
           "additionalProperties": false,
           "properties": {
             "openingId": {
@@ -942,10 +836,7 @@
       "title": "18. opening.delete",
       "description": "Remove an opening from its wall.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -953,9 +844,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "openingId"
-          ],
+          "required": ["openingId"],
           "additionalProperties": false,
           "properties": {
             "openingId": {
@@ -979,10 +868,7 @@
       "title": "19. room.assign",
       "description": "Set a detected room's programme type, name, tags and lock flag. Never changes geometry.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -990,10 +876,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "roomId",
-            "type"
-          ],
+          "required": ["roomId", "type"],
           "additionalProperties": false,
           "properties": {
             "roomId": {
@@ -1032,10 +915,7 @@
       "title": "20. room.set_target",
       "description": "Set a target area and/or required facing. Feeds the solver, not the geometry.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1043,9 +923,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "roomId"
-          ],
+          "required": ["roomId"],
           "additionalProperties": false,
           "properties": {
             "roomId": {
@@ -1090,10 +968,7 @@
       "title": "21. stair.add",
       "description": "Add a stair. risersCount * riserMm must equal the storey height within +/-10mm.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1176,10 +1051,7 @@
       "title": "22. stair.edit",
       "description": "Patch stair fields; omitted fields are unchanged.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1187,10 +1059,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "stairId",
-            "patch"
-          ],
+          "required": ["stairId", "patch"],
           "additionalProperties": false,
           "properties": {
             "stairId": {
@@ -1258,10 +1127,7 @@
       "title": "23. stair.delete",
       "description": "Remove a stair.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1269,9 +1135,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "stairId"
-          ],
+          "required": ["stairId"],
           "additionalProperties": false,
           "properties": {
             "stairId": {
@@ -1295,10 +1159,7 @@
       "title": "24. column.set (add | move | delete)",
       "description": "One op for all column edits; `action` selects the verb. Columns are coordination-only.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1306,18 +1167,11 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "action",
-            "id"
-          ],
+          "required": ["action", "id"],
           "additionalProperties": false,
           "properties": {
             "action": {
-              "enum": [
-                "add",
-                "move",
-                "delete"
-              ]
+              "enum": ["add", "move", "delete"]
             },
             "id": {
               "$ref": "common.schema.json#/$defs/ColumnId"
@@ -1340,15 +1194,10 @@
                     "const": "add"
                   }
                 },
-                "required": [
-                  "action"
-                ]
+                "required": ["action"]
               },
               "then": {
-                "required": [
-                  "storeyId",
-                  "pt"
-                ]
+                "required": ["storeyId", "pt"]
               }
             },
             {
@@ -1358,14 +1207,10 @@
                     "const": "move"
                   }
                 },
-                "required": [
-                  "action"
-                ]
+                "required": ["action"]
               },
               "then": {
-                "required": [
-                  "pt"
-                ]
+                "required": ["pt"]
               }
             }
           ]
@@ -1386,10 +1231,7 @@
       "title": "25. furniture.set (place | transform | delete)",
       "description": "One op for all furniture edits; `action` selects the verb.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1397,18 +1239,11 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "action",
-            "id"
-          ],
+          "required": ["action", "id"],
           "additionalProperties": false,
           "properties": {
             "action": {
-              "enum": [
-                "place",
-                "transform",
-                "delete"
-              ]
+              "enum": ["place", "transform", "delete"]
             },
             "id": {
               "$ref": "common.schema.json#/$defs/FurnitureId"
@@ -1437,16 +1272,10 @@
                     "const": "place"
                   }
                 },
-                "required": [
-                  "action"
-                ]
+                "required": ["action"]
               },
               "then": {
-                "required": [
-                  "storeyId",
-                  "catalogId",
-                  "pt"
-                ]
+                "required": ["storeyId", "catalogId", "pt"]
               }
             }
           ]
@@ -1467,10 +1296,7 @@
       "title": "26. balcony.set (add | edit | delete)",
       "description": "One op for all balcony edits; `action` selects the verb. Projection is checked against the projection rules.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1478,18 +1304,11 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "action",
-            "id"
-          ],
+          "required": ["action", "id"],
           "additionalProperties": false,
           "properties": {
             "action": {
-              "enum": [
-                "add",
-                "edit",
-                "delete"
-              ]
+              "enum": ["add", "edit", "delete"]
             },
             "id": {
               "$ref": "common.schema.json#/$defs/BalconyId"
@@ -1521,15 +1340,10 @@
                     "const": "add"
                   }
                 },
-                "required": [
-                  "action"
-                ]
+                "required": ["action"]
               },
               "then": {
-                "required": [
-                  "storeyId",
-                  "polygon"
-                ]
+                "required": ["storeyId", "polygon"]
               }
             }
           ]
@@ -1550,10 +1364,7 @@
       "title": "27. facade.apply_kit",
       "description": "Replace the whole facade sub-model with a kit instantiation. kitId null clears it. Components are carried so replay never re-runs the generator.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1561,11 +1372,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "kitId",
-            "seed",
-            "components"
-          ],
+          "required": ["kitId", "seed", "components"],
           "additionalProperties": false,
           "properties": {
             "kitId": {
@@ -1596,11 +1403,7 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "required": [
-                  "id",
-                  "kind",
-                  "params"
-                ],
+                "required": ["id", "kind", "params"],
                 "additionalProperties": false,
                 "properties": {
                   "id": {
@@ -1663,10 +1466,7 @@
       "title": "28. facade.edit_component",
       "description": "RFC 7386 merge patch on one facade component's params.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1674,10 +1474,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "componentId",
-            "patch"
-          ],
+          "required": ["componentId", "patch"],
           "additionalProperties": false,
           "properties": {
             "componentId": {
@@ -1704,10 +1501,7 @@
       "title": "29. material.assign",
       "description": "Assign a catalogue material to a surface group. materialId null removes the assignment.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1715,11 +1509,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "id",
-            "target",
-            "materialId"
-          ],
+          "required": ["id", "target", "materialId"],
           "additionalProperties": false,
           "properties": {
             "id": {
@@ -1757,10 +1547,7 @@
       "title": "30. levels.set",
       "description": "Set plinth / default sill / default lintel / parapet heights. At least one field required.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1815,10 +1602,7 @@
       "title": "31. solver.apply_option",
       "description": "Apply a generated plan option as ONE atomic group. Carries its own expansion so replay never re-runs the solver.",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1826,11 +1610,7 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "solverJobId",
-            "optionIndex",
-            "ops"
-          ],
+          "required": ["solverJobId", "optionIndex", "ops"],
           "additionalProperties": false,
           "properties": {
             "solverJobId": {
@@ -1871,10 +1651,7 @@
       "title": "32. annotation.set (add | edit | delete)",
       "description": "One op for all sheet annotations; `action` selects the verb. Annotations anchor to element ids (§7).",
       "type": "object",
-      "required": [
-        "type",
-        "payload"
-      ],
+      "required": ["type", "payload"],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -1882,18 +1659,11 @@
         },
         "payload": {
           "type": "object",
-          "required": [
-            "action",
-            "id"
-          ],
+          "required": ["action", "id"],
           "additionalProperties": false,
           "properties": {
             "action": {
-              "enum": [
-                "add",
-                "edit",
-                "delete"
-              ]
+              "enum": ["add", "edit", "delete"]
             },
             "id": {
               "$ref": "common.schema.json#/$defs/AnnotationId"
@@ -1929,15 +1699,10 @@
                     "const": "add"
                   }
                 },
-                "required": [
-                  "action"
-                ]
+                "required": ["action"]
               },
               "then": {
-                "required": [
-                  "sheetId",
-                  "anchorKind"
-                ]
+                "required": ["sheetId", "anchorKind"]
               }
             }
           ]

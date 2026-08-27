@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -58,7 +58,7 @@ def two_room_plan_with_openings() -> ProjectDoc:
 
 
 @pytest.fixture(scope="session")
-def golden_states() -> List[Dict[str, Any]]:
+def golden_states() -> list[dict[str, Any]]:
     """Rows of ``fixtures/model/golden-states.json`` (the cross-language sync check)."""
     data = load_fixture("model", "golden-states.json")
     return list(data["cases"])

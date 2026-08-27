@@ -38,8 +38,9 @@ what a fabrication drawing needs and what §7's key implies.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.schedules.openings import (
     OPENING_KIND_ORDER,
@@ -82,7 +83,7 @@ KIND_LABELS: Mapping[str, str] = {
 }
 
 #: ``(kind, width_mm, height_mm)`` — §7's grouping key, verbatim.
-GroupKey = Tuple[str, int, int]
+GroupKey = tuple[str, int, int]
 
 
 def group_key_of(opening: ScheduleOpening) -> GroupKey:
@@ -100,7 +101,7 @@ def _kind_rank(kind: str) -> int:
         return len(OPENING_KIND_ORDER)
 
 
-def _group_sort_key(key: GroupKey) -> Tuple[int, str, int, int]:
+def _group_sort_key(key: GroupKey) -> tuple[int, str, int, int]:
     """Doors then windows then ventilators; widest first, then tallest.
 
     Widest-first is not decoration: on an Indian residential set ``D1`` is expected to
@@ -120,8 +121,8 @@ class ScheduleGroup:
     counts_by_storey: Mapping[str, int]
     total: int
     #: Every distinct sill height in the group, ascending. One value in the normal case.
-    sills_mm: Tuple[int, ...]
-    opening_ids: Tuple[str, ...]
+    sills_mm: tuple[int, ...]
+    opening_ids: tuple[str, ...]
     #: True when the tag came from openings that already carried it.
     tag_carried: bool = False
 
@@ -173,14 +174,14 @@ class ScheduleGroup:
 class DoorWindowSchedule:
     """Every group, in print order, with the tag map the plan projection reads."""
 
-    groups: Tuple[ScheduleGroup, ...]
+    groups: tuple[ScheduleGroup, ...]
     #: Count-column order: model storeys first, then any unresolved bucket in use.
-    storey_ids: Tuple[str, ...]
+    storey_ids: tuple[str, ...]
     storey_headers: Mapping[str, str]
-    storeys: Tuple[StoreyRef, ...]
+    storeys: tuple[StoreyRef, ...]
     #: ``opening id -> tag``. What the plan labels its openings from.
     tag_by_opening_id: Mapping[str, str]
-    warnings: Tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
 
     # -- totals ------------------------------------------------------------
     @property
@@ -191,18 +192,18 @@ class DoorWindowSchedule:
         return sum(group.counts_by_storey.get(storey_id, 0) for group in self.groups)
 
     def totals_by_kind(self) -> Mapping[str, int]:
-        out: Dict[str, int] = {}
+        out: dict[str, int] = {}
         for group in self.groups:
             out[group.kind] = out.get(group.kind, 0) + group.total
         return out
 
-    def group_for_tag(self, tag: str) -> Optional[ScheduleGroup]:
+    def group_for_tag(self, tag: str) -> ScheduleGroup | None:
         for group in self.groups:
             if group.tag == tag:
                 return group
         return None
 
-    def rows(self) -> Tuple[ScheduleRow, ...]:
+    def rows(self) -> tuple[ScheduleRow, ...]:
         """The shared ``ScheduleRow`` primitives, in print order."""
         return tuple(group.to_row() for group in self.groups)
 
@@ -211,12 +212,12 @@ class DoorWindowSchedule:
         self,
         *,
         title: str = "DOOR & WINDOW SCHEDULE",
-        style: Optional[TableStyle] = None,
-        origin_mm: Tuple[int, int] = (0, 0),
+        style: TableStyle | None = None,
+        origin_mm: tuple[int, int] = (0, 0),
     ) -> Table:
         """The schedule as a :class:`~services.drawings.schedules.table.Table`."""
         columns = schedule_columns(self.storey_ids, self.storey_headers)
-        rows: List[Tuple[str, ...]] = []
+        rows: list[tuple[str, ...]] = []
         for group in self.groups:
             cells = [
                 group.tag,
@@ -242,7 +243,7 @@ class DoorWindowSchedule:
             footnotes=self._footnotes(),
         )
 
-    def _footnotes(self) -> Tuple[str, ...]:
+    def _footnotes(self) -> tuple[str, ...]:
         notes = [
             "All sizes in mm (width x height). Sizes are structural opening sizes, "
             "excluding frame.",
@@ -254,7 +255,7 @@ class DoorWindowSchedule:
             )
         return tuple(notes)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "storeyIds": list(self.storey_ids),
             "storeyHeaders": dict(self.storey_headers),
@@ -267,11 +268,9 @@ class DoorWindowSchedule:
         }
 
 
-def schedule_columns(
-    storey_ids: Sequence[str], headers: Mapping[str, str]
-) -> Tuple[Column, ...]:
+def schedule_columns(storey_ids: Sequence[str], headers: Mapping[str, str]) -> tuple[Column, ...]:
     """Tag · Type · Size · Remarks · one count column per storey · Total (F7-A)."""
-    columns: List[Column] = [
+    columns: list[Column] = [
         Column("tag", "TAG", "left"),
         Column("kind", "TYPE", "left"),
         Column("size", "SIZE (mm)", "right"),
@@ -289,7 +288,7 @@ def schedule_columns(
 def build_schedule(
     source: Any,
     *,
-    previous_tags: Optional[Mapping[GroupKey, str]] = None,
+    previous_tags: Mapping[GroupKey, str] | None = None,
     carry_previous: bool = True,
 ) -> DoorWindowSchedule:
     """Group, tag and count every opening in ``source``.
@@ -307,11 +306,11 @@ def build_schedule(
     storey_ids = storey_ids_in_print_order(storeys, openings)
     headers = storey_labels(storeys, storey_ids)
 
-    grouped: Dict[GroupKey, List[ScheduleOpening]] = {}
+    grouped: dict[GroupKey, list[ScheduleOpening]] = {}
     for opening in openings:
         grouped.setdefault(group_key_of(opening), []).append(opening)
 
-    inherited: Dict[GroupKey, str] = {}
+    inherited: dict[GroupKey, str] = {}
     warn_list = list(warnings)
     if carry_previous:
         inherited.update(_tags_from_openings(grouped, warn_list))
@@ -323,11 +322,11 @@ def build_schedule(
     ordered_keys = sorted(grouped, key=_group_sort_key)
     tags = assign_tags(ordered_keys, inherited)
 
-    groups: List[ScheduleGroup] = []
-    tag_by_opening: Dict[str, str] = {}
+    groups: list[ScheduleGroup] = []
+    tag_by_opening: dict[str, str] = {}
     for key in ordered_keys:
         members = grouped[key]
-        counts: Dict[str, int] = {}
+        counts: dict[str, int] = {}
         for opening in members:
             counts[opening.storey_id] = counts.get(opening.storey_id, 0) + 1
             tag_by_opening[opening.id] = tags[key]
@@ -355,7 +354,7 @@ def build_schedule(
 
 def assign_tags(
     ordered_keys: Sequence[GroupKey], inherited: Mapping[GroupKey, str]
-) -> Dict[GroupKey, str]:
+) -> dict[GroupKey, str]:
     """Tags for every group: inherited ones kept, new ones numbered ``max + 1``.
 
     Deterministic in both directions. With no inherited tags this is simply
@@ -363,8 +362,8 @@ def assign_tags(
     above every number already used in their series, so no tag on an issued sheet ever
     changes meaning and no retired tag is recycled.
     """
-    tags: Dict[GroupKey, str] = {}
-    used: Dict[str, set] = {}
+    tags: dict[GroupKey, str] = {}
+    used: dict[str, set] = {}
     for key in ordered_keys:
         tag = inherited.get(key)
         if tag is None:
@@ -376,11 +375,11 @@ def assign_tags(
         tags[key] = tag
         used.setdefault(prefix, set()).add(number)
     # Numbers claimed by inherited tags of groups no longer present still block reuse.
-    for key, tag in inherited.items():
+    for tag in inherited.values():
         prefix, number = _split_tag(tag)
         used.setdefault(prefix, set()).add(number)
 
-    next_number: Dict[str, int] = {
+    next_number: dict[str, int] = {
         prefix: (max(numbers) + 1 if numbers else 1) for prefix, numbers in used.items()
     }
     for key in ordered_keys:
@@ -393,7 +392,7 @@ def assign_tags(
     return tags
 
 
-def _split_tag(tag: str) -> Tuple[str, int]:
+def _split_tag(tag: str) -> tuple[str, int]:
     """``"W12" -> ("W", 12)``. A tag we cannot parse claims number 0, never a crash."""
     prefix = "".join(ch for ch in tag if not ch.isdigit())
     digits = "".join(ch for ch in tag if ch.isdigit())
@@ -401,15 +400,15 @@ def _split_tag(tag: str) -> Tuple[str, int]:
 
 
 def _tags_from_openings(
-    grouped: Mapping[GroupKey, Sequence[ScheduleOpening]], warnings: List[str]
-) -> Dict[GroupKey, str]:
+    grouped: Mapping[GroupKey, Sequence[ScheduleOpening]], warnings: list[str]
+) -> dict[GroupKey, str]:
     """Tags already persisted on the model, one per group.
 
     Two openings of one group carrying different tags is a real (if rare) state — a
     manual edit, or a group that used to be two. The lowest-numbered tag wins so the
     result is deterministic, and the disagreement is reported rather than smoothed over.
     """
-    out: Dict[GroupKey, str] = {}
+    out: dict[GroupKey, str] = {}
     for key in sorted(grouped, key=_group_sort_key):
         found = sorted(
             {opening.existing_tag for opening in grouped[key] if opening.existing_tag},
@@ -430,9 +429,9 @@ def _tags_from_openings(
 def opening_tags(
     source: Any,
     *,
-    previous_tags: Optional[Mapping[GroupKey, str]] = None,
+    previous_tags: Mapping[GroupKey, str] | None = None,
     carry_previous: bool = True,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """``{opening_id: tag}`` — the mapping the plan projection labels openings from.
 
     This is the whole reason the tagger lives in its own module: the plan sheet and the
@@ -447,7 +446,7 @@ def opening_tags(
     )
 
 
-def tagged_openings(schedule: DoorWindowSchedule) -> Tuple[Dict[str, str], ...]:
+def tagged_openings(schedule: DoorWindowSchedule) -> tuple[dict[str, str], ...]:
     """``[{openingId, tag}, …]`` for persisting tags back onto the model.
 
     The worker turns these into ``opening.set_tag``-shaped payloads; this module does

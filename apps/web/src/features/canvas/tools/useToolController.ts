@@ -46,7 +46,12 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { newId } from '@garh/model';
 
-import { isTypingTarget, useKeyboardMap, type CommandHandlers, type ToolId } from '../../../lib/keymap';
+import {
+  isTypingTarget,
+  useKeyboardMap,
+  type CommandHandlers,
+  type ToolId,
+} from '../../../lib/keymap';
 import type { FurnitureItem } from '../../../lib/schemas';
 import { useModelStore } from '../../../stores/model';
 import { useSelectionStore } from '../../../stores/selection';
@@ -371,7 +376,15 @@ export function useToolController(options: ToolControllerOptions): ToolControlle
       'tool.commit': () => {
         const tool = toolRef.current;
         if (tool === null) return false;
-        apply(tool.onKey(buildContext(), { key: 'Enter', shiftKey: false, ctrlKey: false, metaKey: false, altKey: false }));
+        apply(
+          tool.onKey(buildContext(), {
+            key: 'Enter',
+            shiftKey: false,
+            ctrlKey: false,
+            metaKey: false,
+            altKey: false,
+          }),
+        );
         return undefined;
       },
     };

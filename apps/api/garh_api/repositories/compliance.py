@@ -72,9 +72,7 @@ class ComplianceReportRepository(
             raise RepositoryUsageError("results must be a list of rule results.")
         await require_project_in_firm(self._session, self.firm_id, project_id)
         if design_version_id is not None:
-            await require_design_version_in_firm(
-                self._session, self.firm_id, design_version_id
-            )
+            await require_design_version_in_firm(self._session, self.firm_id, design_version_id)
         row = self._new_row(
             project_id=project_id,
             design_version_id=design_version_id,
@@ -82,9 +80,7 @@ class ComplianceReportRepository(
             results=results,
         )
         await self._insert(row)
-        failures = sum(
-            1 for r in results if isinstance(r, dict) and r.get("status") == "fail"
-        )
+        failures = sum(1 for r in results if isinstance(r, dict) and r.get("status") == "fail")
         self._log.info(
             "compliance_report.recorded",
             entity_id=str(row.id),

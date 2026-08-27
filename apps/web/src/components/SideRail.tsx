@@ -43,13 +43,49 @@ interface ToolDef {
 
 export const TOOLS: readonly ToolDef[] = [
   { id: 'select', label: 'Select', key: 'V', icon: 'cursor', blurb: 'Pick and move anything.' },
-  { id: 'wall', label: 'Wall', key: 'W', icon: 'wall', blurb: 'Draw walls. Type a length while drawing.' },
+  {
+    id: 'wall',
+    label: 'Wall',
+    key: 'W',
+    icon: 'wall',
+    blurb: 'Draw walls. Type a length while drawing.',
+  },
   { id: 'door', label: 'Door', key: 'D', icon: 'door', blurb: 'Place a door on a wall.' },
-  { id: 'window', label: 'Window', key: 'N', icon: 'window', blurb: 'Place a window or ventilator.' },
-  { id: 'stair', label: 'Stair', key: 'S', icon: 'stair', blurb: 'Place a staircase; risers come from the floor height.' },
-  { id: 'balcony', label: 'Balcony', key: 'B', icon: 'balcony', blurb: 'Draw a balcony or projection.' },
-  { id: 'furniture', label: 'Furniture', key: 'F', icon: 'sofa', blurb: 'Place furniture at real Indian sizes.' },
-  { id: 'measure', label: 'Measure', key: 'M', icon: 'ruler', blurb: 'Measure between two points.' },
+  {
+    id: 'window',
+    label: 'Window',
+    key: 'N',
+    icon: 'window',
+    blurb: 'Place a window or ventilator.',
+  },
+  {
+    id: 'stair',
+    label: 'Stair',
+    key: 'S',
+    icon: 'stair',
+    blurb: 'Place a staircase; risers come from the floor height.',
+  },
+  {
+    id: 'balcony',
+    label: 'Balcony',
+    key: 'B',
+    icon: 'balcony',
+    blurb: 'Draw a balcony or projection.',
+  },
+  {
+    id: 'furniture',
+    label: 'Furniture',
+    key: 'F',
+    icon: 'sofa',
+    blurb: 'Place furniture at real Indian sizes.',
+  },
+  {
+    id: 'measure',
+    label: 'Measure',
+    key: 'M',
+    icon: 'ruler',
+    blurb: 'Measure between two points.',
+  },
 ];
 
 /** Snap grid the canvas is on. Mirrors `ui.snapMode`. */
@@ -203,9 +239,7 @@ export function SideRail({
           onClick={onGridToggle}
           className={cn(
             'garh-focus-ring flex h-9 w-9 items-center justify-center rounded-md transition-colors',
-            gridVisible
-              ? 'text-ink'
-              : 'text-ink-subtle hover:bg-surface-muted hover:text-ink',
+            gridVisible ? 'text-ink' : 'text-ink-subtle hover:bg-surface-muted hover:text-ink',
             onGridToggle === undefined && 'cursor-not-allowed opacity-40',
           )}
         >

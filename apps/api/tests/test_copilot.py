@@ -35,8 +35,9 @@ from __future__ import annotations
 import json
 import sys
 import time
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import pytest
 
@@ -46,6 +47,13 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from garh_api.copilot_loop import (  # noqa: E402
+    DRY_RUN_BUDGET_MS,
+    ModelFolder,
+    NewFailureRulesGate,
+    describe_op,
+    run_copilot_command,
+)
 from garh_model.fold import apply_group, try_fold  # noqa: E402
 from garh_model.testing import (  # noqa: E402
     FIXTURE_IDS,
@@ -55,15 +63,6 @@ from garh_model.testing import (  # noqa: E402
 
 from services.llm.mock import MockLlmProvider  # noqa: E402
 from services.llm.types import LlmResult  # noqa: E402
-
-from garh_api.copilot_loop import (  # noqa: E402
-    DRY_RUN_BUDGET_MS,
-    ModelFolder,
-    NewFailureRulesGate,
-    build_copilot_service,
-    describe_op,
-    run_copilot_command,
-)
 
 CORPUS_DIR = REPO_ROOT / "fixtures" / "llm" / "copilot-commands"
 
@@ -151,7 +150,7 @@ class SpyFolder(ModelFolder):
         super().__init__()
         self.calls = 0
 
-    def dry_run(self, ops: Any, *, model: Optional[Mapping[str, Any]]) -> Any:
+    def dry_run(self, ops: Any, *, model: Mapping[str, Any] | None) -> Any:
         self.calls += 1
         return super().dry_run(ops, model=model)
 
@@ -173,9 +172,7 @@ def _outcome_of(proposal: Any) -> str:
 
 def test_corpus_meets_the_dod_floor(corpus: list[dict[str, Any]]) -> None:
     outcomes = [entry["expected"]["outcome"] for entry in corpus]
-    op_types = {
-        op_type for entry in corpus for op_type in entry["expected"].get("opTypes", [])
-    }
+    op_types = {op_type for entry in corpus for op_type in entry["expected"].get("opTypes", [])}
     assert len(corpus) >= MIN_COMMANDS
     assert outcomes.count("cannotDo") >= MIN_CANNOT_DO
     assert outcomes.count("needsClarification") >= MIN_CLARIFY
@@ -299,15 +296,24 @@ async def test_injection_commands_land_on_cannot_do(
     [
         pytest.param({"type": "wall.teleport", "payload": {"wallId": "wall_X"}}, id="unknown-type"),
         pytest.param(
-            {"type": "opening.resize", "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 900.5}},
+            {
+                "type": "opening.resize",
+                "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 900.5},
+            },
             id="float-mm",
         ),
         pytest.param(
-            {"type": "opening.resize", "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": "900mm"}},
+            {
+                "type": "opening.resize",
+                "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": "900mm"},
+            },
             id="unit-string",
         ),
         pytest.param(
-            {"type": "wall.delete", "payload": {"wallId": FIXTURE_IDS["wallSpine"], "cascade": True}},
+            {
+                "type": "wall.delete",
+                "payload": {"wallId": FIXTURE_IDS["wallSpine"], "cascade": True},
+            },
             id="invented-field",
         ),
         pytest.param({"type": "wall.delete", "payload": {}}, id="missing-required"),
@@ -375,21 +381,33 @@ async def test_a_new_hard_rules_failure_blocks_the_diff() -> None:
     """The rules gate diffs against the pre-edit baseline: a swap that leaves the
     kitchen without ventilation is rejected — with the rule id as the reason."""
     base = make_two_room_plan_with_openings()
-    room_left, room_right = [room.id for room in base.house.rooms]
+    room_left, room_right = (room.id for room in base.house.rooms)
     # Kitchen + dining assigned, but the dining side has NO window: legal as drawn…
     windowless = apply_group(
         base,
         [
-            {"type": "room.assign", "payload": {"roomId": room_left, "type": "kitchen", "name": "Kitchen"}},
-            {"type": "room.assign", "payload": {"roomId": room_right, "type": "dining", "name": "Dining"}},
+            {
+                "type": "room.assign",
+                "payload": {"roomId": room_left, "type": "kitchen", "name": "Kitchen"},
+            },
+            {
+                "type": "room.assign",
+                "payload": {"roomId": room_right, "type": "dining", "name": "Dining"},
+            },
         ],
     ).model
     # …until the copilot swaps the kitchen onto the windowless side.
     swap = {
         "intent": "Swap kitchen and dining.",
         "ops": [
-            {"type": "room.assign", "payload": {"roomId": room_left, "type": "dining", "name": "Dining"}},
-            {"type": "room.assign", "payload": {"roomId": room_right, "type": "kitchen", "name": "Kitchen"}},
+            {
+                "type": "room.assign",
+                "payload": {"roomId": room_left, "type": "dining", "name": "Dining"},
+            },
+            {
+                "type": "room.assign",
+                "payload": {"roomId": room_right, "type": "kitchen", "name": "Kitchen"},
+            },
         ],
     }
     provider = ScriptedProvider([swap, swap])
@@ -407,12 +425,18 @@ async def test_pre_existing_failures_do_not_block_unrelated_edits() -> None:
     """The gate is NEW failures only: on a design that already fails ventilation,
     an unrelated edit still goes through (golden rule 5 — inform, don't block)."""
     base = make_two_room_plan_with_openings()
-    room_left, room_right = [room.id for room in base.house.rooms]
+    room_left, room_right = (room.id for room in base.house.rooms)
     already_failing = apply_group(
         base,
         [
-            {"type": "room.assign", "payload": {"roomId": room_left, "type": "dining", "name": "Dining"}},
-            {"type": "room.assign", "payload": {"roomId": room_right, "type": "kitchen", "name": "Kitchen"}},
+            {
+                "type": "room.assign",
+                "payload": {"roomId": room_left, "type": "dining", "name": "Dining"},
+            },
+            {
+                "type": "room.assign",
+                "payload": {"roomId": room_right, "type": "kitchen", "name": "Kitchen"},
+            },
         ],
     ).model
     gate = NewFailureRulesGate(already_failing.to_json())
@@ -420,7 +444,10 @@ async def test_pre_existing_failures_do_not_block_unrelated_edits() -> None:
     resize = {
         "intent": "Widen the main door to 1200mm.",
         "ops": [
-            {"type": "opening.resize", "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 1200}}
+            {
+                "type": "opening.resize",
+                "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 1200},
+            }
         ],
     }
     provider = ScriptedProvider([resize])
@@ -434,9 +461,7 @@ async def test_ops_riding_alongside_a_refusal_are_dropped(states: dict[str, Any]
     """`cannotDo` + ops is a contradiction; the ops must never survive it (§10)."""
     contradiction = {
         "intent": "Refuse, but also do it.",
-        "ops": [
-            {"type": "wall.delete", "payload": {"wallId": FIXTURE_IDS["wallSpine"]}}
-        ],
+        "ops": [{"type": "wall.delete", "payload": {"wallId": FIXTURE_IDS["wallSpine"]}}],
         "cannotDo": "I can't do that.",
     }
     provider = ScriptedProvider([contradiction])
@@ -481,7 +506,10 @@ async def test_pii_seeded_into_the_document_never_reaches_the_prompt(
     ok = {
         "intent": "Widen the main door to 1200mm.",
         "ops": [
-            {"type": "opening.resize", "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 1200}}
+            {
+                "type": "opening.resize",
+                "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 1200},
+            }
         ],
     }
     provider = ScriptedProvider([ok])
@@ -522,13 +550,19 @@ async def test_self_correction_recovers_in_one_round(states: dict[str, Any]) -> 
     bad = {
         "intent": "Widen the door.",
         "ops": [
-            {"type": "opening.resize", "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 50_000}}
+            {
+                "type": "opening.resize",
+                "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 50_000},
+            }
         ],
     }
     good = {
         "intent": "Widen the main door to 1200mm.",
         "ops": [
-            {"type": "opening.resize", "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 1200}}
+            {
+                "type": "opening.resize",
+                "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 1200},
+            }
         ],
     }
     provider = ScriptedProvider([bad, good])
@@ -547,7 +581,10 @@ async def test_two_failures_end_in_an_honest_refusal(states: dict[str, Any]) -> 
     bad = {
         "intent": "Widen the door.",
         "ops": [
-            {"type": "opening.resize", "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 50_000}}
+            {
+                "type": "opening.resize",
+                "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 50_000},
+            }
         ],
     }
     provider = ScriptedProvider([bad, bad])
@@ -570,10 +607,16 @@ def test_dry_run_fold_stays_inside_the_10ms_budget(states: dict[str, Any]) -> No
     because CI noise only ever adds time, never removes it."""
     folder = ModelFolder()
     document = states["kitchen-dining"].to_json()
-    room_left, room_right = [room["id"] for room in document["house"]["rooms"]]
+    room_left, room_right = (room["id"] for room in document["house"]["rooms"])
     ops = [
-        {"type": "room.assign", "payload": {"roomId": room_left, "type": "dining", "name": "Dining"}},
-        {"type": "room.assign", "payload": {"roomId": room_right, "type": "kitchen", "name": "Kitchen"}},
+        {
+            "type": "room.assign",
+            "payload": {"roomId": room_left, "type": "dining", "name": "Dining"},
+        },
+        {
+            "type": "room.assign",
+            "payload": {"roomId": room_right, "type": "kitchen", "name": "Kitchen"},
+        },
     ]
     best = float("inf")
     for _ in range(3):
@@ -597,7 +640,10 @@ def test_describe_op_speaks_human(states: dict[str, Any]) -> None:
     assert "Kitchen" in line, line  # the room's current name, from the document
     assert "dining" in line.lower(), line
     resize = describe_op(
-        {"type": "opening.resize", "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 1200}},
+        {
+            "type": "opening.resize",
+            "payload": {"openingId": FIXTURE_IDS["doorMain"], "widthMm": 1200},
+        },
         state,
     )
     assert "1200" in resize, resize
@@ -658,9 +704,7 @@ async def test_copilot_route_proposes_then_apply_goes_through_the_sequencer(
     assert body["groupId"]
 
     # Proposing wrote NO ops.
-    branch = await client.get(
-        "%s/projects/%s/branch" % (api, project_a.id), headers=firm_a.headers
-    )
+    branch = await client.get("%s/projects/%s/branch" % (api, project_a.id), headers=firm_a.headers)
     assert branch.json()["headIdx"] == -1, "the copilot route wrote to the op log"
 
     # …but it did meter: one credit_events(kind='llm') row, provider named.
@@ -713,9 +757,7 @@ async def test_copilot_route_cannot_do_is_metered_and_carries_no_ops(
     assert len(events.items) == 1, "a refusal still spent provider budget; it is metered"
     assert events.items[0].meta["outcome"] == "cannotDo"
 
-    branch = await client.get(
-        "%s/projects/%s/branch" % (api, project_a.id), headers=firm_a.headers
-    )
+    branch = await client.get("%s/projects/%s/branch" % (api, project_a.id), headers=firm_a.headers)
     assert branch.json()["headIdx"] == -1
 
 
@@ -731,9 +773,7 @@ async def test_decision_endpoint_logs_and_writes_nothing(
     assert response.status_code == 200, response.text
     assert response.json()["logged"] is True
 
-    branch = await client.get(
-        "%s/projects/%s/branch" % (api, project_a.id), headers=firm_a.headers
-    )
+    branch = await client.get("%s/projects/%s/branch" % (api, project_a.id), headers=firm_a.headers)
     assert branch.json()["headIdx"] == -1
 
 

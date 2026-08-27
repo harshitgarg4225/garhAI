@@ -29,8 +29,9 @@ idiom) rather than enqueued into a job the worker can only kill.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -76,7 +77,7 @@ async def build_solve_inputs(
     project_id: uuid.UUID,
     branch: uuid.UUID,
     *,
-    requested_storeys: Optional[int] = None,
+    requested_storeys: int | None = None,
 ) -> SolveInputs:
     """Load, derive and shape one solve request's inputs. Raises 4xx on gaps."""
     from garh_api.compliance import ComplianceUnavailable, evaluate_document
@@ -135,9 +136,7 @@ async def build_solve_inputs(
         "coveragePercent": _ratio_x100(
             areas.get("coverageAllowedMm2"), plot_area_mm2, cap=UNREGULATED_COVERAGE_PERCENT
         ),
-        "farX100": _ratio_x100(
-            areas.get("farAllowedMm2"), plot_area_mm2, cap=UNREGULATED_FAR_X100
-        ),
+        "farX100": _ratio_x100(areas.get("farAllowedMm2"), plot_area_mm2, cap=UNREGULATED_FAR_X100),
         "maxHeightMm": _limit(areas.get("heightAllowedMm"), cap=UNREGULATED_HEIGHT_MM),
         "maxFloors": _limit(areas.get("floorsAllowed"), cap=UNREGULATED_FLOORS),
     }
@@ -244,13 +243,11 @@ _BRIEF_DECLARATION_KEYS = ("carParking", "dwellingUnits", "rainwaterHarvesting")
 
 
 def _brief_declarations(brief_data: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        key: brief_data[key] for key in _BRIEF_DECLARATION_KEYS if key in brief_data
-    }
+    return {key: brief_data[key] for key in _BRIEF_DECLARATION_KEYS if key in brief_data}
 
 
 def _resolve_storeys(
-    requested: Optional[int], document: Mapping[str, Any], brief_data: Mapping[str, Any]
+    requested: int | None, document: Mapping[str, Any], brief_data: Mapping[str, Any]
 ) -> int:
     """The request's storeys, else the document's, else the brief's G+n, else 1."""
     if isinstance(requested, int) and requested >= 1:
@@ -272,11 +269,7 @@ def _ratio_x100(allowed_mm2: Any, plot_area_mm2: int, *, cap: int) -> int:
     (~10⁸ mm²) dwarf the ×100 quantisation. ``cap`` doubles as the honest
     "not regulated" value — see :data:`UNREGULATED_FAR_X100`.
     """
-    if (
-        not isinstance(allowed_mm2, int)
-        or isinstance(allowed_mm2, bool)
-        or plot_area_mm2 <= 0
-    ):
+    if not isinstance(allowed_mm2, int) or isinstance(allowed_mm2, bool) or plot_area_mm2 <= 0:
         return cap
     return max(1, min(cap, -(-allowed_mm2 * 100 // plot_area_mm2)))
 

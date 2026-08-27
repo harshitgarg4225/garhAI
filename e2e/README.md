@@ -22,24 +22,24 @@ false it fails with the command that fixes it, instead of with a locator timeout
 
 Environment (all defaulted for compose):
 
-| Variable | Default | What it is |
-|---|---|---|
-| `APP_URL` | `http://localhost:5173` | the web app's origin |
-| `API_URL` | `http://localhost:8000` | the API's origin, **without** `/api/v1` |
-| `API_PREFIX` | `/api/v1` | the versioned prefix |
-| `GARH_DEMO_EMAIL` | `demo@garh.ai` | the seeded account the smoke spec signs in as |
+| Variable          | Default                 | What it is                                    |
+| ----------------- | ----------------------- | --------------------------------------------- |
+| `APP_URL`         | `http://localhost:5173` | the web app's origin                          |
+| `API_URL`         | `http://localhost:8000` | the API's origin, **without** `/api/v1`       |
+| `API_PREFIX`      | `/api/v1`               | the versioned prefix                          |
+| `GARH_DEMO_EMAIL` | `demo@garh.ai`          | the seeded account the smoke spec signs in as |
 
 ## What is here
 
-| File | Tag | State |
-|---|---|---|
-| `tests/api-smoke.spec.ts` | `@smoke` | **live** — Phase 0 DoD through the API: signup, sign in, create a project, cross-tenant 404, stale-`baseIdx` 409 |
-| `tests/smoke.spec.ts` | `@smoke` | **live** — the UI journey: login (dev OTP) → dashboard → demo project → create project → the shell renders |
-| `tests/happy-path.spec.ts` | `@happy-path` | **skipped**, step by step, with the phase each step waits on (Phase 9 DoD) |
-| `tests/performance.spec.ts` | `@perf` | **two live**, the rest skipped — §14 budgets; the frame-measuring helper is real and self-tested |
-| `tests/plan-canvas.spec.ts` | `@canvas` | **live** — the Phase 4 DoD: draw a two-room plan, undo/redo, the bye-law chip |
-| `tests/three-d.spec.ts` | `@canvas` | **live** — the Phase 5 DoD: 2D→3D in place, cross-view selection, facade ops 27/28 with §8 wall-freeze, sun-scrub invariants, the §14 <100 ms rebuild |
-| `tests/visual-regression.spec.ts` | `@visual` | **skipped with named reasons** — §16's "3D w/ facade, 0.1% tolerance" screenshot; the body is complete, enabling it = font + CI baseline + delete the skip |
+| File                              | Tag           | State                                                                                                                                                      |
+| --------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/api-smoke.spec.ts`         | `@smoke`      | **live** — Phase 0 DoD through the API: signup, sign in, create a project, cross-tenant 404, stale-`baseIdx` 409                                           |
+| `tests/smoke.spec.ts`             | `@smoke`      | **live** — the UI journey: login (dev OTP) → dashboard → demo project → create project → the shell renders                                                 |
+| `tests/happy-path.spec.ts`        | `@happy-path` | **skipped**, step by step, with the phase each step waits on (Phase 9 DoD)                                                                                 |
+| `tests/performance.spec.ts`       | `@perf`       | **two live**, the rest skipped — §14 budgets; the frame-measuring helper is real and self-tested                                                           |
+| `tests/plan-canvas.spec.ts`       | `@canvas`     | **live** — the Phase 4 DoD: draw a two-room plan, undo/redo, the bye-law chip                                                                              |
+| `tests/three-d.spec.ts`           | `@canvas`     | **live** — the Phase 5 DoD: 2D→3D in place, cross-view selection, facade ops 27/28 with §8 wall-freeze, sun-scrub invariants, the §14 <100 ms rebuild      |
+| `tests/visual-regression.spec.ts` | `@visual`     | **skipped with named reasons** — §16's "3D w/ facade, 0.1% tolerance" screenshot; the body is complete, enabling it = font + CI baseline + delete the skip |
 
 `support/` holds the API client (`api.ts`), the UI helpers and locators (`ui.ts`), and the
 environment (`env.ts`).
@@ -47,8 +47,8 @@ environment (`env.ts`).
 ## Conventions worth knowing before you add a spec
 
 **One demo sign-in per run.** The API enforces a 60-second OTP resend cooldown per address
-(§13). `smoke.spec.ts` spends `demo@garh.ai`'s one code on the login screen; *everything
-else* signs up a throwaway firm with `uniqueEmail()`. This is also why `retries: 0` — a
+(§13). `smoke.spec.ts` spends `demo@garh.ai`'s one code on the login screen; _everything
+else_ signs up a throwaway firm with `uniqueEmail()`. This is also why `retries: 0` — a
 retry inside that window cannot get a second code and would fail for the wrong reason.
 
 **No `data-testid`.** Every locator is a role, a label or visible text, because those
@@ -85,10 +85,10 @@ see the comment in `apps/web/src/routes.tsx`).
 
 ## Not covered here, on purpose
 
-* **Visual regression** (§16: options screen, 3D with facade, one sheet, 0.1% tolerance) —
+- **Visual regression** (§16: options screen, 3D with facade, one sheet, 0.1% tolerance) —
   needs the screens to exist, and a baseline committed on the same CI image, or every run is
   a diff.
-* **Lighthouse ≥85 on the dashboard** (Phase 9 DoD) — a separate tool against a production
+- **Lighthouse ≥85 on the dashboard** (Phase 9 DoD) — a separate tool against a production
   build, not a Playwright assertion against the dev server.
-* **Load test** (50 concurrent solver jobs queue gracefully) — belongs with the worker, not
+- **Load test** (50 concurrent solver jobs queue gracefully) — belongs with the worker, not
   in a browser.

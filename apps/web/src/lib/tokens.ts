@@ -133,7 +133,7 @@ export class TokenStore {
 
   get accessToken(): string | null {
     const t = this.tokens;
-    return t && t.accessToken ? t.accessToken : null;
+    return t?.accessToken ? t.accessToken : null;
   }
 
   get refreshToken(): string | null {
@@ -152,7 +152,7 @@ export class TokenStore {
   /** True when there is no usable access token right now. */
   get needsRefresh(): boolean {
     const t = this.tokens;
-    if (!t || !t.accessToken) return true;
+    if (!t?.accessToken) return true;
     return t.accessExpiresAt - REFRESH_SKEW_SECONDS <= nowSeconds();
   }
 
@@ -160,7 +160,11 @@ export class TokenStore {
    * Adopt a freshly issued pair. Transport is inferred from the payload: a
    * body-carried refresh token means the server is not setting a cookie.
    */
-  set(input: { accessToken: string; expiresInSeconds: number; refreshToken?: string | null }): void {
+  set(input: {
+    accessToken: string;
+    expiresInSeconds: number;
+    refreshToken?: string | null;
+  }): void {
     const refreshToken = input.refreshToken ?? null;
     const transport: RefreshTransport = refreshToken === null ? 'cookie' : 'body';
     this.tokens = {

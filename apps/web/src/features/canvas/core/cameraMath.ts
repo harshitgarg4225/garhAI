@@ -230,8 +230,7 @@ export function zoomAtCentre(view: View2D, factor: number): View2D {
  * Chrome/Safari's pixels.
  */
 export function wheelZoomFactor(deltaY: number, deltaMode = 0): number {
-  const unit =
-    deltaMode === 1 ? WHEEL_LINE_HEIGHT_PX : deltaMode === 2 ? WHEEL_PAGE_HEIGHT_PX : 1;
+  const unit = deltaMode === 1 ? WHEEL_LINE_HEIGHT_PX : deltaMode === 2 ? WHEEL_PAGE_HEIGHT_PX : 1;
   const factor = Math.exp(deltaY * unit * WHEEL_ZOOM_RATE);
   // A trackpad flick can deliver a 600-unit delta in one event; without a cap
   // that is a 2.5× jump and the drawing disappears.

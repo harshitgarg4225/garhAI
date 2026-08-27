@@ -18,12 +18,7 @@ import { describe, expect, it } from 'vitest';
 import { canonicalJson, makeTwoRoomPlanWithOpenings } from '@garh/model';
 
 import { CONTEMPORARY_KIT, MODERN_MINIMAL_KIT } from './kits';
-import {
-  hasFrontage,
-  kitThumbnailSpec,
-  pickFrontage,
-  sampleHouseForThumbnails,
-} from './thumbnail';
+import { hasFrontage, kitThumbnailSpec, pickFrontage, sampleHouseForThumbnails } from './thumbnail';
 
 describe('the sample house', () => {
   it('has a frontage and a stable identity', () => {

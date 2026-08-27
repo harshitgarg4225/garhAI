@@ -27,17 +27,8 @@ import { useMemo } from 'react';
 
 import type { HouseModel, Pt } from '@garh/model';
 
-import {
-  OutlineFill,
-  OutlinePolyline,
-  type OutlineTone,
-} from '../../../features/canvas/core';
-import {
-  columnRingMm,
-  openingSymbol,
-  stairSymbol,
-  wallRingMm,
-} from './planGeometry';
+import { OutlineFill, OutlinePolyline, type OutlineTone } from '../../../features/canvas/core';
+import { columnRingMm, openingSymbol, stairSymbol, wallRingMm } from './planGeometry';
 
 /** How many outlines are worth drawing before the drawing becomes noise. */
 const MAX_OUTLINES = 60;

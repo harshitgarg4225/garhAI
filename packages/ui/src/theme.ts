@@ -25,7 +25,7 @@ export function applyTheme(theme: Theme): 'light' | 'dark' {
   if (typeof document === 'undefined') return resolved;
   const root = document.documentElement;
   root.classList.toggle('dark', resolved === 'dark');
-  root.dataset['theme'] = resolved;
+  root.dataset.theme = resolved;
   return resolved;
 }
 

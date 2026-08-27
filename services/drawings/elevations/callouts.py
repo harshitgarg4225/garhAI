@@ -24,11 +24,10 @@ which has hundreds of labels to fit rather than a handful.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
-from services.drawings.layers import A_DIM, A_TEXT
-from services.drawings.projection.primitives import Line, Point, Primitive, Text, sanitise_text
 from services.drawings.elevations.facade import FacadeFace, FacadeOpening, ProjectedBalcony
 from services.drawings.elevations.vertical import (
     K_MATERIAL_CALLOUT,
@@ -36,6 +35,8 @@ from services.drawings.elevations.vertical import (
     VerticalStyle,
     u_of,
 )
+from services.drawings.layers import A_DIM, A_TEXT
+from services.drawings.projection.primitives import Line, Point, Primitive, Text, sanitise_text
 
 __all__ = [
     "CALLOUT_COLUMN_GAP_PAPER_MM",
@@ -72,7 +73,7 @@ _KIND_LABELS: Mapping[str, str] = {
 
 #: Which params are worth printing, per kind, in print order. Values are
 #: ``(param name, format)``; ``mm`` prints "600 PROJ." style, ``text`` prints as-is.
-_KIND_PARAMS: Mapping[str, Tuple[Tuple[str, str], ...]] = {
+_KIND_PARAMS: Mapping[str, tuple[tuple[str, str], ...]] = {
     "window_trim": (("style", "style"), ("widthMm", "width"), ("recessDepthMm", "recess")),
     "chajja": (("style", "style"), ("projectionMm", "projection"), ("thicknessMm", "thickness")),
     "parapet_profile": (("style", "style"), ("heightMm", "height")),
@@ -100,7 +101,7 @@ class Callout:
     anchor: Point
     label: Point
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "componentId": self.component_id,
             "kind": self.kind,
@@ -110,7 +111,7 @@ class Callout:
         }
 
 
-def _material_name(material_id: Optional[str], names: Mapping[str, str]) -> Optional[str]:
+def _material_name(material_id: str | None, names: Mapping[str, str]) -> str | None:
     if not material_id:
         return None
     return names.get(material_id, material_id)
@@ -120,7 +121,7 @@ def callout_text(
     kind: str,
     params: Mapping[str, Any],
     *,
-    material_names: Optional[Mapping[str, str]] = None,
+    material_names: Mapping[str, str] | None = None,
 ) -> str:
     """Render one component's metadata as a drawing callout.
 
@@ -131,7 +132,7 @@ def callout_text(
     """
     names = material_names or {}
     head = _KIND_LABELS.get(kind, kind.replace("_", " ").upper())
-    parts: List[str] = []
+    parts: list[str] = []
     for name, role in _KIND_PARAMS.get(kind, ()):
         value = params.get(name)
         if value is None or value == "":
@@ -152,7 +153,7 @@ def callout_text(
     return "%s — %s" % (head, ", ".join(parts))
 
 
-def _point_along_wall(wall: Any, offset_mm: int, u_axis: Tuple[int, int]) -> Optional[int]:
+def _point_along_wall(wall: Any, offset_mm: int, u_axis: tuple[int, int]) -> int | None:
     """``u`` of a point ``offset_mm`` along a wall from its ``a`` end."""
     a = (int(wall.a.x), int(wall.a.y))
     b = (int(wall.b.x), int(wall.b.y))
@@ -170,15 +171,15 @@ def build_callouts(
     faces: Sequence[FacadeFace],
     openings: Sequence[FacadeOpening],
     balconies: Sequence[ProjectedBalcony],
-    u_axis: Tuple[int, int],
+    u_axis: tuple[int, int],
     u_origin_mm: int,
     column_u_mm: int,
     top_z_mm: int,
     terrace_mm: int,
     parapet_top_mm: int,
     sizes: VerticalStyle,
-    material_names: Optional[Mapping[str, str]] = None,
-) -> Tuple[Tuple[Callout, ...], Tuple[str, ...]]:
+    material_names: Mapping[str, str] | None = None,
+) -> tuple[tuple[Callout, ...], tuple[str, ...]]:
     """Callouts for the facade components that appear on **this** elevation.
 
     A component is on this elevation when its host is: a visible wall face, a visible
@@ -198,7 +199,7 @@ def build_callouts(
 
     height = sizes.dim_text_mm
     pitch = height * CALLOUT_PITCH_FACTOR
-    chosen: List[Tuple[str, str, Point]] = []  # (component id, text, anchor)
+    chosen: list[tuple[str, str, Point]] = []  # (component id, text, anchor)
     skipped = 0
 
     for component in sorted(components, key=lambda c: (str(c.kind), str(c.id))):
@@ -206,7 +207,7 @@ def build_callouts(
         params = dict(getattr(component, "params", {}) or {})
         opening_id = getattr(component, "opening_id", None)
         wall_id = getattr(component, "wall_id", None)
-        anchor: Optional[Point] = None
+        anchor: Point | None = None
 
         if opening_id and str(opening_id) in opening_by_id:
             item = opening_by_id[str(opening_id)]
@@ -228,7 +229,7 @@ def build_callouts(
             face = face_by_wall[str(wall_id)]
             wall = walls_by_id.get(str(wall_id))
             offset = params.get("offsetMm")
-            u_raw: Optional[int] = None
+            u_raw: int | None = None
             if wall is not None and isinstance(offset, int) and not isinstance(offset, bool):
                 u_raw = _point_along_wall(wall, offset, u_axis)
             if u_raw is None:
@@ -248,7 +249,7 @@ def build_callouts(
             (str(component.id), callout_text(kind, params, material_names=material_names), anchor)
         )
 
-    callouts: List[Callout] = []
+    callouts: list[Callout] = []
     label_z = top_z_mm
     for component_id, text, anchor in chosen:
         callouts.append(
@@ -262,7 +263,7 @@ def build_callouts(
         )
         label_z -= pitch
 
-    notes: List[str] = []
+    notes: list[str] = []
     if skipped:
         notes.append(
             "%d facade component(s) belong to another elevation and are not called out here."
@@ -273,9 +274,9 @@ def build_callouts(
 
 def callout_primitives(
     callouts: Sequence[Callout], *, sizes: VerticalStyle
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """Leader (two segments) plus left-aligned text, per callout."""
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     height = sizes.dim_text_mm
     shoulder = sizes.style.paper_to_model_mm(CALLOUT_SHOULDER_PAPER_MM)
     for callout in callouts:
@@ -308,8 +309,8 @@ def callout_primitives(
 
 
 def surface_material_notes(
-    house: Any, *, material_names: Optional[Mapping[str, str]] = None
-) -> Tuple[str, ...]:
+    house: Any, *, material_names: Mapping[str, str] | None = None
+) -> tuple[str, ...]:
     """Building-wide finishes from ``material.assign``, as sheet notes rather than leaders.
 
     A surface-group assignment ("every external wall is texture paint") has no single point
@@ -318,7 +319,7 @@ def surface_material_notes(
     can find them.
     """
     names = material_names or {}
-    out: List[str] = []
+    out: list[str] = []
     for assignment in sorted(getattr(house, "materials", ()) or (), key=lambda m: str(m.id)):
         target = assignment.target
         group = str(target.group).replace("_", " ").upper()

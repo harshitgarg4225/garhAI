@@ -31,6 +31,7 @@ install_worker_dep_stubs()
 from garh_model.fold import apply_group  # noqa: E402
 from garh_model.model import empty_project_doc  # noqa: E402
 from garh_model.ops import Op  # noqa: E402
+
 from services.drawings.pipeline import (  # noqa: E402
     DB_KIND_ORDER,
     DB_KIND_TO_DRAWING_KIND,
@@ -62,7 +63,7 @@ def load_document(name: str = "demo-02-blr-30x40-g1.json") -> dict:
     presigned asset boundary in production. Folding here rather than checking in a
     folded document keeps the fixture honest: if an op's fold changes, this test sees it.
     """
-    with open(_fixture_path(name), "r", encoding="utf-8") as handle:
+    with open(_fixture_path(name), encoding="utf-8") as handle:
         fixture = json.load(handle)
     ops = [Op.from_json(raw) for raw in fixture["ops"]]
     doc = apply_group(empty_project_doc(fixture.get("unitsDisplay", "ft-in")), ops).model
@@ -270,7 +271,7 @@ def test_requesting_one_kind_draws_only_that_kind():
 # The invariant §7 step 5 calls out by name
 # ---------------------------------------------------------------------------
 def test_every_chain_sums_exactly():
-    """"Values from integer mm — chains must sum exactly." Asserted, not commented."""
+    """ "Values from integer mm — chains must sum exactly." Asserted, not commented."""
     result = build_sheets(make_bundle())
     checked = 0
     for sheet in result.sheets:
@@ -334,7 +335,9 @@ def test_the_area_sheet_prints_the_statement_it_was_given_and_computes_nothing()
             row["value"] = 123_456_789
             row["label"] = "Plot area"
     statement = TransportStatement.from_json(payload)
-    result = build_sheets(make_bundle(document=document, areas=statement, kinds=("area-statement",)))
+    result = build_sheets(
+        make_bundle(document=document, areas=statement, kinds=("area-statement",))
+    )
     sheet = result.sheets[0]
     from services.drawings.render.tables import _format_value  # type: ignore[attr-defined]
 
@@ -376,9 +379,7 @@ def test_ratios_match_the_engines_own_formatted_strings():
 def test_the_site_plan_note_prints_the_engines_far_and_coverage():
     payload = load_areas(load_document())
     statement = TransportStatement.from_json(payload)
-    result = build_sheets(
-        make_bundle(areas=statement, kinds=("site",))
-    )
+    result = build_sheets(make_bundle(areas=statement, kinds=("site",)))
     svg = result.sheets[0].svg
     assert "FAR ACHIEVED: %s" % payload["farAchieved"] in svg
     assert "GROUND COVERAGE" in svg and "PLOT AREA" in svg
@@ -541,7 +542,7 @@ def test_dxf_absence_is_reported_as_a_format_problem_not_a_job_failure():
         except PipelineError as exc:
             assert "ezdxf" in exc.detail.lower() or "ezdxf" in exc.action.lower()
             return
-        raise AssertionError("without ezdxf the DXF path must raise PipelineError")
+        raise AssertionError("without ezdxf the DXF path must raise PipelineError") from None
     assert isinstance(sheet_dxf_bytes(result.drawings()), bytes)
 
 
@@ -573,7 +574,7 @@ def _main() -> int:
         try:
             fn()
             passed += 1
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             import traceback
 
             failed.append((name, "%s: %s" % (type(exc).__name__, exc)))
@@ -604,7 +605,10 @@ def _main() -> int:
             % (len(result.sheets), result.chain_count, result.label_collisions)
         )
         if result.skipped:
-            print("  skipped: %s" % "; ".join("%s (%s)" % (s["sheetId"], s["reason"]) for s in result.skipped))
+            print(
+                "  skipped: %s"
+                % "; ".join("%s (%s)" % (s["sheetId"], s["reason"]) for s in result.skipped)
+            )
         if result.notes:
             print("  notes: %s" % " | ".join(result.notes))
         if timing:

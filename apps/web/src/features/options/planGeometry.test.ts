@@ -146,9 +146,12 @@ describe('bounds', () => {
     expect(poly).toEqual({ minX: -500, minY: 0, maxX: 4000, maxY: 2000 });
     expect(unionBounds(null, poly)).toEqual(poly);
     expect(unionBounds(poly, null)).toEqual(poly);
-    expect(
-      unionBounds(poly, { minX: 0, minY: -100, maxX: 5000, maxY: 100 }),
-    ).toEqual({ minX: -500, minY: -100, maxX: 5000, maxY: 2000 });
+    expect(unionBounds(poly, { minX: 0, minY: -100, maxX: 5000, maxY: 100 })).toEqual({
+      minX: -500,
+      minY: -100,
+      maxX: 5000,
+      maxY: 2000,
+    });
   });
 });
 

@@ -21,9 +21,9 @@ from __future__ import annotations
 
 import ast
 import os
+from pathlib import Path
 
 import pytest
-
 from garh_api.auth import AUTH_AUDIT_ACTIONS
 from garh_api.repositories.audit_log import AUDIT_ACTIONS
 
@@ -98,8 +98,7 @@ def test_auth_module_actions_are_all_in_the_registry() -> None:
     stragglers = sorted(set(AUTH_AUDIT_ACTIONS) - set(AUDIT_ACTIONS))
     assert not stragglers, (
         "garh_api.auth emits audit action(s) %s that AUDIT_ACTIONS does not declare. "
-        "Move the constant into garh_api/repositories/audit_log.py and import it."
-        % stragglers
+        "Move the constant into garh_api/repositories/audit_log.py and import it." % stragglers
     )
 
 
@@ -111,7 +110,7 @@ def test_auth_module_defines_no_action_string_of_its_own() -> None:
     on the shape.
     """
     path = os.path.join(API_ROOT, "garh_api", "auth.py")
-    tree = ast.parse(open(path, encoding="utf-8").read(), filename=path)
+    tree = ast.parse(Path(path).read_text(encoding="utf-8"), filename=path)
 
     offenders: list[str] = []
     for node in tree.body:
@@ -149,7 +148,7 @@ def _constant_names_by_action() -> dict[str, str]:
     have made this test cry wolf on the one row that must never be missing.
     """
     path = os.path.join(API_ROOT, "garh_api", "repositories", "audit_log.py")
-    tree = ast.parse(open(path, encoding="utf-8").read(), filename=path)
+    tree = ast.parse(Path(path).read_text(encoding="utf-8"), filename=path)
     out: dict[str, str] = {}
     for node in tree.body:
         if isinstance(node, ast.Assign) and len(node.targets) == 1:
@@ -204,9 +203,7 @@ def test_declared_actions_are_either_emitted_or_listed_as_pending() -> None:
         "so an action with no constant cannot be emitted." % unnamed
     )
 
-    unemitted = {
-        action for action in AUDIT_ACTIONS if not _modules_referencing(names[action])
-    }
+    unemitted = {action for action in AUDIT_ACTIONS if not _modules_referencing(names[action])}
 
     undocumented = sorted(unemitted - set(PENDING_ACTIONS))
     assert not undocumented, (
@@ -232,8 +229,7 @@ def test_pending_actions_name_a_real_phase() -> None:
             "%r is in PENDING_ACTIONS but not in AUDIT_ACTIONS — remove it." % action
         )
         assert phase.startswith("Phase "), (
-            "PENDING_ACTIONS[%r] = %r must name the phase that implements it."
-            % (action, phase)
+            "PENDING_ACTIONS[%r] = %r must name the phase that implements it." % (action, phase)
         )
 
 

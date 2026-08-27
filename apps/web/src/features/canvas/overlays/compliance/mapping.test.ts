@@ -193,7 +193,10 @@ describe('mapComplianceChips', () => {
   it('keeps a chip whose elements do not resolve — with focus null', () => {
     // The sentence is still true and still worth showing; only the "zoom to it"
     // affordance is unavailable, and the null is how the strip knows that.
-    const chips = mapComplianceChips([issue({ elementIds: ['room_01J000000000000000000GON'] })], house);
+    const chips = mapComplianceChips(
+      [issue({ elementIds: ['room_01J000000000000000000GON'] })],
+      house,
+    );
     expect(chips).toHaveLength(1);
     expect(chips[0]?.focus).toBeNull();
   });

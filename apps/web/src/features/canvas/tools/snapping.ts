@@ -47,15 +47,7 @@
  * call except the returned candidate.
  */
 
-import {
-  distMm,
-  polygonEdges,
-  ptEq,
-  ptRound,
-  type Polygon,
-  type Pt,
-  type Wall,
-} from '@garh/model';
+import { distMm, polygonEdges, ptEq, ptRound, type Polygon, type Pt, type Wall } from '@garh/model';
 
 import { snapMm } from '../../../lib/units';
 // From the module rather than the `../core` barrel — the barrel drags in
@@ -275,11 +267,7 @@ export function compareSnapCandidates(a: SnapCandidate, b: SnapCandidate): numbe
  * decided it, which is what the overlay uses to decide whether to draw a snap
  * marker at all.
  */
-export function resolveSnap(
-  ctx: ToolContext,
-  raw: Pt,
-  options: SnapOptions = {},
-): SnapResolution {
+export function resolveSnap(ctx: ToolContext, raw: Pt, options: SnapOptions = {}): SnapResolution {
   const anchor = options.anchor ?? null;
   const ortho = (options.ortho ?? false) && anchor !== null;
 

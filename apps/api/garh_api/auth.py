@@ -46,7 +46,7 @@ import os
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Final
 
 from redis.asyncio import Redis
@@ -190,7 +190,21 @@ async def _deliver_code(email: str, code: str, ttl_seconds: int, *, settings: Se
     misconfiguration and we say so loudly rather than pretending a mail was sent.
     """
     if _mailer is not None:
-        await _mailer(email, code, ttl_seconds)
+        try:
+            await _mailer(email, code, ttl_seconds)
+        except Exception as exc:  # blanket on purpose - any transport failure means "not sent"
+            # Type name only: an SMTP error's message can quote the recipient address
+            # (SMTPRecipientsRefused does), and this line must stay PII-free.
+            _log.error(
+                "auth.otp_mail_failed",
+                email_domain=email_domain(email),
+                error=type(exc).__name__,
+            )
+            raise ServiceUnavailableError(
+                "We couldn't send your sign-in code just now.",
+                dependency="email",
+                retry_after_seconds=30,
+            ) from exc
         return "email"
 
     if dev_echo_otp_enabled(settings):
@@ -210,10 +224,15 @@ async def _deliver_code(email: str, code: str, ttl_seconds: int, *, settings: Se
     _log.error(
         "auth.otp_undeliverable",
         email_domain=email_domain(email),
-        reason="no mailer installed and the dev echo is unavailable in this environment",
+        reason=(
+            "no mailer installed and the dev echo is unavailable in this environment; "
+            "set SMTP_HOST and SMTP_FROM (plus SMTP_USER/SMTP_PASSWORD if the relay "
+            "wants auth) to enable real mail"
+        ),
     )
     raise ServiceUnavailableError(
-        "We couldn't send your sign-in code just now.",
+        "We couldn't send your sign-in code just now. This server has no email "
+        "transport configured — an operator must set SMTP_HOST and SMTP_FROM.",
         dependency="email",
         retry_after_seconds=30,
     )
@@ -361,7 +380,7 @@ def reset_session_scripts() -> None:
 
 
 def _now() -> int:
-    return int(datetime.now(timezone.utc).timestamp())
+    return int(datetime.now(UTC).timestamp())
 
 
 class SessionStore:
@@ -1008,7 +1027,7 @@ class AuthService:
                 settings=self._settings,
                 verify_expiry=False,
             )
-        except Exception:  # noqa: BLE001 - a junk cookie still means "sign me out"
+        except Exception:
             _log.info("auth.logout_unparseable_token")
             return False
 
@@ -1125,7 +1144,7 @@ async def purge_expired_otps(session: AsyncSession, *, older_than_hours: int = 2
     The rows are harmless (only hashes) but unbounded growth on an auth table is its
     own liability, and §13's retention story is easier to explain when it is empty.
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=max(0, older_than_hours))
+    cutoff = datetime.now(UTC) - timedelta(hours=max(0, older_than_hours))
     return await OtpCodeRepository(session).purge_expired(before=cutoff)
 
 

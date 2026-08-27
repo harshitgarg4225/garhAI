@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Vastu: zone checks, the two modes, and the 0-100 score computed by hand.
 
 Playbook §6: "zones = 3x3 grid oriented to true north ... Score = weighted rule
@@ -30,8 +28,10 @@ pack entirely (no grey wall of rows), ``advisory`` clamps every severity to
 sums — a house with no pooja room is neither credited nor penalised.
 """
 
+from __future__ import annotations
+
 from fractions import Fraction
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -46,7 +46,7 @@ from .conftest import RULEPACK_DIR, make_context, make_room
 # is obvious from its coordinates and a reader can check the test by eye.
 SQUARE_9 = [[0, 0], [9000, 0], [9000, 9000], [0, 9000]]
 
-ZONE_CENTRES: Dict[str, Any] = {
+ZONE_CENTRES: dict[str, Any] = {
     "SW": (1500, 1500),
     "S": (4500, 1500),
     "SE": (7500, 1500),
@@ -59,7 +59,7 @@ ZONE_CENTRES: Dict[str, Any] = {
 }
 
 
-def room_in(zone: str, room_id: str, room_type: str, size: int = 1000) -> Dict[str, Any]:
+def room_in(zone: str, room_id: str, room_type: str, size: int = 1000) -> dict[str, Any]:
     """A small square room centred on ``zone``'s cell centre."""
     cx, cy = ZONE_CENTRES[zone]
     return make_room(
@@ -76,10 +76,10 @@ def room_in(zone: str, room_id: str, room_type: str, size: int = 1000) -> Dict[s
 def vastu_context(
     *,
     mode: str = "advisory",
-    rooms: Optional[List[Dict[str, Any]]] = None,
-    stairs: Optional[List[Dict[str, Any]]] = None,
-    openings: Optional[List[Dict[str, Any]]] = None,
-    services: Optional[List[Dict[str, Any]]] = None,
+    rooms: list[dict[str, Any]] | None = None,
+    stairs: list[dict[str, Any]] | None = None,
+    openings: list[dict[str, Any]] | None = None,
+    services: list[dict[str, Any]] | None = None,
     north_deg: int = 0,
 ) -> Any:
     return make_context(
@@ -94,7 +94,7 @@ def vastu_context(
     )
 
 
-def entrance(zone_bearing: int, opening_id: str = "d_main") -> Dict[str, Any]:
+def entrance(zone_bearing: int, opening_id: str = "d_main") -> dict[str, Any]:
     return {
         "id": opening_id,
         "storeyId": "storey_g",
@@ -106,7 +106,7 @@ def entrance(zone_bearing: int, opening_id: str = "d_main") -> Dict[str, Any]:
     }
 
 
-def stair_in(zone: str, stair_id: str = "stair_main") -> Dict[str, Any]:
+def stair_in(zone: str, stair_id: str = "stair_main") -> dict[str, Any]:
     cx, cy = ZONE_CENTRES[zone]
     return {
         "id": stair_id,
@@ -138,10 +138,13 @@ class TestZoneCheck:
         assert result.status == PASS
         assert result.actual == ["NE"]
         assert result.satisfaction == Fraction(1)
-        assert result.limit == {"allow": ["NE"], "fallback": {"allow": ["N", "E"], "scoreRatio": {"num": 1, "den": 2}}}
+        assert result.limit == {
+            "allow": ["NE"],
+            "fallback": {"allow": ["N", "E"], "scoreRatio": {"num": 1, "den": 2}},
+        }
 
     def test_a_fallback_zone_warns_at_half_score(self) -> None:
-        """"Acceptable but not ideal" is a warning even on a fail-severity rule."""
+        """ "Acceptable but not ideal" is a warning even on a fail-severity rule."""
         result = row(vastu_context(rooms=[room_in("N", "pooja_1", "pooja")]), "vastu.pooja.zone")
         assert result.status == WARN
         assert result.satisfaction == Fraction(1, 2)
@@ -162,18 +165,14 @@ class TestZoneCheck:
         assert never_ne.actual == ["NE"]
 
     def test_a_deny_only_rule_passes_anything_outside_the_forbidden_set(self) -> None:
-        result = row(
-            vastu_context(rooms=[room_in("W", "bath_1", "bath")]), "vastu.toilet.never_ne"
-        )
+        result = row(vastu_context(rooms=[room_in("W", "bath_1", "bath")]), "vastu.toilet.never_ne")
         assert result.status == PASS
         assert result.satisfaction == Fraction(1)
 
     def test_several_targets_average_their_satisfaction(self) -> None:
         """Two toilets, one ideal and one wrong: the rule contributes 1/2, and both the
         row and the chip name the offender."""
-        context = vastu_context(
-            rooms=[room_in("W", "bath_1", "bath"), room_in("SE", "wc_1", "wc")]
-        )
+        context = vastu_context(rooms=[room_in("W", "bath_1", "bath"), room_in("SE", "wc_1", "wc")])
         result = row(context, "vastu.toilet.zone")
         assert result.satisfaction == Fraction(1, 2)
         assert result.elements == ("wc_1",)
@@ -181,9 +180,7 @@ class TestZoneCheck:
         assert len(result.instances) == 2
 
     def test_the_union_actual_shows_every_zone_not_just_the_governing_one(self) -> None:
-        context = vastu_context(
-            rooms=[room_in("NE", "bath_1", "bath"), room_in("N", "wc_1", "wc")]
-        )
+        context = vastu_context(rooms=[room_in("NE", "bath_1", "bath"), room_in("N", "wc_1", "wc")])
         assert row(context, "vastu.toilet.never_ne").actual == ["N", "NE"]
 
     def test_facing_mode_reads_the_openings_outward_normal(self) -> None:
@@ -194,9 +191,12 @@ class TestZoneCheck:
 
     def test_facing_mode_follows_true_north(self) -> None:
         """The same door on a plot rotated 180 degrees faces the other way."""
-        assert row(
-            vastu_context(openings=[entrance(180)], north_deg=180), "vastu.entrance.edge"
-        ).status == PASS
+        assert (
+            row(
+                vastu_context(openings=[entrance(180)], north_deg=180), "vastu.entrance.edge"
+            ).status
+            == PASS
+        )
 
     def test_a_missing_outward_normal_raises_rather_than_passing(self) -> None:
         from garh_rules.errors import ContextError
@@ -229,7 +229,7 @@ class TestZoneCheck:
 
 
 class TestBrahmasthanOpen:
-    def _context(self, *rooms: Dict[str, Any]) -> Any:
+    def _context(self, *rooms: dict[str, Any]) -> Any:
         return vastu_context(rooms=list(rooms))
 
     def test_an_empty_centre_passes_at_zero_coverage(self) -> None:

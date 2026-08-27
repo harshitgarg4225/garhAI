@@ -22,7 +22,11 @@ import { useThreeStore } from '../../../stores/three';
 // Storey visibility — see one storey, or the whole building
 // ---------------------------------------------------------------------------
 
-export function StoreyVisibilityBar({ className }: { className?: string | undefined }): JSX.Element | null {
+export function StoreyVisibilityBar({
+  className,
+}: {
+  className?: string | undefined;
+}): JSX.Element | null {
   const storeys = useModelStore((s) => s.doc.house.storeys);
   const visibleStoreyId = useThreeStore((s) => s.visibleStoreyId);
   const setVisibleStorey = useThreeStore((s) => s.setVisibleStorey);
@@ -77,7 +81,9 @@ function StoreyChip({
       onClick={onClick}
       className={cn(
         'rounded px-2 py-1 text-2xs font-medium transition-colors',
-        active ? 'bg-brand-soft text-brand-ink' : 'text-ink-muted hover:bg-surface-sunken hover:text-ink',
+        active
+          ? 'bg-brand-soft text-brand-ink'
+          : 'text-ink-muted hover:bg-surface-sunken hover:text-ink',
       )}
     >
       {label}
@@ -96,7 +102,11 @@ function shortStoreyLabel(name: string, index: number): string {
 // The honest status chip
 // ---------------------------------------------------------------------------
 
-export function ThreeDStatusChip({ className }: { className?: string | undefined }): JSX.Element | null {
+export function ThreeDStatusChip({
+  className,
+}: {
+  className?: string | undefined;
+}): JSX.Element | null {
   const engineStatus = useThreeStore((s) => s.engineStatus);
   const engineDetail = useThreeStore((s) => s.engineDetail);
   const lastRebuild = useThreeStore((s) => s.lastRebuild);

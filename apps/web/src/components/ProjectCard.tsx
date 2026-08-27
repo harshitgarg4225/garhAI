@@ -105,7 +105,11 @@ export function ProjectCard({
           )}
         </dl>
 
-        <ProjectStageChips stages={project.stages} onStageClick={onStageClick} className="mt-auto pt-1" />
+        <ProjectStageChips
+          stages={project.stages}
+          onStageClick={onStageClick}
+          className="mt-auto pt-1"
+        />
 
         <p className="text-2xs text-ink-subtle garh-nums">
           Updated {formatIndianDate(project.updatedAt)}

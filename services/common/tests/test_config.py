@@ -58,7 +58,7 @@ def test_shared_env_guard_actually_detects_a_missing_name(monkeypatch: pytest.Mo
     """
     monkeypatch.setattr(
         "services.common.config.SHARED_ENV_NAMES",
-        tuple(SHARED_ENV_NAMES) + ("GARH_DEFINITELY_NOT_A_FIELD",),
+        (*tuple(SHARED_ENV_NAMES), "GARH_DEFINITELY_NOT_A_FIELD"),
     )
     with pytest.raises(WorkerConfigError) as excinfo:
         assert_shared_env_names_match()
@@ -75,6 +75,8 @@ def pristine_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in (
         "PROVIDER_LLM",
         "PROVIDER_RENDER",
+        "STABILITY_API_KEY",
+        "STABILITY_BASE_URL",
         "QUEUE_SOLVER",
         "QUEUE_RENDER",
         "QUEUE_DRAWINGS",
@@ -92,6 +94,29 @@ def test_providers_default_to_mock(pristine_env: None) -> None:
     settings = WorkerSettings(_env_file=None)  # type: ignore[call-arg]
     assert settings.provider_llm == "mock"
     assert settings.provider_render == "mock"
+
+
+def test_stability_is_a_recognised_render_provider(pristine_env: None) -> None:
+    """PROVIDER_RENDER=stability is the hosted no-GPU path; the Literal must admit it."""
+    settings = WorkerSettings(_env_file=None, provider_render="stability")  # type: ignore[call-arg]
+    assert settings.provider_render == "stability"
+    assert settings.stability_api_key == "", "no key by default — the factory enforces it"
+    assert settings.stability_base_url.startswith("https://")
+
+
+def test_stability_key_never_appears_in_the_boot_config_dump(pristine_env: None) -> None:
+    """The secret-field treatment ANTHROPIC_API_KEY gets, proven for the new key.
+
+    The second assertion is the one that can actually go red: remove
+    ``stability_api_key`` from ``secret_fields`` and the raw value leaks into the
+    dump this scans.
+    """
+    settings = WorkerSettings(  # type: ignore[call-arg]
+        _env_file=None, stability_api_key="sk-very-secret-value"
+    )
+    dump = settings.redacted()
+    assert dump["stability_api_key"] == "***"
+    assert "sk-very-secret-value" not in str(dump)
 
 
 def test_queue_names_match_the_api_contract(pristine_env: None) -> None:

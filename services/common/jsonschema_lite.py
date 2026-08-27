@@ -32,8 +32,9 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 __all__ = [
     "SUPPORTED_KEYWORDS",
@@ -238,8 +239,16 @@ class SchemaValidator:
             if isinstance(branch, dict):
                 for name, child in branch.items():
                     self._check_keywords(child, "%s/%s/%s" % (where, key, name))
-        for key in ("items", "additionalProperties", "propertyNames", "not", "contains",
-                    "if", "then", "else"):
+        for key in (
+            "items",
+            "additionalProperties",
+            "propertyNames",
+            "not",
+            "contains",
+            "if",
+            "then",
+            "else",
+        ):
             if key in schema and not isinstance(schema[key], bool):
                 self._check_keywords(schema[key], "%s/%s" % (where, key))
         for key in ("oneOf", "anyOf", "allOf", "prefixItems"):
@@ -279,7 +288,9 @@ class SchemaValidator:
                 try:
                     node = node[int(token)]
                 except (ValueError, IndexError):
-                    raise SchemaError("%s: $ref %r has no element %r" % (where, ref, token)) from None
+                    raise SchemaError(
+                        "%s: $ref %r has no element %r" % (where, ref, token)
+                    ) from None
             elif isinstance(node, dict) and token in node:
                 node = node[token]
             else:
@@ -304,9 +315,7 @@ class SchemaValidator:
             raise SchemaError("%s: schema must be an object or boolean" % (path or "<root>"))
 
         if "$ref" in schema:
-            target, target_doc = self._resolve(
-                str(schema["$ref"]), where=path or "<root>", doc=doc
-            )
+            target, target_doc = self._resolve(str(schema["$ref"]), where=path or "<root>", doc=doc)
             self._validate(instance, target, path, out, target_doc)
             # 2020-12 allows siblings of $ref; every schema in this repo uses $ref alone
             # plus annotations, so continuing through the rest is correct and cheap.
@@ -359,7 +368,7 @@ class SchemaValidator:
             self._validate_string(instance, schema, path, out)
         elif isinstance(instance, bool):
             pass  # booleans carry no numeric constraints
-        elif isinstance(instance, (int, float)):
+        elif isinstance(instance, int | float):
             self._validate_number(instance, schema, path, out)
         elif isinstance(instance, list):
             self._validate_array(instance, schema, path, out, doc)
@@ -390,7 +399,8 @@ class SchemaValidator:
             if len(matches) > 1:
                 out.append(
                     ValidationFailure(
-                        path, "matches %d alternatives but must match exactly one" % len(matches),
+                        path,
+                        "matches %d alternatives but must match exactly one" % len(matches),
                         "oneOf",
                     )
                 )
@@ -403,14 +413,13 @@ class SchemaValidator:
         # the copilot's self-correction loop chasing the wrong fix.
         index = self._discriminator_index(branches, doc)
         if index is not None and isinstance(instance, dict):
-            selected = index.get(instance.get("type"))
+            discriminator = instance.get("type")
+            selected = index.get(discriminator) if isinstance(discriminator, str) else None
             if selected is not None:
                 branch_schema, branch_doc = selected
                 self._validate(instance, branch_schema, path, out, branch_doc)
                 return
-        out.append(
-            ValidationFailure(path, self._explain_no_branch(instance, index), keyword)
-        )
+        out.append(ValidationFailure(path, self._explain_no_branch(instance, index), keyword))
 
     def _discriminator_index(
         self, branches: Sequence[Any], doc: str
@@ -483,17 +492,18 @@ class SchemaValidator:
         path: str,
         out: list[ValidationFailure],
     ) -> None:
-        for keyword, ok, text in (
+        checks: tuple[tuple[str, Callable[[float], bool], str], ...] = (
             ("minimum", lambda limit: value >= limit, "must be >= %s"),
             ("maximum", lambda limit: value <= limit, "must be <= %s"),
             ("exclusiveMinimum", lambda limit: value > limit, "must be > %s"),
             ("exclusiveMaximum", lambda limit: value < limit, "must be < %s"),
-        ):
+        )
+        for keyword, ok, text in checks:
             limit = schema.get(keyword)
-            if isinstance(limit, (int, float)) and not isinstance(limit, bool) and not ok(limit):
+            if isinstance(limit, int | float) and not isinstance(limit, bool) and not ok(limit):
                 out.append(ValidationFailure(path, text % limit, keyword))
         step = schema.get("multipleOf")
-        if isinstance(step, (int, float)) and not isinstance(step, bool) and step > 0:
+        if isinstance(step, int | float) and not isinstance(step, bool) and step > 0:
             if isinstance(value, int) and isinstance(step, int):
                 divides = value % step == 0
             else:
@@ -551,16 +561,18 @@ class SchemaValidator:
         if isinstance(required, list):
             for name in required:
                 if name not in value:
-                    out.append(
-                        ValidationFailure(_join(path, str(name)), "is required", "required")
-                    )
+                    out.append(ValidationFailure(_join(path, str(name)), "is required", "required"))
 
         minimum = schema.get("minProperties")
         maximum = schema.get("maxProperties")
         if isinstance(minimum, int) and len(value) < minimum:
-            out.append(ValidationFailure(path, "needs at least %d field(s)" % minimum, "minProperties"))
+            out.append(
+                ValidationFailure(path, "needs at least %d field(s)" % minimum, "minProperties")
+            )
         if isinstance(maximum, int) and len(value) > maximum:
-            out.append(ValidationFailure(path, "allows at most %d field(s)" % maximum, "maxProperties"))
+            out.append(
+                ValidationFailure(path, "allows at most %d field(s)" % maximum, "maxProperties")
+            )
 
         properties = schema.get("properties")
         properties = properties if isinstance(properties, dict) else {}
@@ -628,7 +640,7 @@ def _matches_type(instance: Any, name: str) -> bool:
         # bool is an int in Python. It is never an integer here.
         return isinstance(instance, int) and not isinstance(instance, bool)
     if name == "number":
-        return isinstance(instance, (int, float)) and not isinstance(instance, bool)
+        return isinstance(instance, int | float) and not isinstance(instance, bool)
     if name == "string":
         return isinstance(instance, str)
     return False

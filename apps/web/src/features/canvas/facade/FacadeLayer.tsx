@@ -47,7 +47,7 @@
 
 import { memo, useEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import { useThree } from '@react-three/fiber';
-import { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial } from 'three';
+import { BufferAttribute, BufferGeometry, type Mesh, MeshBasicMaterial } from 'three';
 
 import type {
   Balcony,
@@ -143,7 +143,11 @@ function useStoreySlices(
 
     const prev = prevRef.current;
     const next = new Map<string, StoreySlice>();
-    const storeyIds = new Set<string>([...wallsBy.keys(), ...openingsBy.keys(), ...balconiesBy.keys()]);
+    const storeyIds = new Set<string>([
+      ...wallsBy.keys(),
+      ...openingsBy.keys(),
+      ...balconiesBy.keys(),
+    ]);
     for (const sid of storeyIds) {
       const fresh: StoreySlice = {
         walls: wallsBy.get(sid) ?? [],
@@ -178,7 +182,10 @@ export function FacadeLayer({ house: houseProp }: FacadeLayerProps): JSX.Element
   const selectedIds = useSelectionStore((s) => s.ids);
 
   // One unlit material for every facade mesh; colour lives in vertex colours.
-  const material = useMemo(() => new MeshBasicMaterial({ vertexColors: true, toneMapped: false }), []);
+  const material = useMemo(
+    () => new MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
+    [],
+  );
   useEffect(() => () => material.dispose(), [material]);
 
   // Stable views of the model, so unrelated ops do not invalidate memos.

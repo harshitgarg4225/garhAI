@@ -659,7 +659,15 @@ const F = {
     description: string,
     required = true,
     nullable = false,
-  ): OpFieldSpec => ({ name, type: 'enum', required, units: null, enumValues, nullable, description }),
+  ): OpFieldSpec => ({
+    name,
+    type: 'enum',
+    required,
+    units: null,
+    enumValues,
+    nullable,
+    description,
+  }),
   string: (name: string, description: string, required = true, nullable = false): OpFieldSpec => ({
     name,
     type: 'string',
@@ -816,7 +824,8 @@ export const OP_CATALOG: readonly OpSpec[] = [
         type: 'level-data',
         required: false,
         units: 'mm',
-        description: 'Level data override { fflMm, slabThicknessMm, sillDefaultMm, lintelDefaultMm }.',
+        description:
+          'Level data override { fflMm, slabThicknessMm, sillDefaultMm, lintelDefaultMm }.',
       },
     ],
     actions: null,
@@ -838,7 +847,17 @@ export const OP_CATALOG: readonly OpSpec[] = [
     payload: [F.int('index', 'Storey index to remove.', 'index')],
     actions: null,
     creates: [],
-    destroys: ['storey', 'wall', 'opening', 'room', 'stair', 'slab', 'column', 'furniture', 'balcony'],
+    destroys: [
+      'storey',
+      'wall',
+      'opening',
+      'room',
+      'stair',
+      'slab',
+      'column',
+      'furniture',
+      'balcony',
+    ],
     copilot: true,
     atomic: false,
     example: { type: 'storey.remove', payload: { index: 1 } },
@@ -849,7 +868,10 @@ export const OP_CATALOG: readonly OpSpec[] = [
     category: 'storey',
     title: 'Set storey height',
     summary: 'Change one storey floor-to-floor height; FFLs above it shift, stairs re-check.',
-    payload: [F.id('storeyId', 'storey', 'Storey to change.'), F.intMm('heightMm', 'New floor-to-floor height.')],
+    payload: [
+      F.id('storeyId', 'storey', 'Storey to change.'),
+      F.intMm('heightMm', 'New floor-to-floor height.'),
+    ],
     actions: null,
     creates: [],
     destroys: [],
@@ -918,7 +940,8 @@ export const OP_CATALOG: readonly OpSpec[] = [
     type: 'wall.split',
     category: 'wall',
     title: 'Split wall',
-    summary: 'Split a wall at `atMm` from its `a` end into two walls; openings re-host by position.',
+    summary:
+      'Split a wall at `atMm` from its `a` end into two walls; openings re-host by position.',
     payload: [
       F.id('wallId', 'wall', 'Wall to split.'),
       F.intMm('atMm', 'Distance from `a` at which to split (0 < atMm < length).'),
@@ -939,7 +962,8 @@ export const OP_CATALOG: readonly OpSpec[] = [
     type: 'wall.delete',
     category: 'wall',
     title: 'Delete wall',
-    summary: 'Delete a wall and every opening hosted on it. Rooms re-detect (merged rooms lose one id).',
+    summary:
+      'Delete a wall and every opening hosted on it. Rooms re-detect (merged rooms lose one id).',
     payload: [F.id('wallId', 'wall', 'Wall to delete.')],
     actions: null,
     creates: [],
@@ -981,7 +1005,12 @@ export const OP_CATALOG: readonly OpSpec[] = [
       F.intMm('sillMm', 'Sill height above FFL (0 for doors).'),
       F.intMm('offsetMm', 'Distance along the wall from `a` to the opening centre.'),
       F.enum('swing', OPENING_SWINGS, 'Leaf swing.'),
-      F.string('tag', 'Schedule tag (D1/W2/V1); usually assigned by the schedule generator.', false, true),
+      F.string(
+        'tag',
+        'Schedule tag (D1/W2/V1); usually assigned by the schedule generator.',
+        false,
+        true,
+      ),
     ],
     actions: null,
     creates: ['opening'],
@@ -1007,7 +1036,8 @@ export const OP_CATALOG: readonly OpSpec[] = [
     type: 'opening.move',
     category: 'opening',
     title: 'Move opening',
-    summary: 'Slide an opening along its wall, or re-host it onto another wall by passing `wallId`.',
+    summary:
+      'Slide an opening along its wall, or re-host it onto another wall by passing `wallId`.',
     payload: [
       F.id('openingId', 'opening', 'Opening to move.'),
       F.intMm('offsetMm', 'New centre offset from the host wall `a`.'),
@@ -1081,7 +1111,8 @@ export const OP_CATALOG: readonly OpSpec[] = [
     type: 'room.assign',
     category: 'room',
     title: 'Assign room type',
-    summary: 'Set a detected room’s programme type, name, tags and lock flag. Never changes geometry.',
+    summary:
+      'Set a detected room’s programme type, name, tags and lock flag. Never changes geometry.',
     payload: [
       F.id('roomId', 'room', 'Room to assign.'),
       F.enum('type', ROOM_TYPES, 'Programme type.'),
@@ -1110,7 +1141,8 @@ export const OP_CATALOG: readonly OpSpec[] = [
     type: 'room.set_target',
     category: 'room',
     title: 'Set room target',
-    summary: 'Set a target area and/or required facing for a room. Feeds the solver, not the geometry.',
+    summary:
+      'Set a target area and/or required facing for a room. Feeds the solver, not the geometry.',
     payload: [
       F.id('roomId', 'room', 'Room to constrain.'),
       {
@@ -1183,7 +1215,8 @@ export const OP_CATALOG: readonly OpSpec[] = [
     type: 'stair.edit',
     category: 'stair',
     title: 'Edit stair',
-    summary: 'Patch stair fields (kind, origin, direction, riser, tread, width, risersCount, landing).',
+    summary:
+      'Patch stair fields (kind, origin, direction, riser, tread, width, risersCount, landing).',
     payload: [
       F.id('stairId', 'stair', 'Stair to edit.'),
       F.json('patch', 'Partial stair fields; omitted fields are unchanged.'),
@@ -1333,7 +1366,12 @@ export const OP_CATALOG: readonly OpSpec[] = [
     summary:
       'Replace the whole facade sub-model with a kit instantiation. Cannot touch walls, rooms or areas.',
     payload: [
-      F.string('kitId', "Facade kit id: 'contemporary' | 'modern-minimal', or null to clear.", true, true),
+      F.string(
+        'kitId',
+        "Facade kit id: 'contemporary' | 'modern-minimal', or null to clear.",
+        true,
+        true,
+      ),
       F.int('seed', 'Variation seed.', 'count'),
       F.string('colorwayId', 'Colorway id, or null.', false, true),
       {
@@ -1379,7 +1417,8 @@ export const OP_CATALOG: readonly OpSpec[] = [
     type: 'material.assign',
     category: 'material',
     title: 'Assign material',
-    summary: 'Assign a catalogue material to a surface group (optionally scoped to a storey or element).',
+    summary:
+      'Assign a catalogue material to a surface group (optionally scoped to a storey or element).',
     payload: [
       F.id('id', 'material', 'Assignment id.'),
       {
@@ -1479,7 +1518,12 @@ export const OP_CATALOG: readonly OpSpec[] = [
       F.enum('action', ANNOTATION_ACTIONS, 'add | edit | delete.'),
       F.id('id', 'annotation', 'Annotation id.'),
       F.id('sheetId', 'sheet', 'Sheet the annotation lives on (required for add).', false),
-      F.string('anchorElementId', 'Model element the annotation is anchored to, or null.', false, true),
+      F.string(
+        'anchorElementId',
+        'Model element the annotation is anchored to, or null.',
+        false,
+        true,
+      ),
       F.enum('anchorKind', ANNOTATION_ANCHOR_KINDS, 'What kind of thing the anchor is.', false),
       F.json('payload', 'Annotation content (text, leader, style).', false),
       F.bool('orphaned', 'Set true when a re-solve destroyed the anchor (Review Tray).'),
@@ -1547,8 +1591,12 @@ export function renderOpCatalogForPrompt(opts: { copilotOnly?: boolean } = {}): 
   const lines: string[] = [];
   lines.push('# Op catalogue');
   lines.push('');
-  lines.push('All lengths are INTEGER MILLIMETRES. Areas are integer mm². Angles are integer degrees.');
-  lines.push('Emit ops only from this list. Never emit coordinates you were not given or told to compute.');
+  lines.push(
+    'All lengths are INTEGER MILLIMETRES. Areas are integer mm². Angles are integer degrees.',
+  );
+  lines.push(
+    'Emit ops only from this list. Never emit coordinates you were not given or told to compute.',
+  );
   lines.push('');
   for (const spec of specs) {
     lines.push(`## ${spec.type} — ${spec.title}`);

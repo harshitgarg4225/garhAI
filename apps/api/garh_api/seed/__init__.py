@@ -49,7 +49,8 @@ from garh_api.seed.catalog import (
     load_rulepack_registry,
 )
 from garh_api.seed.demo import (
-    DEMO_BRIEF_FIXTURE_ID,
+    DEMO_BRIEF_CORPUS_SIBLING,
+    DEMO_BRIEF_SOURCE,
     DEMO_CITY_PACK,
     DEMO_FIRM_NAME,
     DEMO_PROJECT_NAME,
@@ -57,6 +58,7 @@ from garh_api.seed.demo import (
     DEMO_USER_NAME,
     PENDING_PHASES,
     DemoBrief,
+    demo_brief_data,
     demo_op_log,
     load_demo_brief,
 )
@@ -72,7 +74,8 @@ from garh_api.seed.runner import (
 
 __all__ = [
     "ACTION_SEED_COMPLETED",
-    "DEMO_BRIEF_FIXTURE_ID",
+    "DEMO_BRIEF_CORPUS_SIBLING",
+    "DEMO_BRIEF_SOURCE",
     "DEMO_CITY_PACK",
     "DEMO_FIRM_NAME",
     "DEMO_PROJECT_NAME",
@@ -90,6 +93,7 @@ __all__ = [
     "SeedError",
     "SeedOptions",
     "SeedResult",
+    "demo_brief_data",
     "demo_op_log",
     "load_catalog_bundle",
     "load_demo_brief",

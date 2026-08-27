@@ -66,7 +66,13 @@ import {
   wallMoveOp,
 } from './editOps';
 import type { NumericField } from './numericEntry';
-import { projectOnSegment, resolveSnap, snapToleranceMm, toSnapView, type SnapCandidate } from './snapping';
+import {
+  projectOnSegment,
+  resolveSnap,
+  snapToleranceMm,
+  toSnapView,
+  type SnapCandidate,
+} from './snapping';
 import {
   TOOL_RESPONSE_NONE,
   handled,
@@ -83,9 +89,7 @@ import {
   type ToolResponse,
 } from './types';
 
-const FIELDS: readonly NumericField[] = [
-  { id: 'distance', label: 'Move by', unit: 'mm' },
-];
+const FIELDS: readonly NumericField[] = [{ id: 'distance', label: 'Move by', unit: 'mm' }];
 
 type Drag =
   | { readonly kind: 'none' }
@@ -435,7 +439,12 @@ export class SelectTool extends BaseTool {
         });
       }
       return {
-        shape: { kind: 'transform', targetIds: [drag.openingId], ghosts: [], deltaMm: { x: 0, y: 0 } },
+        shape: {
+          kind: 'transform',
+          targetIds: [drag.openingId],
+          ghosts: [],
+          deltaMm: { x: 0, y: 0 },
+        },
         readouts,
         blocked: this.blocked,
         cursorMm: null,
@@ -585,10 +594,7 @@ export class SelectTool extends BaseTool {
   }
 
   /** A selected wall's endpoint under the pointer, if any. */
-  private endpointHandle(
-    ctx: ToolContext,
-    point: Pt,
-  ): { wall: Wall; end: 'a' | 'b' } | null {
+  private endpointHandle(ctx: ToolContext, point: Pt): { wall: Wall; end: 'a' | 'b' } | null {
     const tolerance = snapToleranceMm(ctx.mmPerPx);
     for (const id of ctx.selectedIds) {
       if (idType(id) !== 'wall') continue;

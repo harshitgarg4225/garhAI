@@ -14,17 +14,17 @@ e2e(smoke)` — plus `supply-chain` in parallel.
 
 ## What gets tested how
 
-| Layer | Approach |
-|---|---|
-| Rules checks | every rule needs **≥1 passing and ≥1 failing** fixture — a pack cannot ship red |
-| Units conversion | golden pairs that **TS and Python must both satisfy** |
-| Geometry / room detection | property tests (hypothesis): random rect subdivisions → expected rooms |
-| Model core | property-based fold/replay determinism via state-hash equality; undo/redo inverses; op-validation rejections |
-| Solver | 20-brief golden corpus: gates, per-seed determinism, time budget, locked-room preservation, plan JSON at **tolerance 0** |
-| Drawings | 10 plan fixtures → SVG/DXF goldens; chain-sum assertions; collision-free label assertion; `ezdxf.audit()` clean |
-| Copilot | 40-command fixture set against the mock LLM + a schema-contract test against the real provider (behind an env flag) |
-| E2E | smoke on every PR; full happy path nightly |
-| Visual regression | options screen, 3D with facade, one sheet — 0.1% pixel tolerance |
+| Layer                     | Approach                                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Rules checks              | every rule needs **≥1 passing and ≥1 failing** fixture — a pack cannot ship red                                          |
+| Units conversion          | golden pairs that **TS and Python must both satisfy**                                                                    |
+| Geometry / room detection | property tests (hypothesis): random rect subdivisions → expected rooms                                                   |
+| Model core                | property-based fold/replay determinism via state-hash equality; undo/redo inverses; op-validation rejections             |
+| Solver                    | 20-brief golden corpus: gates, per-seed determinism, time budget, locked-room preservation, plan JSON at **tolerance 0** |
+| Drawings                  | 10 plan fixtures → SVG/DXF goldens; chain-sum assertions; collision-free label assertion; `ezdxf.audit()` clean          |
+| Copilot                   | 40-command fixture set against the mock LLM + a schema-contract test against the real provider (behind an env flag)      |
+| E2E                       | smoke on every PR; full happy path nightly                                                                               |
+| Visual regression         | options screen, 3D with facade, one sheet — 0.1% pixel tolerance                                                         |
 
 Two of these deserve emphasis because they catch bugs nothing else can:
 
@@ -52,7 +52,7 @@ fixtures/
 ```
 
 SVG is normalised before comparison (timestamps and generated ids stripped) so a
-diff means the *drawing* changed, not that the clock did.
+diff means the _drawing_ changed, not that the clock did.
 
 ### When a golden legitimately changes
 
@@ -83,17 +83,17 @@ deleted is not a check.
 
 From §14 — these are assertions, not aspirations:
 
-| Surface | Budget | Enforced by |
-|---|---|---|
-| Canvas frame during pan/zoom/drag (G+2 demo) | <16ms | Playwright trace assertion |
-| Optimistic op apply (local fold) | <10ms | vitest perf test |
-| Compliance run | <100ms; ≤500ms debounced | pytest timing |
-| Room re-detection | <50ms per storey | pytest timing |
-| Solver, 3 options | ≤60s (≤120s in CI, 2 workers) | pytest timing |
-| 3D rebuild after an edit | <100ms dirty-storey | vitest perf |
-| Sheet set, G+1 3BHK | ≤5min | worker test |
-| Initial web load | <3s on 4G mid-range; <1.5MB gz initial | Lighthouse CI ≥85 |
-| Render (mock) | <1s | e2e |
+| Surface                                      | Budget                                 | Enforced by                |
+| -------------------------------------------- | -------------------------------------- | -------------------------- |
+| Canvas frame during pan/zoom/drag (G+2 demo) | <16ms                                  | Playwright trace assertion |
+| Optimistic op apply (local fold)             | <10ms                                  | vitest perf test           |
+| Compliance run                               | <100ms; ≤500ms debounced               | pytest timing              |
+| Room re-detection                            | <50ms per storey                       | pytest timing              |
+| Solver, 3 options                            | ≤60s (≤120s in CI, 2 workers)          | pytest timing              |
+| 3D rebuild after an edit                     | <100ms dirty-storey                    | vitest perf                |
+| Sheet set, G+1 3BHK                          | ≤5min                                  | worker test                |
+| Initial web load                             | <3s on 4G mid-range; <1.5MB gz initial | Lighthouse CI ≥85          |
+| Render (mock)                                | <1s                                    | e2e                        |
 
 A change that blows a budget is a review blocker, not a follow-up ticket.
 

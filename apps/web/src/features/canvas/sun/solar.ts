@@ -173,7 +173,9 @@ export function utcMsToIst(utcMs: number): { date: CalendarDate; minutesOfDay: n
   const z = days + 719_468;
   const era = Math.floor(z / 146_097);
   const doe = z - era * 146_097;
-  const yoe = Math.floor((doe - Math.floor(doe / 1460) + Math.floor(doe / 36_524) - Math.floor(doe / 146_096)) / 365);
+  const yoe = Math.floor(
+    (doe - Math.floor(doe / 1460) + Math.floor(doe / 36_524) - Math.floor(doe / 146_096)) / 365,
+  );
   const y = yoe + era * 400;
   const doy = doe - (365 * yoe + Math.floor(yoe / 4) - Math.floor(yoe / 100));
   const mp = Math.floor((5 * doy + 2) / 153);

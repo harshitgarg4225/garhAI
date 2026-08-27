@@ -58,15 +58,16 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Points
 # ---------------------------------------------------------------------------
 
 #: A point in integer millimetres. A bare tuple on purpose — see the module docstring.
-Point = Tuple[int, int]
+Point = tuple[int, int]
 
 
 def round_half_away(value: float) -> int:
@@ -85,7 +86,12 @@ def round_half_away(value: float) -> int:
 
 def point(x: int, y: int) -> Point:
     """Build a point, refusing anything that is not an integer millimetre."""
-    if isinstance(x, bool) or isinstance(y, bool) or not isinstance(x, int) or not isinstance(y, int):
+    if (
+        isinstance(x, bool)
+        or isinstance(y, bool)
+        or not isinstance(x, int)
+        or not isinstance(y, int)
+    ):
         raise TypeError(
             "primitive coordinates are integer millimetres, got (%r, %r). Round with "
             "round_half_away() at the point of construction, not in the renderer." % (x, y)
@@ -185,10 +191,10 @@ class Line:
     dashed: bool = False
     #: Model element this came from — how annotations stay anchored (§7) and how a
     #: click on a rendered sheet finds its way back to a wall.
-    owner_id: Optional[str] = None
+    owner_id: str | None = None
     kind: str = ""
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return _strip(
             {
                 "t": "line",
@@ -218,15 +224,17 @@ class Arc:
     start_deg: int
     end_deg: int
     dashed: bool = False
-    owner_id: Optional[str] = None
+    owner_id: str | None = None
     kind: str = ""
 
     @property
     def sweep_deg(self) -> int:
         """Positive CCW sweep in degrees."""
-        return (self.end_deg - self.start_deg) % 360 or (360 if self.end_deg != self.start_deg else 0)
+        return (self.end_deg - self.start_deg) % 360 or (
+            360 if self.end_deg != self.start_deg else 0
+        )
 
-    def flatten(self, steps: int = 12) -> Tuple[Point, ...]:
+    def flatten(self, steps: int = 12) -> tuple[Point, ...]:
         """Approximate the arc as a polyline — for renderers without an arc entity.
 
         ``steps`` is per quadrant-ish; 12 over a 90° door swing reads smooth at 1:50,
@@ -235,7 +243,7 @@ class Arc:
         if steps < 1:
             raise ValueError("steps must be >= 1")
         sweep = self.sweep_deg
-        out: List[Point] = []
+        out: list[Point] = []
         for index in range(steps + 1):
             angle = math.radians(self.start_deg + sweep * index / steps)
             out.append(
@@ -246,7 +254,7 @@ class Arc:
             )
         return tuple(out)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return _strip(
             {
                 "t": "arc",
@@ -280,10 +288,10 @@ class Text:
     rotation_deg: int = 0
     h_align: str = "center"
     v_align: str = "middle"
-    owner_id: Optional[str] = None
+    owner_id: str | None = None
     kind: str = ""
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return _strip(
             {
                 "t": "text",
@@ -310,17 +318,17 @@ class Hatch:
     """
 
     layer: str
-    boundary: Tuple[Point, ...]
+    boundary: tuple[Point, ...]
     pattern: str = PATTERN_MASONRY
     #: Pattern rotation, integer degrees.
     angle_deg: int = 0
     #: Pattern line spacing in **model** mm (paper-scaled by the projector).
     spacing_mm: int = 250
-    holes: Tuple[Tuple[Point, ...], ...] = ()
-    owner_id: Optional[str] = None
+    holes: tuple[tuple[Point, ...], ...] = ()
+    owner_id: str | None = None
     kind: str = ""
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return _strip(
             {
                 "t": "hatch",
@@ -346,13 +354,13 @@ class Polyline:
     """
 
     layer: str
-    points: Tuple[Point, ...]
+    points: tuple[Point, ...]
     closed: bool = False
     dashed: bool = False
-    owner_id: Optional[str] = None
+    owner_id: str | None = None
     kind: str = ""
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return _strip(
             {
                 "t": "polyline",
@@ -367,12 +375,12 @@ class Polyline:
 
 
 #: What every projector returns and every renderer accepts. Nothing else.
-Primitive = Union[Line, Arc, Text, Hatch, Polyline]
+Primitive = Line | Arc | Text | Hatch | Polyline
 
-PRIMITIVE_TYPES: Tuple[type, ...] = (Line, Arc, Text, Hatch, Polyline)
+PRIMITIVE_TYPES: tuple[type, ...] = (Line, Arc, Text, Hatch, Polyline)
 
 
-def _strip(raw: Dict[str, Any]) -> Dict[str, Any]:
+def _strip(raw: dict[str, Any]) -> dict[str, Any]:
     """Drop empty optional keys so the JSON (and the golden diff) stays readable."""
     return {
         key: value
@@ -422,13 +430,13 @@ def sanitise_text(raw: str, *, max_length: int = MAX_TEXT_LENGTH) -> str:
     return cleaned
 
 
-def find_unsafe_text(primitives: Sequence[Primitive]) -> Tuple[Tuple[str, str], ...]:
+def find_unsafe_text(primitives: Sequence[Primitive]) -> tuple[tuple[str, str], ...]:
     """Every ``(kind, text)`` that carries markup-ish content. Empty is the only pass.
 
     A cheap §13 backstop the renderer tests can assert on: if this is ever non-empty,
     something bypassed :func:`sanitise_text` on its way to a sheet.
     """
-    found: List[Tuple[str, str]] = []
+    found: list[tuple[str, str]] = []
     for item in primitives:
         if not isinstance(item, Text):
             continue
@@ -441,7 +449,7 @@ def find_unsafe_text(primitives: Sequence[Primitive]) -> Tuple[Tuple[str, str], 
 # ---------------------------------------------------------------------------
 # Inspection: what the tests, the smoke run and the golden harness all use
 # ---------------------------------------------------------------------------
-def count_by_layer(primitives: Sequence[Primitive]) -> Dict[str, int]:
+def count_by_layer(primitives: Sequence[Primitive]) -> dict[str, int]:
     """Primitive count per layer, in the canonical §7 layer order.
 
     The one number that tells you at a glance whether a projection did its job: a plan
@@ -449,7 +457,7 @@ def count_by_layer(primitives: Sequence[Primitive]) -> Dict[str, int]:
     """
     from services.drawings.layers import LAYER_NAMES
 
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     for item in primitives:
         counts[item.layer] = counts.get(item.layer, 0) + 1
     ordered = {name: counts[name] for name in LAYER_NAMES if name in counts}
@@ -460,27 +468,27 @@ def count_by_layer(primitives: Sequence[Primitive]) -> Dict[str, int]:
     return ordered
 
 
-def count_by_kind(primitives: Sequence[Primitive]) -> Dict[str, int]:
+def count_by_kind(primitives: Sequence[Primitive]) -> dict[str, int]:
     """Primitive count per semantic kind, alphabetical."""
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     for item in primitives:
         counts[item.kind] = counts.get(item.kind, 0) + 1
     return {key: counts[key] for key in sorted(counts)}
 
 
-def by_layer(primitives: Sequence[Primitive], layer: str) -> Tuple[Primitive, ...]:
+def by_layer(primitives: Sequence[Primitive], layer: str) -> tuple[Primitive, ...]:
     return tuple(item for item in primitives if item.layer == layer)
 
 
-def by_kind(primitives: Sequence[Primitive], kind: str) -> Tuple[Primitive, ...]:
+def by_kind(primitives: Sequence[Primitive], kind: str) -> tuple[Primitive, ...]:
     return tuple(item for item in primitives if item.kind == kind)
 
 
-def by_owner(primitives: Sequence[Primitive], owner_id: str) -> Tuple[Primitive, ...]:
+def by_owner(primitives: Sequence[Primitive], owner_id: str) -> tuple[Primitive, ...]:
     return tuple(item for item in primitives if item.owner_id == owner_id)
 
 
-def points_of(item: Primitive) -> Tuple[Point, ...]:
+def points_of(item: Primitive) -> tuple[Point, ...]:
     """Every defining point of a primitive. Arcs report their circle's extent box.
 
     The arc case is deliberately conservative: bounding an arc exactly means case-work
@@ -502,10 +510,10 @@ def points_of(item: Primitive) -> Tuple[Point, ...]:
     raise TypeError("not a primitive: %r" % (item,))
 
 
-def bbox_of(primitives: Sequence[Primitive]) -> Optional[Tuple[int, int, int, int]]:
+def bbox_of(primitives: Sequence[Primitive]) -> tuple[int, int, int, int] | None:
     """``(min_x, min_y, max_x, max_y)`` over every primitive, or None when empty."""
-    xs: List[int] = []
-    ys: List[int] = []
+    xs: list[int] = []
+    ys: list[int] = []
     for item in primitives:
         for px, py in points_of(item):
             xs.append(px)
@@ -515,11 +523,11 @@ def bbox_of(primitives: Sequence[Primitive]) -> Optional[Tuple[int, int, int, in
     return (min(xs), min(ys), max(xs), max(ys))
 
 
-def translate(primitives: Iterable[Primitive], dx: int, dy: int) -> Tuple[Primitive, ...]:
+def translate(primitives: Iterable[Primitive], dx: int, dy: int) -> tuple[Primitive, ...]:
     """Move a whole stream. Integer only — no scaling, no rotation, no drift."""
     if not isinstance(dx, int) or not isinstance(dy, int):
         raise TypeError("translate takes integer millimetres, got (%r, %r)" % (dx, dy))
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     for item in primitives:
         out.append(_translate_one(item, dx, dy))
     return tuple(out)
@@ -566,7 +574,7 @@ def validate_primitives(primitives: Sequence[Primitive]) -> None:
     """
     from services.drawings.layers import layer_for
 
-    problems: List[str] = []
+    problems: list[str] = []
     for index, item in enumerate(primitives):
         if not isinstance(item, PRIMITIVE_TYPES):
             problems.append("#%d is %s, not a primitive" % (index, type(item).__name__))
@@ -576,8 +584,15 @@ def validate_primitives(primitives: Sequence[Primitive]) -> None:
         except KeyError as exc:
             problems.append("#%d %s" % (index, exc.args[0]))
         for px, py in points_of(item):
-            if isinstance(px, bool) or isinstance(py, bool) or not isinstance(px, int) or not isinstance(py, int):
-                problems.append("#%d %s has non-integer point (%r, %r)" % (index, item.kind, px, py))
+            if (
+                isinstance(px, bool)
+                or isinstance(py, bool)
+                or not isinstance(px, int)
+                or not isinstance(py, int)
+            ):
+                problems.append(
+                    "#%d %s has non-integer point (%r, %r)" % (index, item.kind, px, py)
+                )
                 break
         if isinstance(item, Line) and item.a == item.b:
             problems.append("#%d %s is a zero-length line at %s" % (index, item.kind, item.a))
@@ -593,7 +608,9 @@ def validate_primitives(primitives: Sequence[Primitive]) -> None:
                     "#%d %s has alignment (%r, %r)" % (index, item.kind, item.h_align, item.v_align)
                 )
         elif isinstance(item, Hatch) and len(item.boundary) < 3:
-            problems.append("#%d %s hatch boundary has %d points" % (index, item.kind, len(item.boundary)))
+            problems.append(
+                "#%d %s hatch boundary has %d points" % (index, item.kind, len(item.boundary))
+            )
         elif isinstance(item, Polyline) and len(item.points) < 2:
             problems.append("#%d %s polyline has %d points" % (index, item.kind, len(item.points)))
     if problems:
@@ -602,7 +619,7 @@ def validate_primitives(primitives: Sequence[Primitive]) -> None:
         )
 
 
-def primitives_to_json(primitives: Sequence[Primitive]) -> List[Dict[str, Any]]:
+def primitives_to_json(primitives: Sequence[Primitive]) -> list[dict[str, Any]]:
     """The JSON form. Stable field order, integers only — golden-file ready."""
     return [item.to_json() for item in primitives]
 

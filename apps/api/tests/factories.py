@@ -17,10 +17,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from garh_api.config import Settings, get_settings
-from garh_model import empty_project_doc
 from garh_api.repositories import (
     AuthDirectoryRepository,
     CommentRepository,
@@ -35,6 +32,8 @@ from garh_api.repositories import (
 from garh_api.repositories.domain import NewOp, Project
 from garh_api.security import create_access_token, generate_opaque_token
 from garh_api.tenancy import TenantCtx
+from garh_model import empty_project_doc
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass(frozen=True)
@@ -185,9 +184,7 @@ async def append_ops(
     return result
 
 
-async def seed_plot_and_brief(
-    session: AsyncSession, actor: Actor, project_id: uuid.UUID
-) -> None:
+async def seed_plot_and_brief(session: AsyncSession, actor: Actor, project_id: uuid.UUID) -> None:
     """The demo plot + brief + storeys, appended as ops, so ``/solve`` has real inputs.
 
     Reuses the seeder's own op log (30×40 ft Bengaluru, G+1, 3BHK) rather than a
@@ -197,10 +194,7 @@ async def seed_plot_and_brief(
     """
     from garh_api.seed.demo import demo_op_log, load_demo_brief
 
-    ops = [
-        NewOp(type=op["type"], payload=op["payload"])
-        for op in demo_op_log(load_demo_brief())
-    ]
+    ops = [NewOp(type=op["type"], payload=op["payload"]) for op in demo_op_log(load_demo_brief())]
     await append_ops(session, actor, project_id, ops)
 
 
@@ -235,9 +229,7 @@ async def create_version(
     return version
 
 
-async def create_solver_job(
-    session: AsyncSession, actor: Actor, project_id: uuid.UUID
-) -> Any:
+async def create_solver_job(session: AsyncSession, actor: Actor, project_id: uuid.UUID) -> Any:
     job = await SolverJobRepository(session, actor.ctx()).enqueue(project_id, params={})
     await session.commit()
     return job

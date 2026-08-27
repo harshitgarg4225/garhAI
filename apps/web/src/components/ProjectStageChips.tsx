@@ -74,7 +74,11 @@ export function ProjectStageChips({
   className,
 }: ProjectStageChipsProps): JSX.Element {
   return (
-    <ul className={className === undefined ? 'flex flex-wrap gap-1.5' : `flex flex-wrap gap-1.5 ${className}`}>
+    <ul
+      className={
+        className === undefined ? 'flex flex-wrap gap-1.5' : `flex flex-wrap gap-1.5 ${className}`
+      }
+    >
       {PROJECT_STAGES.map((stage) => {
         const state = stages[stage];
         return (

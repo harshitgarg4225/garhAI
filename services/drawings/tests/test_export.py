@@ -24,7 +24,7 @@ import json
 import os
 import struct
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 for _path in (_REPO_ROOT, os.path.join(_REPO_ROOT, "apps", "api")):
@@ -38,7 +38,8 @@ STUBBED = install_worker_dep_stubs()
 from garh_model.fold import apply_group  # noqa: E402
 from garh_model.model import empty_project_doc  # noqa: E402
 from garh_model.ops import Op  # noqa: E402
-from services.drawings.export import EXPORTERS, EXPORT_KINDS, requirements_for  # noqa: E402
+
+from services.drawings.export import EXPORT_KINDS, EXPORTERS, requirements_for  # noqa: E402
 from services.drawings.export.dxf import (  # noqa: E402
     DXF_HATCH_PATTERNS,
     EZDXF_INSTALL_HINT,
@@ -72,9 +73,9 @@ from services.drawings.sheets import PAPER_SIZES, TitleBlock  # noqa: E402
 
 INPUT_DIR = os.path.join(_REPO_ROOT, "fixtures", "sheets", "inputs")
 RULEPACK_DIR = os.path.join(_REPO_ROOT, "rulepacks")
-_CACHE: Dict[str, Any] = {}
+_CACHE: dict[str, Any] = {}
 
-SKIPS: List[str] = []
+SKIPS: list[str] = []
 
 
 def _skip(reason: str) -> None:
@@ -83,8 +84,8 @@ def _skip(reason: str) -> None:
     print("    SKIP %s" % reason)
 
 
-def _fixture(name: str = "demo-02-blr-30x40-g1") -> Dict[str, Any]:
-    with open(os.path.join(INPUT_DIR, "%s.json" % name), "r", encoding="utf-8") as handle:
+def _fixture(name: str = "demo-02-blr-30x40-g1") -> dict[str, Any]:
+    with open(os.path.join(INPUT_DIR, "%s.json" % name), encoding="utf-8") as handle:
         return json.load(handle)
 
 
@@ -166,7 +167,13 @@ def test_dxf_structure_accounts_for_every_primitive() -> None:
             layer, entity = key.split("/")
             assert layer in LAYER_NAMES, layer
             assert entity in (
-                "LINE", "LWPOLYLINE", "ARC", "CIRCLE", "TEXT", "HATCH", "DIMENSION"
+                "LINE",
+                "LWPOLYLINE",
+                "ARC",
+                "CIRCLE",
+                "TEXT",
+                "HATCH",
+                "DIMENSION",
             ), entity
         assert structure["layers"] == list(LAYER_NAMES)
         assert set(structure["layersUsed"]) <= set(LAYER_NAMES)
@@ -292,10 +299,8 @@ def test_gltf_units_are_metres_and_up_is_y() -> None:
     gltf, _buffer = build_gltf(doc)
     by_name = {mesh["name"]: mesh for mesh in gltf["meshes"]}
 
-    def bounds(name: str) -> Tuple[List[float], List[float]]:
-        accessor = gltf["accessors"][
-            by_name[name]["primitives"][0]["attributes"]["POSITION"]
-        ]
+    def bounds(name: str) -> tuple[list[float], list[float]]:
+        accessor = gltf["accessors"][by_name[name]["primitives"][0]["attributes"]["POSITION"]]
         return (accessor["min"], accessor["max"])
 
     plinth_min, plinth_max = bounds("Plinth")
@@ -332,7 +337,7 @@ def test_gltf_openings_are_cut_out_of_the_walls() -> None:
     with_openings, _b1 = build_gltf(doc)
     without, _b2 = build_gltf(stripped)
 
-    def wall_triangles(gltf: Dict[str, Any]) -> int:
+    def wall_triangles(gltf: dict[str, Any]) -> int:
         mesh = next(m for m in gltf["meshes"] if m["name"] == "Walls")
         return int(gltf["accessors"][mesh["primitives"][0]["indices"]]["count"]) // 3
 
@@ -381,17 +386,19 @@ def test_box_faces_wind_outward() -> None:
             (a[1] + b[1] + c[1]) / 3.0 - centre[1],
             (a[2] + b[2] + c[2]) / 3.0 - centre[2],
         )
-        dot = sum(n * o for n, o in zip(normal, outward))
+        dot = sum(n * o for n, o in zip(normal, outward, strict=False))
         assert dot > 0, "triangle %d winds inward: normal %s, outward %s" % (
-            index // 3, normal, outward,
+            index // 3,
+            normal,
+            outward,
         )
 
 
 def test_degenerate_box_is_dropped_not_emitted() -> None:
     group = MeshGroup("t", "Wall")
-    group.add_box((0, 0, 0), (0, 100, 100))     # zero width
-    group.add_box((0, 0, 0), (100, 100, 0))     # zero height
-    group.add_box((100, 0, 0), (0, 100, 100))   # inverted
+    group.add_box((0, 0, 0), (0, 100, 100))  # zero width
+    group.add_box((0, 0, 0), (100, 100, 0))  # zero height
+    group.add_box((100, 0, 0), (0, 100, 100))  # inverted
     assert group.is_empty(), "a zero-volume box must not reach the buffer"
 
 
@@ -436,19 +443,13 @@ def test_validate_gltf_catches_each_structural_break() -> None:
 
     expect_failure(lambda g: g["asset"].__setitem__("version", "1.0"), "wrong version")
     expect_failure(lambda g: g.pop("meshes"), "missing meshes")
+    expect_failure(lambda g: g["buffers"][0].__setitem__("byteLength", 7), "buffer length mismatch")
+    expect_failure(lambda g: g["bufferViews"][0].__setitem__("byteOffset", 3), "unaligned view")
     expect_failure(
-        lambda g: g["buffers"][0].__setitem__("byteLength", 7), "buffer length mismatch"
-    )
-    expect_failure(
-        lambda g: g["bufferViews"][0].__setitem__("byteOffset", 3), "unaligned view"
-    )
-    expect_failure(
-        lambda g: g["bufferViews"][0].__setitem__("byteLength", 10 ** 9), "view past buffer"
+        lambda g: g["bufferViews"][0].__setitem__("byteLength", 10**9), "view past buffer"
     )
     expect_failure(lambda g: g["accessors"][0].pop("min"), "accessor without min")
-    expect_failure(
-        lambda g: g["accessors"][0].__setitem__("count", 10 ** 7), "accessor too big"
-    )
+    expect_failure(lambda g: g["accessors"][0].__setitem__("count", 10**7), "accessor too big")
     expect_failure(
         lambda g: g["meshes"][0]["primitives"][0].__setitem__("mode", 1), "not triangles"
     )
@@ -596,7 +597,12 @@ def test_converter_report_is_honest_about_what_is_missing() -> None:
 
     report = converter_report()
     assert set(report) == {
-        "converter", "converterPath", "mergeTool", "available", "canMerge", "installHint",
+        "converter",
+        "converterPath",
+        "mergeTool",
+        "available",
+        "canMerge",
+        "installHint",
     }
     if report["available"]:
         assert report["converter"] and report["converterPath"]
@@ -613,7 +619,7 @@ def test_pdf_argv_recipes_honour_the_page_size() -> None:
 
     rsvg = _command("/usr/bin/rsvg-convert", "rsvg-convert", "/tmp/a.svg", "/tmp/a.pdf")
     assert "--format=pdf" in rsvg and "--keep-aspect-ratio" in rsvg
-    assert "/tmp/a.svg" == rsvg[-1]
+    assert rsvg[-1] == "/tmp/a.svg"
 
     chromium = _command("/usr/bin/chromium", "chromium", "/tmp/a.svg", "/tmp/a.pdf")
     assert "--headless=new" in chromium
@@ -691,7 +697,7 @@ if __name__ == "__main__":  # pragma: no cover
             try:
                 _fn()
                 print("PASS %s" % _name)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 failures += 1
                 print("FAIL %s" % _name)
                 traceback.print_exc()

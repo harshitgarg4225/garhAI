@@ -11,14 +11,7 @@
  */
 
 import { formatLength, formatPlotArea, polygonAreaMm2, tryParseLengthMm } from '@garh/model';
-import {
-  AssumptionChip,
-  Button,
-  Chip,
-  PanelSection,
-  SelectField,
-  SkeletonText,
-} from '@garh/ui';
+import { AssumptionChip, Button, Chip, PanelSection, SelectField, SkeletonText } from '@garh/ui';
 
 import { frontEdgeIndex } from './geometry';
 import {
@@ -139,7 +132,9 @@ export function RegProfilePanel({ className }: RegProfilePanelProps): JSX.Elemen
       <div className="mt-3 flex flex-wrap gap-1.5">
         <AssumptionChip
           label="Plot"
-          valueText={boundaryAreaMm2 === null ? 'not drawn yet' : formatPlotArea(boundaryAreaMm2, display)}
+          valueText={
+            boundaryAreaMm2 === null ? 'not drawn yet' : formatPlotArea(boundaryAreaMm2, display)
+          }
           reason="Measured from the boundary you drew; the bye-law tables band on plot area."
           accepted={boundaryAreaMm2 !== null}
         />
@@ -162,7 +157,9 @@ export function RegProfilePanel({ className }: RegProfilePanelProps): JSX.Elemen
 
         {uiPack !== 'custom' && pack.state === 'error' ? (
           <div className="rounded-md border border-fail-line bg-fail-soft px-3 py-2 text-xs text-fail-ink">
-            <p>We couldn&apos;t load the {uiPack.toUpperCase()} rule pack. {pack.error.message}</p>
+            <p>
+              We couldn&apos;t load the {uiPack.toUpperCase()} rule pack. {pack.error.message}
+            </p>
             <Button variant="secondary" size="sm" className="mt-2" onClick={pack.retry}>
               Try again
             </Button>
@@ -196,7 +193,7 @@ export function RegProfilePanel({ className }: RegProfilePanelProps): JSX.Elemen
 
               const cite =
                 value.cite === null
-                  ? value.citationsBase ?? undefined
+                  ? (value.citationsBase ?? undefined)
                   : value.citationsBase === null
                     ? value.cite
                     : `${value.cite} — ${value.citationsBase}`;
@@ -236,9 +233,9 @@ export function RegProfilePanel({ className }: RegProfilePanelProps): JSX.Elemen
       </div>
 
       <p className="mt-3 text-2xs leading-4 text-ink-subtle">
-        Overrides never silence a check. The compliance report checks against your number, keeps
-        the pack&rsquo;s original value on the row for the citation trail, and records the change
-        in the audit log.
+        Overrides never silence a check. The compliance report checks against your number, keeps the
+        pack&rsquo;s original value on the row for the citation trail, and records the change in the
+        audit log.
       </p>
     </PanelSection>
   );

@@ -43,12 +43,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  BufferAttribute,
-  BufferGeometry,
-  DirectionalLight,
-  type Intersection,
-} from 'three';
+import { BufferAttribute, BufferGeometry, DirectionalLight, type Intersection } from 'three';
 
 import {
   bbox,
@@ -263,7 +258,13 @@ function GroundPlane({ boxMm }: { readonly boxMm: Bbox }): JSX.Element {
 // module's job; it mounts with `lights={false}` here and owns its own light)
 // ---------------------------------------------------------------------------
 
-function SceneLights({ boxMm, heightMm }: { readonly boxMm: Bbox; readonly heightMm: number }): JSX.Element {
+function SceneLights({
+  boxMm,
+  heightMm,
+}: {
+  readonly boxMm: Bbox;
+  readonly heightMm: number;
+}): JSX.Element {
   const sun = useMemo(() => new DirectionalLight(0xffffff, 1.15), []);
   useEffect(
     () => () => {
@@ -436,7 +437,9 @@ export function ThreeDScene({
               bucket={bucket}
               house={house}
               rooms={
-                bucket.storeyId === null ? NO_ROOMS : (roomsByStorey.get(bucket.storeyId) ?? NO_ROOMS)
+                bucket.storeyId === null
+                  ? NO_ROOMS
+                  : (roomsByStorey.get(bucket.storeyId) ?? NO_ROOMS)
               }
               materialColors={materialColors}
             />

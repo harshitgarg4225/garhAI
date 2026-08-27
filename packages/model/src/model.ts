@@ -45,9 +45,7 @@ import type { UnitsDisplay } from './units';
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-export interface JsonObject {
-  [key: string]: JsonValue;
-}
+export type JsonObject = Record<string, JsonValue>;
 
 /** The document schema version. Bump ⇒ write a migration in `migrate.ts`. */
 export const SCHEMA_VERSION = 1;

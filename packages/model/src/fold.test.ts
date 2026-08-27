@@ -368,7 +368,10 @@ describe('every op has a working inverse', () => {
       'plot.set_reg_profile',
       { type: 'plot.set_reg_profile', payload: { cityPack: 'blr', overrides: { farMax: 175 } } },
     ],
-    ['brief.update', { type: 'brief.update', payload: { patch: { bedrooms: 3 }, completeness: 40 } }],
+    [
+      'brief.update',
+      { type: 'brief.update', payload: { patch: { bedrooms: 3 }, completeness: 40 } },
+    ],
     [
       'storey.add',
       {
@@ -384,7 +387,10 @@ describe('every op has a working inverse', () => {
       // height outside the ±10mm rise tolerance is REJECTED with
       // STAIR_RISE_MISMATCH (deliberately; the fix hint names the riser to
       // use). The round-trip needs a height the standing stair tolerates.
-      { type: 'storey.set_height', payload: { storeyId: FIXTURE_IDS.groundStorey, heightMm: 3010 } },
+      {
+        type: 'storey.set_height',
+        payload: { storeyId: FIXTURE_IDS.groundStorey, heightMm: 3010 },
+      },
     ],
     [
       'wall.add',
@@ -504,7 +510,10 @@ describe('every op has a working inverse', () => {
     ],
     [
       'column.set (move)',
-      { type: 'column.set', payload: { action: 'move', id: FIXTURE_IDS.column, pt: { x: 2000, y: 2000 } } },
+      {
+        type: 'column.set',
+        payload: { action: 'move', id: FIXTURE_IDS.column, pt: { x: 2000, y: 2000 } },
+      },
     ],
     [
       'column.set (delete)',
@@ -528,7 +537,12 @@ describe('every op has a working inverse', () => {
       'furniture.set (transform)',
       {
         type: 'furniture.set',
-        payload: { action: 'transform', id: FIXTURE_IDS.sofa, pt: { x: 1200, y: 1200 }, rotationDeg: 180 },
+        payload: {
+          action: 'transform',
+          id: FIXTURE_IDS.sofa,
+          pt: { x: 1200, y: 1200 },
+          rotationDeg: 180,
+        },
       },
     ],
     [
@@ -551,7 +565,12 @@ describe('every op has a working inverse', () => {
       'balcony.set (edit)',
       {
         type: 'balcony.set',
-        payload: { action: 'edit', id: FIXTURE_IDS.balcony, railingKind: 'glass', projectionMm: 1200 },
+        payload: {
+          action: 'edit',
+          id: FIXTURE_IDS.balcony,
+          railingKind: 'glass',
+          projectionMm: 1200,
+        },
       },
     ],
     [
@@ -823,7 +842,7 @@ describe('UndoStack', () => {
     doc = pushGroup(stack, doc, [{ type: 'plot.set_north', payload: { deg: 30 } }], 'North');
     doc = stack.undo(doc)!.model;
     expect(stack.canRedo).toBe(true);
-    doc = pushGroup(stack, doc, [{ type: 'plot.set_north', payload: { deg: 60 } }], 'North again');
+    pushGroup(stack, doc, [{ type: 'plot.set_north', payload: { deg: 60 } }], 'North again');
     expect(stack.canRedo).toBe(false);
   });
 
@@ -1023,7 +1042,6 @@ describe('tryFold', () => {
     if (outcome.ok) expect(outcome.model.plot.northDeg).toBe(12);
   });
 });
-
 
 // ---------------------------------------------------------------------------
 // THE CROSS-LANGUAGE GOLDEN CONTRACT

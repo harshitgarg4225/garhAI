@@ -28,7 +28,8 @@ field                meaning
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping
+from typing import Any
 
 from services.common.errors import InvalidJobError
 from services.common.jobstore import JobResult
@@ -83,9 +84,7 @@ class SolverJobHandler(BaseJobHandler):
         try:
             result = await run_solver(context)
         except EnvelopeError as exc:
-            raise InvalidJobError(
-                exc.message, action=exc.action, detail=exc.detail
-            ) from exc
+            raise InvalidJobError(exc.message, action=exc.action, detail=exc.detail) from exc
 
         data: dict[str, Any] = result.to_json()
         log.info(
@@ -95,9 +94,7 @@ class SolverJobHandler(BaseJobHandler):
             rejected=result.rejected_by_gates,
         )
         message = (
-            result.banner
-            if result.banner
-            else "Generated %d plan options." % len(result.options)
+            result.banner if result.banner else "Generated %d plan options." % len(result.options)
         )
         return JobResult(data=data, message=message)
 
@@ -114,11 +111,15 @@ def _parse_params(payload: Mapping[str, Any], *, kind: str) -> SolveParams:
     edges = _parse_edges(plot.get("edges"), edge_count=len(polygon))
     profile = RegProfile(
         city_pack=str(profile_raw.get("cityPack") or "nbc-core"),
-        coverage_percent=_int(profile_raw.get("coveragePercent"), "profile.coveragePercent", 1, 100),
+        coverage_percent=_int(
+            profile_raw.get("coveragePercent"), "profile.coveragePercent", 1, 100
+        ),
         far_x100=_int(profile_raw.get("farX100"), "profile.farX100", 1, 10_000),
         max_height_mm=_int(profile_raw.get("maxHeightMm"), "profile.maxHeightMm", 1, 1_000_000),
         max_floors=_int(profile_raw.get("maxFloors"), "profile.maxFloors", 1, 100),
-        overrides=profile_raw.get("overrides") if isinstance(profile_raw.get("overrides"), dict) else {},
+        overrides=profile_raw.get("overrides")
+        if isinstance(profile_raw.get("overrides"), dict)
+        else {},
     )
 
     rooms = tuple(_parse_room(item, index) for index, item in enumerate(brief.get("rooms") or []))
@@ -186,20 +187,20 @@ def _parse_polygon(raw: Any) -> Any:
     for index, item in enumerate(raw):
         if isinstance(item, Mapping):
             x, y = item.get("x"), item.get("y")
-        elif isinstance(item, (list, tuple)) and len(item) == 2:
+        elif isinstance(item, list | tuple) and len(item) == 2:
             x, y = item[0], item[1]
         else:
             raise InvalidJobError(
                 "The plot boundary could not be read.",
                 detail="plot.polygon[%d] is %r" % (index, item),
             )
-        points.append((_int(x, "plot.polygon[%d].x" % index), _int(y, "plot.polygon[%d].y" % index)))
+        points.append(
+            (_int(x, "plot.polygon[%d].x" % index), _int(y, "plot.polygon[%d].y" % index))
+        )
     try:
         return as_polygon(points)
     except ValueError as exc:
-        raise InvalidJobError(
-            "The plot boundary could not be read.", detail=str(exc)
-        ) from exc
+        raise InvalidJobError("The plot boundary could not be read.", detail=str(exc)) from exc
 
 
 def _parse_edges(raw: Any, *, edge_count: int) -> tuple[PlotEdge, ...]:

@@ -37,8 +37,9 @@ symmetric, so the two faces stay the same distance from the centreline.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.layers import A_DOOR, A_WALL, A_WALL_PART, A_WIND
 from services.drawings.projection.primitives import (
@@ -107,7 +108,7 @@ class WallFrame:
         return round_half_away(math.degrees(math.atan2(self.uy, self.ux))) % 360
 
 
-def wall_frame(wall: Any) -> Optional[WallFrame]:
+def wall_frame(wall: Any) -> WallFrame | None:
     """Local frame of a wall, or None when the wall is degenerate.
 
     Zero-length walls are rejected by the model's own validation, but a document from an
@@ -178,7 +179,7 @@ def face_extents(wall: Any, frame: WallFrame, neighbours: Sequence[Any]) -> Face
     other extends. Non-orthogonal neighbours are ignored (MVP is orthogonal-only) —
     better an un-mitred corner than an invented one.
     """
-    deltas: List[Tuple[int, int]] = []
+    deltas: list[tuple[int, int]] = []
     for end_x, end_y in ((wall.a.x, wall.a.y), (wall.b.x, wall.b.y)):
         # Retraction and extension are collected separately, and retraction wins: at a
         # cross junction one neighbour may want the face longer and another shorter, and
@@ -236,7 +237,7 @@ def _touches(other: Any, x: int, y: int) -> bool:
     return 0 <= dot <= dx * dx + dy * dy
 
 
-def _covered_sides(other: Any, x: int, y: int, frame: WallFrame) -> Tuple[bool, bool]:
+def _covered_sides(other: Any, x: int, y: int, frame: WallFrame) -> tuple[bool, bool]:
     """Which sides of ``frame`` the neighbour's body continues into, past ``(x, y)``."""
     covers_left = False
     covers_right = False
@@ -264,7 +265,7 @@ class Span:
         return self.end_mm - self.start_mm
 
 
-def opening_span(frame: WallFrame, opening: Any) -> Optional[Span]:
+def opening_span(frame: WallFrame, opening: Any) -> Span | None:
     """The interval an opening occupies along its host wall.
 
     ``offset_mm`` is the distance from ``wall.a`` to the opening **centre** (§3), so the
@@ -280,14 +281,14 @@ def opening_span(frame: WallFrame, opening: Any) -> Optional[Span]:
     return Span(start, end)
 
 
-def merge_spans(spans: Sequence[Span]) -> Tuple[Span, ...]:
+def merge_spans(spans: Sequence[Span]) -> tuple[Span, ...]:
     """Sort and union overlapping spans.
 
     ``validate`` rejects overlapping openings, but a rebase can briefly produce them and
     two overlapping gaps must draw as one gap rather than a negative-length run.
     """
     ordered = sorted(spans, key=lambda span: (span.start_mm, span.end_mm))
-    merged: List[List[int]] = []
+    merged: list[list[int]] = []
     for span in ordered:
         if merged and span.start_mm <= merged[-1][1]:
             merged[-1][1] = max(merged[-1][1], span.end_mm)
@@ -296,7 +297,7 @@ def merge_spans(spans: Sequence[Span]) -> Tuple[Span, ...]:
     return tuple(Span(start, end) for start, end in merged)
 
 
-def split_span(start_mm: int, end_mm: int, gaps: Sequence[Span]) -> Tuple[Span, ...]:
+def split_span(start_mm: int, end_mm: int, gaps: Sequence[Span]) -> tuple[Span, ...]:
     """``[start, end]`` minus ``gaps`` — the runs of solid wall along one face.
 
     THE INVARIANT (asserted in ``tests/test_projection.py``): the runs plus the clipped
@@ -306,7 +307,7 @@ def split_span(start_mm: int, end_mm: int, gaps: Sequence[Span]) -> Tuple[Span, 
     """
     if end_mm <= start_mm:
         return ()
-    runs: List[Span] = []
+    runs: list[Span] = []
     cursor = start_mm
     for gap in merge_spans(gaps):
         low = max(gap.start_mm, start_mm)
@@ -342,7 +343,7 @@ class WallBand:
     wall: Any
     frame: WallFrame
     extents: FaceExtents
-    gaps: Tuple[Span, ...]
+    gaps: tuple[Span, ...]
 
     @property
     def layer(self) -> str:
@@ -355,12 +356,12 @@ class WallBand:
         return self.wall.kind == "external"
 
 
-def wall_band(wall: Any, neighbours: Sequence[Any], openings: Sequence[Any]) -> Optional[WallBand]:
+def wall_band(wall: Any, neighbours: Sequence[Any], openings: Sequence[Any]) -> WallBand | None:
     """Resolve one wall into its frame, mitred face extents and opening gaps."""
     frame = wall_frame(wall)
     if frame is None:
         return None
-    gaps: List[Span] = []
+    gaps: list[Span] = []
     for opening in openings:
         if opening.wall_id != wall.id:
             continue
@@ -370,14 +371,14 @@ def wall_band(wall: Any, neighbours: Sequence[Any], openings: Sequence[Any]) -> 
     return WallBand(wall, frame, face_extents(wall, frame, neighbours), merge_spans(gaps))
 
 
-def wall_primitives(band: WallBand, *, hatch_spacing_mm: int) -> Tuple[Primitive, ...]:
+def wall_primitives(band: WallBand, *, hatch_spacing_mm: int) -> tuple[Primitive, ...]:
     """The double lines, the end caps, the jambs and the external hatch of one wall.
 
     ``hatch_spacing_mm`` is paper-scaled by the caller: poché lines have to stay the
     same distance apart on paper whatever the drawing scale, or a 1:50 sheet turns
     solid black.
     """
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     frame = band.frame
     extents = band.extents
     half = frame.half_mm
@@ -438,9 +439,7 @@ def wall_primitives(band: WallBand, *, hatch_spacing_mm: int) -> Tuple[Primitive
     return tuple(out)
 
 
-def _band_quad(
-    frame: WallFrame, extents: FaceExtents, run: Span
-) -> Optional[Tuple[Point, ...]]:
+def _band_quad(frame: WallFrame, extents: FaceExtents, run: Span) -> tuple[Point, ...] | None:
     """The mitred quad of one solid run: right face out, left face back.
 
     Clamping each corner to its own face's extents is what keeps the hatch inside the
@@ -464,7 +463,7 @@ def _band_quad(
 # ---------------------------------------------------------------------------
 # Opening symbols
 # ---------------------------------------------------------------------------
-def opening_primitives(band: WallBand, opening: Any) -> Tuple[Primitive, ...]:
+def opening_primitives(band: WallBand, opening: Any) -> tuple[Primitive, ...]:
     """One opening's plan symbol: jambs, then the door/window/ventilator itself.
 
     §7: "openings break walls (door arc + leaf, window triple line)". The break is
@@ -490,7 +489,7 @@ def opening_primitives(band: WallBand, opening: Any) -> Tuple[Primitive, ...]:
     half = frame.half_mm
     layer = A_DOOR if opening.kind == "door" else A_WIND
     owner = opening.id
-    out: List[Primitive] = [
+    out: list[Primitive] = [
         Line(
             layer=layer,
             a=frame.at(span.start_mm, half),
@@ -513,7 +512,11 @@ def opening_primitives(band: WallBand, opening: Any) -> Tuple[Primitive, ...]:
 
     inset = max(1, half // WINDOW_REVEAL_DIVISOR)
     kind = K_WINDOW_GLAZING if opening.kind == "window" else K_VENT_GLAZING
-    for across, dashed in ((half - inset, False), (-(half - inset), False), (0, opening.kind == "ventilator")):
+    for across, dashed in (
+        (half - inset, False),
+        (-(half - inset), False),
+        (0, opening.kind == "ventilator"),
+    ):
         out.append(
             Line(
                 layer=layer,
@@ -527,7 +530,7 @@ def opening_primitives(band: WallBand, opening: Any) -> Tuple[Primitive, ...]:
     return tuple(out)
 
 
-def _door_primitives(frame: WallFrame, span: Span, opening: Any) -> List[Primitive]:
+def _door_primitives(frame: WallFrame, span: Span, opening: Any) -> list[Primitive]:
     """Leaf line + swing arc. Hand and side per the model's ``swing`` enum."""
     hinge_at_start = opening.swing in ("in-left", "out-left")
     side = 1 if opening.swing in ("in-left", "in-right") else -1
@@ -570,9 +573,9 @@ def _door_primitives(frame: WallFrame, span: Span, opening: Any) -> List[Primiti
     ]
 
 
-def wall_bands(walls: Sequence[Any], openings: Sequence[Any]) -> Tuple[WallBand, ...]:
+def wall_bands(walls: Sequence[Any], openings: Sequence[Any]) -> tuple[WallBand, ...]:
     """Resolve every wall of a storey against its neighbours. Degenerate walls skipped."""
-    bands: List[WallBand] = []
+    bands: list[WallBand] = []
     for wall in walls:
         band = wall_band(wall, walls, openings)
         if band is not None:
@@ -580,7 +583,7 @@ def wall_bands(walls: Sequence[Any], openings: Sequence[Any]) -> Tuple[WallBand,
     return tuple(bands)
 
 
-def band_index(bands: Sequence[WallBand]) -> Dict[str, WallBand]:
+def band_index(bands: Sequence[WallBand]) -> dict[str, WallBand]:
     return {band.wall.id: band for band in bands}
 
 

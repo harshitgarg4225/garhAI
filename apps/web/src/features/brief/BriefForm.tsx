@@ -18,13 +18,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 
-import {
-  formatGaj,
-  formatRupees,
-  formatSqft,
-  type Direction8,
-  type JsonValue,
-} from '@garh/model';
+import { formatGaj, formatRupees, formatSqft, type Direction8, type JsonValue } from '@garh/model';
 import {
   AssumptionChip,
   Card,
@@ -60,7 +54,6 @@ import {
   setRoomCount,
   updateBedroom,
   withLivingDining,
-  type BathChoice,
   type BudgetBandId,
   type KitchenType,
   type LivingDining,
@@ -85,7 +78,7 @@ const roomLabel = roomTypeLabel;
 
 const AI_DECIDES = '__ai__';
 
-const FACING_OPTIONS: ReadonlyArray<SelectOption<string>> = [
+const FACING_OPTIONS: readonly SelectOption<string>[] = [
   { value: AI_DECIDES, label: 'AI decides' },
   ...(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const).map((d) => ({
     value: d,
@@ -93,7 +86,7 @@ const FACING_OPTIONS: ReadonlyArray<SelectOption<string>> = [
   })),
 ];
 
-const STOREY_OPTIONS: ReadonlyArray<SelectOption<string>> = [
+const STOREY_OPTIONS: readonly SelectOption<string>[] = [
   { value: '1', label: 'Ground only' },
   { value: '2', label: 'G+1' },
   { value: '3', label: 'G+2' },
@@ -150,7 +143,7 @@ function RoomPrefsEditor({
       />
       <SelectField
         label="Facing"
-        value={room.facing == null ? AI_DECIDES : room.facing}
+        value={room.facing ?? AI_DECIDES}
         options={FACING_OPTIONS}
         onValueChange={(v) => onPatch({ facing: v === AI_DECIDES ? null : (v as Direction8) })}
       />
@@ -257,7 +250,9 @@ export function BriefForm({ className }: BriefFormProps): JSX.Element {
               label="Terrace access"
               hint="A stair to the terrace adds a mumty on the roof."
               value={data.terraceAccess}
-              onChange={(v) => update({ patch: { terraceAccess: v }, label: 'Terrace access updated' })}
+              onChange={(v) =>
+                update({ patch: { terraceAccess: v }, label: 'Terrace access updated' })
+              }
             />
             <ToggleField
               label="Future expansion"
@@ -315,7 +310,7 @@ export function BriefForm({ className }: BriefFormProps): JSX.Element {
                       fieldClassName="w-40"
                       onValueChange={(v) =>
                         patchRooms(
-                          updateBedroom(rooms, i, { bath: v as BathChoice }),
+                          updateBedroom(rooms, i, { bath: v }),
                           `Bedroom ${i + 1} bath updated`,
                         )
                       }
@@ -505,7 +500,9 @@ export function BriefForm({ className }: BriefFormProps): JSX.Element {
               >
                 <span className="flex items-center justify-between gap-2">
                   <span className="text-sm font-semibold text-ink">{kit.name}</span>
-                  {active ? <Icon name="check-circle" size={16} className="text-brand-ink" /> : null}
+                  {active ? (
+                    <Icon name="check-circle" size={16} className="text-brand-ink" />
+                  ) : null}
                 </span>
                 <span className="mt-1 block text-xs leading-5 text-ink-muted">{kit.blurb}</span>
               </button>
@@ -556,8 +553,8 @@ export function BriefForm({ className }: BriefFormProps): JSX.Element {
             }}
           />
           <p className="mt-1.5 text-2xs leading-4 text-ink-subtle">
-            We note the file for now; uploading it and using it to steer the facade options
-            arrives with facades in Phase 5.
+            We note the file for now; uploading it and using it to steer the facade options arrives
+            with facades in Phase 5.
           </p>
         </div>
       </Card>

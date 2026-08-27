@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Errors raised by the rules engine.
 
 Two families, and the split matters:
@@ -21,7 +19,9 @@ is shared by the API and by the solver critic (``services/solver``) and must not
 depend on either.
 """
 
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 __all__ = [
     "GarhRulesError",
@@ -43,11 +43,11 @@ class GarhRulesError(Exception):
     def __init__(self, message: str, **details: Any) -> None:
         super().__init__(message)
         self.message = message
-        self.details: Dict[str, Any] = {k: v for k, v in details.items() if v is not None}
+        self.details: dict[str, Any] = {k: v for k, v in details.items() if v is not None}
 
-    def as_problem(self) -> Dict[str, Any]:
+    def as_problem(self) -> dict[str, Any]:
         """problem+json body, matching the API's ``{code, message, action}`` contract."""
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "code": self.code,
             "message": self.message,
             "action": self.action,
@@ -78,8 +78,8 @@ class PackLoadError(GarhRulesError):
         self,
         message: str,
         *,
-        pack_id: Optional[str] = None,
-        rule_id: Optional[str] = None,
+        pack_id: str | None = None,
+        rule_id: str | None = None,
         **details: Any,
     ) -> None:
         super().__init__(message, pack_id=pack_id, rule_id=rule_id, **details)
@@ -92,7 +92,7 @@ class SchemaValidationError(PackLoadError):
 
     code = "rulepack_schema_invalid"
 
-    def __init__(self, message: str, *, pack_id: Optional[str] = None, errors: Any = None) -> None:
+    def __init__(self, message: str, *, pack_id: str | None = None, errors: Any = None) -> None:
         super().__init__(message, pack_id=pack_id, errors=errors)
         self.errors = list(errors or ())
 

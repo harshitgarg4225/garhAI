@@ -54,6 +54,7 @@ from services.common.logging import (
     get_logger,
 )
 from services.common.metrics import WorkerMetrics
+from services.common.observability import capture_exception, init_sentry
 from services.common.progress import ProgressReporter
 from services.common.queue import RedisJobQueue, RedisLike, Reservation, connect
 
@@ -166,6 +167,10 @@ class Worker:
     async def run(self) -> int:
         """Consume until stopped. Returns a process exit code."""
         configure_worker_logging(self.settings)
+        # Error tracking, OFF unless SENTRY_DSN is set — the zero-keys default
+        # stack ships zero third-party telemetry (locked decision). The SDK is
+        # imported lazily inside, so this line costs one string check when off.
+        init_sentry(self.settings)
         self._validate_handler()
 
         redis = self._redis or connect(self.settings.redis_url)
@@ -201,7 +206,7 @@ class Worker:
         exit_code = 0
         try:
             await self._consume(queue)
-        except Exception as exc:  # noqa: BLE001 - last line of defence; must log, not vanish
+        except Exception as exc:
             log.error("worker.crashed", error=str(exc), exc_info=True)
             exit_code = 1
         finally:
@@ -246,7 +251,7 @@ class Worker:
                 reservation = await queue.reserve(
                     timeout_seconds=self.settings.queue_reserve_timeout_seconds
                 )
-            except Exception as exc:  # noqa: BLE001 - Redis blip: back off, stay alive
+            except Exception as exc:
                 self._slots.release()
                 self._redis_ok = False
                 log.error("worker.reserve_failed", error=str(exc))
@@ -370,10 +375,10 @@ class Worker:
             self.metrics.jobs_released += 1
             log.info("job.released", reason="worker shutting down")
             raise
-        except Exception as exc:  # noqa: BLE001 - classified below, never swallowed
+        except Exception as exc:
             try:
                 await self._handle_failure(queue, reservation, progress, checkpoint, exc)
-            except Exception as failure_exc:  # noqa: BLE001 - the failure path broke
+            except Exception as failure_exc:
                 # The failure path failing is how a job gets stuck "running"
                 # forever with a healthy-looking worker (progress.failed's kwarg
                 # collision did exactly that on the solver's first real job). An
@@ -386,6 +391,15 @@ class Worker:
                     failure_error=repr(failure_exc),
                     exc_info=True,
                 )
+                # The one place a worker actively reports to the error tracker:
+                # the job died AND the machinery for reporting that honestly
+                # died too, so no progress event and no job row carries the
+                # details — only this log line and, when SENTRY_DSN is set,
+                # these two events. Both exceptions matter: the original
+                # failure and the crash of the failure path. Silent no-ops
+                # when init_sentry did not run at boot, and never raise.
+                capture_exception(exc)
+                capture_exception(failure_exc)
                 with contextlib.suppress(Exception):
                     await progress.failed(
                         {
@@ -486,21 +500,21 @@ class Worker:
                 return
             try:
                 await queue.heartbeat(reservation)
-            except Exception as exc:  # noqa: BLE001 - a missed beat is not fatal yet
+            except Exception as exc:
                 log.warning("job.heartbeat_failed", error=str(exc))
             try:
                 if await queue.is_cancelled(reservation.envelope.job_id):
                     cancel_event.set()
                     handler_task.cancel()
                     return
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.warning("job.cancel_poll_failed", error=str(exc))
 
     async def _sink(self, coro: Any) -> None:
         """Await a status-sink call; a sink failure never changes a job's outcome."""
         try:
             await coro
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("worker.status_sink_failed", error=str(exc))
 
     # ------------------------------------------------------------------
@@ -519,7 +533,7 @@ class Worker:
                 self._redis_ok = True
             except asyncio.CancelledError:
                 raise
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self._redis_ok = False
                 log.warning("worker.sweep_failed", error=str(exc))
             await asyncio.sleep(self.settings.queue_sweep_interval_seconds)
@@ -530,7 +544,7 @@ class Worker:
             return HealthStatus(healthy=False, reason="redis client not initialised")
         try:
             await asyncio.wait_for(self._redis.ping(), timeout=3.0)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self._redis_ok = False
             return HealthStatus(healthy=False, reason="redis unreachable: %s" % exc)
         self._redis_ok = True

@@ -50,7 +50,8 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, Query
@@ -117,10 +118,10 @@ MAX_INLINE_SVG_BYTES = 4 * 1024 * 1024
 #: SVG needs nothing installed; DXF needs ezdxf in the worker image. PDF is available
 #: per-sheet only when the worker has a converter, so it is not requested by default —
 #: the whole-set PDF goes through the export job, which reports its own tool problems.
-DEFAULT_SHEET_FORMATS: Tuple[str, ...] = ("svg", "dxf")
+DEFAULT_SHEET_FORMATS: tuple[str, ...] = ("svg", "dxf")
 
 #: Mirrors ``services.drawings.pipeline.DB_KIND_ORDER``.
-SHEET_KIND_ORDER: Tuple[str, ...] = (
+SHEET_KIND_ORDER: tuple[str, ...] = (
     "site",
     "floor",
     "elevation",
@@ -128,7 +129,7 @@ SHEET_KIND_ORDER: Tuple[str, ...] = (
     "schedule",
     "area-statement",
 )
-_ELEVATION_DIRECTIONS: Tuple[str, ...] = ("N", "E", "S", "W")
+_ELEVATION_DIRECTIONS: tuple[str, ...] = ("N", "E", "S", "W")
 
 
 # ---------------------------------------------------------------------------
@@ -171,8 +172,8 @@ def areas_object_key(firm_id: Any, job_id: str) -> str:
 
 
 def fresh_sheet_url(
-    sheet: Any, fmt: str, firm_id: Any, settings: Optional[Settings] = None
-) -> Optional[str]:
+    sheet: Any, fmt: str, firm_id: Any, settings: Settings | None = None
+) -> str | None:
     """A working link for one sheet artefact, signed now.
 
     ``layout.artifacts[fmt]`` holds an object key (what the worker reports). A value
@@ -189,12 +190,10 @@ def fresh_sheet_url(
     if value.startswith(("http://", "https://", "file://")):
         return value
     cfg = settings or get_settings()
-    return _sigv4_presign(
-        "GET", value, ttl_seconds=cfg.s3_signed_url_ttl_seconds, settings=cfg
-    )
+    return _sigv4_presign("GET", value, ttl_seconds=cfg.s3_signed_url_ttl_seconds, settings=cfg)
 
 
-def sheet_formats_available(sheet: Any) -> List[str]:
+def sheet_formats_available(sheet: Any) -> list[str]:
     stored = dict(sheet.layout or {}).get("artifacts")
     if not isinstance(stored, dict):
         return []
@@ -204,7 +203,7 @@ def sheet_formats_available(sheet: Any) -> List[str]:
 # ---------------------------------------------------------------------------
 # The sheet plan — a MIRROR of services.drawings.pipeline._sheet_plan
 # ---------------------------------------------------------------------------
-def sheet_slugs_for(document: Dict[str, Any], kinds: Sequence[str]) -> List[Tuple[str, str]]:
+def sheet_slugs_for(document: dict[str, Any], kinds: Sequence[str]) -> list[tuple[str, str]]:
     """``[(slug, kind)]`` the worker will produce for this document.
 
     **This mirrors ``services.drawings.pipeline._sheet_plan``** and exists for one
@@ -225,7 +224,7 @@ def sheet_slugs_for(document: Dict[str, Any], kinds: Sequence[str]) -> List[Tupl
     with_walls = {str(wall.get("storeyId")) for wall in walls if wall.get("storeyId")}
     wanted = set(kinds)
 
-    plan: List[Tuple[str, str]] = []
+    plan: list[tuple[str, str]] = []
     if "site" in wanted:
         plan.append(("site-plan", "site"))
     if "floor" in wanted:
@@ -254,14 +253,14 @@ async def build_sheets_job(
     design_version_id: uuid.UUID,
     *,
     job_id: str,
-    kinds: Optional[Sequence[str]] = None,
+    kinds: Sequence[str] | None = None,
     scale_denominator: int = 100,
     sheet_size: str = "A2",
-    dim_to_jamb: Optional[bool] = None,
-    title_block: Optional[TitleBlockFields] = None,
-    revisions: Optional[Sequence[RevisionRow]] = None,
-    formats: Optional[Sequence[str]] = None,
-) -> Tuple[Dict[str, Any], Dict[str, queue.BlobRef], Dict[str, queue.BlobRef]]:
+    dim_to_jamb: bool | None = None,
+    title_block: TitleBlockFields | None = None,
+    revisions: Sequence[RevisionRow] | None = None,
+    formats: Sequence[str] | None = None,
+) -> tuple[dict[str, Any], dict[str, queue.BlobRef], dict[str, queue.BlobRef]]:
     """``(payload, assets, outputs)`` for one ``drawings.generate_sheets`` envelope.
 
     Four things happen here that cannot happen in the worker:
@@ -294,7 +293,7 @@ async def build_sheets_job(
         session, ctx, project_id, design_version_id, document
     )
 
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "designVersionId": str(design_version_id),
         "kinds": resolved_kinds,
         "scaleDenominator": int(scale_denominator or prefs.default_scale_denominator),
@@ -307,7 +306,7 @@ async def build_sheets_job(
         "areasSource": areas_source,
     }
 
-    assets: Dict[str, queue.BlobRef] = {
+    assets: dict[str, queue.BlobRef] = {
         "model": await _upload_json(
             document, model_object_key(ctx.firm_id, job_id), settings, what="design"
         )
@@ -317,7 +316,7 @@ async def build_sheets_job(
             areas, areas_object_key(ctx.firm_id, job_id), settings, what="area statement"
         )
 
-    outputs: Dict[str, queue.BlobRef] = {}
+    outputs: dict[str, queue.BlobRef] = {}
     for slug, _kind in sheet_slugs_for(document, resolved_kinds):
         for fmt in chosen_formats:
             key = sheet_object_key(ctx.firm_id, design_version_id, slug, fmt)
@@ -345,7 +344,7 @@ async def build_sheets_job(
 
 #: kind → (extension, content type). Mirrors ``services.drawings.export.EXPORTERS``
 #: and ``garh_api.routers.jobs._EXPORT_EXTENSIONS``.
-EXPORT_ARTEFACTS: Dict[str, Tuple[str, str]] = {
+EXPORT_ARTEFACTS: dict[str, tuple[str, str]] = {
     "pdf-set": ("pdf", "application/pdf"),
     "dxf": ("dxf", "application/dxf"),
     "gltf": ("glb", "model/gltf-binary"),
@@ -366,7 +365,7 @@ async def build_export_job(
     *,
     job_id: str,
     kind: str,
-) -> Tuple[Dict[str, queue.BlobRef], Dict[str, queue.BlobRef]]:
+) -> tuple[dict[str, queue.BlobRef], dict[str, queue.BlobRef]]:
     """``(assets, outputs)`` for one ``drawings.export`` envelope.
 
     The same two assets a sheets job gets, because an export **re-derives** the sheets
@@ -388,7 +387,7 @@ async def build_export_job(
     settings = get_settings()
     document = await _load_version_document(session, ctx, project_id, design_version_id)
 
-    assets: Dict[str, queue.BlobRef] = {
+    assets: dict[str, queue.BlobRef] = {
         "model": await _upload_json(
             document, model_object_key(ctx.firm_id, job_id), settings, what="design"
         )
@@ -406,9 +405,7 @@ async def build_export_job(
     _extension, content_type = EXPORT_ARTEFACTS[kind]
     outputs = {
         "export": queue.BlobRef(
-            put_url=_sigv4_presign(
-                "PUT", key, ttl_seconds=PUT_URL_TTL_SECONDS, settings=settings
-            ),
+            put_url=_sigv4_presign("PUT", key, ttl_seconds=PUT_URL_TTL_SECONDS, settings=settings),
             get_url=_sigv4_presign(
                 "GET", key, ttl_seconds=settings.s3_signed_url_ttl_seconds, settings=settings
             ),
@@ -419,7 +416,7 @@ async def build_export_job(
     return (assets, outputs)
 
 
-_CONTENT_TYPES: Dict[str, str] = {
+_CONTENT_TYPES: dict[str, str] = {
     # Never image/svg+xml — §13 forbids serving a drawing as a type a browser executes
     # scripts inside, and routers/jobs.py makes the same call for downloads.
     "svg": "application/octet-stream",
@@ -428,10 +425,10 @@ _CONTENT_TYPES: Dict[str, str] = {
 }
 
 
-def _resolve_formats(formats: Optional[Sequence[str]]) -> Tuple[str, ...]:
+def _resolve_formats(formats: Sequence[str] | None) -> tuple[str, ...]:
     if not formats:
         return DEFAULT_SHEET_FORMATS
-    chosen: List[str] = []
+    chosen: list[str] = []
     for item in formats:
         key = str(item).lower()
         if key not in _CONTENT_TYPES:
@@ -450,7 +447,7 @@ def _resolve_formats(formats: Optional[Sequence[str]]) -> Tuple[str, ...]:
 
 def _merge_title_block(
     firm_block: TitleBlockFields,
-    override: Optional[TitleBlockFields],
+    override: TitleBlockFields | None,
     *,
     project_name: str,
 ) -> TitleBlockFields:
@@ -471,7 +468,7 @@ def _merge_title_block(
 
 async def _load_version_document(
     session: Any, ctx: TenantCtx, project_id: uuid.UUID, design_version_id: uuid.UUID
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """The folded document for a version: its snapshot, or a fold up to its head.
 
     A version whose snapshot was pruned is not a dead end — ``load_project_state``
@@ -489,9 +486,7 @@ async def _load_version_document(
             return dict(unwrapped.document)
 
     branch = version.version_branch
-    state = await load_project_state(
-        session, ctx, project_id, branch, upto_idx=version.op_seq_end
-    )
+    state = await load_project_state(session, ctx, project_id, branch, upto_idx=version.op_seq_end)
     return dict(state.document)
 
 
@@ -500,8 +495,8 @@ async def _area_statement_for_version(
     ctx: TenantCtx,
     project_id: uuid.UUID,
     design_version_id: uuid.UUID,
-    document: Dict[str, Any],
-) -> Tuple[Optional[Dict[str, Any]], str]:
+    document: dict[str, Any],
+) -> tuple[dict[str, Any] | None, str]:
     """``(AreaStatement.to_json(), source)`` for this version. §7's one source.
 
     "One source" means one **implementation**, not one cached row.
@@ -550,7 +545,7 @@ async def _assert_matches_frozen_report(
     ctx: TenantCtx,
     project_id: uuid.UUID,
     design_version_id: uuid.UUID,
-    fresh: Dict[str, Any],
+    fresh: dict[str, Any],
 ) -> None:
     """Log loudly if a fresh evaluation disagrees with the version's frozen report.
 
@@ -575,7 +570,9 @@ async def _assert_matches_frozen_report(
         if isinstance(r, dict) and r.get("ruleId")
     }
     changed = sorted(
-        rule_id for rule_id, status in now.items() if rule_id in frozen and frozen[rule_id] != status
+        rule_id
+        for rule_id, status in now.items()
+        if rule_id in frozen and frozen[rule_id] != status
     )
     if changed:
         _log.error(
@@ -589,7 +586,7 @@ async def _assert_matches_frozen_report(
 
 
 async def _upload_json(
-    payload: Dict[str, Any], key: str, settings: Settings, *, what: str
+    payload: dict[str, Any], key: str, settings: Settings, *, what: str
 ) -> queue.BlobRef:
     """Store one JSON asset and hand back a ref the worker can read.
 
@@ -620,9 +617,7 @@ async def _upload_json(
             "We couldn't hand your design to the drawing service just now."
         )
     return queue.BlobRef(
-        get_url=_sigv4_presign(
-            "GET", key, ttl_seconds=PUT_URL_TTL_SECONDS, settings=settings
-        ),
+        get_url=_sigv4_presign("GET", key, ttl_seconds=PUT_URL_TTL_SECONDS, settings=settings),
         key=key,
         content_type="application/json",
         size_bytes=len(body),
@@ -637,7 +632,7 @@ async def persist_sheet_set(
     firm_id: uuid.UUID,
     project_id: uuid.UUID,
     design_version_id: uuid.UUID,
-    data: Dict[str, Any],
+    data: dict[str, Any],
 ) -> int:
     """Turn a ``drawings.generate_sheets`` succeeded event into ``sheets`` rows.
 
@@ -661,7 +656,7 @@ async def persist_sheet_set(
         return 0
 
     ctx = TenantCtx.for_system(firm_id)
-    specs: List[Dict[str, Any]] = []
+    specs: list[dict[str, Any]] = []
     for layout in sheets:
         if not isinstance(layout, dict):
             continue
@@ -685,7 +680,7 @@ async def persist_sheet_set(
     )
     try:
         await reconcile_annotations(session, ctx, project_id)
-    except Exception as exc:  # noqa: BLE001 - sheets landing must not depend on this
+    except Exception as exc:
         _log.error(
             "sheets.reconcile_after_generate_failed",
             project_id=str(project_id),
@@ -703,7 +698,7 @@ async def persist_sheet_set(
 # ---------------------------------------------------------------------------
 # Annotation projection + the §7 / D13 regeneration contract
 # ---------------------------------------------------------------------------
-def document_element_ids(document: Dict[str, Any]) -> set:
+def document_element_ids(document: dict[str, Any]) -> set:
     """Every addressable element id in a folded document.
 
     This set *is* the orphan test. It covers everything op 32 can anchor to: walls,
@@ -738,8 +733,8 @@ async def reconcile_annotations(
     session: Any,
     ctx: TenantCtx,
     project_id: uuid.UUID,
-    document: Optional[Dict[str, Any]] = None,
-) -> Dict[str, int]:
+    document: dict[str, Any] | None = None,
+) -> dict[str, int]:
     """Project ``ProjectDoc.annotations`` onto the ``annotations`` table.
 
     Returns ``{"attached": n, "orphaned": n, "created": n, "removed": n}``.
@@ -763,13 +758,12 @@ async def reconcile_annotations(
         item for item in (document.get("annotations") or ()) if isinstance(item, dict)
     ]
 
-    sheet_repo = SheetRepository(session, ctx)
     annotation_repo = AnnotationRepository(session, ctx)
 
     # Sheets of the newest generated set, indexed by slug — the model addresses sheets
     # by slug, the table by uuid, and this is the only place the two meet.
     sheets = await _all_project_sheets(session, ctx, project_id)
-    by_slug: Dict[str, Any] = {}
+    by_slug: dict[str, Any] = {}
     for sheet in sheets:
         slug = dict(sheet.layout or {}).get("sheetId")
         if slug:
@@ -780,7 +774,7 @@ async def reconcile_annotations(
     # so every projected row carries its source id under MODEL_ID_KEY. That is what
     # lets this function be an upsert instead of a delete-and-recreate — recreating
     # would churn ids the UI has in flight and lose `created_at` ordering in the tray.
-    existing: Dict[str, Any] = {}
+    existing: dict[str, Any] = {}
     for sheet in sheets:
         for row in await annotation_repo.list_for_sheet(sheet.id):
             model_id = dict(row.payload or {}).get(MODEL_ID_KEY)
@@ -860,7 +854,7 @@ def _anchor_kind(raw: Any) -> str:
     return value if value in models.ANNOTATION_ANCHOR_KINDS else "element"
 
 
-async def _all_project_sheets(session: Any, ctx: TenantCtx, project_id: uuid.UUID) -> List[Any]:
+async def _all_project_sheets(session: Any, ctx: TenantCtx, project_id: uuid.UUID) -> list[Any]:
     """Every sheet of a project's newest generated version, newest first."""
     repo = SheetRepository(session, ctx)
     version_id = await _latest_sheet_version(session, ctx, project_id)
@@ -871,7 +865,7 @@ async def _all_project_sheets(session: Any, ctx: TenantCtx, project_id: uuid.UUI
 
 async def _latest_sheet_version(
     session: Any, ctx: TenantCtx, project_id: uuid.UUID
-) -> Optional[uuid.UUID]:
+) -> uuid.UUID | None:
     branch = await active_branch(session, ctx, project_id)
     latest = await DesignVersionRepository(session, ctx).latest(project_id, branch)
     return latest.id if latest is not None else None
@@ -912,9 +906,7 @@ async def load_drawing_preferences(session: Any, ctx: TenantCtx) -> DrawingPrefe
     response_model=DrawingPreferencesOut,
     summary="The firm's title-block template and drafting conventions",
 )
-async def get_drawing_preferences(
-    session: SessionDep, ctx: TenantDep
-) -> DrawingPreferencesOut:
+async def get_drawing_preferences(session: SessionDep, ctx: TenantDep) -> DrawingPreferencesOut:
     return await load_drawing_preferences(session, ctx)
 
 
@@ -1072,7 +1064,7 @@ def _assert_sanitary(svg: str, sheet_id: uuid.UUID) -> None:
             )
 
 
-def _paper_size_mm(name: str) -> Tuple[Optional[int], Optional[int]]:
+def _paper_size_mm(name: str) -> tuple[int | None, int | None]:
     """Landscape paper sizes, mirroring ``services.drawings.sheets.PAPER_SIZES``."""
     sizes = {
         "A0": (1189, 841),
@@ -1117,7 +1109,7 @@ async def get_review_tray(
         try:
             await reconcile_annotations(session, ctx, project_id)
             reconciled = True
-        except Exception as exc:  # noqa: BLE001 - a stale tray beats a 500
+        except Exception as exc:
             _log.warning(
                 "annotations.reconcile_failed",
                 project_id=str(project_id),
@@ -1157,7 +1149,7 @@ async def get_review_tray(
 
 @router.get(
     "/projects/{project_id}/sheets/{sheet_id}/annotations",
-    response_model=List[AnnotationOut],
+    response_model=list[AnnotationOut],
     summary="Annotations on one sheet",
 )
 async def list_sheet_annotations(
@@ -1165,7 +1157,7 @@ async def list_sheet_annotations(
     sheet_id: uuid.UUID,
     session: SessionDep,
     ctx: TenantDep,
-) -> List[AnnotationOut]:
+) -> list[AnnotationOut]:
     """Read-only. Writes are op 32 through ``POST /projects/{id}/ops`` — see the
     module docstring for why there is no write route here."""
     await require_project(session, ctx, project_id)
@@ -1176,9 +1168,7 @@ async def list_sheet_annotations(
     candidates = [str(v) for v in (dict(sheet.layout or {}).get("elementIds") or ())]
     rows = await AnnotationRepository(session, ctx).list_for_sheet(sheet_id)
     return [
-        AnnotationOut.of(
-            row, sheet=sheet, reattach_candidates=candidates if row.orphaned else []
-        )
+        AnnotationOut.of(row, sheet=sheet, reattach_candidates=candidates if row.orphaned else [])
         for row in rows
     ]
 
@@ -1192,7 +1182,7 @@ async def get_sheet_set_summary(
     project_id: uuid.UUID,
     session: SessionDep,
     ctx: TenantDep,
-    version: Optional[uuid.UUID] = Query(default=None),
+    version: uuid.UUID | None = Query(default=None),
 ) -> SheetSetSummaryOut:
     """What the Sheets tab shows above the thumbnails.
 

@@ -120,7 +120,9 @@ export function Chip({
   return (
     <span className={shell} title={title} aria-describedby={ariaDescribedBy}>
       {body}
-      {onRemove === undefined ? null : <ChipRemove label={removeLabel} onRemove={onRemove} inline />}
+      {onRemove === undefined ? null : (
+        <ChipRemove label={removeLabel} onRemove={onRemove} inline />
+      )}
     </span>
   );
 }
@@ -220,7 +222,7 @@ export function ComplianceChip({
       )}
     >
       {SEVERITY_ICON[severity] === null ? null : (
-        <Icon name={SEVERITY_ICON[severity] as IconName} size={size === 'sm' ? 12 : 13} />
+        <Icon name={SEVERITY_ICON[severity]} size={size === 'sm' ? 12 : 13} />
       )}
       {onSelect === undefined ? (
         <span className="truncate">{message}</span>

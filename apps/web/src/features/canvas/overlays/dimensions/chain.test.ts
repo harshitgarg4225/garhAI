@@ -51,10 +51,13 @@ function values(chain: DimChain): number[] {
   return chain.segments.map((s) => s.valueMm);
 }
 
-function wallMoveOps(ops: readonly Op[]): Array<{ wallId: string; a: { x: number; y: number }; b: { x: number; y: number } }> {
-  const out: Array<{ wallId: string; a: { x: number; y: number }; b: { x: number; y: number } }> = [];
+function wallMoveOps(
+  ops: readonly Op[],
+): { wallId: string; a: { x: number; y: number }; b: { x: number; y: number } }[] {
+  const out: { wallId: string; a: { x: number; y: number }; b: { x: number; y: number } }[] = [];
   for (const op of ops) {
-    if (op.type === 'wall.move') out.push({ wallId: op.payload.wallId, a: op.payload.a, b: op.payload.b });
+    if (op.type === 'wall.move')
+      out.push({ wallId: op.payload.wallId, a: op.payload.a, b: op.payload.b });
   }
   return out;
 }
@@ -226,7 +229,9 @@ describe('buildRoomSpanChains', () => {
     // which is an implementation detail this spec should not depend on.
     const room = doc.house.rooms
       .slice()
-      .sort((a, b) => Math.min(...a.polygon.map((p) => p.x)) - Math.min(...b.polygon.map((p) => p.x)))[0];
+      .sort(
+        (a, b) => Math.min(...a.polygon.map((p) => p.x)) - Math.min(...b.polygon.map((p) => p.x)),
+      )[0];
     expect(room).toBeDefined();
     if (room === undefined) return;
 

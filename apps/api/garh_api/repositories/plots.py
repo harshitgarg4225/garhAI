@@ -60,9 +60,7 @@ class PlotRepository(ProjectScopedRepository[models.Plot, Plot]):
         if roads is not None:
             _validate_roads(roads)
         if source is not None and source not in models.PLOT_SOURCES:
-            raise RepositoryUsageError(
-                "source must be one of %s." % ", ".join(models.PLOT_SOURCES)
-            )
+            raise RepositoryUsageError("source must be one of %s." % ", ".join(models.PLOT_SOURCES))
 
         row = await self._first(self._project_scoped_select(project_id).limit(1))
         if row is None:
@@ -92,9 +90,7 @@ class PlotRepository(ProjectScopedRepository[models.Plot, Plot]):
         self._log.info("plot.updated", project_id=str(project_id))
         return self.to_domain(row)
 
-    async def set_reg_profile(
-        self, project_id: uuid.UUID, reg_profile: dict[str, Any]
-    ) -> Plot:
+    async def set_reg_profile(self, project_id: uuid.UUID, reg_profile: dict[str, Any]) -> Plot:
         """Replace the resolved regulatory profile.
 
         Overrides are audited (§13 lists "reg-profile overrides"), so the caller must
@@ -125,7 +121,7 @@ def _validate_boundary(boundary: Any) -> None:
         raise RepositoryUsageError("A plot boundary needs at least 3 points.")
     for i, point in enumerate(boundary):
         if not isinstance(point, dict) or "x" not in point or "y" not in point:
-            raise RepositoryUsageError("boundary[%d] must be {\"x\": mm, \"y\": mm}." % i)
+            raise RepositoryUsageError('boundary[%d] must be {"x": mm, "y": mm}.' % i)
         for axis in ("x", "y"):
             value = point[axis]
             if isinstance(value, bool) or not isinstance(value, int):
@@ -141,7 +137,7 @@ def _validate_roads(roads: Any) -> None:
     for i, road in enumerate(roads):
         if not isinstance(road, dict) or "edgeIndex" not in road:
             raise RepositoryUsageError(
-                "roads[%d] must be {\"edgeIndex\": int, \"widthMm\": int | null}." % i
+                'roads[%d] must be {"edgeIndex": int, "widthMm": int | null}.' % i
             )
         edge = road["edgeIndex"]
         if isinstance(edge, bool) or not isinstance(edge, int) or edge < 0:

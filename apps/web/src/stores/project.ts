@@ -29,11 +29,7 @@ import { polygonAreaMm2, type UnitsDisplay } from '@garh/model';
 import { api } from '../lib/api';
 import { AppError, toProblemDetail, type ProblemDetail } from '../lib/errors';
 import type { Brief, Plot, Project, ProjectDetail } from '../lib/schemas';
-import type {
-  CreateProjectPayload,
-  ProjectDTO,
-  ProjectSlice,
-} from '../pages/_contracts';
+import type { CreateProjectPayload, ProjectDTO, ProjectSlice } from '../pages/_contracts';
 import type { ProjectStatus } from '../components/types';
 import { useJobsStore } from './jobs';
 import { useModelStore } from './model';

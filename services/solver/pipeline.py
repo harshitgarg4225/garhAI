@@ -36,8 +36,9 @@ import asyncio
 import hashlib
 import inspect
 import json
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import Any, Awaitable, Callable, Mapping, Optional, Sequence
+from typing import Any
 
 from services.common.assumptions import Assumption
 from services.common.logging import get_logger
@@ -98,16 +99,16 @@ class SolverProfile:
     #: CP-SAT workers per solve (``solver.parameters.num_search_workers``).
     num_search_workers: int
     #: Wall-clock budget per stair candidate; ``None`` means "use the limits below".
-    time_budget_seconds: Optional[int]
+    time_budget_seconds: int | None
     #: How many stair candidates solve concurrently (§5.2 "solve per candidate,
     #: parallel workers"). Bounded by the worker pool budget, not by len(anchors).
     candidate_parallelism: int
     #: Fixed CP-SAT seed; ``None`` means "derive from SolveParams.seed".
-    random_seed: Optional[int] = None
+    random_seed: int | None = None
     #: Stop after this many improving solutions (deterministic replacement for time).
-    max_solutions: Optional[int] = None
+    max_solutions: int | None = None
     #: Stop after this many branches (deterministic replacement for time).
-    max_branches: Optional[int] = None
+    max_branches: int | None = None
 
     def seed_for(self, params: SolveParams) -> int:
         return self.random_seed if self.random_seed is not None else params.seed
@@ -182,11 +183,9 @@ ProgressFn = Callable[..., Awaitable[Any]]
 #: ``anchors(envelope, params) -> Sequence[StairAnchor]`` — §5.2 "stairs first".
 AnchorsFn = Callable[[BuildableEnvelope, SolveParams], Sequence[StairAnchor]]
 #: ``stage_a(grid, params, anchor, *, profile, relaxed) -> Candidate | None``.
-StageAFn = Callable[..., Optional[Candidate]]
+StageAFn = Callable[..., Candidate | None]
 #: ``stage_b(candidate, params, envelope) -> model document | None`` (§5.3).
-StageBFn = Callable[
-    [Candidate, SolveParams, BuildableEnvelope], Optional[Mapping[str, Any]]
-]
+StageBFn = Callable[[Candidate, SolveParams, BuildableEnvelope], Mapping[str, Any] | None]
 #: ``build_ops(placements, params, model=...) -> ops`` — §4: the solver emits ops.
 BuildOpsFn = Callable[..., Sequence[Mapping[str, Any]]]
 #: ``compliance(model, params) -> rules-engine result rows`` (§5.4 hard-rule pass).
@@ -253,7 +252,9 @@ def default_stage_set() -> StageSet:
     compliance = getattr(critic, "evaluate_compliance", None)
     if compliance is None:
 
-        def compliance(model: Mapping[str, Any], params: SolveParams) -> Sequence[Mapping[str, Any]]:
+        def compliance(
+            model: Mapping[str, Any], params: SolveParams
+        ) -> Sequence[Mapping[str, Any]]:
             raise NotImplementedError(
                 "critic.evaluate_compliance(model, params) is the §5.4 hard-rule pass "
                 "and must delegate to the garh_rules engine (rulepacks/). It lands with "
@@ -267,7 +268,7 @@ def default_stage_set() -> StageSet:
         *,
         profile: SolverProfile,
         relaxed: bool = False,
-    ) -> Optional[Candidate]:
+    ) -> Candidate | None:
         return _call_with_supported(
             stages.stage_a_topology,
             grid,
@@ -283,11 +284,9 @@ def default_stage_set() -> StageSet:
         placements: Sequence[RoomPlacement],
         params: SolveParams,
         *,
-        model: Optional[Mapping[str, Any]] = None,
+        model: Mapping[str, Any] | None = None,
     ) -> Sequence[Mapping[str, Any]]:
-        return _call_with_supported(
-            stages.placements_to_ops, placements, params, model=model
-        )
+        return _call_with_supported(stages.placements_to_ops, placements, params, model=model)
 
     return StageSet(
         anchors=stages.enumerate_stair_anchors,
@@ -362,9 +361,7 @@ def build_program(params: SolveParams, envelope: BuildableEnvelope) -> Program:
             % (total_min // 1_000_000, capacity // 1_000_000, max(1, params.storeys))
         )
 
-    ordered = tuple(
-        (index, tuple(by_storey[index])) for index in sorted(by_storey.keys())
-    )
+    ordered = tuple((index, tuple(by_storey[index])) for index in sorted(by_storey.keys()))
     return Program(
         rooms_by_storey=ordered,
         total_target_area_mm2=total_target,
@@ -397,30 +394,30 @@ class SolveContext:
     num_search_workers: int = 8
     #: Set by the worker when resuming a retried job (golden rule 9) — the shape is
     #: whatever :func:`run_solver` last passed to ``save_state``.
-    resume_state: Optional[Mapping[str, Any]] = None
+    resume_state: Mapping[str, Any] | None = None
     #: Thread-safe progress bridge for the CPU-bound part of stage A, which runs in a
     #: worker thread and cannot await. ``None`` outside the worker (tests, scripts).
-    progress_from_thread: Optional[Callable[..., None]] = None
+    progress_from_thread: Callable[..., None] | None = None
     #: Which :class:`SolverProfile` this run uses. ``None`` → production profile with
     #: the legacy ``num_search_workers`` folded in.
-    profile: Optional[SolverProfile] = None
+    profile: SolverProfile | None = None
     #: Stage bodies. ``None`` → :func:`default_stage_set` (the real solver).
-    stages: Optional[StageSet] = None
+    stages: StageSet | None = None
     #: ``await save_state(state)`` — checkpoint hook; the worker wires it to
     #: :class:`services.common.checkpoint.JobCheckpoint`. Facts only, never percents.
-    save_state: Optional[Callable[[dict], Awaitable[Any]]] = None
+    save_state: Callable[[dict], Awaitable[Any]] | None = None
     #: §5.7 hooks, set by :mod:`services.solver.resolve` and nobody else ----------
     #: Locked-room polygons become fixed obstacles: transform the coarse grid.
-    grid_transform: Optional[Callable[[GridSpec], GridSpec]] = None
+    grid_transform: Callable[[GridSpec], GridSpec] | None = None
     #: Post-pass over every stage-B model (shared-wall dedupe, locked side wins).
     #: Returning ``None`` discards the candidate.
-    stage_b_post: Optional[Callable[[Mapping[str, Any]], Optional[Mapping[str, Any]]]] = None
+    stage_b_post: Callable[[Mapping[str, Any]], Mapping[str, Any] | None] | None = None
     #: Augment placements before scoring/signature (locked rooms re-join the plan).
-    placements_augment: Optional[
-        Callable[[tuple[RoomPlacement, ...]], tuple[RoomPlacement, ...]]
-    ] = None
+    placements_augment: Callable[[tuple[RoomPlacement, ...]], tuple[RoomPlacement, ...]] | None = (
+        None
+    )
     #: Cap on stair candidates (§5.7 budget); ``None`` = stage's own 3–6.
-    max_stair_candidates: Optional[int] = None
+    max_stair_candidates: int | None = None
 
     def effective_profile(self) -> SolverProfile:
         if self.profile is not None:
@@ -456,9 +453,7 @@ async def run_solver(context: SolveContext) -> SolveResult:
 
     def discard(anchor_id: str, stage: str, reason: str) -> None:
         discards.append({"anchor": anchor_id, "stage": stage, "reason": reason})
-        log.info(
-            "solver.candidate_discarded", anchor=anchor_id, stage=stage, reason=reason
-        )
+        log.info("solver.candidate_discarded", anchor=anchor_id, stage=stage, reason=reason)
 
     # -- §5.1 envelope (real) -------------------------------------------
     await announce("envelope")
@@ -599,7 +594,7 @@ async def _solve_candidates(
     profile: SolverProfile,
     stage_set: StageSet,
     relaxed: bool,
-    checkpoint: Optional[dict[str, Any]],
+    checkpoint: dict[str, Any] | None,
     discard: Callable[[str, str, str], None],
 ) -> list[Candidate]:
     """Stage A once per stair anchor, ``candidate_parallelism`` at a time.
@@ -614,7 +609,7 @@ async def _solve_candidates(
     solved_key = "stageA"
     known: dict[str, Any] = dict((checkpoint or {}).get(solved_key) or {})
 
-    async def solve_one(index: int, anchor: StairAnchor) -> Optional[Candidate]:
+    async def solve_one(index: int, anchor: StairAnchor) -> Candidate | None:
         if anchor.id in known:
             entry = known[anchor.id]
             log.info("solver.candidate_resumed", anchor=anchor.id)
@@ -643,9 +638,7 @@ async def _solve_candidates(
         if checkpoint is not None and context.save_state is not None:
             async with checkpoint_lock:
                 stored = dict(checkpoint.get(solved_key) or {})
-                stored[anchor.id] = (
-                    None if candidate is None else _candidate_to_json(candidate)
-                )
+                stored[anchor.id] = None if candidate is None else _candidate_to_json(candidate)
                 checkpoint[solved_key] = stored
                 await context.save_state(dict(checkpoint))
         return candidate
@@ -733,13 +726,9 @@ async def _refine_and_score(
             for placement in placements
             if placement.room_type in _CIRCULATION_PLACEMENT_TYPES
         )
-        footprint = occupied + max(
-            0, candidate.circulation_area_mm2 - placed_circulation
-        )
+        footprint = occupied + max(0, candidate.circulation_area_mm2 - placed_circulation)
         breakdown = stage_set.critique(placements, params, envelope, footprint)
-        ops = tuple(
-            dict(op) for op in stage_set.build_ops(placements, params, model=model)
-        )
+        ops = tuple(dict(op) for op in stage_set.build_ops(placements, params, model=model))
         option_signature = signature(
             placements,
             envelope,
@@ -783,9 +772,7 @@ def finalise(
     rejected = len(scored) - len(presentable)
     for option_id, result in results.items():
         if not result.passed:
-            log.info(
-                "solver.gate_rejected", option_id=option_id, reasons=list(result.reasons)
-            )
+            log.info("solver.gate_rejected", option_id=option_id, reasons=list(result.reasons))
 
     options = select_diverse(presentable, limit=max(target, gates.TARGET_OPTION_COUNT))
     return SolveResult(
@@ -802,9 +789,7 @@ def finalise(
 # ---------------------------------------------------------------------------
 
 
-def _option_id(
-    params: SolveParams, candidate: Candidate, option_signature: Sequence[str]
-) -> str:
+def _option_id(params: SolveParams, candidate: Candidate, option_signature: Sequence[str]) -> str:
     """Deterministic option id: same params + seed + layout ⇒ same id, always.
 
     Content-addressed rather than minted, because §16's goldens compare plan JSON

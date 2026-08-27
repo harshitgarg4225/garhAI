@@ -29,16 +29,9 @@ only.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
-
-from services.drawings.dimensions import (
-    ChainConsistencyError,
-    DimChain,
-    LabelBox,
-    assert_chains_sum,
-    find_label_collisions,
-)
+from typing import Any
 
 from services.drawings.autodim.chains import DimChainInfo
 from services.drawings.autodim.config import DEFAULT_CONFIG, AutoDimConfig
@@ -65,6 +58,13 @@ from services.drawings.autodim.primitives import (
     validate_primitives,
 )
 from services.drawings.autodim.render import render_primitives
+from services.drawings.dimensions import (
+    ChainConsistencyError,
+    DimChain,
+    LabelBox,
+    assert_chains_sum,
+    find_label_collisions,
+)
 
 
 class LabelOverlapError(AssertionError):
@@ -76,30 +76,28 @@ class DimensionResult:
     """Everything the engine produced for one storey."""
 
     storey_id: str
-    chains: Tuple[DimChainInfo, ...]
-    labels: Tuple[PlacedLabel, ...]
-    primitives: Tuple[Primitive, ...]
+    chains: tuple[DimChainInfo, ...]
+    labels: tuple[PlacedLabel, ...]
+    primitives: tuple[Primitive, ...]
     stats: PlacementStats
-    skipped_walls: Tuple[SkippedWall, ...]
-    suppressed_chains: Tuple[SuppressedChain, ...]
-    plan: Optional[StoreyPlan] = None
-    notes: Tuple[str, ...] = ()
+    skipped_walls: tuple[SkippedWall, ...]
+    suppressed_chains: tuple[SuppressedChain, ...]
+    plan: StoreyPlan | None = None
+    notes: tuple[str, ...] = ()
 
     # -- convenience views used by tests, the sheet renderer and the report ----
     @property
-    def dim_chains(self) -> Tuple[DimChain, ...]:
+    def dim_chains(self) -> tuple[DimChain, ...]:
         """The shared-contract chains, for ``assert_chains_sum`` and the DXF writer."""
         return tuple(info.chain for info in self.chains)
 
-    def chains_at_level(self, level: int) -> Tuple[DimChainInfo, ...]:
+    def chains_at_level(self, level: int) -> tuple[DimChainInfo, ...]:
         return tuple(info for info in self.chains if info.level == level)
 
-    def counts_by_level(self) -> Tuple[Tuple[int, int], ...]:
-        return tuple(
-            (level, len(self.chains_at_level(level))) for level in (1, 2, 3, 4)
-        )
+    def counts_by_level(self) -> tuple[tuple[int, int], ...]:
+        return tuple((level, len(self.chains_at_level(level))) for level in (1, 2, 3, 4))
 
-    def segments_by_level(self) -> Tuple[Tuple[int, int], ...]:
+    def segments_by_level(self) -> tuple[tuple[int, int], ...]:
         return tuple(
             (
                 level,
@@ -108,14 +106,14 @@ class DimensionResult:
             for level in (1, 2, 3, 4)
         )
 
-    def label_boxes(self) -> Tuple[LabelBox, ...]:
+    def label_boxes(self) -> tuple[LabelBox, ...]:
         return tuple(label.box for label in self.labels)
 
     def digest(self) -> str:
         """SHA-256 of the primitive stream — a one-line golden for a whole storey."""
         return primitives_digest(self.primitives)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """The golden-file form. Stable ordering, integers only, no timestamps."""
         return {
             "storeyId": self.storey_id,
@@ -134,30 +132,23 @@ def assert_no_label_overlaps(labels: Sequence[PlacedLabel]) -> None:
     collisions = find_label_collisions([label.box for label in labels])
     if collisions:
         detail = "; ".join("%s <-> %s" % pair for pair in collisions[:5])
-        raise LabelOverlapError(
-            "%d overlapping dimension label(s): %s" % (len(collisions), detail)
-        )
+        raise LabelOverlapError("%d overlapping dimension label(s): %s" % (len(collisions), detail))
 
 
-def _notes_for(plan: StoreyPlan, suppressed: Sequence[SuppressedChain]) -> Tuple[str, ...]:
+def _notes_for(plan: StoreyPlan, suppressed: Sequence[SuppressedChain]) -> tuple[str, ...]:
     """Sheet notes: the honest record of what the engine did not dimension.
 
     These are not log lines — they belong on the sheet (or in the review tray), because
     the architect is the one who has to dimension a diagonal wall by hand.
     """
-    notes: List[str] = []
-    non_ortho = [
-        skip for skip in plan.skipped_walls if skip.reason == SKIP_NON_ORTHOGONAL
-    ]
+    notes: list[str] = []
+    non_ortho = [skip for skip in plan.skipped_walls if skip.reason == SKIP_NON_ORTHOGONAL]
     if non_ortho:
         notes.append(
             "%d non-orthogonal wall(s) not auto-dimensioned (MVP is orthogonal-only) — "
-            "dimension by hand: %s"
-            % (len(non_ortho), ", ".join(skip.id for skip in non_ortho))
+            "dimension by hand: %s" % (len(non_ortho), ", ".join(skip.id for skip in non_ortho))
         )
-    other_skips = [
-        skip for skip in plan.skipped_walls if skip.reason != SKIP_NON_ORTHOGONAL
-    ]
+    other_skips = [skip for skip in plan.skipped_walls if skip.reason != SKIP_NON_ORTHOGONAL]
     if other_skips:
         notes.append(
             "%d wall(s) ignored (%s)"
@@ -174,8 +165,7 @@ def _notes_for(plan: StoreyPlan, suppressed: Sequence[SuppressedChain]) -> Tuple
         )
     if suppressed:
         notes.append(
-            "%d inner chain(s) suppressed as duplicates across a shared wall"
-            % len(suppressed)
+            "%d inner chain(s) suppressed as duplicates across a shared wall" % len(suppressed)
         )
     if plan.extents is None:
         notes.append("no envelope walls on this storey — no outer chains generated")
@@ -188,7 +178,7 @@ def dimension_storey(
     *,
     config: AutoDimConfig = DEFAULT_CONFIG,
     obstacles: Sequence[LabelBox] = (),
-    grid: Optional[CollisionGrid] = None,
+    grid: CollisionGrid | None = None,
     verify: bool = True,
 ) -> DimensionResult:
     """Dimension one storey of a plan. §7 steps 1-6.
@@ -200,16 +190,12 @@ def dimension_storey(
 
     Pure: no I/O, no logging, no globals. Same inputs, same output, byte for byte.
     """
-    plan = build_storey_plan(
-        model, storey_id, min_thickness_mm=config.min_wall_thickness_mm
-    )
+    plan = build_storey_plan(model, storey_id, min_thickness_mm=config.min_wall_thickness_mm)
     outer = build_outer_chains(plan, config)
     inner, suppressed = build_inner_chains(plan, config)
     chains = tuple(outer) + tuple(inner)
 
-    labels, filled_grid = place_labels(
-        chains, config=config, obstacles=obstacles, grid=grid
-    )
+    labels, filled_grid = place_labels(chains, config=config, obstacles=obstacles, grid=grid)
     primitives = render_primitives(chains, labels, config)
 
     result = DimensionResult(
@@ -236,15 +222,14 @@ def dimension_model(
     *,
     config: AutoDimConfig = DEFAULT_CONFIG,
     verify: bool = True,
-) -> Tuple[DimensionResult, ...]:
+) -> tuple[DimensionResult, ...]:
     """Every storey, in model order. Each storey gets its own collision grid.
 
     Separate grids because separate sheets: a first-floor plan is drawn on its own sheet
     (or its own viewport), so a ground-floor label cannot collide with it.
     """
     return tuple(
-        dimension_storey(model, sid, config=config, verify=verify)
-        for sid in storey_ids(model)
+        dimension_storey(model, sid, config=config, verify=verify) for sid in storey_ids(model)
     )
 
 

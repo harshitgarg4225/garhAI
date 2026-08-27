@@ -3,6 +3,7 @@
 Implementation source of truth. Read top-to-bottom once; return per-section while building.
 
 **Table of contents**
+
 1. Repo layout & tooling
 2. Database schema (DDL)
 3. Model core (geometry & document)
@@ -122,37 +123,37 @@ interface HouseModel {
 
 Ops are JSON `{ type, payload, clientOpId }`. Server assigns `idx`, computes `inverse` (for undo), validates, folds, broadcasts. Implement exactly these for MVP (copilot coverage = this list):
 
-| # | Op | Payload (all lengths mm) |
-|---|---|---|
-| 1 | `plot.set_boundary` | `{ polygon: Pt[] }` (validates closed, area>0) |
-| 2 | `plot.set_north` | `{ deg }` |
-| 3 | `plot.set_road` | `{ edgeIndex, widthMm | null }` |
-| 4 | `plot.set_reg_profile` | `{ cityPack, overrides: {...} }` |
-| 5 | `brief.update` | `{ patch }` (RFC7386 merge-patch on brief data) |
-| 6 | `storey.add` / 7 `storey.remove` | `{ index }` |
-| 8 | `storey.set_height` | `{ storeyId, heightMm }` |
-| 9 | `wall.add` | `{ storeyId, a, b, thicknessMm, kind }` |
-| 10 | `wall.move` | `{ wallId, a, b }` (both endpoints; joins re-resolve) |
-| 11 | `wall.split` | `{ wallId, atMm }` |
-| 12 | `wall.delete` | `{ wallId }` |
-| 13 | `wall.set_thickness` | `{ wallId, thicknessMm }` |
-| 14 | `opening.add` | `{ wallId, kind, widthMm, heightMm, sillMm, offsetMm, swing }` |
-| 15 | `opening.move` | `{ openingId, offsetMm }` / also `wallId` to re-host |
-| 16 | `opening.resize` | `{ openingId, widthMm?, heightMm?, sillMm? }` |
-| 17 | `opening.flip` | `{ openingId, swing }` |
-| 18 | `opening.delete` | `{ openingId }` |
-| 19 | `room.assign` | `{ roomId, type, name? }` |
-| 20 | `room.set_target` | `{ roomId, targetAreaMm2?, mustFace? }` (feeds solver) |
-| 21 | `stair.add` / 22 `stair.edit` / 23 `stair.delete` | stair fields |
-| 24 | `column.add` / `column.move` / `column.delete` | `{ ... }` (one op type, `action` field) |
-| 25 | `furniture.place` / `furniture.transform` / `furniture.delete` | `{ ... }` (one op type, `action` field) |
-| 26 | `balcony.add` / `balcony.edit` / `balcony.delete` | polygon + railing kind |
-| 27 | `facade.apply_kit` | `{ kitId, seed }` (replaces facade sub-model) |
-| 28 | `facade.edit_component` | `{ componentId, patch }` |
-| 29 | `material.assign` | `{ target: surfaceGroup, materialId }` |
-| 30 | `levels.set` | `{ plinthMm?, sillDefaultMm?, lintelDefaultMm?, parapetMm? }` |
-| 31 | `solver.apply_option` | `{ solverJobId, optionIndex }` — expands to a batched op group (atomic) |
-| 32 | `annotation.add/edit/delete` | sheet annotations (anchored to element ids) |
+| #   | Op                                                             | Payload (all lengths mm)                                                |
+| --- | -------------------------------------------------------------- | ----------------------------------------------------------------------- | ------- |
+| 1   | `plot.set_boundary`                                            | `{ polygon: Pt[] }` (validates closed, area>0)                          |
+| 2   | `plot.set_north`                                               | `{ deg }`                                                               |
+| 3   | `plot.set_road`                                                | `{ edgeIndex, widthMm                                                   | null }` |
+| 4   | `plot.set_reg_profile`                                         | `{ cityPack, overrides: {...} }`                                        |
+| 5   | `brief.update`                                                 | `{ patch }` (RFC7386 merge-patch on brief data)                         |
+| 6   | `storey.add` / 7 `storey.remove`                               | `{ index }`                                                             |
+| 8   | `storey.set_height`                                            | `{ storeyId, heightMm }`                                                |
+| 9   | `wall.add`                                                     | `{ storeyId, a, b, thicknessMm, kind }`                                 |
+| 10  | `wall.move`                                                    | `{ wallId, a, b }` (both endpoints; joins re-resolve)                   |
+| 11  | `wall.split`                                                   | `{ wallId, atMm }`                                                      |
+| 12  | `wall.delete`                                                  | `{ wallId }`                                                            |
+| 13  | `wall.set_thickness`                                           | `{ wallId, thicknessMm }`                                               |
+| 14  | `opening.add`                                                  | `{ wallId, kind, widthMm, heightMm, sillMm, offsetMm, swing }`          |
+| 15  | `opening.move`                                                 | `{ openingId, offsetMm }` / also `wallId` to re-host                    |
+| 16  | `opening.resize`                                               | `{ openingId, widthMm?, heightMm?, sillMm? }`                           |
+| 17  | `opening.flip`                                                 | `{ openingId, swing }`                                                  |
+| 18  | `opening.delete`                                               | `{ openingId }`                                                         |
+| 19  | `room.assign`                                                  | `{ roomId, type, name? }`                                               |
+| 20  | `room.set_target`                                              | `{ roomId, targetAreaMm2?, mustFace? }` (feeds solver)                  |
+| 21  | `stair.add` / 22 `stair.edit` / 23 `stair.delete`              | stair fields                                                            |
+| 24  | `column.add` / `column.move` / `column.delete`                 | `{ ... }` (one op type, `action` field)                                 |
+| 25  | `furniture.place` / `furniture.transform` / `furniture.delete` | `{ ... }` (one op type, `action` field)                                 |
+| 26  | `balcony.add` / `balcony.edit` / `balcony.delete`              | polygon + railing kind                                                  |
+| 27  | `facade.apply_kit`                                             | `{ kitId, seed }` (replaces facade sub-model)                           |
+| 28  | `facade.edit_component`                                        | `{ componentId, patch }`                                                |
+| 29  | `material.assign`                                              | `{ target: surfaceGroup, materialId }`                                  |
+| 30  | `levels.set`                                                   | `{ plinthMm?, sillDefaultMm?, lintelDefaultMm?, parapetMm? }`           |
+| 31  | `solver.apply_option`                                          | `{ solverJobId, optionIndex }` — expands to a batched op group (atomic) |
+| 32  | `annotation.add/edit/delete`                                   | sheet annotations (anchored to element ids)                             |
 
 Batching: ops carry optional `groupId`; undo/redo operates on groups. `solver.apply_option` and copilot multi-step edits are single groups.
 
@@ -163,6 +164,7 @@ Input: plot polygon (rect/L/T), reg profile (setbacks per edge, FAR, coverage, h
 **5.1 Envelope.** Offset plot polygon inward by per-edge setbacks → buildable envelope. Validate coverage: envelope area vs allowed ground coverage; if brief's target built area / floors > envelope, shrink footprint target and record the assumption chip.
 
 **5.2 Stage A — topology (CP-SAT, 300mm module).** Grid the envelope (rect/L/T = union of ≤3 rects; solve on rect cells with L/T handled by mandatory-void cells). Variables per room: interval vars x/y (position+size) with `no_overlap_2d`; sizes bounded by min/max from brief (aspect ratio 1:1–1:2.2 habitable, 1:3 baths/store). Constraints:
+
 - **Stairs first:** enumerate 3–6 stair anchor candidates (near entry, edge-adjacent, repeatable across floors); solve per candidate (parallel workers), keep best.
 - **Circulation spine:** corridor cells connecting entry → stair → every room door zone; total circulation ≤12% target (soft, penalized).
 - **Adjacency:** required (kitchen↔dining touch: shared edge ≥ 900mm) via interval arithmetic booleans; wishes as soft bonuses.
@@ -188,11 +190,20 @@ Objective: weighted sum — target-area deviation, adjacency satisfaction, circu
 **DSL (JSON, in `rulepacks/`):**
 
 ```json
-{ "pack": "blr", "version": "2026.07", "extends": "nbc-core", "citations_base": "BBMP Bye-laws 2020",
+{
+  "pack": "blr",
+  "version": "2026.07",
+  "extends": "nbc-core",
+  "citations_base": "BBMP Bye-laws 2020",
   "rules": [
-    { "id": "blr.setback.front.9m", "severity": "fail", "when": {"roadWidthMm": {"lt": 12000}, "plotAreaSqm": {"lte": 360}},
-      "check": {"type": "setback_min", "edge": "front", "valueMm": 1500},
-      "cite": "Table 6a", "fix": "Increase front setback to 1.5m" }
+    {
+      "id": "blr.setback.front.9m",
+      "severity": "fail",
+      "when": { "roadWidthMm": { "lt": 12000 }, "plotAreaSqm": { "lte": 360 } },
+      "check": { "type": "setback_min", "edge": "front", "valueMm": 1500 },
+      "cite": "Table 6a",
+      "fix": "Increase front setback to 1.5m"
+    }
   ]
 }
 ```
@@ -214,6 +225,7 @@ Check types to implement (pure functions, exhaustively unit-tested): `setback_mi
 **Plan projection:** walls as double lines w/ thickness (fill hatch external), openings break walls (door arc + leaf, window triple line), stairs w/ arrow + `UP 15R`, room label block (name, area in sqft one decimal), FFL markers, section markers, north arrow, grid of column bubbles if columns exist.
 
 **Auto-dimensioning algorithm (plans):**
+
 1. Collect wall axes per storey; cluster by orientation (H/V; MVP is orthogonal-only).
 2. **Outer chains** per side of building (4 sides): level 1 = overall extent; level 2 = external wall segment breakpoints; level 3 = opening centerlines on that facade. Offsets: L1 at 2400mm from building line (paper-scaled), L2 1800, L3 1200.
 3. **Inner dims:** per room, one width + one depth chain along the room's principal axes, placed near the door-side wall inner face; skip if duplicate of an adjacent chain (same value, shared wall).
@@ -242,12 +254,14 @@ Sun widget: solar position from date/time + city lat/long (implement NOAA solar 
 ## 9. Render service
 
 Provider interface (`services/render`):
+
 ```python
 class RenderProvider(Protocol):
     def render(self, req: RenderRequest) -> RenderResult: ...
 # RenderRequest: { viewport_png, depth_png, edges_png, mode: 'precise'|'explore',
 #                  preset: str, prompt_extras: str, seed: int, size: (w,h) }
 ```
+
 - **MockProvider (default):** composites viewport PNG + preset-tinted gradient + watermark text; instant. Deterministic by seed. Keeps the whole product testable without GPUs.
 - **DiffusersProvider:** SDXL or FLUX.1-schnell via `diffusers`; ControlNet depth + MLSD from the supplied maps; `precise` = ControlNet scale 0.9 / denoise 0.45; `explore` = scale 0.35 / denoise 0.8; prompt templates per preset (`exterior-street-day`, `exterior-34-dusk`, `interior-living`, ...); Real-ESRGAN 2x; NSFW/safety checker on. Weights license guard: assert model id in allowlist (no FLUX.1-dev).
 
@@ -309,17 +323,17 @@ Conventions: Pydantic request/response models everywhere; cursor pagination; ide
 
 ## 14. Performance budgets (CI-enforced where possible)
 
-| Surface | Budget | Enforcement |
-|---|---|---|
-| Canvas frame | <16ms during pan/zoom/drag on G+2 demo | Playwright trace assertion |
-| Op apply (optimistic) | <10ms local fold | vitest perf test |
-| Compliance run | <100ms model, ≤500ms debounce | pytest timing |
-| Room re-detection | <50ms per storey | pytest timing |
-| Solver 3 options | ≤60s (fixtures) | pytest timing (CI uses 2 workers: ≤120s) |
-| 3D rebuild after edit | <100ms dirty-storey | vitest perf |
-| Sheet set G+1 3BHK | ≤5min | worker test |
-| Initial web load | <3s on 4G mid-range, bundle <1.5MB gz initial | Lighthouse CI ≥85 |
-| Render (mock) | <1s | e2e |
+| Surface               | Budget                                        | Enforcement                              |
+| --------------------- | --------------------------------------------- | ---------------------------------------- |
+| Canvas frame          | <16ms during pan/zoom/drag on G+2 demo        | Playwright trace assertion               |
+| Op apply (optimistic) | <10ms local fold                              | vitest perf test                         |
+| Compliance run        | <100ms model, ≤500ms debounce                 | pytest timing                            |
+| Room re-detection     | <50ms per storey                              | pytest timing                            |
+| Solver 3 options      | ≤60s (fixtures)                               | pytest timing (CI uses 2 workers: ≤120s) |
+| 3D rebuild after edit | <100ms dirty-storey                           | vitest perf                              |
+| Sheet set G+1 3BHK    | ≤5min                                         | worker test                              |
+| Initial web load      | <3s on 4G mid-range, bundle <1.5MB gz initial | Lighthouse CI ≥85                        |
+| Render (mock)         | <1s                                           | e2e                                      |
 
 ## 15. UX & delight rules (implement literally)
 

@@ -17,13 +17,7 @@
 
 import type { JSX } from 'react';
 
-import {
-  Button,
-  LengthInput,
-  Select,
-  cn,
-  type SelectOption,
-} from '@garh/ui';
+import { Button, LengthInput, Select, cn, type SelectOption } from '@garh/ui';
 import {
   OPENING_SWINGS,
   RAILING_KINDS,
@@ -186,11 +180,19 @@ export function ToolOptionsBar({
               ? 'ventilator'
               : 'window';
         const params: OpeningParams =
-          kind === 'door' ? settings.door : kind === 'window' ? settings.window : settings.ventilator;
+          kind === 'door'
+            ? settings.door
+            : kind === 'window'
+              ? settings.window
+              : settings.ventilator;
         const write = (patch: Partial<OpeningParams>): void => {
           const next = { ...params, ...patch };
           settings.patch(
-            kind === 'door' ? { door: next } : kind === 'window' ? { window: next } : { ventilator: next },
+            kind === 'door'
+              ? { door: next }
+              : kind === 'window'
+                ? { window: next }
+                : { ventilator: next },
           );
         };
         return (

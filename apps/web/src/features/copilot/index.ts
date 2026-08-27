@@ -18,7 +18,12 @@
 export { CopilotPanel } from './CopilotPanel';
 export type { CopilotPanelProps } from './CopilotPanel';
 
-export { COPILOT_FOCUS_KEY, copilotFocusHandler, focusCopilotInput, registerCopilotInput } from './focus';
+export {
+  COPILOT_FOCUS_KEY,
+  copilotFocusHandler,
+  focusCopilotInput,
+  registerCopilotInput,
+} from './focus';
 
 export { useCopilotStore, selectTurns, selectBusy, selectHistory, toModelOps } from './useCopilot';
 export type { CopilotState } from './useCopilot';
@@ -30,9 +35,4 @@ export { toDiffOps, describeOp, opKind, opElementIds, clarificationChips } from 
 export { docPlanForStorey, docPlanViewBox, pickDiffStoreyId } from './docPlan';
 export { MiniDocPlan } from './MiniDocPlan';
 
-export type {
-  CopilotProposal,
-  CopilotTurn,
-  CopilotTurnStatus,
-  CopilotWireOp,
-} from './types';
+export type { CopilotProposal, CopilotTurn, CopilotTurnStatus, CopilotWireOp } from './types';

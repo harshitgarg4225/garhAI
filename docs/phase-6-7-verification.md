@@ -1,15 +1,15 @@
 # Phases 6 + 7 verification — copilot and renders
 
-*Adversarial review and repair pass, 2026-08-21. Reviewer had python3.9.6 and nothing
-else: no Node, no pnpm, no Docker, no pip, no Postgres, no Redis, no Pillow, no git.*
+_Adversarial review and repair pass, 2026-08-21. Reviewer had python3.9.6 and nothing
+else: no Node, no pnpm, no Docker, no pip, no Postgres, no Redis, no Pillow, no git._
 
 This document is the honest ledger for the copilot (§10) and the render pipeline (§9).
 It is split three ways and the split is the point:
 
-| | meaning |
-|---|---|
-| **EXECUTED** | ran on this machine, in this pass, and the output is reproducible with the named command |
-| **TRACED** | read end to end by hand against the spec; no execution |
+|                | meaning                                                                                  |
+| -------------- | ---------------------------------------------------------------------------------------- |
+| **EXECUTED**   | ran on this machine, in this pass, and the output is reproducible with the named command |
+| **TRACED**     | read end to end by hand against the spec; no execution                                   |
 | **UNVERIFIED** | needs a toolchain that does not exist here; named, with the command that would settle it |
 
 Read the **Top risks for Phase 8** section before building on any of this.
@@ -44,15 +44,15 @@ make bare
 
 Green. Seven gates:
 
-| Gate | Command | What it executes |
-|---|---|---|
-| `rule-fixtures` | `scripts/run_rule_fixtures.py` | 238 rule fixtures through the real `garh_rules.evaluate()` |
-| `solver-smoke` | `scripts/solver_smoke.py` | 26 checks on the OR-Tools-free half of §5 |
-| `fixture-drift` | `…/copilot-commands/_tools/generate.py --check`, `e2e/fixtures/generate.py --check` | both derived corpora re-derived and diffed |
-| **`copilot-eval`** *(new)* | `fixtures/llm/copilot-commands/_tools/check.py` | the 40-command corpus through the real pipeline |
-| **`copilot-containment`** *(new)* | `scripts/copilot_containment.py` | 46 §13 containment checks |
-| **`render-mirrors`** *(new)* | `scripts/render_mirrors.py` | 19 catalogue-mirror + determinism checks |
-| audits | tenancy / secret / env / asset | unchanged |
+| Gate                              | Command                                                                             | What it executes                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `rule-fixtures`                   | `scripts/run_rule_fixtures.py`                                                      | 238 rule fixtures through the real `garh_rules.evaluate()` |
+| `solver-smoke`                    | `scripts/solver_smoke.py`                                                           | 26 checks on the OR-Tools-free half of §5                  |
+| `fixture-drift`                   | `…/copilot-commands/_tools/generate.py --check`, `e2e/fixtures/generate.py --check` | both derived corpora re-derived and diffed                 |
+| **`copilot-eval`** _(new)_        | `fixtures/llm/copilot-commands/_tools/check.py`                                     | the 40-command corpus through the real pipeline            |
+| **`copilot-containment`** _(new)_ | `scripts/copilot_containment.py`                                                    | 46 §13 containment checks                                  |
+| **`render-mirrors`** _(new)_      | `scripts/render_mirrors.py`                                                         | 19 catalogue-mirror + determinism checks                   |
+| audits                            | tenancy / secret / env / asset                                                      | unchanged                                                  |
 
 The `asset-audit` release blocker (`inter-medium.woff` missing) is still outstanding
 and still printed on every run. It is not a Phase 6/7 issue.
@@ -80,17 +80,17 @@ This gate is new. It runs the real pipeline against a **deliberately hostile
 provider**, because the mock corpus is uniformly well-behaved and therefore cannot
 demonstrate that misbehaviour is contained.
 
-| Section | Claim proved by execution |
-|---|---|
-| A | 5 classes of malformed op (unknown type, **float millimetres**, missing field, wrong type, non-object payload) are refused with the fold **never reached** — asserted with a fold that counts its own calls |
-| B | An opening wider than its wall and a reference to a wall that does not exist both die in the real fold with zero ops surviving; a dry run leaves the input document **byte-identical** |
-| C | A NEW hard rules failure blocks the diff and names the rule; a **pre-existing** failure does not block an unrelated edit; no plot boundary → `available=False` and nothing reported |
-| D | `cannotDo` + ops, and `needsClarification` + ops, both drop the ops |
-| E | PII seeded into room name, room notes, storey name, wall name, plot address and the brief never reaches `task.system`/`task.user`, while the summary demonstrably *did* walk those objects (ids and shape present) — non-vacuously. Plus: the §10 log masks the model's own `intent` line |
-| F | One bad answer + one good → applicable and `selfCorrected` in exactly 2 provider calls; two bad answers → honest `cannotDo`, zero ops, and **no third call** |
-| G | A 4-op batch dry-run folds in **1.43ms** against the §14 10ms budget |
-| H | Diff lines carry no op type, no raw id, spelled-out mm, and fit a rail row |
-| I | Both tagged prompt-injection commands land on `cannotDo` with zero ops |
+| Section | Claim proved by execution                                                                                                                                                                                                                                                                 |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A       | 5 classes of malformed op (unknown type, **float millimetres**, missing field, wrong type, non-object payload) are refused with the fold **never reached** — asserted with a fold that counts its own calls                                                                               |
+| B       | An opening wider than its wall and a reference to a wall that does not exist both die in the real fold with zero ops surviving; a dry run leaves the input document **byte-identical**                                                                                                    |
+| C       | A NEW hard rules failure blocks the diff and names the rule; a **pre-existing** failure does not block an unrelated edit; no plot boundary → `available=False` and nothing reported                                                                                                       |
+| D       | `cannotDo` + ops, and `needsClarification` + ops, both drop the ops                                                                                                                                                                                                                       |
+| E       | PII seeded into room name, room notes, storey name, wall name, plot address and the brief never reaches `task.system`/`task.user`, while the summary demonstrably _did_ walk those objects (ids and shape present) — non-vacuously. Plus: the §10 log masks the model's own `intent` line |
+| F       | One bad answer + one good → applicable and `selfCorrected` in exactly 2 provider calls; two bad answers → honest `cannotDo`, zero ops, and **no third call**                                                                                                                              |
+| G       | A 4-op batch dry-run folds in **1.43ms** against the §14 10ms budget                                                                                                                                                                                                                      |
+| H       | Diff lines carry no op type, no raw id, spelled-out mm, and fit a rail row                                                                                                                                                                                                                |
+| I       | Both tagged prompt-injection commands land on `cannotDo` with zero ops                                                                                                                                                                                                                    |
 
 ### 2.4 Render catalogue mirrors and seed determinism
 
@@ -110,7 +110,7 @@ budget is `random.Random(material)`, and `material` is now derived by
 claim runs without an image library. Proven: identical requests → identical material;
 seed, preset, mode and size each change it; `mock.py` constructs exactly one `Random`
 and calls no clock, `urandom`, `random.seed` or `id()` in the grade path. (The
-*pixels* remain unverified — see §4.)
+_pixels_ remain unverified — see §4.)
 
 ### 2.5 Structural checks
 
@@ -126,14 +126,14 @@ and calls no clock, `urandom`, `random.seed` or `id()` in the grade path. (The
 
 ## 3. Defects found and fixed
 
-### 3.1 §13 — a user-authored storey name was sent to the LLM  *(containment)*
+### 3.1 §13 — a user-authored storey name was sent to the LLM _(containment)_
 
 `STOREY_SUMMARY_FIELDS` in `services/llm/redaction.py` included `name`. The module's
 own `_PII_SUSPECT_KEYS` classifies `name` as PII-suspect, so the allowlist contradicted
 the denylist next to it, and a storey called `"Priya 9812345678 floor"` went to the
 provider verbatim. Reproduced before the fix; a probe now prints `no leaks`.
 
-**Fixed at root, three ways:** `name` dropped; a *derived* `index` (array position)
+**Fixed at root, three ways:** `name` dropped; a _derived_ `index` (array position)
 added inside `summarise_model` so "the first floor" is still groundable without
 forwarding user prose; and the two inline allowlists (plot, violations) hoisted into
 named tuples so a new `check_allowlists_are_pii_free()` — run at import — covers every
@@ -167,7 +167,7 @@ predates the edit, and a render enqueued afterwards is not in the table yet.
 ### 3.4 The rules gate blocked edits it could not measure
 
 `NewFailureRulesGate.check` returned post-edit failures diffed against the baseline,
-but only short-circuited when the *post-edit* rules could not run. With no baseline
+but only short-circuited when the _post-edit_ rules could not run. With no baseline
 (`available=False`) every post-edit failure looked new — so an edit that merely made
 the design measurable, such as setting the plot boundary, would be rejected for
 setbacks that were always going to be there.
@@ -210,7 +210,7 @@ authoritative and still re-validates.
 
 ### 3.8 The §13 injection claim could go vacuous, and did
 
-Both consumers found the corpus's prompt-injection commands by grepping the *prose*
+Both consumers found the corpus's prompt-injection commands by grepping the _prose_
 ("ignore", "injection"). One matched only one of the two rows — so the claim silently
 covered half of what it said. Deleting an injection row would have shrunk the claim
 instead of failing a gate.
@@ -222,7 +222,7 @@ injection row is missing, expects anything other than `cannotDo`, or carries ops
 
 ### 3.9 A docstring pointed at a test file that does not exist
 
-`services/render/mock.py` claimed "``tests/test_mock_provider.py`` asserts byte
+`services/render/mock.py` claimed "`tests/test_mock_provider.py` asserts byte
 equality." No such file exists anywhere in the tree. The byte-equality test is
 `apps/api/tests/test_render_jobs.py::test_mock_provider_is_deterministic_by_seed_and_under_budget`,
 and it `importorskip`s Pillow — so on this machine it does not run at all. A reader
@@ -235,7 +235,7 @@ bare-interpreter seed-material gate, and the Pillow-gated pixel test that skips.
 ### 3.10 Diff copy defects (§12/§15)
 
 Surfaced by the new gate rather than by reading: `room.assign` on an unassigned room
-rendered as `"…(unassigned, kitchen)"` — the fallback used the room's *current* type as
+rendered as `"…(unassigned, kitchen)"` — the fallback used the room's _current_ type as
 its name, so the line read like a contradiction. Walls read `"a internal wall"`. A
 catalog description enumerating every settable field filled a rail row before reaching
 the mm values. Also a duplicated `"heightMm"` in the payload-field tuple.
@@ -286,7 +286,7 @@ link. Not worth a second mechanism. Listed as a Phase 8 risk instead.
 - **The server mints `groupId`**; the client applies with `proposal.groupId`, which is
   what keeps the propose log line and the decision log line joinable.
 - **§12 DiffPreview reuse.** One component, in `components/DiffPreview.tsx`, used by
-  both copilot and solver. `MiniDocPlan` is a thumbnail *inside* it, not a second diff
+  both copilot and solver. `MiniDocPlan` is a thumbnail _inside_ it, not a second diff
   component.
 - **One-Canvas rule.** `RenderCaptureBridge` mounts as a child of the single
   `CanvasRoot`; `RenderLauncher` is a DOM overlay outside the WebGL tree, in the 3D
@@ -297,7 +297,7 @@ link. Not worth a second mechanism. Listed as a Phase 8 risk instead.
   pack, by design).
 - **Credit metering.** `credit_events(kind='llm')` is written on every copilot call,
   before the response and regardless of outcome, with `{route, outcome, opsCount,
-  tokens}`; `kind='render'` with `qty=N` on a pack; `kind='export'` on an archive. All
+tokens}`; `kind='render'` with `qty=N` on a pack; `kind='export'` on an archive. All
   four kinds are in `CREDIT_EVENT_KINDS` and the DB check constraint. `LlmUsage.to_json`
   keys do not collide with the meta keys they are spread beside.
 - **The fail-closed rate limit** is the same `RateLimitRule` object brief-parse uses,
@@ -320,21 +320,21 @@ link. Not worth a second mechanism. Listed as a Phase 8 risk instead.
 
 ## 6. UNVERIFIED — and the exact command that settles each
 
-| Claim | Blocked by | Command |
-|---|---|---|
-| The route wiring: auth, tenancy, 503s, metering rows, the 429 | no fastapi/pytest/Postgres/Redis | `make test-py` |
-| `apps/api/tests/test_copilot.py` (incl. 4 integration tests) | same | `pytest apps/api/tests/test_copilot.py` |
-| `apps/api/tests/test_render_jobs.py` — 15 tests incl. the §14 <1s budget and the stale flip through real `POST /ops` | same, + minio for the archive test | `pytest apps/api/tests/test_render_jobs.py` |
-| **Mock render pixels** — byte-equality for a given seed, the composite itself, the §14 <1s budget | no Pillow (the test `importorskip`s and skips) | `pytest apps/api/tests/test_render_jobs.py -k mock_provider` |
-| Web typecheck and vitest (copilot + renders features) | no Node/pnpm | `pnpm --filter @garh/web test && pnpm typecheck` |
-| Playwright `copilot.spec.ts`, `renders.spec.ts` | no Node, no browser | `pnpm --filter @garh/e2e test:copilot` |
-| **Real GL capture** — depth unpack, Sobel edges, readback from the live renderer | no browser | Phase 9 e2e |
-| Browser → minio CORS for presigned PUTs (the 8-shot pack path) | no Docker | `make up` then the pack button |
-| Whether a real LLM understands Indian architectural vocabulary | no provider key | prompt-contract tests with `LLM_PROVIDER=anthropic` |
+| Claim                                                                                                                | Blocked by                                     | Command                                                      |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------ |
+| The route wiring: auth, tenancy, 503s, metering rows, the 429                                                        | no fastapi/pytest/Postgres/Redis               | `make test-py`                                               |
+| `apps/api/tests/test_copilot.py` (incl. 4 integration tests)                                                         | same                                           | `pytest apps/api/tests/test_copilot.py`                      |
+| `apps/api/tests/test_render_jobs.py` — 15 tests incl. the §14 <1s budget and the stale flip through real `POST /ops` | same, + minio for the archive test             | `pytest apps/api/tests/test_render_jobs.py`                  |
+| **Mock render pixels** — byte-equality for a given seed, the composite itself, the §14 <1s budget                    | no Pillow (the test `importorskip`s and skips) | `pytest apps/api/tests/test_render_jobs.py -k mock_provider` |
+| Web typecheck and vitest (copilot + renders features)                                                                | no Node/pnpm                                   | `pnpm --filter @garh/web test && pnpm typecheck`             |
+| Playwright `copilot.spec.ts`, `renders.spec.ts`                                                                      | no Node, no browser                            | `pnpm --filter @garh/e2e test:copilot`                       |
+| **Real GL capture** — depth unpack, Sobel edges, readback from the live renderer                                     | no browser                                     | Phase 9 e2e                                                  |
+| Browser → minio CORS for presigned PUTs (the 8-shot pack path)                                                       | no Docker                                      | `make up` then the pack button                               |
+| Whether a real LLM understands Indian architectural vocabulary                                                       | no provider key                                | prompt-contract tests with `LLM_PROVIDER=anthropic`          |
 
-The load-bearing gap is the last one. Everything proved above is about *containment*:
+The load-bearing gap is the last one. Everything proved above is about _containment_:
 that a wrong answer cannot hurt the document. Nothing here shows the copilot is
-*useful* against a real model — the mock answers from a fixture keyed on the command
+_useful_ against a real model — the mock answers from a fixture keyed on the command
 text, so 100% on the corpus measures the pipeline, not the comprehension.
 
 ---
@@ -351,7 +351,7 @@ text, so 100% on the corpus measures the pipeline, not the comprehension.
    reasoning silently stops holding. A test that enqueues, edits, completes and then
    asserts the banner is the single highest-value test to write next.
 3. **Render pixels are entirely unproven.** No Pillow here means the mock composite,
-   its determinism *in bytes*, and the <1s budget are all untested. Phase 8's PNG/
+   its determinism _in bytes_, and the <1s budget are all untested. Phase 8's PNG/
    WhatsApp export and the pack zip both assume a working image path.
 4. **The three-way render catalogue mirror will drift.** It is gated now, on a bare
    interpreter, which is the best available answer — but adding a preset still means

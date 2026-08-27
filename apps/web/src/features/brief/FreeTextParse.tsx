@@ -124,7 +124,7 @@ function formatFieldValue(field: string, value: unknown): string {
   if (typeof value === 'number') {
     if (key === 'budgetInr') return formatRupeesCompact(value);
     if (key === 'ratePerSqftInr') return `₹${formatIndianNumber(value)} / sq ft`;
-    if (/targetAreaMm2$/.test(field)) return formatSqft(value, 0);
+    if (field.endsWith('targetAreaMm2')) return formatSqft(value, 0);
     if (key === 'storeys') return value <= 1 ? 'Ground only' : `G+${value - 1}`;
     return formatIndianNumber(value);
   }
@@ -156,7 +156,7 @@ function parseFieldValue(field: string, previous: unknown, raw: string): JsonVal
     const rupees = parseRupees(s);
     return rupees !== null && rupees > 0 ? rupees : undefined;
   }
-  if (/targetAreaMm2$/.test(field)) {
+  if (field.endsWith('targetAreaMm2')) {
     try {
       const mm2 = parseAreaMm2(s, 'sqft');
       return mm2 > 0 ? mm2 : undefined;
@@ -238,7 +238,8 @@ export function FreeTextParse({ projectId, className }: FreeTextParseProps): JSX
         pushToast({
           tone: 'warning',
           title: `We couldn't read "${raw.trim()}" for ${fieldLabel(field).toLowerCase()}.`,
-          description: 'The assumed value is unchanged. Try a plain number, Yes/No, or 45L-style money.',
+          description:
+            'The assumed value is unchanged. Try a plain number, Yes/No, or 45L-style money.',
         });
         return;
       }
@@ -247,7 +248,8 @@ export function FreeTextParse({ projectId, className }: FreeTextParseProps): JSX
         pushToast({
           tone: 'warning',
           title: "That value can't be edited from the chip.",
-          description: 'Apply the brief, then change it on the form — everything stays editable there.',
+          description:
+            'Apply the brief, then change it on the form — everything stays editable there.',
         });
         return;
       }
@@ -289,7 +291,8 @@ export function FreeTextParse({ projectId, className }: FreeTextParseProps): JSX
       pushToast({
         tone: 'error',
         title: "We couldn't apply the parsed brief.",
-        description: result.issues[0]?.message ?? 'The document may be out of sync — reload and retry.',
+        description:
+          result.issues[0]?.message ?? 'The document may be out of sync — reload and retry.',
       });
       return;
     }
@@ -336,7 +339,8 @@ export function FreeTextParse({ projectId, className }: FreeTextParseProps): JSX
             Read this brief
           </Button>
           <span className="text-2xs text-ink-subtle">
-            Nothing is applied until you review it. Dictation works too — use your keyboard&rsquo;s mic.
+            Nothing is applied until you review it. Dictation works too — use your keyboard&rsquo;s
+            mic.
           </span>
         </div>
       </div>

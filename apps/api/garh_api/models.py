@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import (
     BigInteger,
@@ -164,7 +164,7 @@ class Timestamps:
     server values in the same UPDATE ... RETURNING round trip instead.
     """
 
-    __mapper_args__ = {"eager_defaults": True}
+    __mapper_args__: ClassVar[dict[str, Any]] = {"eager_defaults": True}
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -209,9 +209,7 @@ class Firm(UuidPk, Timestamps, Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     logo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     #: firm preferences: title-block fields, dimToJamb, default city pack, flag overrides.
-    settings: Mapped[dict[str, Any]] = mapped_column(
-        JSONB, nullable=False, server_default=JSON_OBJ
-    )
+    settings: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default=JSON_OBJ)
 
     __table_args__ = (
         CheckConstraint("length(btrim(name)) > 0", name="ck_firms_name_not_blank"),
@@ -513,9 +511,7 @@ class SolverJob(UuidPk, Timestamps, TenantOwned, Base):
 
     __table_args__ = (
         CheckConstraint(_in_check("status", JOB_STATUSES), name="ck_solver_jobs_status"),
-        CheckConstraint(
-            "progress >= 0 AND progress <= 100", name="ck_solver_jobs_progress_range"
-        ),
+        CheckConstraint("progress >= 0 AND progress <= 100", name="ck_solver_jobs_progress_range"),
         Index("ix_solver_jobs_firm_id", "firm_id"),
         Index("ix_solver_jobs_project_id_created_at", "project_id", "created_at"),
         Index("ix_solver_jobs_firm_id_status", "firm_id", "status"),
@@ -559,9 +555,7 @@ class RenderJob(UuidPk, Timestamps, TenantOwned, Base):
     __table_args__ = (
         CheckConstraint(_in_check("status", JOB_STATUSES), name="ck_render_jobs_status"),
         CheckConstraint(_in_check("mode", RENDER_MODES), name="ck_render_jobs_mode"),
-        CheckConstraint(
-            "progress >= 0 AND progress <= 100", name="ck_render_jobs_progress_range"
-        ),
+        CheckConstraint("progress >= 0 AND progress <= 100", name="ck_render_jobs_progress_range"),
         Index("ix_render_jobs_firm_id", "firm_id"),
         Index("ix_render_jobs_project_id_created_at", "project_id", "created_at"),
         Index("ix_render_jobs_firm_id_status", "firm_id", "status"),

@@ -24,9 +24,7 @@ from garh_api.tenancy import Page, ProjectScopedRepository, RepositoryUsageError
 
 def _validate_status(status: str) -> None:
     if status not in models.JOB_STATUSES:
-        raise RepositoryUsageError(
-            "status must be one of %s." % ", ".join(models.JOB_STATUSES)
-        )
+        raise RepositoryUsageError("status must be one of %s." % ", ".join(models.JOB_STATUSES))
 
 
 def _clamp_progress(progress: int) -> int:
@@ -68,9 +66,7 @@ class SolverJobRepository(ProjectScopedRepository[models.SolverJob, SolverJob]):
 
     async def count_active(self) -> int:
         """Queued+running jobs for this firm — backs the free-tier rate limit (§13)."""
-        stmt = self._scoped_select().where(
-            models.SolverJob.status.in_(("queued", "running"))
-        )
+        stmt = self._scoped_select().where(models.SolverJob.status.in_(("queued", "running")))
         return await self._count(stmt)
 
     async def count_since(self, since: Any) -> int:
@@ -173,9 +169,7 @@ class RenderJobRepository(ProjectScopedRepository[models.RenderJob, RenderJob]):
 
     async def count_active(self) -> int:
         """Queued+running renders for this firm — the §9 concurrency-4 gate."""
-        stmt = self._scoped_select().where(
-            models.RenderJob.status.in_(("queued", "running"))
-        )
+        stmt = self._scoped_select().where(models.RenderJob.status.in_(("queued", "running")))
         return await self._count(stmt)
 
     # -- writes --------------------------------------------------------
@@ -191,14 +185,10 @@ class RenderJobRepository(ProjectScopedRepository[models.RenderJob, RenderJob]):
     ) -> RenderJob:
         self.ctx.require_write("starting a render")
         if mode not in models.RENDER_MODES:
-            raise RepositoryUsageError(
-                "mode must be one of %s." % ", ".join(models.RENDER_MODES)
-            )
+            raise RepositoryUsageError("mode must be one of %s." % ", ".join(models.RENDER_MODES))
         await require_project_in_firm(self._session, self.firm_id, project_id)
         if design_version_id is not None:
-            await require_design_version_in_firm(
-                self._session, self.firm_id, design_version_id
-            )
+            await require_design_version_in_firm(self._session, self.firm_id, design_version_id)
         row = self._new_row(
             project_id=project_id,
             design_version_id=design_version_id,
@@ -277,17 +267,13 @@ class RenderJobRepository(ProjectScopedRepository[models.RenderJob, RenderJob]):
             .where(models.RenderJob.status.in_(("queued", "running", "succeeded")))
         )
         if except_design_version_id is not None:
-            stmt = stmt.where(
-                models.RenderJob.design_version_id != except_design_version_id
-            )
+            stmt = stmt.where(models.RenderJob.design_version_id != except_design_version_id)
         rows = await self._all(stmt)
         for row in rows:
             row.stale = True
         if rows:
             await self.flush()
-            self._log.info(
-                "render_job.marked_stale", project_id=str(project_id), count=len(rows)
-            )
+            self._log.info("render_job.marked_stale", project_id=str(project_id), count=len(rows))
         return len(rows)
 
 

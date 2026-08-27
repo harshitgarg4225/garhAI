@@ -285,7 +285,12 @@ function segmentId(chainId: string, startMm: number, endMm: number): string {
  * plan — changes dimensions the user did not touch, which is much harder to
  * undo mentally than one wall in the wrong place.
  */
-function wallSegments(chainId: string, axis: DimAxis, ticks: readonly DimTick[], minMm: number): DimSegment[] {
+function wallSegments(
+  chainId: string,
+  axis: DimAxis,
+  ticks: readonly DimTick[],
+  minMm: number,
+): DimSegment[] {
   const out: DimSegment[] = [];
   for (let i = 0; i + 1 < ticks.length; i++) {
     const a = ticks[i];
@@ -384,9 +389,7 @@ function openingSegmentsForWall(
   const tickAlong = new Set<number>([0, length]);
 
   let cursor = 0;
-  for (let i = 0; i < runs.length; i++) {
-    const run = runs[i];
-    if (run === undefined) continue;
+  for (const run of runs) {
     tickAlong.add(run.startAlongMm);
     tickAlong.add(run.endAlongMm);
 
@@ -732,8 +735,8 @@ export function segmentMidMm(chain: DimChain, segment: DimSegment, baselineMm: n
 /** Every editable segment, flattened — the layer's hit-target index. */
 export function editableSegments(
   chains: readonly DimChain[],
-): Array<{ chain: DimChain; segment: DimSegment; target: DimensionEditTarget }> {
-  const out: Array<{ chain: DimChain; segment: DimSegment; target: DimensionEditTarget }> = [];
+): { chain: DimChain; segment: DimSegment; target: DimensionEditTarget }[] {
+  const out: { chain: DimChain; segment: DimSegment; target: DimensionEditTarget }[] = [];
   for (const chain of chains) {
     for (const segment of chain.segments) {
       if (segment.target !== null) out.push({ chain, segment, target: segment.target });

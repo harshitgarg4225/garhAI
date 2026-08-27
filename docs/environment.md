@@ -27,22 +27,22 @@ add or rename a variable, change `config.py` in the same commit.
 Names that are easy to get wrong because the playbook's prose differs from the
 implementation:
 
-| Correct | Not | Note |
-|---|---|---|
-| `S3_ENDPOINT_URL` | `S3_ENDPOINT` | |
-| `S3_ACCESS_KEY_ID` | `S3_ACCESS_KEY` | |
-| `S3_SECRET_ACCESS_KEY` | `S3_SECRET_KEY` | |
-| `DB_POOL_SIZE` | `DATABASE_POOL_SIZE` | `DATABASE_URL` itself is right |
-| `SQL_ECHO` | `LOG_SQL` | |
-| `ACCESS_TOKEN_TTL_SECONDS` | `JWT_ACCESS_TTL_SECONDS` | |
-| `REFRESH_TOKEN_TTL_SECONDS` | `JWT_REFRESH_TTL_SECONDS` | |
-| `OTP_CODE_LENGTH` | `OTP_LENGTH` | |
-| `SHARE_TOKEN_BYTES` | `SHARE_LINK_TOKEN_BYTES` | |
-| `CORS_ALLOW_ORIGINS` | `CORS_ALLOWED_ORIGINS` | comma-separated, never `*` |
-| `OP_SNAPSHOT_INTERVAL` | `SNAPSHOT_EVERY_N_OPS` | |
-| `RATE_LIMIT_AUTH_PER_HOUR` | `RATE_LIMIT_AUTH_OTP_PER_HOUR_PER_IP` | |
-| `RENDER_CONCURRENCY_PER_FIRM` | `RENDER_MAX_CONCURRENT_PER_FIRM` | |
-| `MAX_DXF_UPLOAD_BYTES` | `UPLOAD_MAX_DXF_BYTES` | `[both]` — the API rejects at the edge, the drawings worker re-checks after fetching the blob. One variable on purpose: it used to be hard-coded in `services/drawings/handler.py`, so raising it made the API accept a file the worker refused. |
+| Correct                       | Not                                   | Note                                                                                                                                                                                                                                             |
+| ----------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `S3_ENDPOINT_URL`             | `S3_ENDPOINT`                         |                                                                                                                                                                                                                                                  |
+| `S3_ACCESS_KEY_ID`            | `S3_ACCESS_KEY`                       |                                                                                                                                                                                                                                                  |
+| `S3_SECRET_ACCESS_KEY`        | `S3_SECRET_KEY`                       |                                                                                                                                                                                                                                                  |
+| `DB_POOL_SIZE`                | `DATABASE_POOL_SIZE`                  | `DATABASE_URL` itself is right                                                                                                                                                                                                                   |
+| `SQL_ECHO`                    | `LOG_SQL`                             |                                                                                                                                                                                                                                                  |
+| `ACCESS_TOKEN_TTL_SECONDS`    | `JWT_ACCESS_TTL_SECONDS`              |                                                                                                                                                                                                                                                  |
+| `REFRESH_TOKEN_TTL_SECONDS`   | `JWT_REFRESH_TTL_SECONDS`             |                                                                                                                                                                                                                                                  |
+| `OTP_CODE_LENGTH`             | `OTP_LENGTH`                          |                                                                                                                                                                                                                                                  |
+| `SHARE_TOKEN_BYTES`           | `SHARE_LINK_TOKEN_BYTES`              |                                                                                                                                                                                                                                                  |
+| `CORS_ALLOW_ORIGINS`          | `CORS_ALLOWED_ORIGINS`                | comma-separated, never `*`                                                                                                                                                                                                                       |
+| `OP_SNAPSHOT_INTERVAL`        | `SNAPSHOT_EVERY_N_OPS`                |                                                                                                                                                                                                                                                  |
+| `RATE_LIMIT_AUTH_PER_HOUR`    | `RATE_LIMIT_AUTH_OTP_PER_HOUR_PER_IP` |                                                                                                                                                                                                                                                  |
+| `RENDER_CONCURRENCY_PER_FIRM` | `RENDER_MAX_CONCURRENT_PER_FIRM`      |                                                                                                                                                                                                                                                  |
+| `MAX_DXF_UPLOAD_BYTES`        | `UPLOAD_MAX_DXF_BYTES`                | `[both]` — the API rejects at the edge, the drawings worker re-checks after fetching the blob. One variable on purpose: it used to be hard-coded in `services/drawings/handler.py`, so raising it made the API accept a file the worker refused. |
 
 `APP_ENV` is a validated literal: **`dev` | `test` | `staging` | `prod`**. Anything
 else — including `local` — fails validation and the API won't boot.
@@ -53,11 +53,11 @@ else — including `local` — fails validation and the API won't boot.
 
 `.env.example` marks every variable:
 
-| Marker | Meaning |
-|---|---|
-| `[server]` | the API process |
-| `[worker]` | solver / render / drawings |
-| `[both]` | API and workers |
+| Marker     | Meaning                                                 |
+| ---------- | ------------------------------------------------------- |
+| `[server]` | the API process                                         |
+| `[worker]` | solver / render / drawings                              |
+| `[both]`   | API and workers                                         |
 | `[client]` | `VITE_`-prefixed — **compiled into the browser bundle** |
 
 ### The client boundary is enforced, not advisory
@@ -129,11 +129,11 @@ catches an accidental paste into a tracked file.
 
 ## Providers — mock by default
 
-| Variable | Default | Real option |
-|---|---|---|
-| `PROVIDER_LLM` | `mock` | `anthropic` (+ `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`) |
-| `PROVIDER_RENDER` | `mock` | `diffusers` (+ `RENDER_DEVICE=cuda`) |
-| `PROVIDER_BILLING` | `mock` | `razorpay` (+ keys) |
+| Variable           | Default | Real option                                            |
+| ------------------ | ------- | ------------------------------------------------------ |
+| `PROVIDER_LLM`     | `mock`  | `anthropic` (+ `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`) |
+| `PROVIDER_RENDER`  | `mock`  | `diffusers` (+ `RENDER_DEVICE=cuda`)                   |
+| `PROVIDER_BILLING` | `mock`  | `razorpay` (+ keys)                                    |
 
 The mocks are deterministic, not stubs: the LLM mock is fixture-driven and the render
 mock composites the real viewport with a preset tint and watermark, seeded so the
@@ -154,15 +154,15 @@ must never be used.** Permitted are SDXL (OpenRAIL, commercial OK), FLUX.1-**sch
 All published ports are env vars, so a conflict is a one-line fix and nothing
 container-internal changes:
 
-| Variable | Default |
-|---|---|
-| `API_PORT` | 8000 |
-| `WEB_PORT` | 5173 |
-| `WEB_HMR_PORT` | 24678 |
-| `POSTGRES_PORT` | 5432 |
-| `REDIS_PORT` | 6379 |
-| `MINIO_PORT` | 9000 |
-| `MINIO_CONSOLE_PORT` | 9001 |
+| Variable             | Default |
+| -------------------- | ------- |
+| `API_PORT`           | 8000    |
+| `WEB_PORT`           | 5173    |
+| `WEB_HMR_PORT`       | 24678   |
+| `POSTGRES_PORT`      | 5432    |
+| `REDIS_PORT`         | 6379    |
+| `MINIO_PORT`         | 9000    |
+| `MINIO_CONSOLE_PORT` | 9001    |
 
 ---
 
@@ -171,10 +171,10 @@ container-internal changes:
 Inside the network, services resolve each other by name (`postgres`, `redis`,
 `minio`). From your laptop, only `localhost` resolves. Both forms are in `.env`:
 
-| In-container | Host equivalent |
-|---|---|
-| `DATABASE_URL` | `DATABASE_URL_HOST` |
-| `REDIS_URL` | `REDIS_URL_HOST` |
+| In-container      | Host equivalent          |
+| ----------------- | ------------------------ |
+| `DATABASE_URL`    | `DATABASE_URL_HOST`      |
+| `REDIS_URL`       | `REDIS_URL_HOST`         |
 | `S3_ENDPOINT_URL` | `S3_PUBLIC_ENDPOINT_URL` |
 
 `S3_PUBLIC_ENDPOINT_URL` is not just convenience: signed download URLs are generated

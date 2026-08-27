@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import Field, StrictBool, StrictInt, StrictStr, field_validator
 
@@ -47,10 +47,10 @@ class OpIn(CamelModel):
 
     type: StrictStr = Field(min_length=1, max_length=64)
     payload: dict[str, Any] = Field(default_factory=dict)
-    client_op_id: Optional[StrictStr] = Field(
+    client_op_id: StrictStr | None = Field(
         default=None, min_length=1, max_length=MAX_CLIENT_OP_ID_LENGTH
     )
-    group_id: Optional[uuid.UUID] = Field(
+    group_id: uuid.UUID | None = Field(
         default=None,
         description="Batch id. Undo/redo operates on groups (§4), so a multi-op edit "
         "shares one.",
@@ -74,10 +74,10 @@ class OpsAppendIn(CamelModel):
     source: StrictStr = Field(
         default="manual", description="manual | copilot | solver | system (provenance, §4)."
     )
-    version_branch: Optional[uuid.UUID] = Field(
+    version_branch: uuid.UUID | None = Field(
         default=None, description="Defaults to the project's active branch."
     )
-    group_id: Optional[uuid.UUID] = Field(
+    group_id: uuid.UUID | None = Field(
         default=None, description="Group every op in this request together for undo."
     )
 
@@ -98,15 +98,15 @@ class OpOut(ResponseModel):
     idx: StrictInt
     type: StrictStr
     payload: dict[str, Any] = Field(default_factory=dict)
-    inverse: Optional[dict[str, Any]] = None
+    inverse: dict[str, Any] | None = None
     source: StrictStr
-    actor: Optional[uuid.UUID] = None
-    client_op_id: Optional[StrictStr] = None
-    group_id: Optional[uuid.UUID] = None
+    actor: uuid.UUID | None = None
+    client_op_id: StrictStr | None = None
+    group_id: uuid.UUID | None = None
     created_at: datetime
 
     @classmethod
-    def of(cls, op: Any) -> "OpOut":
+    def of(cls, op: Any) -> OpOut:
         return cls(
             seq=op.seq,
             idx=op.idx,
@@ -139,8 +139,8 @@ class OpsAppendOut(ResponseModel):
     already_applied: StrictBool = Field(
         default=False, description="True when this was an idempotent replay."
     )
-    state_hash: Optional[StrictStr] = None
-    snapshot_version_id: Optional[uuid.UUID] = None
+    state_hash: StrictStr | None = None
+    snapshot_version_id: uuid.UUID | None = None
     renders_marked_stale: StrictInt = 0
 
 
@@ -167,18 +167,18 @@ class ModelStateOut(ResponseModel):
 
     project_id: uuid.UUID
     version_branch: uuid.UUID
-    design_version_id: Optional[uuid.UUID] = Field(
+    design_version_id: uuid.UUID | None = Field(
         default=None, description="The version whose snapshot anchors this payload."
     )
     schema_version: StrictInt
-    snapshot: Optional[dict[str, Any]] = None
-    snapshot_hash: Optional[StrictStr] = None
+    snapshot: dict[str, Any] | None = None
+    snapshot_hash: StrictStr | None = None
     base_idx: StrictInt = Field(
         description="Index the snapshot is folded up to; -1 when starting from empty."
     )
     head_idx: StrictInt
     ops: list[OpOut] = Field(default_factory=list)
-    state_hash: Optional[StrictStr] = Field(
+    state_hash: StrictStr | None = Field(
         default=None,
         description="Hash of the folded document. Null when the server could not fold "
         "(model engine unavailable) — the client folds and verifies nothing.",
@@ -199,12 +199,12 @@ class ValidationIssueOut(ResponseModel):
 
     code: StrictStr
     message: StrictStr
-    op_index: Optional[StrictInt] = None
-    op_type: Optional[StrictStr] = None
-    element_id: Optional[StrictStr] = None
-    field: Optional[StrictStr] = None
-    limit: Optional[Any] = None
-    actual: Optional[Any] = None
+    op_index: StrictInt | None = None
+    op_type: StrictStr | None = None
+    element_id: StrictStr | None = None
+    field: StrictStr | None = None
+    limit: Any | None = None
+    actual: Any | None = None
 
 
 class OpRejectionOut(ResponseModel):
@@ -213,8 +213,8 @@ class OpRejectionOut(ResponseModel):
     code: StrictStr = "op_rejected"
     message: StrictStr
     action: StrictStr = "Fix the highlighted values and try again."
-    request_id: Optional[StrictStr] = None
-    head_idx: Optional[StrictInt] = None
+    request_id: StrictStr | None = None
+    head_idx: StrictInt | None = None
     issues: list[ValidationIssueOut] = Field(default_factory=list)
 
 

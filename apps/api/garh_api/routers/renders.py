@@ -34,7 +34,7 @@ import io
 import json
 import uuid
 import zipfile
-from typing import Any, List, Optional
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, Query, Request, status
@@ -163,7 +163,7 @@ def pack_object_key(firm_id: Any, pack_id: str) -> str:
 
 
 def mint_render_outputs(
-    firm_id: Any, job_id: Any, settings: Optional[Settings] = None
+    firm_id: Any, job_id: Any, settings: Settings | None = None
 ) -> dict[str, queue.BlobRef]:
     """The envelope ``outputs`` for one render job.
 
@@ -186,7 +186,7 @@ def mint_render_outputs(
     }
 
 
-def fresh_image_url(job: RenderJob, firm_id: Any, settings: Settings) -> Optional[str]:
+def fresh_image_url(job: RenderJob, firm_id: Any, settings: Settings) -> str | None:
     """A viewable URL for a finished render, re-signed now.
 
     Only rows whose stored URL points at our object store are re-signed; a ``path``
@@ -243,27 +243,27 @@ class PackShotIn(CamelModel):
 class RenderPackIn(CamelModel):
     """Start the §9 client pack as one job group."""
 
-    design_version_id: Optional[uuid.UUID] = Field(
+    design_version_id: uuid.UUID | None = Field(
         default=None, description="Pins every shot to a version. Omit to pin to the latest."
     )
-    seed: Optional[StrictInt] = Field(
+    seed: StrictInt | None = Field(
         default=None, ge=0, description="Base seed; shot i renders with seed base+i."
     )
     width: StrictInt = Field(default=1536, ge=256, le=4096)
     height: StrictInt = Field(default=1024, ge=256, le=4096)
-    shots: List[PackShotIn] = Field(min_length=1, max_length=MAX_PACK_SHOTS)
+    shots: list[PackShotIn] = Field(min_length=1, max_length=MAX_PACK_SHOTS)
 
 
 class RenderPackOut(ResponseModel):
     pack_id: StrictStr
     project_id: uuid.UUID
-    design_version_id: Optional[uuid.UUID] = None
+    design_version_id: uuid.UUID | None = None
     status: StrictStr = Field(description="queued | running | succeeded | failed | cancelled")
     progress: StrictInt = 0
-    jobs: List[RenderJobOut] = Field(default_factory=list)
+    jobs: list[RenderJobOut] = Field(default_factory=list)
 
     @classmethod
-    def of(cls, pack_id: str, project_id: uuid.UUID, jobs: List[RenderJobOut]) -> "RenderPackOut":
+    def of(cls, pack_id: str, project_id: uuid.UUID, jobs: list[RenderJobOut]) -> RenderPackOut:
         statuses = [j.status for j in jobs]
         if statuses and all(s == "succeeded" for s in statuses):
             overall = "succeeded"
@@ -300,7 +300,7 @@ class UploadSlotOut(ResponseModel):
 
 
 class RenderUploadsOut(ResponseModel):
-    slots: List[UploadSlotOut] = Field(default_factory=list)
+    slots: list[UploadSlotOut] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -330,7 +330,7 @@ async def mint_capture_uploads(
     ctx.require_write("uploading render captures")
     await require_project(session, ctx, project_id)
     settings = get_settings()
-    slots: List[UploadSlotOut] = []
+    slots: list[UploadSlotOut] = []
     for _ in range(body.count):
         key = "renders/%s/inputs/%s.png" % (ctx.firm_id, uuid.uuid4().hex)
         slots.append(
@@ -360,7 +360,7 @@ async def render_history(
     session: SessionDep,
     ctx: TenantDep,
     limit: int = Query(default=30, ge=1, le=100),
-    cursor: Optional[str] = Query(default=None, max_length=512),
+    cursor: str | None = Query(default=None, max_length=512),
 ) -> CursorPage[RenderJobOut]:
     """Newest first, each pinned to its ``designVersionId``, ``stale`` as the ops
     pipeline last marked it (§9 banner), and ``outputUrl`` re-signed for this request
@@ -451,9 +451,7 @@ async def start_client_pack(
             latest = await DesignVersionRepository(session, ctx).latest(project_id, branch)
             design_version_id = latest.id if latest is not None else None
         if design_version_id is None:
-            raise NoDesignVersionError(
-                "There's no saved version of this design to render yet."
-            )
+            raise NoDesignVersionError("There's no saved version of this design to render yet.")
 
         pack_id = uuid.uuid4().hex
         base_seed = body.seed if body.seed is not None else _derive_seed(pack_id)
@@ -626,9 +624,7 @@ async def archive_render_pack(
             for index, job in enumerate(ordered):
                 url = fresh_image_url(job, ctx.firm_id, settings)
                 if not url or not url.startswith(("http://", "https://")):
-                    raise PackNotReadyError(
-                        "One image in this pack is not reachable from storage."
-                    )
+                    raise PackNotReadyError("One image in this pack is not reachable from storage.")
                 response = await client.get(url)
                 if response.status_code >= 400:
                     _log.error(
@@ -701,9 +697,7 @@ async def archive_render_pack(
         {"k": "export", "f": str(ctx.firm_id), "j": export_job_id, "x": "png-pack"}
     )
     out.download_url = build_download_url(request, token)
-    _log.info(
-        "render_pack.archived", pack_id=pack_id, images=len(ordered), bytes=len(zip_bytes)
-    )
+    _log.info("render_pack.archived", pack_id=pack_id, images=len(ordered), bytes=len(zip_bytes))
     return out
 
 

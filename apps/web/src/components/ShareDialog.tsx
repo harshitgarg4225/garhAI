@@ -163,9 +163,7 @@ export function ShareDialog({
               loading={creating}
               loadingLabel="Creating the link"
               disabled={sections.length === 0}
-              onClick={() =>
-                onCreate({ sections, expiryDays: Number(expiryDays), canComment })
-              }
+              onClick={() => onCreate({ sections, expiryDays: Number(expiryDays), canComment })}
             >
               Create link
             </Button>
@@ -187,9 +185,7 @@ export function ShareDialog({
       {shareUrl === undefined ? (
         <div className="flex flex-col gap-4">
           <fieldset>
-            <legend className="mb-2 text-xs font-medium text-ink-muted">
-              What can they see?
-            </legend>
+            <legend className="mb-2 text-xs font-medium text-ink-muted">What can they see?</legend>
             <div className="flex flex-col gap-1.5">
               {SHARE_SECTIONS.map((section) => {
                 const checked = sections.includes(section);
@@ -198,7 +194,9 @@ export function ShareDialog({
                     key={section}
                     className={cn(
                       'flex cursor-pointer items-start gap-2.5 rounded-md border p-2.5 transition-colors',
-                      checked ? 'border-brand/40 bg-brand-soft' : 'border-line hover:bg-surface-muted',
+                      checked
+                        ? 'border-brand/40 bg-brand-soft'
+                        : 'border-line hover:bg-surface-muted',
                     )}
                   >
                     <input
@@ -259,7 +257,12 @@ export function ShareDialog({
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <Input readOnly value={shareUrl} aria-label="Share link" className="font-mono text-xs" />
+            <Input
+              readOnly
+              value={shareUrl}
+              aria-label="Share link"
+              className="font-mono text-xs"
+            />
             <Button variant="secondary" iconLeft="copy" onClick={() => void handleCopy()}>
               Copy
             </Button>
@@ -280,7 +283,11 @@ export function ShareDialog({
 
           <div className="flex flex-wrap items-center gap-2">
             <WhatsAppShareButton message={message} />
-            <Button variant="secondary" iconLeft="external-link" onClick={() => window.open(shareUrl, '_blank', 'noopener,noreferrer')}>
+            <Button
+              variant="secondary"
+              iconLeft="external-link"
+              onClick={() => window.open(shareUrl, '_blank', 'noopener,noreferrer')}
+            >
               Preview as client
             </Button>
             <Badge tone="neutral">Read-only</Badge>

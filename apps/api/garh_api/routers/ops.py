@@ -52,7 +52,7 @@ from __future__ import annotations
 import importlib
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -61,9 +61,9 @@ from garh_api import MODEL_SCHEMA_VERSION
 from garh_api.config import get_settings
 from garh_api.logging import get_logger
 from garh_api.repositories import (
+    EMPTY_BRANCH_HEAD,
     DesignVersion,
     DesignVersionRepository,
-    EMPTY_BRANCH_HEAD,
     NewOp,
     Op,
     OpRepository,
@@ -148,9 +148,9 @@ class OpRejectedError(ApiError):
         self,
         message: str,
         *,
-        issues: Optional[list[dict[str, Any]]] = None,
-        op_index: Optional[int] = None,
-        head_idx: Optional[int] = None,
+        issues: list[dict[str, Any]] | None = None,
+        op_index: int | None = None,
+        head_idx: int | None = None,
     ) -> None:
         extra: dict[str, Any] = {"issues": list(issues or [])}
         if op_index is not None:
@@ -261,7 +261,7 @@ class ModelEngine:
 
     def to_json(self, value: Any) -> Any:
         """Mirror object → JSON. Already-JSON values pass through untouched."""
-        if value is None or isinstance(value, (str, bool, int, float)):
+        if value is None or isinstance(value, str | bool | int | float):
             return value
         to_json = getattr(value, "to_json", None)
         if callable(to_json):
@@ -270,11 +270,10 @@ class ModelEngine:
             return self._to_jsonable(value)
         if isinstance(value, dict):
             return dict(value)
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list | tuple):
             return [self.to_json(item) for item in value]
         raise ModelEngineUnavailableError(
-            "The design engine returned a %s this server cannot serialise."
-            % type(value).__name__,
+            "The design engine returned a %s this server cannot serialise." % type(value).__name__,
             extra={"type": type(value).__name__},
         )
 
@@ -310,13 +309,11 @@ class ModelEngine:
             result = self._try_fold(doc, op)
             if _result_get(result, "ok") is False:
                 issues = self._normalise_issues(_result_get(result, "issues"))
-                raise OpRejectedError(
-                    _first_issue_message(issues, op.get("type")), issues=issues
-                )
+                raise OpRejectedError(_first_issue_message(issues, op.get("type")), issues=issues)
             return self._to_outcome(result, document)
         try:
             result = self._fold(doc, op)
-        except Exception as exc:  # noqa: BLE001 - the engine's rejection type is its own
+        except Exception as exc:
             issues = self._normalise_issues(getattr(exc, "issues", None))
             if not issues:
                 issues = [
@@ -332,7 +329,7 @@ class ModelEngine:
         return self._to_outcome(result, document)
 
     def replay(
-        self, ops: list[dict[str, Any]], initial: Optional[dict[str, Any]] = None
+        self, ops: list[dict[str, Any]], initial: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Fold a list of ops from ``initial`` (or empty). Used by the model reader."""
         if self._replay is not None:
@@ -385,7 +382,7 @@ class ModelEngine:
         return issues
 
 
-def _first_callable(modules: tuple[Any, ...], names: tuple[str, ...]) -> Optional[Any]:
+def _first_callable(modules: tuple[Any, ...], names: tuple[str, ...]) -> Any | None:
     for name in names:
         for module in modules:
             value = getattr(module, name, None)
@@ -394,7 +391,7 @@ def _first_callable(modules: tuple[Any, ...], names: tuple[str, ...]) -> Optiona
     return None
 
 
-def _first_attr(modules: tuple[Any, ...], names: tuple[str, ...]) -> Optional[Any]:
+def _first_attr(modules: tuple[Any, ...], names: tuple[str, ...]) -> Any | None:
     for name in names:
         for module in modules:
             value = getattr(module, name, None)
@@ -418,8 +415,8 @@ def _first_issue_message(issues: list[dict[str, Any]], op_type: Any) -> str:
     return "That change isn't valid for this design (%s)." % (op_type or "unknown op")
 
 
-_engine: Optional[ModelEngine] = None
-_engine_error: Optional[str] = None
+_engine: ModelEngine | None = None
+_engine_error: str | None = None
 
 
 def get_model_engine() -> ModelEngine:
@@ -436,8 +433,7 @@ def get_model_engine() -> ModelEngine:
     except ImportError as exc:
         _engine_error = str(exc)
         raise ModelEngineUnavailableError(
-            "The design engine (%s) is not installed on this server."
-            % MODEL_ENGINE_MODULE,
+            "The design engine (%s) is not installed on this server." % MODEL_ENGINE_MODULE,
             extra={"module": MODEL_ENGINE_MODULE, "importError": str(exc)},
         ) from exc
     for name in MODEL_ENGINE_SUBMODULES:
@@ -474,8 +470,8 @@ def wrap_snapshot(
     *,
     version_branch: uuid.UUID,
     at_idx: int,
-    at_seq: Optional[int],
-    state_hash: Optional[str],
+    at_seq: int | None,
+    state_hash: str | None,
     schema_version: int,
 ) -> dict[str, Any]:
     return {
@@ -493,11 +489,11 @@ def wrap_snapshot(
 class UnwrappedSnapshot:
     document: dict[str, Any]
     at_idx: int
-    state_hash: Optional[str]
+    state_hash: str | None
     schema_version: int
 
 
-def unwrap_snapshot(snapshot: dict[str, Any]) -> Optional[UnwrappedSnapshot]:
+def unwrap_snapshot(snapshot: dict[str, Any]) -> UnwrappedSnapshot | None:
     """Read a snapshot envelope. ``None`` when the payload is not a usable anchor.
 
     A bare (un-enveloped) document is accepted for forward compatibility but returns
@@ -532,9 +528,9 @@ class LoadedState:
     document: dict[str, Any]
     head_idx: int
     version_branch: uuid.UUID
-    anchor_version: Optional[DesignVersion] = None
+    anchor_version: DesignVersion | None = None
     anchor_idx: int = EMPTY_BRANCH_HEAD
-    state_hash: Optional[str] = None
+    state_hash: str | None = None
 
 
 async def load_project_state(
@@ -543,7 +539,7 @@ async def load_project_state(
     project_id: uuid.UUID,
     version_branch: uuid.UUID,
     *,
-    upto_idx: Optional[int] = None,
+    upto_idx: int | None = None,
 ) -> LoadedState:
     """Fold the current (or historical) state: latest snapshot + tail ops.
 
@@ -559,7 +555,7 @@ async def load_project_state(
     target_idx = head_idx if upto_idx is None else min(upto_idx, head_idx)
 
     anchor_version = await dv_repo.latest_snapshot(project_id, version_branch)
-    anchor: Optional[UnwrappedSnapshot] = None
+    anchor: UnwrappedSnapshot | None = None
     if anchor_version is not None and anchor_version.snapshot is not None:
         candidate = unwrap_snapshot(anchor_version.snapshot)
         if candidate is not None and candidate.at_idx <= target_idx:
@@ -572,7 +568,7 @@ async def load_project_state(
         # loudly, and refold from the log, which has everything.
         try:
             engine.from_json(dict(anchor.document))
-        except Exception as exc:  # noqa: BLE001 - any load failure means "no anchor"
+        except Exception as exc:
             _log.error(
                 "ops.snapshot_unreadable",
                 project_id=str(project_id),
@@ -708,8 +704,8 @@ async def dispatch_ops(
     ops: list[OpIn],
     *,
     source: str = "manual",
-    group_id: Optional[uuid.UUID] = None,
-    branch: Optional[uuid.UUID] = None,
+    group_id: uuid.UUID | None = None,
+    branch: uuid.UUID | None = None,
 ) -> OpsAppendOut:
     """Append ops on the server's own behalf, at whatever HEAD currently is.
 
@@ -747,7 +743,7 @@ async def _append_core(
     base_idx: int,
     incoming: list[OpIn],
     source: str,
-    group_id: Optional[uuid.UUID],
+    group_id: uuid.UUID | None,
 ) -> OpsAppendOut:
     """Fold → append → snapshot → stale-mark. Assumes the branch lock is already held."""
     engine = get_model_engine()
@@ -841,7 +837,7 @@ async def _replayed_result(
     project_id: uuid.UUID,
     branch: uuid.UUID,
     incoming: list[OpIn],
-) -> Optional[OpsAppendOut]:
+) -> OpsAppendOut | None:
     """Detect a retry of a request that already landed.
 
     Only a *complete* match counts: every incoming op carries a ``clientOpId`` and every
@@ -892,7 +888,7 @@ async def _maybe_snapshot(
     head_idx: int,
     anchor_idx: int,
     schema_version: int,
-) -> Optional[uuid.UUID]:
+) -> uuid.UUID | None:
     """Write an auto checkpoint when the branch has moved far enough past the last one."""
     settings = get_settings()
     if head_idx - anchor_idx < settings.op_snapshot_interval:
@@ -938,7 +934,7 @@ async def list_ops(
     ctx: TenantDep,
     since: int = Query(default=EMPTY_BRANCH_HEAD, ge=EMPTY_BRANCH_HEAD),
     limit: int = Query(default=MAX_OPS_PAGE, ge=1, le=MAX_OPS_PAGE),
-    version_branch: Optional[uuid.UUID] = Query(default=None),
+    version_branch: uuid.UUID | None = Query(default=None),
 ) -> OpsSinceOut:
     """Everything with ``idx > since``, ascending. This is what a 409'd client calls."""
     await require_project(session, ctx, project_id)
@@ -969,10 +965,10 @@ async def get_model(
     project_id: uuid.UUID,
     session: SessionDep,
     ctx: TenantDep,
-    version: Optional[uuid.UUID] = Query(
+    version: uuid.UUID | None = Query(
         default=None, description="A design version id. Omit for the live head."
     ),
-    version_branch: Optional[uuid.UUID] = Query(default=None),
+    version_branch: uuid.UUID | None = Query(default=None),
 ) -> ModelStateOut:
     """The "<2s to interactive" payload (§15).
 
@@ -993,14 +989,11 @@ async def get_model(
         pinned = await dv_repo.require(version)
         if pinned.snapshot is None:
             raise SnapshotPrunedError(
-                "That version's saved state has been pruned, so it cannot be opened "
-                "directly."
+                "That version's saved state has been pruned, so it cannot be opened " "directly."
             )
         unwrapped = unwrap_snapshot(pinned.snapshot)
         if unwrapped is None:
-            raise SnapshotPrunedError(
-                "That version was saved in a format this server cannot open."
-            )
+            raise SnapshotPrunedError("That version was saved in a format this server cannot open.")
         return ModelStateOut(
             project_id=project_id,
             version_branch=pinned.version_branch,
@@ -1016,7 +1009,7 @@ async def get_model(
         )
 
     anchor_version = await dv_repo.latest_snapshot(project_id, branch)
-    anchor: Optional[UnwrappedSnapshot] = None
+    anchor: UnwrappedSnapshot | None = None
     if anchor_version is not None and anchor_version.snapshot is not None:
         candidate = unwrap_snapshot(anchor_version.snapshot)
         if candidate is not None and candidate.at_idx <= head_idx:

@@ -7,7 +7,7 @@ and the copilot fixtures key off it).
 
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 import pytest
 
@@ -37,11 +37,11 @@ WALL_SOUTH = FIXTURE_IDS["wallSouth"]
 WALL_SPINE = FIXTURE_IDS["wallSpine"]
 
 
-def codes(issues: List[ValidationIssue]) -> List[str]:
+def codes(issues: list[ValidationIssue]) -> list[str]:
     return [i.code for i in issues]
 
 
-def reject_code(doc: Any, candidate: Any) -> List[str]:
+def reject_code(doc: Any, candidate: Any) -> list[str]:
     """Fold and return the rejection codes (asserting it WAS rejected)."""
     outcome = try_fold(doc, candidate)
     assert outcome.ok is False, "expected the op to be rejected"
@@ -181,15 +181,13 @@ def test_solver_expansion_is_validated_and_the_path_is_reported() -> None:
 
 def test_unknown_references() -> None:
     doc = make_two_room_plan()
-    assert reject_code(doc, op("wall.delete", wallId=fixed_id("wall", "ZZ"))) == [
-        "WALL_UNKNOWN"
-    ]
+    assert reject_code(doc, op("wall.delete", wallId=fixed_id("wall", "ZZ"))) == ["WALL_UNKNOWN"]
     assert reject_code(doc, op("stair.delete", stairId=fixed_id("stair", "ZZ"))) == [
         "STAIR_UNKNOWN"
     ]
-    assert reject_code(
-        doc, op("room.assign", roomId=fixed_id("room", "ZZ"), type="kitchen")
-    ) == ["ROOM_UNKNOWN"]
+    assert reject_code(doc, op("room.assign", roomId=fixed_id("room", "ZZ"), type="kitchen")) == [
+        "ROOM_UNKNOWN"
+    ]
     assert reject_code(
         doc,
         op(

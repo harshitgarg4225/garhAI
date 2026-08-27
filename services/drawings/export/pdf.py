@@ -46,11 +46,12 @@ image and the worker image rather than in a lockfile:
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 import subprocess
 import tempfile
-from typing import Dict, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 __all__ = [
     "CONVERTERS",
@@ -71,7 +72,7 @@ PDF_TIMEOUT_SECONDS = 60
 #: Converters in preference order. ``rsvg-convert`` first: it is the smallest, fastest
 #: and most deterministic of the three, and it honours the SVG's physical size directly.
 #: Chromium is the §7-named "headless print" and the most faithful on text.
-CONVERTERS: Tuple[Tuple[str, str, str], ...] = (
+CONVERTERS: tuple[tuple[str, str, str], ...] = (
     (
         "rsvg-convert",
         "librsvg (LGPL-2.1, invoked as a binary)",
@@ -95,7 +96,7 @@ CONVERTERS: Tuple[Tuple[str, str, str], ...] = (
 )
 
 #: Merge tools in preference order. qpdf is Apache-2.0 and the one to put in the image.
-MERGE_TOOLS: Tuple[Tuple[str, str], ...] = (
+MERGE_TOOLS: tuple[tuple[str, str], ...] = (
     ("qpdf", "apt-get install -y qpdf  |  brew install qpdf"),
     ("pdfunite", "apt-get install -y poppler-utils  |  brew install poppler"),
 )
@@ -105,7 +106,7 @@ class PdfToolMissing(RuntimeError):
     """No SVG->PDF converter (or no merge tool) is available on this machine."""
 
 
-def find_converter() -> Optional[Tuple[str, str, str]]:
+def find_converter() -> tuple[str, str, str] | None:
     """The first available converter as ``(binary_path, name, install_hint)``."""
     for name, _description, hint in CONVERTERS:
         path = shutil.which(name)
@@ -114,15 +115,15 @@ def find_converter() -> Optional[Tuple[str, str, str]]:
     return None
 
 
-def find_merge_tool() -> Optional[Tuple[str, str]]:
-    for name, hint in MERGE_TOOLS:
+def find_merge_tool() -> tuple[str, str] | None:
+    for name, _hint in MERGE_TOOLS:
         path = shutil.which(name)
         if path:
             return (path, name)
     return None
 
 
-def converter_report() -> Dict[str, object]:
+def converter_report() -> dict[str, object]:
     """What is and is not available here — for the CI skip message and job logs.
 
     Returned rather than logged so the caller decides whether a missing converter is a
@@ -136,13 +137,13 @@ def converter_report() -> Dict[str, object]:
         "mergeTool": merge[1] if merge else None,
         "available": converter is not None,
         "canMerge": merge is not None,
-        "installHint": None if converter else "; ".join(
-            "%s: %s" % (name, hint) for name, _description, hint in CONVERTERS
-        ),
+        "installHint": None
+        if converter
+        else "; ".join("%s: %s" % (name, hint) for name, _description, hint in CONVERTERS),
     }
 
 
-def _require_converter() -> Tuple[str, str, str]:
+def _require_converter() -> tuple[str, str, str]:
     converter = find_converter()
     if converter is None:
         raise PdfToolMissing(
@@ -154,11 +155,10 @@ def _require_converter() -> Tuple[str, str, str]:
     return converter
 
 
-def _command(binary: str, name: str, svg_path: str, pdf_path: str) -> List[str]:
+def _command(binary: str, name: str, svg_path: str, pdf_path: str) -> list[str]:
     """The converter's argv. Each is told to honour the SVG's own physical page size."""
     if name == "rsvg-convert":
-        return [binary, "--format=pdf", "--keep-aspect-ratio",
-                "--output=%s" % pdf_path, svg_path]
+        return [binary, "--format=pdf", "--keep-aspect-ratio", "--output=%s" % pdf_path, svg_path]
     if name in ("chromium", "chromium-browser"):
         return [
             binary,
@@ -189,10 +189,9 @@ def svg_to_pdf(svg: str, pdf_path: str, *, timeout_seconds: int = PDF_TIMEOUT_SE
     try:
         with os.fdopen(handle, "w", encoding="utf-8") as stream:
             stream.write(svg)
-        result = subprocess.run(  # noqa: S603 - argv list, no shell
+        result = subprocess.run(
             _command(binary, name, svg_path, pdf_path),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             timeout=timeout_seconds,
         )
         if result.returncode != 0 or not os.path.exists(pdf_path):
@@ -204,10 +203,8 @@ def svg_to_pdf(svg: str, pdf_path: str, *, timeout_seconds: int = PDF_TIMEOUT_SE
             raise PdfToolMissing("%s produced an empty PDF" % name)
         return pdf_path
     finally:
-        try:
+        with contextlib.suppress(OSError):  # pragma: no cover
             os.unlink(svg_path)
-        except OSError:  # pragma: no cover
-            pass
 
 
 def svg_set_to_pdf(
@@ -215,7 +212,7 @@ def svg_set_to_pdf(
     pdf_path: str,
     *,
     timeout_seconds: int = PDF_TIMEOUT_SECONDS,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """The multi-page ``pdf-set`` export: one page per sheet, in the given order.
 
     A single sheet needs no merge tool, which is the common case for "download this
@@ -238,25 +235,30 @@ def svg_set_to_pdf(
     merge_binary, merge_name = merge
 
     directory = tempfile.mkdtemp(prefix="garh-pdf-")
-    pages: List[str] = []
+    pages: list[str] = []
     try:
         for index, svg in enumerate(svgs):
             page = os.path.join(directory, "page-%03d.pdf" % index)
             svg_to_pdf(svg, page, timeout_seconds=timeout_seconds)
             pages.append(page)
         if merge_name == "qpdf":
-            argv = [merge_binary, "--empty", "--pages"] + pages + ["--", pdf_path]
+            argv = [merge_binary, "--empty", "--pages", *pages, "--", pdf_path]
         else:
-            argv = [merge_binary] + pages + [pdf_path]
-        result = subprocess.run(  # noqa: S603 - argv list, no shell
-            argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            argv = [merge_binary, *pages, pdf_path]
+        result = subprocess.run(
+            argv,
+            capture_output=True,
             timeout=timeout_seconds,
         )
         if result.returncode != 0 or not os.path.exists(pdf_path):
             raise PdfToolMissing(
                 "%s failed to merge %d pages (exit %d): %s"
-                % (merge_name, len(pages), result.returncode,
-                   result.stderr.decode("utf-8", "replace")[:500])
+                % (
+                    merge_name,
+                    len(pages),
+                    result.returncode,
+                    result.stderr.decode("utf-8", "replace")[:500],
+                )
             )
         return {"pages": len(pages), "mergeTool": merge_name, "path": pdf_path}
     finally:

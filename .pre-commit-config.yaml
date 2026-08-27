@@ -35,14 +35,14 @@ repos:
     hooks:
       - id: check-added-large-files
         # Renders and weights belong in object storage, not git history.
-        args: ['--maxkb=1024']
+        args: ["--maxkb=1024"]
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        args: ['--markdown-linebreak-ext=md']
+        args: ["--markdown-linebreak-ext=md"]
       - id: mixed-line-ending
-        args: ['--fix=lf']
+        args: ["--fix=lf"]
       - id: check-yaml
         # Compose uses YAML merge keys and anchors, which this hook's strict
         # parser rejects; it is validated by `docker compose config` instead.
@@ -57,37 +57,37 @@ repos:
       - id: check-toml
       - id: detect-private-key
       - id: no-commit-to-branch
-        args: ['--branch=main']
+        args: ["--branch=main"]
 
   # ─── Python: ruff (lint + format), config from apps/api/pyproject.toml ──────
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.9
     hooks:
       - id: ruff
-        args: ['--fix', '--config', 'apps/api/pyproject.toml']
+        args: ["--fix", "--config", "apps/api/pyproject.toml"]
       - id: ruff-format
-        args: ['--config', 'apps/api/pyproject.toml']
+        args: ["--config", "apps/api/pyproject.toml"]
 
   # ─── JS/TS/MD/YAML: prettier ────────────────────────────────────────────────
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
       - id: prettier
-        additional_dependencies: ['prettier@3.3.3']
+        additional_dependencies: ["prettier@3.3.3"]
         types_or: [javascript, jsx, ts, tsx, json, yaml, markdown, css]
 
   # ─── Project guards (§13) — the same targets CI runs ────────────────────────
   - repo: local
     hooks:
       - id: secret-audit
-        name: 'secrets must not reach the client bundle (§13)'
+        name: "secrets must not reach the client bundle (§13)"
         entry: make secret-audit
         language: system
         pass_filenames: false
         files: ^apps/web/
 
       - id: tenancy-audit
-        name: 'only the repository layer may touch tables (§13)'
+        name: "only the repository layer may touch tables (§13)"
         entry: make tenancy-audit
         language: system
         pass_filenames: false
@@ -98,7 +98,7 @@ repos:
         # Python model core is how sub-millimetre drift gets in, which breaks the
         # "Σ segments == overall" dimension-chain assertion much later and much
         # more confusingly. Ratios and scores are fine — hence the narrow scope.
-        name: 'model core geometry stays integer millimetres'
+        name: "model core geometry stays integer millimetres"
         entry: >
           bash -c 'if grep -nE "(Mm|_mm|mm)[A-Za-z_]*\s*[:=]\s*-?[0-9]+\.[0-9]+" "$@"; then
           echo "  float assigned to a millimetre value — geometry is int mm (SKILL.md golden rule 6)"; exit 1; fi'

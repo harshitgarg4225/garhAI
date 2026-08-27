@@ -34,14 +34,14 @@ up mirrored.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
 from services.drawings.dimensions import DimChain
 from services.drawings.layers import LAYER_NAMES, LAYERS_BY_NAME, layer_for
 
 #: A point in **model millimetres**.
-Pt2 = Tuple[int, int]
+Pt2 = tuple[int, int]
 
 # ---------------------------------------------------------------------------
 # Paper-space constants (§7 / ISO 3098). All in micrometres of paper.
@@ -56,7 +56,7 @@ TEXT_HEIGHT_TITLE_PAPER_UM = 5_000
 TEXT_HEIGHT_LABEL_PAPER_UM = 1_800
 
 #: §7 step 4's "shrink text one step" — the ladder, largest first.
-TEXT_HEIGHT_LADDER_PAPER_UM: Tuple[int, ...] = (2_500, 2_000, 1_800, 1_400)
+TEXT_HEIGHT_LADDER_PAPER_UM: tuple[int, ...] = (2_500, 2_000, 1_800, 1_400)
 
 #: Dimension tick (the oblique architectural stroke) half-length, paper µm.
 DIM_TICK_PAPER_UM = 1_250
@@ -75,7 +75,7 @@ STYLE_HIDDEN: LineStyle = "hidden"
 STYLE_CENTRE: LineStyle = "centre"
 
 #: Dash patterns keyed by style. Empty tuple = continuous.
-DASH_PATTERNS_PAPER_UM: Mapping[LineStyle, Tuple[int, ...]] = {
+DASH_PATTERNS_PAPER_UM: Mapping[LineStyle, tuple[int, ...]] = {
     STYLE_SOLID: (),
     STYLE_DASHED: (3_000, 1_500),
     STYLE_HIDDEN: (1_500, 1_000),
@@ -122,13 +122,13 @@ class Line:
     layer: str
     style: LineStyle = STYLE_SOLID
     #: Model element this came from, so annotations and pickers can trace back.
-    element_id: Optional[str] = None
+    element_id: str | None = None
 
     def __post_init__(self) -> None:
         _check_layer(self.layer)
         _check_style(self.style)
 
-    def points(self) -> Tuple[Pt2, ...]:
+    def points(self) -> tuple[Pt2, ...]:
         return (self.a, self.b)
 
 
@@ -136,11 +136,11 @@ class Line:
 class Polyline:
     """An open or closed run of segments in model mm."""
 
-    vertices: Tuple[Pt2, ...]
+    vertices: tuple[Pt2, ...]
     layer: str
     closed: bool = False
     style: LineStyle = STYLE_SOLID
-    element_id: Optional[str] = None
+    element_id: str | None = None
 
     def __post_init__(self) -> None:
         _check_layer(self.layer)
@@ -148,7 +148,7 @@ class Polyline:
         if len(self.vertices) < 2:
             raise ValueError("a polyline needs at least 2 vertices, got %d" % len(self.vertices))
 
-    def points(self) -> Tuple[Pt2, ...]:
+    def points(self) -> tuple[Pt2, ...]:
         return self.vertices
 
 
@@ -167,7 +167,7 @@ class Arc:
     end_deg: int
     layer: str
     style: LineStyle = STYLE_SOLID
-    element_id: Optional[str] = None
+    element_id: str | None = None
 
     def __post_init__(self) -> None:
         _check_layer(self.layer)
@@ -175,7 +175,7 @@ class Arc:
         if self.radius_mm <= 0:
             raise ValueError("arc radius must be positive, got %d" % self.radius_mm)
 
-    def points(self) -> Tuple[Pt2, ...]:
+    def points(self) -> tuple[Pt2, ...]:
         """Bounding points for extent purposes — the centre plus the radius box."""
         cx, cy = self.centre
         r = self.radius_mm
@@ -188,7 +188,7 @@ class Circle:
     radius_mm: int
     layer: str
     style: LineStyle = STYLE_SOLID
-    element_id: Optional[str] = None
+    element_id: str | None = None
 
     def __post_init__(self) -> None:
         _check_layer(self.layer)
@@ -196,7 +196,7 @@ class Circle:
         if self.radius_mm <= 0:
             raise ValueError("circle radius must be positive, got %d" % self.radius_mm)
 
-    def points(self) -> Tuple[Pt2, ...]:
+    def points(self) -> tuple[Pt2, ...]:
         cx, cy = self.centre
         r = self.radius_mm
         return ((cx - r, cy - r), (cx + r, cy + r))
@@ -219,7 +219,7 @@ class Text:
     baseline: TextBaseline = "baseline"
     #: Integer degrees CCW. §7 only ever needs 0 and 90 (vertical dimension runs).
     rotation_deg: int = 0
-    element_id: Optional[str] = None
+    element_id: str | None = None
     bold: bool = False
 
     def __post_init__(self) -> None:
@@ -238,7 +238,7 @@ class Text:
                 "primitives so the collision grid can see each line's box."
             )
 
-    def points(self) -> Tuple[Pt2, ...]:
+    def points(self) -> tuple[Pt2, ...]:
         return (self.at,)
 
 
@@ -250,15 +250,15 @@ class Hatch:
     municipal plan is solid-filled; a section's earth line is hatched.
     """
 
-    outline: Tuple[Pt2, ...]
+    outline: tuple[Pt2, ...]
     layer: str
     pattern: HatchPattern = HATCH_SOLID
     #: Hatch line spacing in **model mm** — a hatch is drawn at model scale, unlike text.
     spacing_mm: int = 200
     #: Integer degrees for the hatch line direction.
     angle_deg: int = 45
-    holes: Tuple[Tuple[Pt2, ...], ...] = ()
-    element_id: Optional[str] = None
+    holes: tuple[tuple[Pt2, ...], ...] = ()
+    element_id: str | None = None
 
     def __post_init__(self) -> None:
         _check_layer(self.layer)
@@ -269,7 +269,7 @@ class Hatch:
         if self.spacing_mm <= 0:
             raise ValueError("hatch spacing must be positive, got %d" % self.spacing_mm)
 
-    def points(self) -> Tuple[Pt2, ...]:
+    def points(self) -> tuple[Pt2, ...]:
         return self.outline
 
 
@@ -296,7 +296,7 @@ class Dim:
     def __post_init__(self) -> None:
         _check_layer(self.layer)
 
-    def points(self) -> Tuple[Pt2, ...]:
+    def points(self) -> tuple[Pt2, ...]:
         """Chain extent, for sheet-extent purposes."""
         chain = self.chain
         start = chain.origin_mm
@@ -307,9 +307,9 @@ class Dim:
 
 
 #: Everything a renderer must know how to draw.
-Primitive = Union[Line, Polyline, Arc, Circle, Text, Hatch, Dim]
+Primitive = Line | Polyline | Arc | Circle | Text | Hatch | Dim
 
-PRIMITIVE_KINDS: Tuple[str, ...] = (
+PRIMITIVE_KINDS: tuple[str, ...] = (
     "Line",
     "Polyline",
     "Arc",
@@ -341,12 +341,12 @@ class DimGeometry:
     #: The continuous dimension line.
     line_a: Pt2
     line_b: Pt2
-    ticks: Tuple[DimTick, ...]
+    ticks: tuple[DimTick, ...]
     #: ``(centre_point, text, rotation_deg)`` per segment.
-    labels: Tuple[Tuple[Pt2, str, int], ...]
+    labels: tuple[tuple[Pt2, str, int], ...]
 
-    def all_points(self) -> Tuple[Pt2, ...]:
-        pts: List[Pt2] = [self.line_a, self.line_b]
+    def all_points(self) -> tuple[Pt2, ...]:
+        pts: list[Pt2] = [self.line_a, self.line_b]
         for tick in self.ticks:
             pts.extend((tick.witness_a, tick.witness_b))
         pts.extend(point for point, _text, _rot in self.labels)
@@ -357,7 +357,7 @@ def dim_geometry(
     dim: Dim,
     *,
     scale_denominator: int,
-    witness_from_mm: Optional[int] = None,
+    witness_from_mm: int | None = None,
 ) -> DimGeometry:
     """Explode a chain into dimension line, witness lines, ticks and labels.
 
@@ -395,18 +395,18 @@ def dim_geometry(
         line_a = (offset, start)
         line_b = (offset, end)
 
-    positions: List[int] = [start]
+    positions: list[int] = [start]
     for segment in chain.segments:
         positions.append(chain.origin_mm + segment.end_mm)
 
-    ticks: List[DimTick] = []
+    ticks: list[DimTick] = []
     for position in positions:
         if horizontal:
             ticks.append(DimTick(position, (position, face), (position, beyond)))
         else:
             ticks.append(DimTick(position, (face, position), (beyond, position)))
 
-    labels: List[Tuple[Pt2, str, int]] = []
+    labels: list[tuple[Pt2, str, int]] = []
     for segment in chain.segments:
         centre = chain.origin_mm + segment.start_mm + segment.length_mm // 2
         if horizontal:
@@ -480,12 +480,10 @@ class Placement:
 
     def __post_init__(self) -> None:
         if self.scale_denominator <= 0:
-            raise ValueError(
-                "scale denominator must be positive, got %d" % self.scale_denominator
-            )
+            raise ValueError("scale denominator must be positive, got %d" % self.scale_denominator)
 
     @classmethod
-    def paper(cls, *, origin_paper_um: Pt2 = (0, 0)) -> "Placement":
+    def paper(cls, *, origin_paper_um: Pt2 = (0, 0)) -> Placement:
         """A 1:1, unflipped placement: input is already paper mm from the top-left."""
         return cls(
             scale_denominator=1,
@@ -526,16 +524,16 @@ class DrawingGroup:
 
     id: str
     placement: Placement
-    primitives: Tuple[Primitive, ...]
+    primitives: tuple[Primitive, ...]
     #: Printed under the drawing ("GROUND FLOOR PLAN — 1:100"). Empty for the frame.
     label: str = ""
     #: Where the label goes, in the group's own coordinate space.
-    label_at: Optional[Pt2] = None
+    label_at: Pt2 | None = None
 
-    def extent_model_mm(self) -> Optional[Tuple[int, int, int, int]]:
+    def extent_model_mm(self) -> tuple[int, int, int, int] | None:
         """``(min_x, min_y, max_x, max_y)`` over every primitive, or None if empty."""
-        xs: List[int] = []
-        ys: List[int] = []
+        xs: list[int] = []
+        ys: list[int] = []
         for primitive in self.primitives:
             if isinstance(primitive, Dim):
                 points: Iterable[Pt2] = primitive.points()
@@ -561,9 +559,9 @@ class SheetDrawing:
 
     #: The :class:`~services.drawings.sheets.Sheet` this draws.
     sheet: object
-    groups: Tuple[DrawingGroup, ...]
+    groups: tuple[DrawingGroup, ...]
     #: Chains asserted by :func:`~services.drawings.dimensions.assert_chains_sum`.
-    chains: Tuple[DimChain, ...] = ()
+    chains: tuple[DimChain, ...] = ()
     #: Free-form provenance, e.g. ``{"modelStateHash": "..."}``. Never a timestamp:
     #: goldens are byte-compared and a timestamp makes every run a diff.
     meta: Mapping[str, str] = field(default_factory=dict)
@@ -580,7 +578,7 @@ class SheetDrawing:
     def primitive_count(self) -> int:
         return sum(len(group.primitives) for group in self.groups)
 
-    def layers_used(self) -> Tuple[str, ...]:
+    def layers_used(self) -> tuple[str, ...]:
         """Layers actually drawn on, in :data:`LAYERS` order."""
         used = set()
         for group in self.groups:
@@ -589,7 +587,7 @@ class SheetDrawing:
         return tuple(name for name in LAYER_NAMES if name in used)
 
 
-def sort_by_layer(primitives: Sequence[Primitive]) -> Tuple[Primitive, ...]:
+def sort_by_layer(primitives: Sequence[Primitive]) -> tuple[Primitive, ...]:
     """Stable sort into :data:`LAYERS` order, preserving insertion order within a layer.
 
     Determinism requirement, not aesthetics: SVG goldens are byte-compared, so the

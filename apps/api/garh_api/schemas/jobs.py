@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import Field, StrictBool, StrictInt, StrictStr, field_validator
 
@@ -39,10 +39,10 @@ class SolveIn(CamelModel):
         default_factory=list, max_length=200, description="Rooms the solver must not move."
     )
     option_count: StrictInt = Field(default=3, ge=1, le=5, description="§5.5 keeps 3–5.")
-    seed: Optional[StrictInt] = Field(
+    seed: StrictInt | None = Field(
         default=None, description="Fixes the run for reproducibility; omit for a fresh spread."
     )
-    storeys: Optional[StrictInt] = Field(default=None, ge=1, le=4)
+    storeys: StrictInt | None = Field(default=None, ge=1, le=4)
     params: dict[str, Any] = Field(
         default_factory=dict,
         description="Extra solver knobs (weights, time budget). Integer values only.",
@@ -57,7 +57,7 @@ class PlanOptionOut(ResponseModel):
         default=0, ge=0, le=100, description="0–100 critic composite (§5.4)."
     )
     scores: dict[str, StrictInt] = Field(default_factory=dict)
-    rationale: Optional[StrictStr] = None
+    rationale: StrictStr | None = None
     assumptions: list[dict[str, Any]] = Field(default_factory=list)
     stats: dict[str, Any] = Field(default_factory=dict)
     ops: list[dict[str, Any]] = Field(
@@ -71,13 +71,13 @@ class SolverJobOut(ResponseModel):
     project_id: uuid.UUID
     status: StrictStr
     progress: StrictInt = 0
-    stage: Optional[StrictStr] = None
-    options: Optional[list[dict[str, Any]]] = None
+    stage: StrictStr | None = None
+    options: list[dict[str, Any]] | None = None
     option_count: StrictInt = 0
-    error: Optional[StrictStr] = None
+    error: StrictStr | None = None
     params: dict[str, Any] = Field(default_factory=dict)
-    queue_depth: Optional[StrictInt] = None
-    events_url: Optional[StrictStr] = None
+    queue_depth: StrictInt | None = None
+    events_url: StrictStr | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -86,9 +86,9 @@ class SolverJobOut(ResponseModel):
         cls,
         job: Any,
         *,
-        queue_depth: Optional[int] = None,
-        events_url: Optional[str] = None,
-    ) -> "SolverJobOut":
+        queue_depth: int | None = None,
+        events_url: str | None = None,
+    ) -> SolverJobOut:
         options = job.options
         return cls(
             id=job.id,
@@ -120,14 +120,14 @@ class RenderInputs(CamelModel):
     quietly rendering something unrelated to the design.
     """
 
-    viewport_png: Optional[StrictStr] = Field(
+    viewport_png: StrictStr | None = Field(
         default=None, max_length=MAX_RENDER_INPUT_B64_CHARS, description="base64, no data: prefix."
     )
-    depth_png: Optional[StrictStr] = Field(default=None, max_length=MAX_RENDER_INPUT_B64_CHARS)
-    edges_png: Optional[StrictStr] = Field(default=None, max_length=MAX_RENDER_INPUT_B64_CHARS)
-    viewport_url: Optional[StrictStr] = Field(default=None, max_length=2000)
-    depth_url: Optional[StrictStr] = Field(default=None, max_length=2000)
-    edges_url: Optional[StrictStr] = Field(default=None, max_length=2000)
+    depth_png: StrictStr | None = Field(default=None, max_length=MAX_RENDER_INPUT_B64_CHARS)
+    edges_png: StrictStr | None = Field(default=None, max_length=MAX_RENDER_INPUT_B64_CHARS)
+    viewport_url: StrictStr | None = Field(default=None, max_length=2000)
+    depth_url: StrictStr | None = Field(default=None, max_length=2000)
+    edges_url: StrictStr | None = Field(default=None, max_length=2000)
 
 
 class RenderIn(CamelModel):
@@ -140,12 +140,12 @@ class RenderIn(CamelModel):
         max_length=64,
         description="Prompt template id, e.g. exterior-34-dusk, interior-living.",
     )
-    design_version_id: Optional[uuid.UUID] = Field(
+    design_version_id: uuid.UUID | None = Field(
         default=None,
         description="Pins the render to a version. Omit to pin to the latest version.",
     )
     prompt_extras: StrictStr = Field(default="", max_length=1000)
-    seed: Optional[StrictInt] = Field(default=None, ge=0)
+    seed: StrictInt | None = Field(default=None, ge=0)
     width: StrictInt = Field(default=1536, ge=256, le=4096)
     height: StrictInt = Field(default=1024, ge=256, le=4096)
     view: dict[str, Any] = Field(
@@ -167,20 +167,20 @@ class RenderIn(CamelModel):
 class RenderJobOut(ResponseModel):
     id: uuid.UUID
     project_id: uuid.UUID
-    design_version_id: Optional[uuid.UUID] = None
+    design_version_id: uuid.UUID | None = None
     mode: StrictStr
     provider: StrictStr
     status: StrictStr
     progress: StrictInt = 0
-    output_url: Optional[StrictStr] = None
+    output_url: StrictStr | None = None
     stale: StrictBool = Field(
         default=False, description="True once the design moved on (§9 banner)."
     )
-    error: Optional[StrictStr] = None
+    error: StrictStr | None = None
     view: dict[str, Any] = Field(default_factory=dict)
     params: dict[str, Any] = Field(default_factory=dict)
-    queue_depth: Optional[StrictInt] = None
-    events_url: Optional[StrictStr] = None
+    queue_depth: StrictInt | None = None
+    events_url: StrictStr | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -189,10 +189,10 @@ class RenderJobOut(ResponseModel):
         cls,
         job: Any,
         *,
-        queue_depth: Optional[int] = None,
-        events_url: Optional[str] = None,
-        output_url: Optional[str] = None,
-    ) -> "RenderJobOut":
+        queue_depth: int | None = None,
+        events_url: str | None = None,
+        output_url: str | None = None,
+    ) -> RenderJobOut:
         return cls(
             id=job.id,
             project_id=job.project_id,
@@ -225,8 +225,8 @@ class SheetsGenerateIn(CamelModel):
     1 section, door/window schedule, area statement.
     """
 
-    design_version_id: Optional[uuid.UUID] = None
-    kinds: Optional[list[StrictStr]] = Field(default=None, max_length=16)
+    design_version_id: uuid.UUID | None = None
+    kinds: list[StrictStr] | None = Field(default=None, max_length=16)
     scale_denominator: StrictInt = Field(
         default=100, ge=1, le=2000, description="1:100 default (§7)."
     )
@@ -236,23 +236,23 @@ class SheetsGenerateIn(CamelModel):
     #: nullable rather than defaulted to False so that "the caller said nothing" and
     #: "the caller said centreline" stay distinguishable — otherwise every generate
     #: from a client that omits the field would silently override the firm's template.
-    dim_to_jamb: Optional[StrictBool] = Field(
+    dim_to_jamb: StrictBool | None = Field(
         default=None,
         description="Dimension openings to the jamb instead of the centreline. "
         "Omit to use the firm's saved preference.",
     )
     #: Title block for this set. Omit to use the firm's saved template. Stored on each
     #: generated sheet's layout, so a set records the block it was drawn with.
-    title_block: Optional["TitleBlockFields"] = None
+    title_block: TitleBlockFields | None = None
     #: The §7 auto revision table. Omit to use the firm's saved rows.
-    revisions: Optional[list["RevisionRow"]] = Field(default=None, max_length=12)
+    revisions: list[RevisionRow] | None = Field(default=None, max_length=12)
     #: Formats to publish per sheet. Defaults to svg + dxf; svg is always included
     #: because the on-screen viewer reads it.
-    formats: Optional[list[StrictStr]] = Field(default=None, max_length=4)
+    formats: list[StrictStr] | None = Field(default=None, max_length=4)
 
     @field_validator("kinds")
     @classmethod
-    def _check_kinds(cls, value: Optional[list[str]]) -> Optional[list[str]]:
+    def _check_kinds(cls, value: list[str] | None) -> list[str] | None:
         from garh_api import models
 
         if value is None:
@@ -269,21 +269,21 @@ class SheetsGenerateIn(CamelModel):
 class SheetOut(ResponseModel):
     id: uuid.UUID
     project_id: uuid.UUID
-    design_version_id: Optional[uuid.UUID] = None
+    design_version_id: uuid.UUID | None = None
     kind: StrictStr
-    number: Optional[StrictStr] = None
-    title: Optional[StrictStr] = None
-    scale_denominator: Optional[StrictInt] = None
+    number: StrictStr | None = None
+    title: StrictStr | None = None
+    scale_denominator: StrictInt | None = None
     artifacts: dict[str, StrictStr] = Field(
         default_factory=dict,
         description="Available formats → download paths (svg | dxf | pdf).",
     )
     annotation_count: StrictInt = 0
     orphaned_annotation_count: StrictInt = 0
-    generated_at: Optional[datetime] = None
+    generated_at: datetime | None = None
 
     @classmethod
-    def of(cls, sheet: Any, *, artifacts: Optional[dict[str, str]] = None) -> "SheetOut":
+    def of(cls, sheet: Any, *, artifacts: dict[str, str] | None = None) -> SheetOut:
         layout = dict(sheet.layout)
         return cls(
             id=sheet.id,
@@ -302,10 +302,10 @@ class SheetOut(ResponseModel):
 
 class SheetSetOut(ResponseModel):
     project_id: uuid.UUID
-    design_version_id: Optional[uuid.UUID] = None
+    design_version_id: uuid.UUID | None = None
     sheets: list[SheetOut] = Field(default_factory=list)
-    job: Optional["ExportJobOut"] = None
-    generated_at: Optional[datetime] = None
+    job: ExportJobOut | None = None
+    generated_at: datetime | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -317,7 +317,7 @@ class ExportIn(CamelModel):
     """``{kind: pdf-set|dxf|gltf|png-pack}`` → a job → a short-lived signed URL."""
 
     kind: StrictStr = Field(description="pdf-set | dxf | gltf | png-pack")
-    design_version_id: Optional[uuid.UUID] = None
+    design_version_id: uuid.UUID | None = None
     sheet_ids: list[uuid.UUID] = Field(default_factory=list, max_length=64)
     include_disclaimer: StrictBool = Field(
         default=True,
@@ -343,24 +343,22 @@ class ExportJobOut(ResponseModel):
     kind: StrictStr
     status: StrictStr
     progress: StrictInt = 0
-    design_version_id: Optional[uuid.UUID] = None
-    download_url: Optional[StrictStr] = None
-    error: Optional[StrictStr] = None
-    events_url: Optional[StrictStr] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    design_version_id: uuid.UUID | None = None
+    download_url: StrictStr | None = None
+    error: StrictStr | None = None
+    events_url: StrictStr | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     @classmethod
-    def of(cls, job: Any, *, events_url: Optional[str] = None) -> "ExportJobOut":
+    def of(cls, job: Any, *, events_url: str | None = None) -> ExportJobOut:
         return cls(
             id=str(job.id),
             project_id=uuid.UUID(str(job.project_id)),
             kind=job.kind,
             status=job.status,
             progress=job.progress,
-            design_version_id=(
-                uuid.UUID(job.design_version_id) if job.design_version_id else None
-            ),
+            design_version_id=(uuid.UUID(job.design_version_id) if job.design_version_id else None),
             download_url=job.download_url,
             error=job.error,
             events_url=events_url,
@@ -369,7 +367,7 @@ class ExportJobOut(ResponseModel):
         )
 
 
-def _parse_iso(value: Any) -> Optional[datetime]:
+def _parse_iso(value: Any) -> datetime | None:
     if value in (None, ""):
         return None
     if isinstance(value, datetime):
@@ -415,8 +413,8 @@ class JobEventOut(ResponseModel):
     at: datetime
     status: StrictStr
     progress: StrictInt = 0
-    stage: Optional[StrictStr] = None
-    message: Optional[StrictStr] = None
+    stage: StrictStr | None = None
+    message: StrictStr | None = None
     data: dict[str, Any] = Field(default_factory=dict)
     terminal: StrictBool = False
 

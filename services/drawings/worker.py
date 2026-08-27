@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import shutil
 import sys
-from typing import Dict
 
 from services.common.config import get_worker_settings
 from services.common.logging import configure_worker_logging, get_logger
@@ -44,9 +43,9 @@ OPTIONAL_CAPABILITIES = (
 )
 
 
-def probe_capabilities() -> Dict[str, bool]:
+def probe_capabilities() -> dict[str, bool]:
     """What this process can actually produce. Logged at boot, per §18 observability."""
-    capabilities: Dict[str, bool] = {"svg": True, "gltf": True, "sheets": True}
+    capabilities: dict[str, bool] = {"svg": True, "gltf": True, "sheets": True}
     try:
         import ezdxf  # noqa: F401
 

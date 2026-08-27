@@ -14,8 +14,9 @@ corpus is a usable input:
 * every declared ``stratum`` matches the brief's own contents, and every polygon's area
   matches its own vertices — so a fixture cannot claim to be a 50x80 ft L-shape while
   holding a rectangle;
-* the demo project's brief **is** brief 01, so the universal fixture and the corpus cannot
-  drift into two different houses.
+* the demo project's brief (seed-authored since brief 01's 16-room program proved
+  CP-SAT-infeasible on its own plot — see ``garh_api.seed.demo``) still describes the
+  §17 house and speaks the model's room vocabulary exactly.
 
 Rejected briefs (a solver failure caused by bad input) are the most expensive kind of
 Phase 3 debugging there is, which is why these are checked now.
@@ -30,9 +31,8 @@ from collections import Counter
 from typing import Any
 
 import pytest
-
 from garh_api.seed.catalog import fixtures_dir
-from garh_api.seed.demo import DEMO_BRIEF_FIXTURE_ID, load_demo_brief
+from garh_api.seed.demo import DEMO_BRIEF_CORPUS_SIBLING, load_demo_brief
 from garh_model.model import ROOM_TYPES
 
 BRIEF_DIR = os.path.join(fixtures_dir(), "briefs")
@@ -143,7 +143,7 @@ def test_plot_sizes_span_small_to_large(briefs: list[dict[str, Any]]) -> None:
 
 
 def test_every_polygon_is_integer_millimetres_and_matches_its_area(
-    briefs: list[dict[str, Any]]
+    briefs: list[dict[str, Any]],
 ) -> None:
     """The declared area must be the shoelace area of the declared vertices.
 
@@ -172,9 +172,11 @@ def test_shape_matches_the_vertex_count(briefs: list[dict[str, Any]]) -> None:
     for brief in briefs:
         expected = SHAPE_VERTEX_COUNT[brief["stratum"]["shape"]]
         actual = len(brief["plot"]["polygon"])
-        assert actual == expected, (
-            "%s claims shape %r but has %d vertices (expected %d)"
-            % (brief["id"], brief["stratum"]["shape"], actual, expected)
+        assert actual == expected, "%s claims shape %r but has %d vertices (expected %d)" % (
+            brief["id"],
+            brief["stratum"]["shape"],
+            actual,
+            expected,
         )
 
 
@@ -260,25 +262,41 @@ def test_bedroom_counts_are_plausible_for_the_plot(briefs: list[dict[str, Any]])
 
 
 # ---------------------------------------------------------------------------
-# The demo project and brief 01 are the same house
+# The demo brief still describes the §17 house — in the model's own vocabulary
 # ---------------------------------------------------------------------------
 
 
-def test_the_demo_brief_is_brief_01(briefs: list[dict[str, Any]]) -> None:
-    """§17's demo project *is* a corpus member, not a hand-maintained copy of one."""
+def test_the_demo_brief_matches_the_17_house(briefs: list[dict[str, Any]]) -> None:
+    """The demo brief is seed-authored (brief 01's program is CP-SAT-infeasible on
+    this plot — the whole story lives in ``garh_api.seed.demo``), but it must stay
+    the house §17 describes, share brief 01's plot, and use only model room types:
+    the solver's program layer silently drops any type it does not know."""
     loaded = load_demo_brief()
-    assert loaded.from_fixture, (
-        "the demo brief fell back to the compiled-in default; the corpus is not mounted "
-        "(set FIXTURE_DIR, as docker-compose does)"
+    assert loaded.source == "garh_api.seed.demo"
+
+    # The §17 headline: G+1, 3BHK, a declared car space (the blr parking gate
+    # rejects every solver candidate without one).
+    assert loaded.data["bedrooms"] == 3, "3BHK"
+    assert loaded.data["floorsAboveGround"] == 1, "G+1"
+    assert loaded.data["carParking"] >= 1
+
+    rooms = loaded.data["rooms"]
+    assert rooms, "a demo brief with no rooms cannot generate plans"
+    for room in rooms:
+        assert room["type"] in ROOM_TYPES, (
+            "%r is not a garh_model room type — the solver would silently drop it" % room["type"]
+        )
+    # The sleeping-room program agrees with the headline number.
+    beds = sum(
+        room.get("count", 1)
+        for room in rooms
+        if room["type"] in ("bedroom", "bedroom_master", "guest_bedroom")
     )
-    assert loaded.source == "%s.json" % DEMO_BRIEF_FIXTURE_ID
+    assert beds == loaded.data["bedrooms"], (beds, loaded.data["bedrooms"])
 
-    fixture = next(brief for brief in briefs if brief["id"] == DEMO_BRIEF_FIXTURE_ID)
-    assert loaded.data == fixture["data"]
-    assert loaded.vastu_mode == fixture["vastuMode"]
-    assert loaded.completeness == fixture["completeness"]
-
-    # And it is the house §17 describes.
+    # And the corpus sibling still pins the same plot, so the two cannot drift
+    # into different houses even though their room programs now differ.
+    fixture = next(brief for brief in briefs if brief["id"] == DEMO_BRIEF_CORPUS_SIBLING)
     assert fixture["stratum"]["city"] == "blr"
     assert fixture["stratum"]["floorsAboveGround"] == 1, "G+1"
     assert fixture["data"]["bedrooms"] == 3, "3BHK"

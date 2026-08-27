@@ -135,14 +135,23 @@ export function briefUpdateOp(
  * object, or `null` when the path is not one we know how to edit (the chip
  * then renders read-only rather than pretending the edit stuck).
  */
-export function setBriefField(data: JsonObject, field: string, value: JsonValue): JsonObject | null {
+export function setBriefField(
+  data: JsonObject,
+  field: string,
+  value: JsonValue,
+): JsonObject | null {
   const path = field.startsWith('brief.') ? field.slice('brief.'.length) : field;
   const parts = path.split('.');
 
   // brief.rooms.<type>.count — the one nested path the parser emits.
   if (parts.length === 3 && parts[0] === 'rooms' && parts[2] === 'count') {
     const type = parts[1];
-    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || type === undefined) {
+    if (
+      typeof value !== 'number' ||
+      !Number.isSafeInteger(value) ||
+      value < 0 ||
+      type === undefined
+    ) {
       return null;
     }
     const rooms = readBriefData(data).rooms ?? [];

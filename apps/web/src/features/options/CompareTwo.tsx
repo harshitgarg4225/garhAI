@@ -74,14 +74,8 @@ export function CompareTwo({
 
       {diff.rooms.onlyA.length > 0 || diff.rooms.onlyB.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 text-xs">
-          <RoomDiffList
-            title={`Only in Option ${indexA + 1}`}
-            roomTypes={diff.rooms.onlyA}
-          />
-          <RoomDiffList
-            title={`Only in Option ${indexB + 1}`}
-            roomTypes={diff.rooms.onlyB}
-          />
+          <RoomDiffList title={`Only in Option ${indexA + 1}`} roomTypes={diff.rooms.onlyA} />
+          <RoomDiffList title={`Only in Option ${indexB + 1}`} roomTypes={diff.rooms.onlyB} />
         </div>
       ) : (
         <p className="text-xs text-ink-subtle">Both plans contain the same set of rooms.</p>

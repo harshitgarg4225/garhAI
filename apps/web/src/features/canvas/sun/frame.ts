@@ -77,11 +77,7 @@ export function computeSunFrame(
 
   // Warmth: white overhead → amber at the horizon.
   const warm = 1 - clamp01(solar.apparentElevationDeg / 30);
-  const sunColor: [number, number, number] = [
-    1,
-    0.95 - 0.3 * warm,
-    0.88 - 0.5 * warm,
-  ];
+  const sunColor: [number, number, number] = [1, 0.95 - 0.3 * warm, 0.88 - 0.5 * warm];
 
   return {
     dirModel: sunDirectionModel(solar.azimuthDeg, solar.elevationDeg, northDeg),

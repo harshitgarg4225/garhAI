@@ -60,11 +60,11 @@ import type {
  * The six F7-A sheet kinds, in submission order, with the copy the empty state and
  * the thumbnail captions use. `kind` matches the DB vocabulary the API returns.
  */
-export const SHEET_KIND_INFO: ReadonlyArray<{
+export const SHEET_KIND_INFO: readonly {
   kind: string;
   label: string;
   detail: string;
-}> = [
+}[] = [
   {
     kind: 'site',
     label: 'Site plan',
@@ -108,12 +108,12 @@ export const SHEET_KIND_LABELS: Readonly<Record<string, string>> = Object.fromEn
 export type ExportKind = 'pdf-set' | 'dxf' | 'gltf' | 'png-pack';
 
 /** The download menu, in the order it is offered. */
-export const EXPORT_OPTIONS: ReadonlyArray<{
+export const EXPORT_OPTIONS: readonly {
   kind: ExportKind;
   label: string;
   detail: string;
   icon: 'download' | 'sheet' | 'cube' | 'image';
-}> = [
+}[] = [
   {
     kind: 'pdf-set',
     label: 'PDF set',
@@ -144,7 +144,10 @@ export const EXPORT_OPTIONS: ReadonlyArray<{
 // Reads
 // ---------------------------------------------------------------------------
 
-export function fetchSheetSet(projectId: string, version?: string | null): Promise<SheetSetResponse> {
+export function fetchSheetSet(
+  projectId: string,
+  version?: string | null,
+): Promise<SheetSetResponse> {
   // Conditional spread: exactOptionalPropertyTypes forbids an explicit
   // `version: undefined` — absent and undefined are different things here.
   return api.sheets.list(projectId, version === undefined ? {} : { version });
@@ -196,10 +199,7 @@ export function saveDrawingPreferences(
  * the function that would have to change to add it, so the promise and the code sit
  * next to each other.
  */
-export function reattachAnnotationOp(
-  modelAnnotationId: string,
-  anchorElementId: string,
-): Op {
+export function reattachAnnotationOp(modelAnnotationId: string, anchorElementId: string): Op {
   return {
     type: 'annotation.set',
     payload: {
@@ -220,7 +220,7 @@ export function deleteAnnotationOp(modelAnnotationId: string): Op {
 
 /** The note's text, however it was authored. Empty string when there is none. */
 export function annotationText(annotation: { payload: Record<string, unknown> }): string {
-  const raw = annotation.payload['text'];
+  const raw = annotation.payload.text;
   return typeof raw === 'string' ? raw : '';
 }
 

@@ -81,7 +81,10 @@ export interface RawFurnitureItem {
   readonly clearanceMm?: unknown;
 }
 
-function readClearance(raw: RawFurnitureItem, category: FurnitureCategory): {
+function readClearance(
+  raw: RawFurnitureItem,
+  category: FurnitureCategory,
+): {
   clearanceMm: number;
   clearanceAssumed: boolean;
 } {
@@ -122,7 +125,9 @@ export function toCatalogue(raws: readonly RawFurnitureItem[]): CatalogueItem[] 
 }
 
 /** `id -> item`, for joining `FurnitureInstance.catalogId` back to dimensions. */
-export function catalogueIndex(items: readonly CatalogueItem[]): ReadonlyMap<string, CatalogueItem> {
+export function catalogueIndex(
+  items: readonly CatalogueItem[],
+): ReadonlyMap<string, CatalogueItem> {
   const map = new Map<string, CatalogueItem>();
   for (const item of items) map.set(item.id, item);
   return map;
@@ -178,7 +183,7 @@ export function searchScore(item: CatalogueItem, query: string): number {
  */
 export function searchItems(items: readonly CatalogueItem[], query: string): CatalogueItem[] {
   if (query.trim() === '') return [...items];
-  const scored: Array<{ item: CatalogueItem; score: number }> = [];
+  const scored: { item: CatalogueItem; score: number }[] = [];
   for (const item of items) {
     const score = searchScore(item, query);
     if (score >= 0) scored.push({ item, score });

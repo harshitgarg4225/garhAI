@@ -258,10 +258,7 @@ test.describe('@canvas Phase 4 DoD — the 2D editor', () => {
       // §12: a chain is ONE undo group, so one ⌘Z removes the whole room.
       // Skip index 0 — that is the calibration wall, its own group.
       const chainGroups = new Set(wallAdds.slice(1, 5).map((op) => op.groupId ?? ''));
-      expect(
-        chainGroups.size,
-        'the four walls of one chain should share a group id',
-      ).toBe(1);
+      expect(chainGroups.size, 'the four walls of one chain should share a group id').toBe(1);
     });
 
     await test.step('undo removes the divider, redo puts it back', async () => {
@@ -307,8 +304,7 @@ test.describe('@canvas Phase 4 DoD — the 2D editor', () => {
           },
           {
             timeout: SYNC_TIMEOUT_MS,
-            message:
-              'expected a failing room-area rule once the small room was typed as a bedroom',
+            message: 'expected a failing room-area rule once the small room was typed as a bedroom',
           },
         )
         .toBe(true);

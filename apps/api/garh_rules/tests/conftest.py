@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Shared fixtures: the repo root, the real packs, and a minimal context builder.
 
 The context builder is deliberately small and *not* a plausible house — same
@@ -8,13 +6,16 @@ area is one millimetre short and nothing else in the way; a realistic plan would
 make a red test ambiguous.
 """
 
+from __future__ import annotations
+
 import atexit
 import copy
 import json
 import os
 import shutil
 import tempfile
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import pytest
 
@@ -55,17 +56,17 @@ def vastu() -> PackSet:
     return load_pack_set(["vastu"], root=RULEPACK_DIR)
 
 
-def read_json(path: str) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as handle:
-        data: Dict[str, Any] = json.load(handle)
+def read_json(path: str) -> dict[str, Any]:
+    with open(path, encoding="utf-8") as handle:
+        data: dict[str, Any] = json.load(handle)
     return data
 
 
-def fixture_index() -> Dict[str, Any]:
+def fixture_index() -> dict[str, Any]:
     return read_json(os.path.join(FIXTURE_DIR, "index.json"))
 
 
-def load_fixture(relative_path: str) -> Dict[str, Any]:
+def load_fixture(relative_path: str) -> dict[str, Any]:
     return read_json(os.path.join(FIXTURE_DIR, relative_path))
 
 
@@ -79,7 +80,7 @@ def load_fixture(relative_path: str) -> Dict[str, Any]:
 # packs into a temp directory alongside a symlink/copy of the real schema, so the
 # tests exercise the same schema the product loads.
 
-_TEMP_DIRS: List[str] = []
+_TEMP_DIRS: list[str] = []
 
 
 def _cleanup_temp_dirs() -> None:  # pragma: no cover - process exit
@@ -90,13 +91,13 @@ def _cleanup_temp_dirs() -> None:  # pragma: no cover - process exit
 atexit.register(_cleanup_temp_dirs)
 
 
-def minimal_check() -> Dict[str, Any]:
+def minimal_check() -> dict[str, Any]:
     """A valid, boring check — ``stair_riser_max`` needs only one parameter."""
     return {"type": "stair_riser_max", "valueMm": 190}
 
 
-def minimal_rule(rule_id: str = "tpack.stair.riser", **overrides: Any) -> Dict[str, Any]:
-    rule: Dict[str, Any] = {
+def minimal_rule(rule_id: str = "tpack.stair.riser", **overrides: Any) -> dict[str, Any]:
+    rule: dict[str, Any] = {
         "id": rule_id,
         "severity": "fail",
         "title": "Riser height",
@@ -113,13 +114,13 @@ def minimal_rule(rule_id: str = "tpack.stair.riser", **overrides: Any) -> Dict[s
 def minimal_pack(
     pack_id: str = "tpack",
     *,
-    id_prefix: Optional[str] = None,
-    extends: Optional[str] = None,
-    rules: Optional[List[Dict[str, Any]]] = None,
+    id_prefix: str | None = None,
+    extends: str | None = None,
+    rules: list[dict[str, Any]] | None = None,
     **overrides: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """The smallest pack that satisfies ``rulepack.schema.json``."""
-    pack: Dict[str, Any] = {
+    pack: dict[str, Any] = {
         "schemaVersion": 1,
         "pack": pack_id,
         "idPrefix": id_prefix if id_prefix is not None else pack_id.replace("-", ""),
@@ -154,7 +155,7 @@ def write_pack_dir(*packs: Mapping[str, Any]) -> str:
     return root
 
 
-def copy_real_pack(pack_id: str) -> Dict[str, Any]:
+def copy_real_pack(pack_id: str) -> dict[str, Any]:
     """A mutable deep copy of a shipped pack, for "break one field" tests."""
     return copy.deepcopy(read_json(os.path.join(RULEPACK_DIR, "%s.json" % pack_id)))
 
@@ -166,7 +167,7 @@ def copy_real_pack(pack_id: str) -> Dict[str, Any]:
 RECT_30x40 = [[0, 0], [9144, 0], [9144, 12192], [0, 12192]]  # the demo plot, 30 x 40 ft
 
 
-def rect(x0: int, y0: int, width: int, depth: int) -> List[List[int]]:
+def rect(x0: int, y0: int, width: int, depth: int) -> list[list[int]]:
     return [[x0, y0], [x0 + width, y0], [x0 + width, y0 + depth], [x0, y0 + depth]]
 
 
@@ -182,8 +183,8 @@ def make_room(
     ventilation_mm2: int = 5_000_000,
     internal: bool = False,
     storey_id: str = "storey_g",
-    name: Optional[str] = None,
-) -> Dict[str, Any]:
+    name: str | None = None,
+) -> dict[str, Any]:
     return {
         "id": room_id,
         "storeyId": storey_id,
@@ -203,18 +204,18 @@ def make_context(
     *,
     packs: Sequence[str] = ("nbc-core",),
     vastu_mode: str = "off",
-    boundary: Optional[List[List[int]]] = None,
-    area_mm2: Optional[int] = None,
+    boundary: list[list[int]] | None = None,
+    area_mm2: int | None = None,
     north_deg: int = 0,
-    edges: Optional[List[Dict[str, Any]]] = None,
-    rooms: Optional[List[Dict[str, Any]]] = None,
-    openings: Optional[List[Dict[str, Any]]] = None,
-    stairs: Optional[List[Dict[str, Any]]] = None,
-    projections: Optional[List[Dict[str, Any]]] = None,
-    service_elements: Optional[List[Dict[str, Any]]] = None,
-    storeys: Optional[List[Dict[str, Any]]] = None,
-    profile: Optional[Mapping[str, Any]] = None,
-    model: Optional[Mapping[str, Any]] = None,
+    edges: list[dict[str, Any]] | None = None,
+    rooms: list[dict[str, Any]] | None = None,
+    openings: list[dict[str, Any]] | None = None,
+    stairs: list[dict[str, Any]] | None = None,
+    projections: list[dict[str, Any]] | None = None,
+    service_elements: list[dict[str, Any]] | None = None,
+    storeys: list[dict[str, Any]] | None = None,
+    profile: Mapping[str, Any] | None = None,
+    model: Mapping[str, Any] | None = None,
 ) -> EvaluationContext:
     """A complete, valid, deliberately boring context."""
     ring = boundary if boundary is not None else RECT_30x40
@@ -228,7 +229,7 @@ def make_context(
         {"index": 2, "role": "rear", "roadWidthMm": None, "setbackProvidedMm": 2000},
         {"index": 3, "role": "side-b", "roadWidthMm": None, "setbackProvidedMm": 1500},
     ]
-    base_model: Dict[str, Any] = {
+    base_model: dict[str, Any] = {
         "storeyCount": 2,
         "hasStilt": False,
         "hasBasement": False,
@@ -266,7 +267,7 @@ def make_context(
     if model:
         base_model.update(model)
 
-    base_profile: Dict[str, Any] = {
+    base_profile: dict[str, Any] = {
         "cityPack": "nbc-core",
         "zoneCategory": "residential",
         "buildingUse": "dwelling-single",

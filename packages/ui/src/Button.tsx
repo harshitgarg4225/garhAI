@@ -182,7 +182,17 @@ const ICON_SIZES: Record<ButtonSize, string> = {
 };
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { label, icon, variant = 'ghost', size = 'md', pressed, loading = false, className, type = 'button', ...rest },
+  {
+    label,
+    icon,
+    variant = 'ghost',
+    size = 'md',
+    pressed,
+    loading = false,
+    className,
+    type = 'button',
+    ...rest
+  },
   ref,
 ) {
   const glyph = size === 'lg' ? 20 : size === 'sm' ? 15 : 17;

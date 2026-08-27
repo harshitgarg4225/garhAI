@@ -154,8 +154,7 @@ function findRoom(house: HouseModel, roomType: string | null): Room | null {
     .slice()
     .sort(
       (a, b) =>
-        Number(b.storeyId === groundId) - Number(a.storeyId === groundId) ||
-        b.areaMm2 - a.areaMm2,
+        Number(b.storeyId === groundId) - Number(a.storeyId === groundId) || b.areaMm2 - a.areaMm2,
     );
   return sorted[0] ?? null;
 }

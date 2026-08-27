@@ -33,18 +33,23 @@ from services.solver.pipeline import PRODUCTION_PROFILE, SolveContext, run_solve
 from services.solver.stage_a import min_frontage_cells, snap_loss_table
 from services.solver.stages import placements_to_ops
 
-#: 15×12m plot, 3m front / 1.5m other setbacks → a 12000×7500 envelope. Small
-#: enough to solve in seconds, large enough that NBC clear minima genuinely fit.
+#: The demo project's 30×40 ft Bengaluru plot and its G+1 3BHK program — the ONE
+#: brief in this repo with a proven solve record (apps/api/garh_api/seed/demo.py
+#: documents the derivation; apps/api/tests/test_seed_brief_feasible.py pins it):
+#: 3 options, zero gate rejections, stable across seeds 0/7/42 and repeat runs
+#: under the stock production profile. The previous fixture (single storey,
+#: 4 rooms, 15×12 m) sat on the feasibility margin — the multi-worker wall-clock
+#: search found it only some runs, which made this suite a coin flip.
 PAYLOAD: dict[str, Any] = {
-    "optionCount": 1,
+    "optionCount": 3,
     "seed": 7,
     "plot": {
-        "polygon": [[0, 0], [15_000, 0], [15_000, 12_000], [0, 12_000]],
+        "polygon": [[0, 0], [9_144, 0], [9_144, 12_192], [0, 12_192]],
         "edges": [
             {"index": 0, "role": "front", "setbackMm": 3_000, "roadWidthMm": 9_000},
-            {"index": 1, "role": "side", "setbackMm": 1_500},
-            {"index": 2, "role": "rear", "setbackMm": 1_500},
-            {"index": 3, "role": "side", "setbackMm": 1_500},
+            {"index": 1, "role": "side", "setbackMm": 1_000},
+            {"index": 2, "role": "rear", "setbackMm": 1_000},
+            {"index": 3, "role": "side", "setbackMm": 1_000},
         ],
         "northDeg": 0,
     },
@@ -56,17 +61,74 @@ PAYLOAD: dict[str, Any] = {
         "maxFloors": 4,
     },
     "brief": {
-        "storeys": 1,
+        "storeys": 2,
         "vastuMode": "off",
-        # Explicit, generous targets — what a real brief carries. At the bare
-        # NBC minima the §5.6 furniture gate becomes a wall-clock coin flip
-        # (rooms one snap away from too-tight); that is a tuning surface, not
-        # what this canary is for.
         "rooms": [
-            {"type": "living", "minAreaMm2": 11_000_000, "targetAreaMm2": 14_000_000},
-            {"type": "bedroom", "minAreaMm2": 11_000_000, "targetAreaMm2": 13_000_000},
-            {"type": "kitchen", "minAreaMm2": 6_000_000, "targetAreaMm2": 7_500_000},
-            {"type": "bath_wc", "minAreaMm2": 3_200_000, "targetAreaMm2": 3_600_000},
+            {
+                "key": "living_dining",
+                "type": "living_dining",
+                "minAreaMm2": 15_000_000,
+                "targetAreaMm2": 20_000_000,
+                "minWidthMm": 3_300,
+            },
+            {
+                "key": "kitchen",
+                "type": "kitchen",
+                "minAreaMm2": 5_500_000,
+                "targetAreaMm2": 8_000_000,
+                "minWidthMm": 2_400,
+            },
+            {
+                "key": "utility",
+                "type": "utility",
+                "minAreaMm2": 2_000_000,
+                "targetAreaMm2": 3_200_000,
+                "minWidthMm": 1_200,
+            },
+            {
+                "key": "pooja",
+                "type": "pooja",
+                "minAreaMm2": 1_800_000,
+                "targetAreaMm2": 3_000_000,
+                "minWidthMm": 1_200,
+            },
+            {
+                "key": "bedroom2",
+                "type": "bedroom",
+                "minAreaMm2": 9_900_000,
+                "targetAreaMm2": 11_500_000,
+                "minWidthMm": 3_000,
+                "storeyIndex": 0,
+            },
+            {
+                "key": "bedroom_master",
+                "type": "bedroom_master",
+                "minAreaMm2": 10_500_000,
+                "targetAreaMm2": 13_500_000,
+                "minWidthMm": 3_300,
+            },
+            {
+                "key": "bedroom",
+                "type": "bedroom",
+                "minAreaMm2": 9_900_000,
+                "targetAreaMm2": 11_500_000,
+                "minWidthMm": 3_000,
+            },
+            {
+                "key": "bath_wc",
+                "type": "bath_wc",
+                "minAreaMm2": 2_800_000,
+                "targetAreaMm2": 4_200_000,
+                "minWidthMm": 1_500,
+                "storeyIndex": 0,
+            },
+            {
+                "key": "bath_wc2",
+                "type": "bath_wc",
+                "minAreaMm2": 2_800_000,
+                "targetAreaMm2": 4_200_000,
+                "minWidthMm": 1_500,
+            },
         ],
         "data": {"carParking": 1},
     },
@@ -85,9 +147,12 @@ def solve_result() -> Any:
         params=params,
         progress=progress,
         check_cancelled=lambda: None,
-        # Small budget, few anchors: this is a wiring canary, not a benchmark.
-        profile=replace(PRODUCTION_PROFILE, time_budget_seconds=10, num_search_workers=8),
-        max_stair_candidates=2,
+        # The STOCK production profile, exactly as the worker runs it. Multi-worker
+        # CP-SAT is nondeterministic, so this only holds as a gate because the
+        # payload above has a proven margin: 3/3 options across seeds and repeat
+        # runs. If this ever flakes, the brief has drifted onto the feasibility
+        # edge — fix the payload's margin, do not loosen the assertions.
+        profile=PRODUCTION_PROFILE,
     )
     return asyncio.run(run_solver(context))
 
@@ -102,7 +167,7 @@ def test_pipeline_produces_at_least_one_presentable_option(solve_result: Any) ->
 
 def test_option_ops_are_model_ops_and_fold(solve_result: Any) -> None:
     from garh_model.fold import fold
-    from garh_model.model import DEFAULTS, ProjectDoc, SCHEMA_VERSION
+    from garh_model.model import DEFAULTS, SCHEMA_VERSION, ProjectDoc
     from garh_model.ops import OP_TYPES
 
     from services.solver.repair import wrap_project_doc
@@ -128,9 +193,9 @@ def test_option_ops_are_model_ops_and_fold(solve_result: Any) -> None:
         doc = fold(doc, dict(op), compute_inverse=False).model
     assert len(doc.house.storeys) >= 1
     assert len(doc.house.rooms) >= 4
-    assert all(room.type != "unassigned" or room.area_mm2 < 1_000_000 for room in doc.house.rooms), (
-        "every substantial detected room should have received room.assign"
-    )
+    assert all(
+        room.type != "unassigned" or room.area_mm2 < 1_000_000 for room in doc.house.rooms
+    ), "every substantial detected room should have received room.assign"
 
 
 def test_option_compliance_rows_are_real_engine_rows(solve_result: Any) -> None:
@@ -176,9 +241,9 @@ def test_evaluate_compliance_can_go_red() -> None:
     ]
     rows = critic.evaluate_compliance(house, params)
     assert rows, "the engine returned no rows at all"
-    assert any(str(row.get("status")) == "fail" for row in rows), (
-        "a wall-less plan passed the hard-rule pass — the §5.4 gate cannot go red"
-    )
+    assert any(
+        str(row.get("status")) == "fail" for row in rows
+    ), "a wall-less plan passed the hard-rule pass — the §5.4 gate cannot go red"
 
 
 def test_frontage_arithmetic_is_snap_proof() -> None:

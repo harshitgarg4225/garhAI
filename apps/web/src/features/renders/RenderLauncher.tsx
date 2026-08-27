@@ -69,9 +69,12 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
     }
   }, [preset, mode]);
 
-  const toast = useCallback((input: Parameters<ReturnType<typeof useUiStore.getState>['pushToast']>[0]) => {
-    useUiStore.getState().pushToast(input);
-  }, []);
+  const toast = useCallback(
+    (input: Parameters<ReturnType<typeof useUiStore.getState>['pushToast']>[0]) => {
+      useUiStore.getState().pushToast(input);
+    },
+    [],
+  );
 
   // ── one shot ─────────────────────────────────────────────────────────────
   const runSingle = useCallback(
@@ -90,7 +93,7 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
             }
           : presetCamera(request.preset, house);
         const captured = captureSet(live.gl, live.scene, view.camera, DEFAULT_RENDER_SIZE);
-        
+
         setBusy({ step: 'submitting' });
         const input: StartRenderInput = {
           projectId: project.id,
@@ -106,7 +109,9 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
         const job = await startRender(input);
         useJobsStore
           .getState()
-          .track(project.id, toTrackableJob(job), async () => toTrackableJob(await startRender(input)));
+          .track(project.id, toTrackableJob(job), async () =>
+            toTrackableJob(await startRender(input)),
+          );
         toast({
           tone: 'success',
           title: 'Render started',
@@ -257,7 +262,13 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
     >
       <div className="flex items-center justify-between border-b border-line px-3 py-2">
         <span className="text-sm font-semibold text-ink">Render</span>
-        <Button variant="ghost" size="sm" iconLeft="x" onClick={() => setOpen(false)} aria-label="Close render panel" />
+        <Button
+          variant="ghost"
+          size="sm"
+          iconLeft="x"
+          onClick={() => setOpen(false)}
+          aria-label="Close render panel"
+        />
       </div>
 
       <div className="max-h-[60vh] space-y-3 overflow-y-auto p-3">
@@ -280,7 +291,9 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
               <span
                 aria-hidden="true"
                 className="h-4 w-4 shrink-0 rounded-full border border-line"
-                style={{ background: `linear-gradient(135deg, ${item.tint}, ${item.tintSecondary})` }}
+                style={{
+                  background: `linear-gradient(135deg, ${item.tint}, ${item.tintSecondary})`,
+                }}
               />
               <span className="truncate">{item.label}</span>
             </button>
@@ -301,7 +314,9 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
                 onClick={() => setMode(m)}
                 className={cn(
                   'w-full rounded-md border px-2.5 py-2 text-left',
-                  mode === m ? 'border-brand bg-brand-soft' : 'border-line hover:border-line-strong',
+                  mode === m
+                    ? 'border-brand bg-brand-soft'
+                    : 'border-line hover:border-line-strong',
                   !allowed && 'cursor-not-allowed opacity-50',
                 )}
               >
@@ -327,7 +342,12 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
               aria-label="Render seed"
             />
           </label>
-          <Button variant="ghost" size="sm" iconLeft="refresh" onClick={() => setSeed(randomSeed())}>
+          <Button
+            variant="ghost"
+            size="sm"
+            iconLeft="refresh"
+            onClick={() => setSeed(randomSeed())}
+          >
             New
           </Button>
         </div>

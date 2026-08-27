@@ -30,7 +30,13 @@
 
 import { z } from 'zod';
 
-import { formatFixed, formatLength, type JsonObject, type Road, type UnitsDisplay } from '@garh/model';
+import {
+  formatFixed,
+  formatLength,
+  type JsonObject,
+  type Road,
+  type UnitsDisplay,
+} from '@garh/model';
 
 import { frontEdgeIndex } from './geometry';
 
@@ -113,7 +119,8 @@ export function buildRegFacts(input: {
   roads: readonly Road[];
 }): RegFacts {
   const front = frontEdgeIndex(input.roads);
-  const frontRoad = front === null ? null : (input.roads.find((r) => r.edgeIndex === front) ?? null);
+  const frontRoad =
+    front === null ? null : (input.roads.find((r) => r.edgeIndex === front) ?? null);
   return {
     plotAreaMm2: input.boundaryAreaMm2,
     roadWidthMm: frontRoad?.widthMm ?? null,
@@ -172,16 +179,28 @@ export function predicateMatches(
     const options = predicate.in.map((item) => scaled(field, item));
     if (!options.includes(value)) return false;
   }
-  if (predicate.lt !== undefined && !(typeof value === 'number' && value < scaled(field, predicate.lt))) {
+  if (
+    predicate.lt !== undefined &&
+    !(typeof value === 'number' && value < scaled(field, predicate.lt))
+  ) {
     return false;
   }
-  if (predicate.lte !== undefined && !(typeof value === 'number' && value <= scaled(field, predicate.lte))) {
+  if (
+    predicate.lte !== undefined &&
+    !(typeof value === 'number' && value <= scaled(field, predicate.lte))
+  ) {
     return false;
   }
-  if (predicate.gt !== undefined && !(typeof value === 'number' && value > scaled(field, predicate.gt))) {
+  if (
+    predicate.gt !== undefined &&
+    !(typeof value === 'number' && value > scaled(field, predicate.gt))
+  ) {
     return false;
   }
-  if (predicate.gte !== undefined && !(typeof value === 'number' && value >= scaled(field, predicate.gte))) {
+  if (
+    predicate.gte !== undefined &&
+    !(typeof value === 'number' && value >= scaled(field, predicate.gte))
+  ) {
     return false;
   }
   return true;
@@ -242,7 +261,7 @@ export interface ResolvedRegValue {
 export interface ResolvedRegProfile {
   readonly values: Partial<Record<RegValueKey, ResolvedRegValue>>;
   /** Aspects the pack covers that could not resolve, with the honest reason. */
-  readonly missing: ReadonlyArray<{ key: RegValueKey; reason: string }>;
+  readonly missing: readonly { key: RegValueKey; reason: string }[];
 }
 
 interface Candidate {
@@ -281,7 +300,7 @@ export function resolveRegValues(
 
   const overrideValues = readValueOverrides(overrides);
   const values: Partial<Record<RegValueKey, ResolvedRegValue>> = {};
-  const missing: Array<{ key: RegValueKey; reason: string }> = [];
+  const missing: { key: RegValueKey; reason: string }[] = [];
 
   for (const key of REG_VALUE_KEYS) {
     const candidates = buckets.get(key) ?? [];
@@ -333,7 +352,7 @@ export function resolveRegValues(
   return { values, missing };
 }
 
-function ruleValueKeys(rule: PackRule): Array<{ key: RegValueKey; value: number }> {
+function ruleValueKeys(rule: PackRule): { key: RegValueKey; value: number }[] {
   const check = rule.check;
   switch (check.type) {
     case 'setback_min': {
@@ -348,9 +367,13 @@ function ruleValueKeys(rule: PackRule): Array<{ key: RegValueKey; value: number 
     case 'far_max':
       return check.ratio === undefined ? [] : [{ key: 'farX100', value: ratioX100(check.ratio) }];
     case 'coverage_max':
-      return check.ratio === undefined ? [] : [{ key: 'coveragePct', value: ratioX100(check.ratio) }];
+      return check.ratio === undefined
+        ? []
+        : [{ key: 'coveragePct', value: ratioX100(check.ratio) }];
     case 'height_max':
-      return typeof check.valueMm === 'number' ? [{ key: 'heightMaxMm', value: check.valueMm }] : [];
+      return typeof check.valueMm === 'number'
+        ? [{ key: 'heightMaxMm', value: check.valueMm }]
+        : [];
     case 'floors_max':
       return typeof check.value === 'number' ? [{ key: 'floorsMax', value: check.value }] : [];
     default:
@@ -422,7 +445,7 @@ const isRegValueKey = (k: string): k is RegValueKey =>
 
 /** The `values` map out of an overrides object; ignores anything malformed. */
 export function readValueOverrides(overrides: JsonObject): Partial<Record<RegValueKey, number>> {
-  const values = overrides['values'];
+  const values = overrides.values;
   if (typeof values !== 'object' || values === null || Array.isArray(values)) return {};
   const out: Partial<Record<RegValueKey, number>> = {};
   for (const [k, v] of Object.entries(values)) {
@@ -453,8 +476,8 @@ export function withValueOverride(
     nextValues[key] = value;
   }
   const out: JsonObject = { ...overrides };
-  if (Object.keys(nextValues).length === 0) delete out['values'];
-  else out['values'] = nextValues;
+  if (Object.keys(nextValues).length === 0) delete out.values;
+  else out.values = nextValues;
   return out;
 }
 
@@ -462,7 +485,7 @@ export function withValueOverride(
 // City preset vocabulary (kept in lockstep with pages/_contracts.ts labels)
 // ---------------------------------------------------------------------------
 
-export const CITY_PACK_OPTIONS: ReadonlyArray<{ id: string; label: string }> = [
+export const CITY_PACK_OPTIONS: readonly { id: string; label: string }[] = [
   { id: 'blr', label: 'Bengaluru (BBMP)' },
   { id: 'ncr', label: 'Delhi NCR' },
   { id: 'hyd', label: 'Hyderabad (GHMC)' },

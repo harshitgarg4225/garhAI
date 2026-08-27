@@ -161,11 +161,7 @@ export function CopilotEvalLogPage(): JSX.Element {
             >
               Print to console
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => useCopilotStore.getState().clear()}
-            >
+            <Button variant="ghost" size="sm" onClick={() => useCopilotStore.getState().clear()}>
               Clear session
             </Button>
           </>
@@ -178,8 +174,8 @@ export function CopilotEvalLogPage(): JSX.Element {
           {counts.length === 0 ? (
             <p className="text-sm text-ink-muted">
               No commands yet in this session. Open a project, press{' '}
-              <kbd className="rounded border border-line px-1">/</kbd> and send one — the corpus
-              in <code>fixtures/llm/copilot-commands/commands.json</code> is 40 of them.
+              <kbd className="rounded border border-line px-1">/</kbd> and send one — the corpus in{' '}
+              <code>fixtures/llm/copilot-commands/commands.json</code> is 40 of them.
             </p>
           ) : (
             <ul className="flex flex-wrap gap-2">

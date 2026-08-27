@@ -202,7 +202,12 @@ export function SheetViewer({
   }, [content, label]);
 
   return (
-    <div className={cn('flex h-full flex-col overflow-hidden rounded-md border border-line bg-surface', className)}>
+    <div
+      className={cn(
+        'flex h-full flex-col overflow-hidden rounded-md border border-line bg-surface',
+        className,
+      )}
+    >
       <div className="flex items-center gap-2 border-b border-line px-3 py-2">
         <span className="truncate text-xs font-medium text-ink" data-testid="sheet-viewer-caption">
           {caption}
@@ -219,7 +224,12 @@ export function SheetViewer({
           <span className="w-12 text-center font-mono text-2xs tabular-nums text-ink-muted">
             {Math.round(view.zoom * 100)}%
           </span>
-          <Button size="sm" variant="ghost" aria-label="Zoom in" onClick={() => zoomAbout(ZOOM_STEP)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label="Zoom in"
+            onClick={() => zoomAbout(ZOOM_STEP)}
+          >
             <Icon name="plus" size={14} />
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setView(FIT)}>
@@ -268,8 +278,8 @@ export function SheetViewer({
 
       {content ? (
         <p className="border-t border-line px-3 py-1.5 text-2xs text-ink-muted">
-          Every dimension is in millimetres, whatever the units toggle shows — that is the
-          drafting convention, and it keeps chains summing exactly.
+          Every dimension is in millimetres, whatever the units toggle shows — that is the drafting
+          convention, and it keeps chains summing exactly.
         </p>
       ) : null}
     </div>

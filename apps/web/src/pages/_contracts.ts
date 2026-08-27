@@ -322,6 +322,7 @@ export function plotDimsLabel(
   if (widthMm === null || widthMm === undefined || depthMm === null || depthMm === undefined) {
     return undefined;
   }
-  const fmt = units === 'ft-in' ? (mm: number) => formatFtIn(mm, { dropZeroInches: true }) : formatMetres;
+  const fmt =
+    units === 'ft-in' ? (mm: number) => formatFtIn(mm, { dropZeroInches: true }) : formatMetres;
   return `${fmt(widthMm)} × ${fmt(depthMm)}`;
 }

@@ -15,8 +15,8 @@ which is why every printable line uses it rather than an explicit colour.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 # -- the nine §7 layer names ------------------------------------------------
 A_WALL = "A-WALL"
@@ -57,9 +57,7 @@ class LayerSpec:
 #: Ordered so DXF layer creation, the layer table in docs, and golden files all agree.
 LAYERS: tuple[LayerSpec, ...] = (
     LayerSpec(A_WALL, _ACI_BLACK_WHITE, "CONTINUOUS", 50, "Full-height wall outlines"),
-    LayerSpec(
-        A_WALL_PART, _ACI_GREY, "CONTINUOUS", 25, "Partial-height walls, parapets, sills"
-    ),
+    LayerSpec(A_WALL_PART, _ACI_GREY, "CONTINUOUS", 25, "Partial-height walls, parapets, sills"),
     LayerSpec(A_DOOR, _ACI_GREEN, "CONTINUOUS", 25, "Door leaves and swing arcs"),
     LayerSpec(A_WIND, _ACI_CYAN, "CONTINUOUS", 25, "Window frames and glazing lines"),
     LayerSpec(A_STAIR, _ACI_MAGENTA, "CONTINUOUS", 25, "Stair treads, nosing and up arrow"),

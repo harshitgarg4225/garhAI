@@ -64,8 +64,9 @@ area again as the §5.2 metric. Consumers computing a footprint must therefore u
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Any
 
 from services.common.logging import get_logger
 from services.solver import stairs as stairs_mod
@@ -80,9 +81,9 @@ from services.solver.grid import (
 )
 from services.solver.program import (
     CIRCULATION_TYPES,
-    FALLBACK_DISTRIBUTOR_TYPES,
     DEFAULT_STOREY_HEIGHT_MM,
     DOOR_FRONTAGE_MM,
+    FALLBACK_DISTRIBUTOR_TYPES,
     ProgramRoom,
     RoomProgram,
     program_from_params,
@@ -140,7 +141,7 @@ class StageAWeights:
     #: §5.2 circulation target, percent of the net footprint.
     circulation_target_percent: int = 12
 
-    def relaxed(self) -> "StageAWeights":
+    def relaxed(self) -> StageAWeights:
         """§5.6 "relax soft weights once": soft preferences halve, the circulation
         target loosens toward (but below) the §5.6 hard gate. Hard rules never move."""
         return replace(
@@ -189,14 +190,12 @@ def min_frontage_cells(
     period = _lcm(module_mm, fine_mm) // module_mm
     for cells in range(1, 65):
         worst = min(
-            snap_mm(module_mm * (k + cells)) - snap_mm(module_mm * k)
-            for k in range(period)
+            snap_mm(module_mm * (k + cells)) - snap_mm(module_mm * k) for k in range(period)
         )
         if worst >= required_mm:
             return cells
     raise ValueError(
-        "no coarse span up to 64 cells guarantees %dmm after the %dmm snap"
-        % (required_mm, fine_mm)
+        "no coarse span up to 64 cells guarantees %dmm after the %dmm snap" % (required_mm, fine_mm)
     )
 
 
@@ -208,7 +207,7 @@ def _lcm(a: int, b: int) -> int:
 
 def snap_loss_table(
     max_cells: int, *, module_mm: int = COARSE_MODULE_MM, fine_mm: int = 115
-) -> Tuple[int, ...]:
+) -> tuple[int, ...]:
     """``table[c]`` = worst mm a ``c``-cell dimension can LOSE to the §5.3 snap.
 
     Same arithmetic as :func:`min_frontage_cells`, tabulated so the CP model can
@@ -223,8 +222,7 @@ def snap_loss_table(
     table = [0]
     for cells in range(1, max_cells + 1):
         worst = min(
-            snap_mm(module_mm * (k + cells)) - snap_mm(module_mm * k)
-            for k in range(period)
+            snap_mm(module_mm * (k + cells)) - snap_mm(module_mm * k) for k in range(period)
         )
         table.append(cells * module_mm - worst)
     return tuple(table)
@@ -242,7 +240,7 @@ class RoomBounds:
     target_area_cells: int
     max_aspect_x100: int
     #: Fixed cell rectangle (stair well, shaft on upper floors), else ``None``.
-    fixed_rect: Optional[Tuple[int, int, int, int]] = None
+    fixed_rect: tuple[int, int, int, int] | None = None
 
     @property
     def key(self) -> str:
@@ -270,9 +268,7 @@ def bounds_for(room: ProgramRoom, *, module_mm: int = COARSE_MODULE_MM) -> RoomB
     )
 
 
-def net_footprint_cap_cells(
-    params: SolveParams, *, module_mm: int = COARSE_MODULE_MM
-) -> int:
+def net_footprint_cap_cells(params: SolveParams, *, module_mm: int = COARSE_MODULE_MM) -> int:
     """The per-floor built-area ceiling in cells: min(coverage cap, FAR cap / floors).
 
     Floor division throughout — rounding DOWN a regulatory cap is the conservative
@@ -285,11 +281,11 @@ def net_footprint_cap_cells(
 
 
 def zone_bands_cells2(
-    bands_mm: Optional[Mapping[str, Tuple[int, int, int, int]]],
+    bands_mm: Mapping[str, tuple[int, int, int, int]] | None,
     grid_origin: Pt,
     *,
     module_mm: int = COARSE_MODULE_MM,
-) -> Optional[Dict[str, Tuple[int, int, int, int]]]:
+) -> dict[str, tuple[int, int, int, int]] | None:
     """Zone mm bands → inclusive bounds on the DOUBLED cell centre ``(x1+x2, y1+y2)``.
 
     A room's centre in cells is ``(x1+x2)/2``; keeping the doubled sum avoids the
@@ -300,7 +296,7 @@ def zone_bands_cells2(
     if bands_mm is None:
         return None
     ox, oy = grid_origin
-    out: Dict[str, Tuple[int, int, int, int]] = {}
+    out: dict[str, tuple[int, int, int, int]] = {}
     for zone in sorted(bands_mm):
         zx1, zy1, zx2, zy2 = bands_mm[zone]
         out[zone] = (
@@ -313,8 +309,8 @@ def zone_bands_cells2(
 
 
 def mm_rect_to_cells(
-    rect_mm: Tuple[int, int, int, int], grid_origin: Pt, *, module_mm: int = COARSE_MODULE_MM
-) -> Tuple[int, int, int, int]:
+    rect_mm: tuple[int, int, int, int], grid_origin: Pt, *, module_mm: int = COARSE_MODULE_MM
+) -> tuple[int, int, int, int]:
     """mm rectangle → covering cell rectangle (floor min corner, ceil max corner)."""
     ox, oy = grid_origin
     return (
@@ -338,7 +334,7 @@ def minimum_cells_needed(rooms: Sequence[RoomBounds]) -> int:
     return total
 
 
-def split_time_budget(total_seconds: Optional[int], storeys: int) -> Tuple[Optional[int], ...]:
+def split_time_budget(total_seconds: int | None, storeys: int) -> tuple[int | None, ...]:
     """§5.2's per-candidate budget split across storeys: ground gets the lion's
     share (it decides the footprint), uppers share the rest. ``None`` stays ``None``
     (the deterministic profile budgets by limits, not by clocks)."""
@@ -352,7 +348,7 @@ def split_time_budget(total_seconds: Optional[int], storeys: int) -> Tuple[Optio
     return tuple([ground] + [upper] * (count - 1))
 
 
-def entry_grid_side(params: SolveParams, program: RoomProgram) -> Tuple[str, Tuple[str, ...]]:
+def entry_grid_side(params: SolveParams, program: RoomProgram) -> tuple[str, tuple[str, ...]]:
     """(entry side, notes). Plot-local side the ground distributor must touch.
 
     Strict Vastu prefers a side whose true-compass name is in the pack's allowed
@@ -395,7 +391,7 @@ _AXIS_INSET_TYPICAL_MM = _INSET_EXTERNAL_MM + _INSET_INTERNAL_LOW_MM
 
 
 def _clear_mm(
-    cells: int, losses: Tuple[int, ...], *, inset_mm: int = _AXIS_INSET_TYPICAL_MM
+    cells: int, losses: tuple[int, ...], *, inset_mm: int = _AXIS_INSET_TYPICAL_MM
 ) -> int:
     """Clear mm of a dimension of ``cells``: gross − worst snap loss − insets."""
     cells = max(1, min(cells, len(losses) - 1))
@@ -405,25 +401,22 @@ def _clear_mm(
 def _cells_for_clear(
     clear_needed_mm: int,
     floor_cells: int,
-    losses: Tuple[int, ...],
+    losses: tuple[int, ...],
     *,
     inset_mm: int = _AXIS_INSET_TYPICAL_MM,
 ) -> int:
     cells = max(1, floor_cells)
-    while (
-        cells < len(losses) - 1
-        and _clear_mm(cells, losses, inset_mm=inset_mm) < clear_needed_mm
-    ):
+    while cells < len(losses) - 1 and _clear_mm(cells, losses, inset_mm=inset_mm) < clear_needed_mm:
         cells += 1
     return cells
 
 
 def gross_min_dims(
     bounds: RoomBounds,
-    losses: Tuple[int, ...],
+    losses: tuple[int, ...],
     *,
     inset_mm: int = _AXIS_INSET_TYPICAL_MM,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Smallest (depth, width) cells whose CLEAR geometry satisfies the room's
     minimum width and minimum area. Pure — shared by the hint, the footprint
     candidates and the multi-storey net floor, so they cannot disagree."""
@@ -449,7 +442,7 @@ def gross_min_dims(
 
 def storey_min_net_cells(
     rooms: Sequence[RoomBounds],
-    losses: Tuple[int, ...],
+    losses: tuple[int, ...],
     *,
     inset_mm: int = _AXIS_INSET_INTERNAL_MM,
 ) -> int:
@@ -483,7 +476,7 @@ def storey_min_net_cells(
     return total
 
 
-def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]:
+def band_hint(problem: _StoreyProblem) -> dict[str, tuple[int, int, int, int]]:
     """A greedy two-band layout used as a CP-SAT solution HINT. Pure, integer cells.
 
     First execution showed the honest model — exact tiling + clear-geometry
@@ -502,9 +495,7 @@ def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]
         (b for b in free if not b.room.is_circulation and b.room.room_type != "shaft"),
         key=lambda b: (-b.target_area_cells, b.key),
     )
-    passages = sorted(
-        (b for b in free if b.room.is_circulation), key=lambda b: b.key
-    )
+    passages = sorted((b for b in free if b.room.is_circulation), key=lambda b: b.key)
     shafts = [b for b in free if b.room.room_type == "shaft"]
     if not solids:
         return {}
@@ -515,8 +506,8 @@ def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]
     # room and produced provably-infeasible footprints (execution find).
     losses = snap_loss_table(max(problem.cols, problem.rows))
     dims = {b.key: gross_min_dims(b, losses) for b in solids}
-    band_a: List[RoomBounds] = []
-    band_b: List[RoomBounds] = []
+    band_a: list[RoomBounds] = []
+    band_b: list[RoomBounds] = []
     area_a = area_b = 0
     for bounds in solids:  # largest first, to the emptier band — keeps widths close
         d, w = dims[bounds.key]
@@ -529,8 +520,8 @@ def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]
     depth_a = max(dims[b.key][0] for b in band_a)
     depth_b = max((dims[b.key][0] for b in band_b), default=max(4, depth_a // 2))
 
-    def widths(band: List[RoomBounds], depth: int) -> List[int]:
-        out_w: List[int] = []
+    def widths(band: list[RoomBounds], depth: int) -> list[int]:
+        out_w: list[int] = []
         for b in band:
             min_w = max(1, b.room.min_width_mm)
             min_a = max(1, b.room.min_area_mm2)
@@ -542,6 +533,7 @@ def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]
                 )
             )
         return out_w
+
     widths_a = widths(band_a, depth_a)
     widths_b = widths(band_b, depth_b)
     passage_w = 4  # one door-frontage strip; the model corrects the exact width
@@ -564,11 +556,11 @@ def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]
 
     # Band B (service rooms + the passage strip + the corner shaft) sits LOW —
     # against the entry side and any south-edge stair anchor; band A above it.
-    out: Dict[str, Tuple[int, int, int, int]] = {}
+    out: dict[str, tuple[int, int, int, int]] = {}
     y_split = y0 + max(1, depth_total - depth_a)
     y_top = y0 + depth_total
     cursor = x0
-    for bounds, w in zip(band_b, widths_b):
+    for bounds, w in zip(band_b, widths_b, strict=False):
         out[bounds.key] = (cursor, y0, min(cursor + w, x0 + width), y_split)
         cursor = min(cursor + w, x0 + width - 1)
     remaining = max(1, x0 + width - cursor - len(shafts))
@@ -578,7 +570,7 @@ def band_hint(problem: "_StoreyProblem") -> Dict[str, Tuple[int, int, int, int]]
     for bounds in shafts:  # one cell in the footprint's SE corner
         out[bounds.key] = (x0 + width - 1, y0, x0 + width, min(y0 + 1, y_top))
     cursor = x0
-    for bounds, w in zip(band_a, widths_a):
+    for bounds, w in zip(band_a, widths_a, strict=False):
         out[bounds.key] = (cursor, y_split, min(cursor + w, x0 + width), y_top)
         cursor = min(cursor + w, x0 + width - 1)
     out["__footprint__"] = (x0, y0, x0 + width, y_top)
@@ -592,7 +584,7 @@ def _isqrt_ceil(value: int) -> int:
     return root if root * root == value else root + 1
 
 
-def footprint_candidates(problem: "_StoreyProblem") -> Tuple[Tuple[int, int, int, int], ...]:
+def footprint_candidates(problem: _StoreyProblem) -> tuple[tuple[int, int, int, int], ...]:
     """Deterministic FIXED footprint rectangles for the ground-storey solve.
 
     Why fix the footprint at all: with free footprint edges, the exact-tiling
@@ -628,8 +620,8 @@ def footprint_candidates(problem: "_StoreyProblem") -> Tuple[Tuple[int, int, int
     net_hi = (100 * solid_max) // 82 if solid_max else problem.net_cap_cells
     net_hi = min(net_hi, problem.net_cap_cells)
 
-    out: List[Tuple[int, int, int, int]] = []
-    seen: Dict[Tuple[int, int, int, int], bool] = {}
+    out: list[tuple[int, int, int, int]] = []
+    seen: dict[tuple[int, int, int, int], bool] = {}
     for dw, dd in ((0, 0), (1, 0), (0, 1), (2, 1), (1, 2), (3, 2)):
         width = min(problem.cols, base_w + dw)
         depth = min(problem.rows, base_d + dd)
@@ -668,16 +660,16 @@ class _StoreyProblem:
     """Everything one storey's CpModel needs. Plain data, ortools-free."""
 
     storey_index: int
-    rooms: Tuple[RoomBounds, ...]
+    rooms: tuple[RoomBounds, ...]
     cols: int
     rows: int
-    voids: Tuple[CellRect, ...]
+    voids: tuple[CellRect, ...]
     net_cap_cells: int
     weights: StageAWeights
-    adjacency: Tuple[Any, ...] = ()  # program.AdjacencySpec, filtered to present rooms
-    stair_side: Optional[str] = None
-    entry_side: Optional[str] = None
-    footprint_fixed: Optional[Tuple[int, int, int, int]] = None
+    adjacency: tuple[Any, ...] = ()  # program.AdjacencySpec, filtered to present rooms
+    stair_side: str | None = None
+    entry_side: str | None = None
+    footprint_fixed: tuple[int, int, int, int] | None = None
     #: §5.2 multi-floor continuity, relaxed to CONTAINMENT: the storey's own
     #: footprint rectangle must lie inside this one (the ground's). Demanding
     #: equality made upper storeys tile the ground's exact cell count around
@@ -685,18 +677,18 @@ class _StoreyProblem:
     #: (execution find); stage B only needs each storey's own rooms to tile
     #: each storey's own outline, and the stair-side flush keeps that wall line
     #: shared. ``None`` when there is no storey below.
-    footprint_within: Optional[Tuple[int, int, int, int]] = None
+    footprint_within: tuple[int, int, int, int] | None = None
     #: The mirror bound: this storey's footprint must CONTAIN this rectangle
     #: (it is a storey BELOW an already-solved, more constrained one).
-    footprint_contains: Optional[Tuple[int, int, int, int]] = None
-    shaft_fixed_rect: Optional[Tuple[int, int, int, int]] = None
-    zone_bands: Optional[Dict[str, Tuple[int, int, int, int]]] = None
+    footprint_contains: tuple[int, int, int, int] | None = None
+    shaft_fixed_rect: tuple[int, int, int, int] | None = None
+    zone_bands: dict[str, tuple[int, int, int, int]] | None = None
     vastu_mode: str = "advisory"
     north_deg: int = 0
     #: Per-room minimum door-frontage cells (room key → cells), sized from the
     #: pack's door widths + end margins + the 115mm snap worst case. ``None`` ⇒
     #: the flat DOOR_FRONTAGE_MM fallback (older callers, unit fixtures).
-    door_cells_by_key: Optional[Mapping[str, int]] = None
+    door_cells_by_key: Mapping[str, int] | None = None
     #: Minimum cells of the entry room's side ON the entry boundary — the main
     #: door (pack width + margins + snap) must fit that external span. 0 ⇒ off.
     entry_frontage_cells: int = 0
@@ -707,7 +699,7 @@ class _StoreyProblem:
     #: enforcing brief numbers as clear made a standard 30×40ft brief
     #: arithmetically impossible (execution find). ``None`` ⇒ fall back to the
     #: room's own minima (unit-test callers).
-    clear_floor_by_key: Optional[Mapping[str, Tuple[int, int]]] = None
+    clear_floor_by_key: Mapping[str, tuple[int, int]] | None = None
     #: Net-footprint floor (cells): max over ALL storeys of the storey's minimum
     #: program (§5.2 multi-floor: the ground footprint is every storey's). 0 ⇒ off.
     net_floor_cells: int = 0
@@ -741,8 +733,8 @@ class _RoomVars:
 class _Objective:
     """Accumulated (coefficient, var) terms. Penalties minimise, rewards maximise."""
 
-    penalties: List[Tuple[int, Any]]
-    rewards: List[Tuple[int, Any]]
+    penalties: list[tuple[int, Any]]
+    rewards: list[tuple[int, Any]]
 
     def penalise(self, coefficient: int, var: Any) -> None:
         if coefficient:
@@ -753,10 +745,10 @@ class _Objective:
             self.rewards.append((coefficient, var))
 
 
-def add_room_variables(model: Any, problem: _StoreyProblem) -> Dict[str, _RoomVars]:
+def add_room_variables(model: Any, problem: _StoreyProblem) -> dict[str, _RoomVars]:
     """Interval vars per room in x and y (§5.2). Fixed rects become fixed vars so
     every downstream builder treats pinned and free rooms identically."""
-    out: Dict[str, _RoomVars] = {}
+    out: dict[str, _RoomVars] = {}
     grid_area = problem.cols * problem.rows
     for bounds in problem.rooms:
         key = bounds.key
@@ -793,21 +785,17 @@ def add_room_variables(model: Any, problem: _StoreyProblem) -> Dict[str, _RoomVa
     return out
 
 
-def add_no_overlap(model: Any, room_vars: Dict[str, _RoomVars], problem: _StoreyProblem) -> None:
+def add_no_overlap(model: Any, room_vars: dict[str, _RoomVars], problem: _StoreyProblem) -> None:
     """``AddNoOverlap2D`` over rooms + the mandatory-void rectangles (§5.2 L/T)."""
     xs = [vars_.ix for _, vars_ in sorted(room_vars.items())]
     ys = [vars_.iy for _, vars_ in sorted(room_vars.items())]
     for index, void in enumerate(problem.voids):
-        xs.append(
-            model.NewIntervalVar(void.col1, void.cols, void.col2, "void%d.ix" % index)
-        )
-        ys.append(
-            model.NewIntervalVar(void.row1, void.rows, void.row2, "void%d.iy" % index)
-        )
+        xs.append(model.NewIntervalVar(void.col1, void.cols, void.col2, "void%d.ix" % index))
+        ys.append(model.NewIntervalVar(void.row1, void.rows, void.row2, "void%d.iy" % index))
     model.AddNoOverlap2D(xs, ys)
 
 
-def add_size_bounds(model: Any, room_vars: Dict[str, _RoomVars], problem: _StoreyProblem) -> None:
+def add_size_bounds(model: Any, room_vars: dict[str, _RoomVars], problem: _StoreyProblem) -> None:
     """Aspect-ratio bounds (§5.2: ×100 integers) — min sides/areas are var domains."""
     for key in sorted(room_vars):
         vars_ = room_vars[key]
@@ -821,8 +809,8 @@ def add_size_bounds(model: Any, room_vars: Dict[str, _RoomVars], problem: _Store
 
 
 def add_footprint(
-    model: Any, room_vars: Dict[str, _RoomVars], problem: _StoreyProblem
-) -> Dict[str, Any]:
+    model: Any, room_vars: dict[str, _RoomVars], problem: _StoreyProblem
+) -> dict[str, Any]:
     """The storey footprint rectangle, its net (void-free) area, and the caps.
 
     The footprint is flush with the boundary side the stair hugs (§5.2 multi-floor
@@ -867,7 +855,7 @@ def add_footprint(
         model.Add(vars_.x2 <= fx2)
         model.Add(vars_.y2 <= fy2)
 
-    void_overlaps: List[Any] = []
+    void_overlaps: list[Any] = []
     for index, void in enumerate(problem.voids):
         lo_x = model.NewIntVar(0, problem.cols, "void%d.lox" % index)
         hi_x = model.NewIntVar(0, problem.cols, "void%d.hix" % index)
@@ -921,17 +909,15 @@ def add_footprint(
     return {"fx1": fx1, "fy1": fy1, "fx2": fx2, "fy2": fy2, "fw": fw, "fh": fh, "net": net}
 
 
-def add_tiling(
-    model: Any, room_vars: Dict[str, _RoomVars], footprint: Dict[str, Any]
-) -> None:
+def add_tiling(model: Any, room_vars: dict[str, _RoomVars], footprint: dict[str, Any]) -> None:
     """Σ room areas == net footprint area — the CellLayout tiling contract, in-model."""
     model.Add(sum(vars_.area for _, vars_ in sorted(room_vars.items())) == footprint["net"])
 
 
 def add_clear_bounds(
     model: Any,
-    room_vars: Dict[str, _RoomVars],
-    footprint: Dict[str, Any],
+    room_vars: dict[str, _RoomVars],
+    footprint: dict[str, Any],
     problem: _StoreyProblem,
     *,
     module_mm: int = COARSE_MODULE_MM,
@@ -1023,7 +1009,7 @@ def _touch_literals(
     prefix: str,
     rows: int,
     cols: int,
-) -> List[Any]:
+) -> list[Any]:
     """Four booleans, one per side ``a`` can touch ``b`` on, each implying the touch
     and a shared edge ≥ ``min_shared_cells`` — §5.2's interval-arithmetic booleans."""
     oy_lo = model.NewIntVar(0, rows, "%s.oy_lo" % prefix)
@@ -1057,7 +1043,7 @@ def _touch_literals(
 
 def add_required_adjacencies(
     model: Any,
-    room_vars: Dict[str, _RoomVars],
+    room_vars: dict[str, _RoomVars],
     problem: _StoreyProblem,
     *,
     module_mm: int = COARSE_MODULE_MM,
@@ -1072,15 +1058,20 @@ def add_required_adjacencies(
             continue
         min_cells = max(1, _ceil_div(spec.min_shared_edge_mm, module_mm))
         literals = _touch_literals(
-            model, a, b, min_cells, "req.%s-%s" % (spec.a_key, spec.b_key),
-            problem.rows, problem.cols,
+            model,
+            a,
+            b,
+            min_cells,
+            "req.%s-%s" % (spec.a_key, spec.b_key),
+            problem.rows,
+            problem.cols,
         )
         model.AddBoolOr(literals)
 
 
 def add_adjacency_wishes(
     model: Any,
-    room_vars: Dict[str, _RoomVars],
+    room_vars: dict[str, _RoomVars],
     problem: _StoreyProblem,
     objective: _Objective,
     *,
@@ -1100,9 +1091,7 @@ def add_adjacency_wishes(
         satisfied = model.NewBoolVar(name)
         if spec.kind == "adjacent":
             min_cells = max(1, _ceil_div(spec.min_shared_edge_mm or DOOR_FRONTAGE_MM, module_mm))
-            literals = _touch_literals(
-                model, a, b, min_cells, name, problem.rows, problem.cols
-            )
+            literals = _touch_literals(model, a, b, min_cells, name, problem.rows, problem.cols)
             model.AddBoolOr(literals).OnlyEnforceIf(satisfied)
         else:
             dx = model.NewIntVar(0, 2 * problem.cols, "%s.dx" % name)
@@ -1118,10 +1107,10 @@ def add_adjacency_wishes(
 
 
 def _boundary_literals(
-    model: Any, vars_: _RoomVars, footprint: Dict[str, Any], prefix: str
-) -> Dict[str, Any]:
+    model: Any, vars_: _RoomVars, footprint: dict[str, Any], prefix: str
+) -> dict[str, Any]:
     """Side → boolean implying the room's edge lies ON that footprint side."""
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     for side, (room_edge, footprint_edge) in (
         ("W", (vars_.x1, footprint["fx1"])),
         ("E", (vars_.x2, footprint["fx2"])),
@@ -1136,15 +1125,15 @@ def _boundary_literals(
 
 def add_external_face(
     model: Any,
-    room_vars: Dict[str, _RoomVars],
-    footprint: Dict[str, Any],
+    room_vars: dict[str, _RoomVars],
+    footprint: dict[str, Any],
     problem: _StoreyProblem,
     objective: _Objective,
-) -> Tuple[str, ...]:
+) -> tuple[str, ...]:
     """§5.2: habitable + kitchen must reach the footprint boundary; baths may stay
     internal only when shaft-adjacent; wet rooms on the boundary earn the
     external-face bonus. Returns notes for skipped must-face constraints."""
-    notes: List[str] = []
+    notes: list[str] = []
     shaft = room_vars.get("shaft")
     for key in sorted(room_vars):
         vars_ = room_vars[key]
@@ -1192,10 +1181,10 @@ def add_external_face(
 
 def add_vastu_zones(
     model: Any,
-    room_vars: Dict[str, _RoomVars],
+    room_vars: dict[str, _RoomVars],
     problem: _StoreyProblem,
     objective: _Objective,
-) -> Optional[bool]:
+) -> bool | None:
     """§5.2 facing/Vastu: strict → centre constrained to allowed zone bands, denials
     excluded; advisory → hard denials only + preferred-zone bonus. Returns ``False``
     when a strict allowance has no representable band (infeasible by construction)."""
@@ -1255,9 +1244,9 @@ def add_vastu_zones(
 def _in_zone_literal(
     model: Any,
     vars_: _RoomVars,
-    band: Optional[Tuple[int, int, int, int]],
+    band: tuple[int, int, int, int] | None,
     name: str,
-) -> Optional[Any]:
+) -> Any | None:
     """Boolean implying the room's doubled centre lies inside one zone band."""
     if band is None:
         return None
@@ -1274,7 +1263,7 @@ def _in_zone_literal(
 
 def add_wet_cluster(
     model: Any,
-    room_vars: Dict[str, _RoomVars],
+    room_vars: dict[str, _RoomVars],
     problem: _StoreyProblem,
     objective: _Objective,
 ) -> None:
@@ -1309,13 +1298,13 @@ def _stair_key(problem: _StoreyProblem) -> str:
 
 def add_circulation(
     model: Any,
-    room_vars: Dict[str, _RoomVars],
-    footprint: Dict[str, Any],
+    room_vars: dict[str, _RoomVars],
+    footprint: dict[str, Any],
     problem: _StoreyProblem,
     objective: _Objective,
     *,
     module_mm: int = COARSE_MODULE_MM,
-) -> Optional[Any]:
+) -> Any | None:
     """§5.2 circulation spine: entry → stair → every room's door zone.
 
     Topology form: every packed room shares a door-width edge with a distributor
@@ -1328,9 +1317,7 @@ def add_circulation(
     door_cells = max(1, _ceil_div(DOOR_FRONTAGE_MM, module_mm))
     per_room = problem.door_cells_by_key or {}
     distributors = {
-        key
-        for key, vars_ in room_vars.items()
-        if vars_.bounds.room.room_type in _DISTRIBUTOR_TYPES
+        key for key, vars_ in room_vars.items() if vars_.bounds.room.room_type in _DISTRIBUTOR_TYPES
     }
     fallback = {
         key
@@ -1348,13 +1335,18 @@ def add_circulation(
         # end margins plus the 115mm snap, not the bare §5.2 frontage figure —
         # a 900mm coarse span snaps as low as 805mm, under ANY legal door.
         serve_cells = max(door_cells, per_room.get(key, 0))
-        reachable: List[Any] = []
+        reachable: list[Any] = []
         serving = sorted(distributors | (fallback - {key}))
         for other in serving:
             reachable.extend(
                 _touch_literals(
-                    model, vars_, room_vars[other], serve_cells,
-                    "circ.%s-%s" % (key, other), problem.rows, problem.cols,
+                    model,
+                    vars_,
+                    room_vars[other],
+                    serve_cells,
+                    "circ.%s-%s" % (key, other),
+                    problem.rows,
+                    problem.cols,
                 )
             )
         if reachable:
@@ -1362,25 +1354,30 @@ def add_circulation(
 
     stair_key = _stair_key(problem)
     passages = sorted(
-        key
-        for key, vars_ in room_vars.items()
-        if vars_.bounds.room.room_type in CIRCULATION_TYPES
+        key for key, vars_ in room_vars.items() if vars_.bounds.room.room_type in CIRCULATION_TYPES
     )
     if stair_key in room_vars and passages:
-        arrivals: List[Any] = []
+        arrivals: list[Any] = []
         for passage in passages:
             arrivals.extend(
                 _touch_literals(
-                    model, room_vars[passage], room_vars[stair_key], door_cells,
-                    "circ.%s-stair" % passage, problem.rows, problem.cols,
+                    model,
+                    room_vars[passage],
+                    room_vars[stair_key],
+                    door_cells,
+                    "circ.%s-stair" % passage,
+                    problem.rows,
+                    problem.cols,
                 )
             )
         model.AddBoolOr(arrivals)
 
     if problem.entry_side is not None:
-        entry_candidates = [
-            key for key in passages if room_vars[key].bounds.room.room_type == "foyer"
-        ] or passages or sorted(fallback)
+        entry_candidates = (
+            [key for key in passages if room_vars[key].bounds.room.room_type == "foyer"]
+            or passages
+            or sorted(fallback)
+        )
         if entry_candidates:
             key = entry_candidates[0]
             literals = _boundary_literals(model, room_vars[key], footprint, "entry.%s" % key)
@@ -1394,9 +1391,7 @@ def add_circulation(
                 model.Add(along >= problem.entry_frontage_cells)
 
     circulation_keys = sorted(
-        key
-        for key, vars_ in room_vars.items()
-        if vars_.bounds.room.is_circulation
+        key for key, vars_ in room_vars.items() if vars_.bounds.room.is_circulation
     )
     if not circulation_keys:
         return None
@@ -1411,8 +1406,7 @@ def add_circulation(
     excess = model.NewIntVar(0, problem.cols * problem.rows * 100, "circ.excess")
     model.Add(
         excess
-        >= 100 * circulation_area
-        - problem.weights.circulation_target_percent * footprint["net"]
+        >= 100 * circulation_area - problem.weights.circulation_target_percent * footprint["net"]
     )
     # /100 back to cells, floored — an integer var tied by two inequalities.
     excess_cells = model.NewIntVar(0, problem.cols * problem.rows, "circ.excess_cells")
@@ -1424,7 +1418,7 @@ def add_circulation(
 
 def add_area_targets(
     model: Any,
-    room_vars: Dict[str, _RoomVars],
+    room_vars: dict[str, _RoomVars],
     problem: _StoreyProblem,
     objective: _Objective,
 ) -> None:
@@ -1440,7 +1434,7 @@ def add_area_targets(
 
 
 def add_compactness(
-    model: Any, footprint: Dict[str, Any], problem: _StoreyProblem, objective: _Objective
+    model: Any, footprint: dict[str, Any], problem: _StoreyProblem, objective: _Objective
 ) -> None:
     """§5.2 compactness: penalise the footprint half-perimeter."""
     objective.penalise(problem.weights.compactness, footprint["fw"])
@@ -1467,15 +1461,15 @@ def build_objective(model: Any, objective: _Objective, problem: _StoreyProblem) 
 
 @dataclass(frozen=True)
 class _StoreySolution:
-    placements: Tuple[RoomPlacement, ...]
+    placements: tuple[RoomPlacement, ...]
     circulation_cells: int
     objective: int
-    footprint: Tuple[int, int, int, int]
-    shaft_rect: Optional[Tuple[int, int, int, int]]
+    footprint: tuple[int, int, int, int]
+    shaft_rect: tuple[int, int, int, int] | None
 
 
 def _apply_profile(
-    solver: Any, profile: Any, params: SolveParams, time_budget_seconds: Optional[int]
+    solver: Any, profile: Any, params: SolveParams, time_budget_seconds: int | None
 ) -> None:
     """Map a ``SolverProfile`` onto ``solver.parameters`` (see module docstring for
     the conflicts-for-branches note). Duck-typed so this module never imports the
@@ -1497,10 +1491,10 @@ def _solve_storey(
     problem: _StoreyProblem,
     params: SolveParams,
     profile: Any,
-    time_budget_seconds: Optional[int],
+    time_budget_seconds: int | None,
     grid_origin: Pt,
     module_mm: int,
-) -> Optional[_StoreySolution]:
+) -> _StoreySolution | None:
     """Build and solve one storey's CpModel. ``None`` == infeasible (expected)."""
     from ortools.sat.python import cp_model
 
@@ -1583,9 +1577,9 @@ def _solve_storey(
         return None
 
     ox, oy = grid_origin
-    placements: List[RoomPlacement] = []
+    placements: list[RoomPlacement] = []
     circulation_cells = 0
-    shaft_rect: Optional[Tuple[int, int, int, int]] = None
+    shaft_rect: tuple[int, int, int, int] | None = None
     for key in sorted(room_vars):
         vars_ = room_vars[key]
         x1 = solver.Value(vars_.x1)
@@ -1626,10 +1620,10 @@ def _solve_storey_via_candidates(
     problem: _StoreyProblem,
     params: SolveParams,
     profile: Any,
-    budget: Optional[int],
+    budget: int | None,
     grid_origin: Pt,
     module_mm: int,
-) -> Optional[_StoreySolution]:
+) -> _StoreySolution | None:
     """Free-footprint model first, deterministic fixed rectangles as the rescue.
 
     The free model with the elastic shaft finds solutions in seconds; it gets
@@ -1669,11 +1663,11 @@ def _solve_storey_via_candidates(
 def _bounds_for_storey(
     program: RoomProgram,
     storey_index: int,
-    stair_rect: Optional[Tuple[int, int, int, int]],
-    shaft_rect: Optional[Tuple[int, int, int, int]],
+    stair_rect: tuple[int, int, int, int] | None,
+    shaft_rect: tuple[int, int, int, int] | None,
     module_mm: int,
-) -> Tuple[RoomBounds, ...]:
-    out: List[RoomBounds] = []
+) -> tuple[RoomBounds, ...]:
+    out: list[RoomBounds] = []
     for room in sorted(program.packed_rooms_for_storey(storey_index), key=lambda r: r.key):
         bounds = bounds_for(room, module_mm=module_mm)
         if room.room_type == "staircase" and stair_rect is not None:
@@ -1706,12 +1700,12 @@ def stage_a_topology(
     *,
     profile: Any = None,
     relaxed: bool = False,
-    time_budget_seconds: Optional[int] = None,
-    num_search_workers: Optional[int] = None,
-    program: Optional[RoomProgram] = None,
-    rulepack_root: Optional[str] = None,
-    weights: Optional[StageAWeights] = None,
-) -> Optional["Candidate"]:
+    time_budget_seconds: int | None = None,
+    num_search_workers: int | None = None,
+    program: RoomProgram | None = None,
+    rulepack_root: str | None = None,
+    weights: StageAWeights | None = None,
+) -> Candidate | None:
     """§5.2 stage A for one stair candidate. ``None`` == infeasible, not an error.
 
     Accepts both calling generations the pipeline supports: the ``profile`` keyword
@@ -1732,10 +1726,10 @@ def stage_a_topology(
         active_weights = active_weights.relaxed()
 
     module_mm = int(getattr(grid, "module_mm", COARSE_MODULE_MM))
-    grid_origin: Pt = tuple(getattr(grid, "origin"))  # type: ignore[assignment]
-    cols = int(getattr(grid, "cols"))
-    rows = int(getattr(grid, "rows"))
-    mask = getattr(grid, "mask")
+    grid_origin: Pt = tuple(grid.origin)  # type: ignore[assignment]
+    cols = int(grid.cols)
+    rows = int(grid.rows)
+    mask = grid.mask
 
     if program is None:
         program = program_from_params(params, root=rulepack_root)
@@ -1746,15 +1740,11 @@ def stage_a_topology(
     voids = void_rects_of_mask(mask)
     net_cap = min(net_footprint_cap_cells(params, module_mm=module_mm), cols * rows)
 
-    has_stair_room = any(
-        room.room_type == "staircase" for room in program.rooms if room.packed
-    )
-    stair_rect: Optional[Tuple[int, int, int, int]] = None
-    stair_side: Optional[str] = None
+    has_stair_room = any(room.room_type == "staircase" for room in program.rooms if room.packed)
+    stair_rect: tuple[int, int, int, int] | None = None
+    stair_side: str | None = None
     if has_stair_room:
-        dogleg = stairs_mod.size_dogleg(
-            DEFAULT_STOREY_HEIGHT_MM, root=rulepack_root
-        )
+        dogleg = stairs_mod.size_dogleg(DEFAULT_STOREY_HEIGHT_MM, root=rulepack_root)
         well_mm = stairs_mod.well_rect_for(anchor, envelope, stair=dogleg, module_mm=module_mm)
         base_rect = mm_rect_to_cells(well_mm, grid_origin, module_mm=module_mm)
         stair_side = stairs_mod.edge_outward_side(envelope.polygon, anchor.edge_index)
@@ -1774,12 +1764,8 @@ def stage_a_topology(
             inset_x, inset_y = along_inset, _AXIS_INSET_TYPICAL_MM
         else:
             inset_x, inset_y = _AXIS_INSET_TYPICAL_MM, along_inset
-        need_x = _cells_for_clear(
-            well_mm[2] - well_mm[0], 1, stair_losses, inset_mm=inset_x
-        )
-        need_y = _cells_for_clear(
-            well_mm[3] - well_mm[1], 1, stair_losses, inset_mm=inset_y
-        )
+        need_x = _cells_for_clear(well_mm[2] - well_mm[0], 1, stair_losses, inset_mm=inset_x)
+        need_y = _cells_for_clear(well_mm[3] - well_mm[1], 1, stair_losses, inset_mm=inset_y)
         # Keep the flush edge where the anchor put it; clamp the free corner.
         sx1 = max(0, min(base_rect[0], cols - need_x))
         sy1 = max(0, min(base_rect[1], rows - need_y))
@@ -1810,7 +1796,7 @@ def stage_a_topology(
     )
 
     opening_limits = load_nbc_limits(root=rulepack_root)
-    door_cells_by_key: Dict[str, int] = {}
+    door_cells_by_key: dict[str, int] = {}
     for room in program.rooms:
         if not room.packed or room.is_circulation or room.room_type == "shaft":
             continue
@@ -1827,7 +1813,7 @@ def stage_a_topology(
     from services.solver.program import load_room_minima
 
     minima = load_room_minima(rulepack_root)
-    clear_floor_by_key: Dict[str, Tuple[int, int]] = {}
+    clear_floor_by_key: dict[str, tuple[int, int]] = {}
     for room in program.rooms:
         if not room.packed or room.room_type == "shaft":
             continue
@@ -1841,9 +1827,7 @@ def stage_a_topology(
         if nbc_area > 0 or nbc_width > 0:
             clear_floor_by_key[room.key] = (nbc_area, nbc_width)
 
-    budgets = split_time_budget(
-        getattr(profile, "time_budget_seconds", None), program.storeys
-    )
+    budgets = split_time_budget(getattr(profile, "time_budget_seconds", None), program.storeys)
 
     # §5.2 multi-floor, generalised by execution: solve the MOST CONSTRAINED
     # storey first — it defines the frame — then grow downward and shrink
@@ -1861,19 +1845,13 @@ def stage_a_topology(
         )
         for index in range(program.storeys)
     }
-    solve_order = sorted(
-        range(program.storeys), key=lambda i: (-min_net_by_storey[i], i)
-    )
+    solve_order = sorted(range(program.storeys), key=lambda i: (-min_net_by_storey[i], i))
 
-    solutions: Dict[int, _StoreySolution] = {}
-    shaft_core: Optional[Tuple[int, int, int, int]] = None
+    solutions: dict[int, _StoreySolution] = {}
+    shaft_core: tuple[int, int, int, int] | None = None
     for position, storey_index in enumerate(solve_order):
-        below = max(
-            (j for j in solutions if j < storey_index), default=None
-        )
-        above = min(
-            (j for j in solutions if j > storey_index), default=None
-        )
+        below = max((j for j in solutions if j < storey_index), default=None)
+        above = min((j for j in solutions if j > storey_index), default=None)
         problem = _StoreyProblem(
             storey_index=storey_index,
             rooms=_bounds_for_storey(program, storey_index, stair_rect, None, module_mm),
@@ -1883,9 +1861,7 @@ def stage_a_topology(
             net_cap_cells=net_cap,
             weights=active_weights,
             adjacency=tuple(
-                spec
-                for spec in program.adjacency
-                if _both_on_storey(program, spec, storey_index)
+                spec for spec in program.adjacency if _both_on_storey(program, spec, storey_index)
             ),
             stair_side=stair_side,
             entry_side=entry if storey_index == 0 else None,
@@ -1912,9 +1888,7 @@ def stage_a_topology(
             ),
         )
         if not problem.rooms:
-            log.info(
-                "solver.stage_a.empty_storey", storey=storey_index, anchor=anchor.id
-            )
+            log.info("solver.stage_a.empty_storey", storey=storey_index, anchor=anchor.id)
             return None
         solution = _solve_storey_via_candidates(
             problem, params, profile, budgets[position], grid_origin, module_mm
@@ -1934,7 +1908,7 @@ def stage_a_topology(
             shaft_core = solution.shaft_rect
 
     cell_area = module_mm * module_mm
-    placements: List[RoomPlacement] = []
+    placements: list[RoomPlacement] = []
     for storey_index in sorted(solutions):
         placements.extend(solutions[storey_index].placements)
     ordered = [solutions[index] for index in sorted(solutions)]
@@ -1956,10 +1930,10 @@ class _LegacyProfile:
     """Adapter for the Phase-2 stub signature (no SolverProfile in sight)."""
 
     num_search_workers: int = 8
-    time_budget_seconds: Optional[int] = None
-    random_seed: Optional[int] = None
-    max_solutions: Optional[int] = None
-    max_branches: Optional[int] = None
+    time_budget_seconds: int | None = None
+    random_seed: int | None = None
+    max_solutions: int | None = None
+    max_branches: int | None = None
 
     def seed_for(self, params: SolveParams) -> int:
         return self.random_seed if self.random_seed is not None else params.seed
@@ -1970,7 +1944,7 @@ class _LegacyProfile:
 # ---------------------------------------------------------------------------
 
 
-def layouts_for(candidate: "Candidate", envelope_polygon: Sequence[Pt]) -> Tuple["CellLayout", ...]:
+def layouts_for(candidate: Candidate, envelope_polygon: Sequence[Pt]) -> tuple[CellLayout, ...]:
     """One :class:`services.solver.walls.CellLayout` per storey of a candidate.
 
     Pure adapter: groups placements by storey and hands them to
@@ -1981,7 +1955,7 @@ def layouts_for(candidate: "Candidate", envelope_polygon: Sequence[Pt]) -> Tuple
     from services.solver.walls import CellLayout
 
     min_x, min_y, _, _ = bbox(tuple(envelope_polygon))
-    by_storey: Dict[int, List[RoomPlacement]] = {}
+    by_storey: dict[int, list[RoomPlacement]] = {}
     for placement in candidate.placements:
         by_storey.setdefault(placement.storey_index, []).append(placement)
     return tuple(

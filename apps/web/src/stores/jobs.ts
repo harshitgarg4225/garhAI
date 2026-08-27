@@ -88,7 +88,8 @@ const KIND_NOUN: Readonly<Record<JobKind, string>> = {
 function jobFailure(kind: JobKind, message: string | null): ProblemDetail {
   return {
     code: `${kind}_job_failed`,
-    message: message === null || message === '' ? `The ${KIND_NOUN[kind]} did not finish.` : message,
+    message:
+      message === null || message === '' ? `The ${KIND_NOUN[kind]} did not finish.` : message,
     action:
       kind === 'solver'
         ? 'Try again — if it keeps failing, loosen a brief requirement and re-run.'
@@ -397,9 +398,7 @@ export const useJobsStore = create<JobsState>()((set, get) => ({
 // Helpers that need `set`
 // ---------------------------------------------------------------------------
 
-type SetState = (
-  partial: Partial<JobsState> | ((state: JobsState) => Partial<JobsState>),
-) => void;
+type SetState = (partial: Partial<JobsState> | ((state: JobsState) => Partial<JobsState>)) => void;
 
 function applyJob(set: SetState, projectId: string | null, job: Job): void {
   if (projectId === null) return;
@@ -429,7 +428,7 @@ async function refetch(
 
 /** Queue position, when the worker put one in the event payload. */
 function readQueuePosition(event: ProgressEvent): number | null {
-  const raw = event.data['queuePosition'];
+  const raw = event.data.queuePosition;
   return typeof raw === 'number' && Number.isInteger(raw) ? raw : null;
 }
 

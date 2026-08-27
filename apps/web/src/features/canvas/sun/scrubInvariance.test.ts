@@ -84,7 +84,17 @@ describe('sun scrub — geometry invariance', () => {
 
   it('an empty model has no extent — fit and shadows must teach, not invent', () => {
     const empty = makeTwoRoomPlan();
-    expect(buildingExtentOf({ ...empty.house, walls: [], slabs: [], rooms: [], balconies: [], columns: [], stairs: [] })).toBeNull();
+    expect(
+      buildingExtentOf({
+        ...empty.house,
+        walls: [],
+        slabs: [],
+        rooms: [],
+        balconies: [],
+        columns: [],
+        stairs: [],
+      }),
+    ).toBeNull();
   });
 
   it('initialSunFields is deterministic for a pinned clock', () => {

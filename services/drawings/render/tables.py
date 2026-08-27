@@ -32,7 +32,8 @@ both appear and neither is guessed. Formatting comes from
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from services.drawings.layers import A_AREA, A_TEXT, A_TITL
 from services.drawings.render.primitives import (
@@ -71,7 +72,7 @@ class Column(tuple):
 
     __slots__ = ()
 
-    def __new__(cls, title: str, width_mm: int, align: str = "left") -> "Column":
+    def __new__(cls, title: str, width_mm: int, align: str = "left") -> Column:
         if align not in ("left", "right", "centre"):
             raise ValueError("column align must be left|right|centre, got %r" % align)
         return super().__new__(cls, (title, int(width_mm), align))
@@ -123,14 +124,14 @@ def table_primitives(
     columns: Sequence[Column],
     rows: Sequence[Sequence[str]],
     *,
-    origin_mm: Tuple[int, int],
+    origin_mm: tuple[int, int],
     row_height_mm: int = SCHEDULE_ROW_HEIGHT_MM,
     header_height_mm: int = _HEADER_HEIGHT_MM,
     title: str = "",
     grid_layer: str = A_TITL,
     value_layer: str = A_TEXT,
     emphasise_rows: Sequence[int] = (),
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """A ruled table. Grid lines on ``grid_layer``, cell text on ``value_layer``.
 
     Grid lines go on ``A-TITL`` by default rather than a geometry layer: a table is
@@ -144,7 +145,7 @@ def table_primitives(
         raise ValueError("a table needs at least one column")
     width = sum(column.width_mm for column in columns)
     x0, y0 = origin_mm
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     top = y0
 
     if title:
@@ -205,7 +206,7 @@ def table_primitives(
             )
         y = top + header_height_mm + row_index * row_height_mm
         x = x0
-        for column, value in zip(columns, row):
+        for column, value in zip(columns, row, strict=False):
             out.append(
                 _cell_text(
                     x,
@@ -231,10 +232,10 @@ _KIND_LABELS = {"door": "Door", "window": "Window", "ventilator": "Ventilator"}
 def schedule_table(
     rows: Sequence[Any],
     *,
-    storey_labels: Sequence[Tuple[str, str]] = (),
-    origin_mm: Tuple[int, int] = (25, 25),
+    storey_labels: Sequence[tuple[str, str]] = (),
+    origin_mm: tuple[int, int] = (25, 25),
     title: str = "DOOR & WINDOW SCHEDULE",
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """Render :class:`~services.drawings.sheets.ScheduleRow` records.
 
     ``storey_labels`` is ``[(storey_id, label)]`` in building order and decides both the
@@ -242,7 +243,7 @@ def schedule_table(
     ``counts_by_storey``' keys) is deliberate: dict order would make the column order
     depend on insertion history, and the goldens are byte-compared.
     """
-    columns: List[Column] = [
+    columns: list[Column] = [
         Column("TAG", 20, "centre"),
         Column("TYPE", 36),
         Column("WIDTH (mm)", 30, "right"),
@@ -254,7 +255,7 @@ def schedule_table(
     columns.append(Column("TOTAL", 22, "right"))
     columns.append(Column("REMARKS", 60))
 
-    body: List[List[str]] = []
+    body: list[list[str]] = []
     for row in rows:
         cells = [
             row.tag,
@@ -284,23 +285,21 @@ def schedule_table(
 def schedule_group(
     rows: Sequence[Any],
     *,
-    storey_labels: Sequence[Tuple[str, str]] = (),
-    origin_mm: Tuple[int, int] = (25, 25),
+    storey_labels: Sequence[tuple[str, str]] = (),
+    origin_mm: tuple[int, int] = (25, 25),
     group_id: str = "schedule",
 ) -> DrawingGroup:
     return DrawingGroup(
         id=group_id,
         placement=Placement.paper(),
-        primitives=schedule_table(
-            rows, storey_labels=storey_labels, origin_mm=origin_mm
-        ),
+        primitives=schedule_table(rows, storey_labels=storey_labels, origin_mm=origin_mm),
     )
 
 
 # ---------------------------------------------------------------------------
 # Area statement
 # ---------------------------------------------------------------------------
-def format_area_dual(mm2: Optional[int]) -> str:
+def format_area_dual(mm2: int | None) -> str:
     """``"245.20 m² (2,639.3 ft²)"`` — m² for the municipality, ft² for the client.
 
     Both come from :mod:`garh_model.units`, whose formatters are golden-tested against
@@ -339,9 +338,9 @@ def _format_allowed(row: Any) -> str:
 def area_statement_table(
     statement: Any,
     *,
-    origin_mm: Tuple[int, int] = (25, 25),
+    origin_mm: tuple[int, int] = (25, 25),
     title: str = "AREA STATEMENT",
-) -> Tuple[Primitive, ...]:
+) -> tuple[Primitive, ...]:
     """Render a :class:`garh_rules.areas.AreaStatement`. Formats only — never computes.
 
     The ``note`` column carries the statement's own achieved-vs-allowed ratio note (for
@@ -361,10 +360,10 @@ def area_statement_table(
         Column("PERMISSIBLE / REQUIRED", 92, "right"),
         Column("NOTE / AUTHORITY", 121),
     ]
-    body: List[List[str]] = []
-    emphasise: List[int] = []
+    body: list[list[str]] = []
+    emphasise: list[int] = []
     for row in statement.rows():
-        note_parts: List[str] = []
+        note_parts: list[str] = []
         if row.note:
             note_parts.append(str(row.note))
         if row.rule_ids:
@@ -372,13 +371,11 @@ def area_statement_table(
         limit_label = row.limit_label
         if limit_label and row.allowed is not None:
             note_parts.insert(0, limit_label)
-        body.append(
-            [row.label, _format_value(row), _format_allowed(row), " · ".join(note_parts)]
-        )
+        body.append([row.label, _format_value(row), _format_allowed(row), " · ".join(note_parts)])
         if row.key in ("built_up_total", "far", "coverage"):
             emphasise.append(len(body) - 1)
 
-    out: List[Primitive] = list(
+    out: list[Primitive] = list(
         table_primitives(
             columns,
             body,
@@ -420,7 +417,7 @@ def area_statement_table(
 def area_statement_group(
     statement: Any,
     *,
-    origin_mm: Tuple[int, int] = (25, 25),
+    origin_mm: tuple[int, int] = (25, 25),
     group_id: str = "area-statement",
 ) -> DrawingGroup:
     return DrawingGroup(

@@ -23,7 +23,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["dev", "test", "staging", "prod"]
 LlmProvider = Literal["mock", "anthropic"]
-RenderProvider = Literal["mock", "diffusers"]
+RenderProvider = Literal["mock", "diffusers", "stability"]
 RenderDevice = Literal["cpu", "cuda"]
 LogFormat = Literal["json", "console"]
 WorkerName = Literal["solver", "render", "drawings"]
@@ -54,6 +54,9 @@ class WorkerSettings(BaseSettings):
     log_level: str = "INFO"
     log_format: LogFormat = "json"
     sentry_dsn: str = ""
+    #: Fraction of transactions traced when SENTRY_DSN is set (inert otherwise).
+    #: Same default and same env name as the API's field — one knob, both sides.
+    sentry_traces_sample_rate: float = Field(default=0.1, ge=0.0, le=1.0)
 
     # -- identity: which of the three workers is this process? -------------
     #: Set per service in docker-compose.yml. Also the structlog ``service`` field.
@@ -90,7 +93,7 @@ class WorkerSettings(BaseSettings):
     #: Lease renewal cadence; must be well under the visibility timeout.
     worker_heartbeat_interval_seconds: int = Field(default=30, ge=1, le=3_600)
     #: §18: "/healthz per service, worker queue-depth metric".
-    worker_health_host: str = "0.0.0.0"  # noqa: S104 - container-local health port
+    worker_health_host: str = "0.0.0.0"
     worker_health_port: int = Field(default=8081, ge=0, le=65_535)
 
     # -- progress & events --------------------------------------------------
@@ -111,7 +114,9 @@ class WorkerSettings(BaseSettings):
     # -- LLM provider (§10) -------------------------------------------------
     provider_llm: LlmProvider = "mock"
     anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-5"
+    # Current-generation default. Kept in lockstep with garh_api.config —
+    # the copilot runs in the API process, workers read this copy.
+    anthropic_model: str = "claude-opus-5"
     anthropic_base_url: str = "https://api.anthropic.com"
     anthropic_version: str = "2023-06-01"
     llm_max_output_tokens: int = Field(default=8_192, ge=256, le=200_000)
@@ -138,6 +143,17 @@ class WorkerSettings(BaseSettings):
     render_output_height: int = Field(default=1_152, ge=256, le=8_192)
     render_safety_checker: bool = True
     render_timeout_seconds: int = Field(default=180, ge=1, le=3_600)
+
+    # -- hosted render API (PROVIDER_RENDER=stability) ----------------------
+    #: Required when PROVIDER_RENDER=stability; the factory refuses to build the
+    #: provider without it. Secret — masked by :meth:`redacted`, never logged.
+    stability_api_key: str = ""
+    #: Overridable for a proxy, mirroring ``anthropic_base_url``. The provider posts
+    #: to ``/v2beta/stable-image/...`` relative to this.
+    stability_base_url: str = "https://api.stability.ai"
+    #: Per-HTTP-call budget. Deliberately under ``render_timeout_seconds`` (the job
+    #: budget) so a hung upstream fails as a provider error, not a job timeout.
+    stability_timeout_seconds: int = Field(default=120, ge=1, le=900)
 
     # -- solver (§5.2) -------------------------------------------------------
     solver_num_search_workers: int = Field(default=8, ge=1, le=64)
@@ -235,7 +251,7 @@ class WorkerSettings(BaseSettings):
 
     def redacted(self) -> dict[str, Any]:
         """Boot-time config dump with secrets masked."""
-        secret_fields = {"anthropic_api_key", "sentry_dsn"}
+        secret_fields = {"anthropic_api_key", "sentry_dsn", "stability_api_key"}
         out: dict[str, Any] = {}
         for name, value in self.model_dump().items():
             if name in secret_fields:
@@ -268,6 +284,7 @@ SHARED_ENV_NAMES: tuple[str, ...] = (
     "LOG_LEVEL",
     "LOG_FORMAT",
     "SENTRY_DSN",
+    "SENTRY_TRACES_SAMPLE_RATE",
     "REDIS_URL",
     "QUEUE_SOLVER",
     "QUEUE_RENDER",

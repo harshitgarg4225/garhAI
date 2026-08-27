@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import Field, StrictBool, StrictInt, StrictStr, field_validator
 
@@ -35,10 +35,10 @@ class ProjectCreate(CamelModel):
 
     name: StrictStr = Field(min_length=1, max_length=_MAX_NAME_LENGTH)
     units: StrictStr = Field(default="ft-in", description="Display units: ft-in | m.")
-    city_pack: Optional[StrictStr] = Field(
+    city_pack: StrictStr | None = Field(
         default=None, description="Rule pack id, e.g. 'blr'. Null = nbc-core only."
     )
-    architect_of_record: Optional[uuid.UUID] = Field(
+    architect_of_record: uuid.UUID | None = Field(
         default=None,
         description="Must be a member of your firm (Architects Act 1972 — only a "
         "registered architect signs a submission).",
@@ -67,11 +67,11 @@ class ProjectCreate(CamelModel):
 class ProjectUpdate(CamelModel):
     """``PATCH /projects/:id``. Absent field = leave alone (never "set to null")."""
 
-    name: Optional[StrictStr] = Field(default=None, min_length=1, max_length=_MAX_NAME_LENGTH)
-    status: Optional[StrictStr] = None
-    units: Optional[StrictStr] = None
-    city_pack: Optional[StrictStr] = None
-    architect_of_record: Optional[uuid.UUID] = None
+    name: StrictStr | None = Field(default=None, min_length=1, max_length=_MAX_NAME_LENGTH)
+    status: StrictStr | None = None
+    units: StrictStr | None = None
+    city_pack: StrictStr | None = None
+    architect_of_record: uuid.UUID | None = None
     clear_architect_of_record: StrictBool = Field(
         default=False,
         description="Explicit clear — a null cannot mean both 'unchanged' and 'remove'.",
@@ -79,7 +79,7 @@ class ProjectUpdate(CamelModel):
 
     @field_validator("units")
     @classmethod
-    def _check_units(cls, value: Optional[str]) -> Optional[str]:
+    def _check_units(cls, value: str | None) -> str | None:
         from garh_api import models
 
         if value is not None and value not in models.PROJECT_UNITS:
@@ -88,7 +88,7 @@ class ProjectUpdate(CamelModel):
 
     @field_validator("status")
     @classmethod
-    def _check_status(cls, value: Optional[str]) -> Optional[str]:
+    def _check_status(cls, value: str | None) -> str | None:
         from garh_api import models
 
         if value is not None and value not in models.PROJECT_STATUSES:
@@ -101,14 +101,14 @@ class ProjectOut(ResponseModel):
     name: StrictStr
     status: StrictStr
     units: StrictStr
-    city_pack: Optional[StrictStr] = None
-    architect_of_record: Optional[uuid.UUID] = None
+    city_pack: StrictStr | None = None
+    architect_of_record: uuid.UUID | None = None
     demo: StrictBool = False
     created_at: datetime
     updated_at: datetime
 
     @classmethod
-    def of(cls, project: Any) -> "ProjectOut":
+    def of(cls, project: Any) -> ProjectOut:
         return cls(
             id=project.id,
             name=project.name,
@@ -131,13 +131,13 @@ class ProjectDetailOut(ResponseModel):
     """
 
     project: ProjectOut
-    plot: Optional["PlotOut"] = None
-    brief: Optional["BriefOut"] = None
+    plot: PlotOut | None = None
+    brief: BriefOut | None = None
     version_branch: uuid.UUID
     head_idx: StrictInt = Field(
         description="Highest op index on the active branch; -1 when no ops exist yet."
     )
-    latest_version: Optional["VersionOut"] = None
+    latest_version: VersionOut | None = None
     open_comment_count: StrictInt = 0
 
 
@@ -154,28 +154,28 @@ class PlotIn(CamelModel):
     core's ``plot.set_boundary`` with an empty polygon.
     """
 
-    boundary: Optional[list[PointMm]] = None
-    north_deg: Optional[StrictInt] = Field(
+    boundary: list[PointMm] | None = None
+    north_deg: StrictInt | None = Field(
         default=None, ge=0, le=359, description="True north, degrees clockwise from +Y."
     )
-    roads: Optional[list[RoadEdge]] = None
-    reg_profile: Optional[dict[str, Any]] = Field(
+    roads: list[RoadEdge] | None = None
+    reg_profile: dict[str, Any] | None = Field(
         default=None,
         description="Resolved regulatory profile (city pack id + overrides). Overrides "
         "are audited.",
     )
-    source: Optional[StrictStr] = Field(default=None, description="manual | dxf | seed")
+    source: StrictStr | None = Field(default=None, description="manual | dxf | seed")
 
     @field_validator("boundary")
     @classmethod
-    def _check_ring(cls, value: Optional[list[PointMm]]) -> Optional[list[PointMm]]:
+    def _check_ring(cls, value: list[PointMm] | None) -> list[PointMm] | None:
         if value is not None and 0 < len(value) < 3:
             raise ValueError("A plot boundary needs at least 3 points (or none, to clear it).")
         return value
 
     @field_validator("source")
     @classmethod
-    def _check_source(cls, value: Optional[str]) -> Optional[str]:
+    def _check_source(cls, value: str | None) -> str | None:
         from garh_api import models
 
         if value is not None and value not in models.PLOT_SOURCES:
@@ -194,7 +194,7 @@ class PlotOut(ResponseModel):
     updated_at: datetime
 
     @classmethod
-    def of(cls, plot: Any) -> "PlotOut":
+    def of(cls, plot: Any) -> PlotOut:
         return cls(
             id=plot.id,
             project_id=plot.project_id,
@@ -222,17 +222,17 @@ class BriefIn(CamelModel):
     the form and the copilot share one write path.
     """
 
-    data: Optional[dict[str, Any]] = None
+    data: dict[str, Any] | None = None
     merge: StrictBool = Field(
         default=False,
         description="True = treat 'data' as an RFC 7386 merge-patch (null deletes a key).",
     )
-    vastu_mode: Optional[StrictStr] = Field(default=None, description="off | advisory | strict")
-    completeness: Optional[StrictInt] = Field(default=None, ge=0, le=100)
+    vastu_mode: StrictStr | None = Field(default=None, description="off | advisory | strict")
+    completeness: StrictInt | None = Field(default=None, ge=0, le=100)
 
     @field_validator("vastu_mode")
     @classmethod
-    def _check_mode(cls, value: Optional[str]) -> Optional[str]:
+    def _check_mode(cls, value: str | None) -> str | None:
         from garh_api import models
 
         if value is not None and value not in models.VASTU_MODES:
@@ -249,7 +249,7 @@ class BriefOut(ResponseModel):
     updated_at: datetime
 
     @classmethod
-    def of(cls, brief: Any) -> "BriefOut":
+    def of(cls, brief: Any) -> BriefOut:
         return cls(
             id=brief.id,
             project_id=brief.project_id,
@@ -283,7 +283,7 @@ class BriefAssumption(ResponseModel):
     field: StrictStr
     value: Any = None
     reason: StrictStr
-    cite: Optional[StrictStr] = None
+    cite: StrictStr | None = None
 
 
 class BriefParseOut(ResponseModel):
@@ -294,7 +294,7 @@ class BriefParseOut(ResponseModel):
     assumptions: list[BriefAssumption] = Field(default_factory=list)
     completeness: StrictInt = Field(default=0, ge=0, le=100)
     applied: StrictBool = False
-    brief: Optional[BriefOut] = None
+    brief: BriefOut | None = None
     warnings: list[StrictStr] = Field(default_factory=list)
 
 
@@ -312,18 +312,18 @@ class VersionCreate(CamelModel):
 class VersionOut(ResponseModel):
     id: uuid.UUID
     project_id: uuid.UUID
-    name: Optional[StrictStr] = None
+    name: StrictStr | None = None
     kind: StrictStr = Field(description="auto | named | option")
-    parent_id: Optional[uuid.UUID] = None
+    parent_id: uuid.UUID | None = None
     version_branch: uuid.UUID
-    op_seq_start: Optional[StrictInt] = None
-    op_seq_end: Optional[StrictInt] = None
-    snapshot_hash: Optional[StrictStr] = None
+    op_seq_start: StrictInt | None = None
+    op_seq_end: StrictInt | None = None
+    snapshot_hash: StrictStr | None = None
     has_snapshot: StrictBool = False
     created_at: datetime
 
     @classmethod
-    def of(cls, version: Any) -> "VersionOut":
+    def of(cls, version: Any) -> VersionOut:
         return cls(
             id=version.id,
             project_id=version.project_id,
@@ -351,7 +351,7 @@ class VersionRestoreOut(ResponseModel):
     version_branch: uuid.UUID
     head_idx: StrictInt
     ops_copied: StrictInt
-    state_hash: Optional[StrictStr] = None
+    state_hash: StrictStr | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -369,25 +369,25 @@ class ComplianceOut(ResponseModel):
 
     evaluated: StrictBool = False
     project_id: uuid.UUID
-    design_version_id: Optional[uuid.UUID] = None
-    report_id: Optional[uuid.UUID] = None
+    design_version_id: uuid.UUID | None = None
+    report_id: uuid.UUID | None = None
     pack_versions: dict[str, Any] = Field(default_factory=dict)
     results: list[dict[str, Any]] = Field(default_factory=list)
     counts: dict[str, StrictInt] = Field(default_factory=dict)
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
     live: StrictBool = Field(
         default=False,
         description="True when this run happened just now against the working state and "
         "was NOT persisted. False means it is the frozen report for a design version — "
         "the same numbers the sheets and the share link quote (§7).",
     )
-    reason: Optional[StrictStr] = Field(
+    reason: StrictStr | None = Field(
         default=None,
         description="Present only when evaluated=False: why the rules could not run "
         "(usually 'no plot boundary yet'). This is what the UI shows instead of a badge; "
         "'not checked' and 'checked and clean' must never look the same (§15).",
     )
-    worst_status: Optional[StrictStr] = Field(
+    worst_status: StrictStr | None = Field(
         default=None,
         description="pass | warn | fail | not_applicable across every rule, so the chip "
         "strip needs no client-side reduction.",
@@ -399,7 +399,7 @@ class ComplianceOut(ResponseModel):
     )
 
     @classmethod
-    def of(cls, project_id: uuid.UUID, report: Any) -> "ComplianceOut":
+    def of(cls, project_id: uuid.UUID, report: Any) -> ComplianceOut:
         results = list(report.results)
         counts = {"pass": 0, "warn": 0, "fail": 0, "not_applicable": 0}
         for item in results:
@@ -424,7 +424,7 @@ class ComplianceOut(ResponseModel):
         project_id: uuid.UUID,
         payload: dict[str, Any],
         pack_versions: dict[str, Any],
-    ) -> "ComplianceOut":
+    ) -> ComplianceOut:
         """An unpersisted run against the current working state.
 
         Named ``live_run`` rather than ``live`` because the model already has a FIELD
@@ -451,9 +451,7 @@ class ComplianceOut(ResponseModel):
             pack_versions=dict(pack_versions),
             results=results,
             counts=counts,
-            worst_status=(
-                str(payload.get("worstStatus")) if payload.get("worstStatus") else None
-            ),
+            worst_status=(str(payload.get("worstStatus")) if payload.get("worstStatus") else None),
             notes=[str(n) for n in (payload.get("notes") or [])],
         )
 
@@ -461,10 +459,10 @@ class ComplianceOut(ResponseModel):
     def not_evaluated(
         cls,
         project_id: uuid.UUID,
-        design_version_id: Optional[uuid.UUID],
+        design_version_id: uuid.UUID | None,
         *,
-        reason: Optional[str] = None,
-    ) -> "ComplianceOut":
+        reason: str | None = None,
+    ) -> ComplianceOut:
         return cls(
             evaluated=False,
             project_id=project_id,
@@ -482,7 +480,7 @@ class ComplianceOut(ResponseModel):
 
 class CommentIn(CamelModel):
     body: StrictStr = Field(min_length=1, max_length=4000)
-    author_name: Optional[StrictStr] = Field(default=None, max_length=200)
+    author_name: StrictStr | None = Field(default=None, max_length=200)
     anchor: dict[str, Any] = Field(
         default_factory=dict,
         description="Where the pin sits: {kind, sheetId?, elementId?, ptMm?}.",
@@ -500,7 +498,7 @@ class CommentOut(ResponseModel):
     created_at: datetime
 
     @classmethod
-    def of(cls, comment: Any) -> "CommentOut":
+    def of(cls, comment: Any) -> CommentOut:
         return cls(
             id=comment.id,
             project_id=comment.project_id,
@@ -526,13 +524,13 @@ class ShareCreate(CamelModel):
     timestamp for a UI that offers "7 days / 30 days / no expiry".
     """
 
-    sections: Optional[list[StrictStr]] = Field(default=None, max_length=8)
+    sections: list[StrictStr] | None = Field(default=None, max_length=8)
     can_comment: StrictBool = True
-    expires_in_days: Optional[StrictInt] = Field(default=30, ge=1, le=365)
+    expires_in_days: StrictInt | None = Field(default=30, ge=1, le=365)
 
     @field_validator("sections")
     @classmethod
-    def _check_sections(cls, value: Optional[list[str]]) -> Optional[list[str]]:
+    def _check_sections(cls, value: list[str] | None) -> list[str] | None:
         from garh_api.repositories.share_links import SHARE_SECTIONS
 
         if value is None:
@@ -554,12 +552,12 @@ class ShareLinkOut(ResponseModel):
     project_id: uuid.UUID
     sections: list[StrictStr] = Field(default_factory=list)
     can_comment: StrictBool = False
-    expires_at: Optional[datetime] = None
+    expires_at: datetime | None = None
     revoked: StrictBool = False
     created_at: datetime
-    token: Optional[StrictStr] = None
-    url: Optional[StrictStr] = None
-    whatsapp_url: Optional[StrictStr] = Field(
+    token: StrictStr | None = None
+    url: StrictStr | None = None
+    whatsapp_url: StrictStr | None = Field(
         default=None, description="wa.me deep link with a preformatted message (§15)."
     )
 
@@ -568,10 +566,10 @@ class ShareLinkOut(ResponseModel):
         cls,
         link: Any,
         *,
-        token: Optional[str] = None,
-        url: Optional[str] = None,
-        whatsapp_url: Optional[str] = None,
-    ) -> "ShareLinkOut":
+        token: str | None = None,
+        url: str | None = None,
+        whatsapp_url: str | None = None,
+    ) -> ShareLinkOut:
         scope = dict(link.scope)
         raw_sections = scope.get("sections")
         return cls(
@@ -597,11 +595,11 @@ class SharedProjectOut(ResponseModel):
 
     project_name: StrictStr
     units: StrictStr
-    city_pack: Optional[StrictStr] = None
+    city_pack: StrictStr | None = None
     sections: list[StrictStr] = Field(default_factory=list)
     can_comment: StrictBool = False
-    expires_at: Optional[datetime] = None
-    design_version_id: Optional[uuid.UUID] = None
+    expires_at: datetime | None = None
+    design_version_id: uuid.UUID | None = None
     updated_at: datetime
 
 

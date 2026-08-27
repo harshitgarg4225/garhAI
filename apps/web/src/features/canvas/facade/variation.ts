@@ -48,7 +48,7 @@ export function variantIndex(seed: number, key: string, count: number): number {
  */
 export function pickVariant<T>(seed: number, key: string, variants: readonly T[], fallback: T): T {
   const picked = variants[variantIndex(seed, key, variants.length)];
-  return picked === undefined ? fallback : picked;
+  return picked ?? fallback;
 }
 
 /**

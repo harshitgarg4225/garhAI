@@ -440,7 +440,8 @@ export function ProjectShell(): JSX.Element {
       toast({
         severity: 'pass',
         title: 'Link revoked',
-        description: 'It stopped working the moment you clicked — anyone holding it sees a dead link.',
+        description:
+          'It stopped working the moment you clicked — anyone holding it sees a dead link.',
       });
     } catch (err) {
       const problem = toProblem(err);

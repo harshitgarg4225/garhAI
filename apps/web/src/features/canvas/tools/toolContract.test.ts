@@ -267,12 +267,14 @@ describe('the §12 keyboard map', () => {
     mods: Parameters<typeof ev>[1] = {},
     options: { mac?: boolean; inCanvas?: boolean } = {},
   ): CommandId | null {
-    return matchBinding(ev(k, mods), { mac: options.mac ?? true, inCanvas: options.inCanvas ?? true })
-      ?.command ?? null;
+    return (
+      matchBinding(ev(k, mods), { mac: options.mac ?? true, inCanvas: options.inCanvas ?? true })
+        ?.command ?? null
+    );
   }
 
   it('binds V W D N S B M F to the eight tools', () => {
-    const expected: ReadonlyArray<readonly [string, CommandId]> = [
+    const expected: readonly (readonly [string, CommandId])[] = [
       ['v', 'tool.select'],
       ['w', 'tool.wall'],
       ['d', 'tool.door'],

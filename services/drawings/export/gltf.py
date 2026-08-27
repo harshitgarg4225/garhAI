@@ -44,7 +44,8 @@ from __future__ import annotations
 import base64
 import json
 import struct
-from typing import Any, Dict, List, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 __all__ = [
     "GLB_MAGIC",
@@ -66,7 +67,7 @@ _UNSIGNED_INT = 5125
 
 #: Material colours. Deliberately neutral: a renderer artist replaces them, and a
 #: guessed "brick red" is worse than a grey they were going to change anyway.
-_MATERIALS: Tuple[Tuple[str, Tuple[float, float, float, float], float, float], ...] = (
+_MATERIALS: tuple[tuple[str, tuple[float, float, float, float], float, float], ...] = (
     ("Wall", (0.87, 0.86, 0.83, 1.0), 0.0, 0.85),
     ("Slab", (0.78, 0.78, 0.78, 1.0), 0.0, 0.9),
     ("Stair", (0.72, 0.72, 0.70, 1.0), 0.0, 0.85),
@@ -88,14 +89,14 @@ class MeshGroup:
     def __init__(self, name: str, material: str) -> None:
         self.name = name
         self.material = material
-        self.positions: List[Tuple[int, int, int]] = []
-        self.indices: List[int] = []
+        self.positions: list[tuple[int, int, int]] = []
+        self.indices: list[int] = []
 
     def add_triangle(
         self,
-        a: Tuple[int, int, int],
-        b: Tuple[int, int, int],
-        c: Tuple[int, int, int],
+        a: tuple[int, int, int],
+        b: tuple[int, int, int],
+        c: tuple[int, int, int],
     ) -> None:
         base = len(self.positions)
         self.positions.extend((a, b, c))
@@ -103,18 +104,18 @@ class MeshGroup:
 
     def add_quad(
         self,
-        a: Tuple[int, int, int],
-        b: Tuple[int, int, int],
-        c: Tuple[int, int, int],
-        d: Tuple[int, int, int],
+        a: tuple[int, int, int],
+        b: tuple[int, int, int],
+        c: tuple[int, int, int],
+        d: tuple[int, int, int],
     ) -> None:
         self.add_triangle(a, b, c)
         self.add_triangle(a, c, d)
 
     def add_box(
         self,
-        min_corner: Tuple[int, int, int],
-        max_corner: Tuple[int, int, int],
+        min_corner: tuple[int, int, int],
+        max_corner: tuple[int, int, int],
     ) -> None:
         """An axis-aligned box, six quads, every face wound CCW **seen from outside**.
 
@@ -145,9 +146,7 @@ class MeshGroup:
         # outward +X
         self.add_quad((x1, y0, z0), (x1, y1, z0), (x1, y1, z1), (x1, y0, z1))
 
-    def add_prism(
-        self, ring: Sequence[Tuple[int, int]], z0: int, z1: int
-    ) -> None:
+    def add_prism(self, ring: Sequence[tuple[int, int]], z0: int, z1: int) -> None:
         """Extrude a closed 2D ring between two heights (slabs, plinth, parapet)."""
         if len(ring) < 3 or z1 <= z0:
             return
@@ -169,7 +168,7 @@ class MeshGroup:
         return not self.indices
 
 
-def _vertex(point: Tuple[int, int, int]) -> Tuple[float, float, float]:
+def _vertex(point: tuple[int, int, int]) -> tuple[float, float, float]:
     """Model mm (X east, Y north, Z up) -> glTF metres (X, Y up, Z south).
 
     The one place millimetres become metres and Z-up becomes Y-up. Both conversions in
@@ -186,9 +185,9 @@ def _is_horizontal(wall: Any) -> bool:
     return wall.a.y == wall.b.y
 
 
-def _wall_solid_and_opening_spans(house: Any, wall: Any) -> Tuple[
-    List[Tuple[int, int]], List[Tuple[int, int, Any]]
-]:
+def _wall_solid_and_opening_spans(
+    house: Any, wall: Any
+) -> tuple[list[tuple[int, int]], list[tuple[int, int, Any]]]:
     """``(solid spans, [(lo, hi, opening)])`` along the wall's axis."""
     if _is_horizontal(wall):
         lo, hi = min(wall.a.x, wall.b.x), max(wall.a.x, wall.b.x)
@@ -199,7 +198,7 @@ def _wall_solid_and_opening_spans(house: Any, wall: Any) -> Tuple[
         step = 1 if wall.b.y >= wall.a.y else -1
         origin = wall.a.y
 
-    openings: List[Tuple[int, int, Any]] = []
+    openings: list[tuple[int, int, Any]] = []
     for opening in sorted(
         (o for o in house.openings if o.wall_id == wall.id), key=lambda o: o.offset_mm
     ):
@@ -208,7 +207,7 @@ def _wall_solid_and_opening_spans(house: Any, wall: Any) -> Tuple[
         openings.append((max(lo, centre - half), min(hi, centre + half), opening))
     openings.sort(key=lambda item: item[0])
 
-    solids: List[Tuple[int, int]] = []
+    solids: list[tuple[int, int]] = []
     cursor = lo
     for start, end, _opening in openings:
         if start > cursor:
@@ -219,9 +218,9 @@ def _wall_solid_and_opening_spans(house: Any, wall: Any) -> Tuple[
     return (solids, openings)
 
 
-def _wall_box(wall: Any, span: Tuple[int, int], z0: int, z1: int) -> Tuple[
-    Tuple[int, int, int], Tuple[int, int, int]
-]:
+def _wall_box(
+    wall: Any, span: tuple[int, int], z0: int, z1: int
+) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
     half = wall.thickness_mm // 2
     line = wall.a.y if _is_horizontal(wall) else wall.a.x
     lo, hi = span
@@ -240,7 +239,7 @@ def _storey_ffl_mm(house: Any, index: int) -> int:
     return ffl
 
 
-def _collect_groups(doc: Any) -> List[MeshGroup]:
+def _collect_groups(doc: Any) -> list[MeshGroup]:
     """Walls (opening-cut), slabs, stairs, plinth and parapet, as five mesh groups."""
     house = doc.house
     walls = MeshGroup("Walls", "Wall")
@@ -338,7 +337,7 @@ def _add_stair_solid(group: MeshGroup, stair: Any, ffl: int) -> None:
 
 
 def _add_parapet_ring(
-    group: MeshGroup, ring: Sequence[Tuple[int, int]], z0: int, z1: int, thickness_mm: int
+    group: MeshGroup, ring: Sequence[tuple[int, int]], z0: int, z1: int, thickness_mm: int
 ) -> None:
     """A parapet as one box per ring edge. Corners double up, which is invisible."""
     count = len(ring)
@@ -367,7 +366,7 @@ def _pad4(data: bytearray, filler: int = 0) -> None:
 
 def build_gltf(
     doc: Any, *, name: str = "garh-model", embed_buffer: bool = False
-) -> Tuple[Dict[str, Any], bytes]:
+) -> tuple[dict[str, Any], bytes]:
     """Build the glTF JSON and its binary buffer from a folded model.
 
     Returns ``(gltf_dict, buffer_bytes)``. With ``embed_buffer`` the buffer is inlined
@@ -376,10 +375,10 @@ def build_gltf(
     """
     groups = _collect_groups(doc)
     buffer = bytearray()
-    accessors: List[Dict[str, Any]] = []
-    buffer_views: List[Dict[str, Any]] = []
-    meshes: List[Dict[str, Any]] = []
-    nodes: List[Dict[str, Any]] = []
+    accessors: list[dict[str, Any]] = []
+    buffer_views: list[dict[str, Any]] = []
+    meshes: list[dict[str, Any]] = []
+    nodes: list[dict[str, Any]] = []
 
     for group in groups:
         # -- indices ------------------------------------------------------
@@ -389,8 +388,7 @@ def build_gltf(
         index_length = len(buffer) - index_offset
         _pad4(buffer)
         buffer_views.append(
-            {"buffer": 0, "byteOffset": index_offset, "byteLength": index_length,
-             "target": 34963}
+            {"buffer": 0, "byteOffset": index_offset, "byteLength": index_length, "target": 34963}
         )
         accessors.append(
             {
@@ -412,8 +410,12 @@ def build_gltf(
         position_length = len(buffer) - position_offset
         _pad4(buffer)
         buffer_views.append(
-            {"buffer": 0, "byteOffset": position_offset, "byteLength": position_length,
-             "target": 34962}
+            {
+                "buffer": 0,
+                "byteOffset": position_offset,
+                "byteLength": position_length,
+                "target": 34962,
+            }
         )
         xs = [v[0] for v in vertices]
         ys = [v[1] for v in vertices]
@@ -460,7 +462,7 @@ def build_gltf(
         for material_name, colour, metallic, roughness in _MATERIALS
     ]
 
-    gltf: Dict[str, Any] = {
+    gltf: dict[str, Any] = {
         # No generator version string and no timestamp: this file is byte-compared in
         # the same spirit as the SVG goldens.
         "asset": {"version": "2.0", "generator": "garh-drawings"},
@@ -485,7 +487,7 @@ def build_gltf(
     return (gltf, bytes(buffer))
 
 
-def validate_gltf(gltf: Dict[str, Any], buffer: bytes) -> None:
+def validate_gltf(gltf: dict[str, Any], buffer: bytes) -> None:
     """Check the parts of glTF 2.0 that break importers. Raises on the first problem.
 
     Not a full spec validator — a full validator is a dependency. These are the checks
@@ -504,8 +506,7 @@ def validate_gltf(gltf: Dict[str, Any], buffer: bytes) -> None:
     has_uri = "uri" in gltf["buffers"][0]
     if not has_uri and declared != len(buffer):
         raise GltfValidationError(
-            "buffer.byteLength is %d but the binary chunk is %d bytes"
-            % (declared, len(buffer))
+            "buffer.byteLength is %d but the binary chunk is %d bytes" % (declared, len(buffer))
         )
 
     for index, view in enumerate(gltf["bufferViews"]):
@@ -552,8 +553,7 @@ def validate_gltf(gltf: Dict[str, Any], buffer: bytes) -> None:
         for primitive_index, primitive in enumerate(mesh["primitives"]):
             if "POSITION" not in primitive["attributes"]:
                 raise GltfValidationError(
-                    "meshes[%d].primitives[%d] has no POSITION attribute"
-                    % (index, primitive_index)
+                    "meshes[%d].primitives[%d] has no POSITION attribute" % (index, primitive_index)
                 )
             if primitive.get("mode", 4) != 4:
                 raise GltfValidationError(
@@ -576,8 +576,7 @@ def validate_gltf(gltf: Dict[str, Any], buffer: bytes) -> None:
     scene = gltf["scenes"][int(gltf.get("scene", 0))]
     for node_index in scene["nodes"]:
         if node_index >= len(gltf["nodes"]):
-            raise GltfValidationError("scene references node %d, which does not exist"
-                                      % node_index)
+            raise GltfValidationError("scene references node %d, which does not exist" % node_index)
 
 
 def write_glb_bytes(doc: Any, *, name: str = "garh-model") -> bytes:
@@ -591,9 +590,7 @@ def write_glb_bytes(doc: Any, *, name: str = "garh-model") -> bytes:
     validate_gltf(gltf, buffer)
 
     json_chunk = bytearray(
-        json.dumps(gltf, separators=(",", ":"), sort_keys=True, ensure_ascii=True).encode(
-            "utf-8"
-        )
+        json.dumps(gltf, separators=(",", ":"), sort_keys=True, ensure_ascii=True).encode("utf-8")
     )
     # The spec pads the JSON chunk with SPACES and the BIN chunk with ZEROS. Padding
     # JSON with zeros makes strict parsers choke on a trailing NUL.
@@ -612,7 +609,7 @@ def write_glb_bytes(doc: Any, *, name: str = "garh-model") -> bytes:
     return bytes(out)
 
 
-def write_glb(doc: Any, path: str, *, name: str = "garh-model") -> Dict[str, Any]:
+def write_glb(doc: Any, path: str, *, name: str = "garh-model") -> dict[str, Any]:
     """Write a GLB to ``path`` and return a summary for the job result."""
     data = write_glb_bytes(doc, name=name)
     with open(path, "wb") as stream:

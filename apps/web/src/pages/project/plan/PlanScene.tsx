@@ -420,11 +420,7 @@ export function PlanScene({
         layer="balcony"
         material={materials.balconyFill}
       />
-      <LineLayer
-        positions={balconyLinePositions}
-        layer="balcony"
-        material={materials.symbolLine}
-      />
+      <LineLayer positions={balconyLinePositions} layer="balcony" material={materials.symbolLine} />
       <MergedLayer
         faces={wallFaces}
         kind="wall"

@@ -104,9 +104,9 @@ test.describe('@renders Phase 7 DoD — AI renders', () => {
   test('capture → mock render → result → edit a wall → stale banner', async ({ page, request }) => {
     const providers = ((await meta(request)).providers ?? {}) as Record<string, string>;
     test.skip(
-      providers['render'] !== 'mock',
+      providers.render !== 'mock',
       [
-        `The stack's render provider is "${providers['render'] ?? 'unknown'}", not "mock".`,
+        `The stack's render provider is "${providers.render ?? 'unknown'}", not "mock".`,
         'A diffusion render takes minutes and needs a GPU; this spec asserts the §9 PIPELINE',
         '(capture → job → version pinning → stale), which the mock provider exercises fully.',
         'Run the stack with PROVIDER_RENDER=mock.',
@@ -222,7 +222,7 @@ test.describe('@renders Phase 7 DoD — AI renders', () => {
             );
             if (!response.ok()) return 'http-' + String(response.status());
             const body = (await response.json()) as {
-              items: Array<{ status: string; outputUrl: string | null; designVersionId: string | null }>;
+              items: { status: string; outputUrl: string | null; designVersionId: string | null }[];
             };
             const row = body.items[0];
             if (row === undefined) return 'no-row';
@@ -286,7 +286,7 @@ test.describe('@renders Phase 7 DoD — AI renders', () => {
               { headers: { Authorization: `Bearer ${token}` } },
             );
             if (!response.ok()) return false;
-            const body = (await response.json()) as { items: Array<{ stale: boolean }> };
+            const body = (await response.json()) as { items: { stale: boolean }[] };
             return body.items.every((row) => row.stale);
           },
           {
@@ -318,7 +318,7 @@ test.describe('@renders Phase 7 DoD — AI renders', () => {
     expectNoConsoleErrors(consoleErrors);
   });
 
-  test('the 8-shot client pack', async () => {
+  test('the 8-shot client pack', () => {
     test.skip(
       true,
       [

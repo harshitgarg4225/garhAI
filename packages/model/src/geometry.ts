@@ -564,9 +564,7 @@ export function segmentsProperlyCross(s1: Seg, s2: Seg): boolean {
 
 /** True when two segments describe the same line segment (either direction). */
 export function segmentsIdentical(s1: Seg, s2: Seg): boolean {
-  return (
-    (ptEq(s1.a, s2.a) && ptEq(s1.b, s2.b)) || (ptEq(s1.a, s2.b) && ptEq(s1.b, s2.a))
-  );
+  return (ptEq(s1.a, s2.a) && ptEq(s1.b, s2.b)) || (ptEq(s1.a, s2.b) && ptEq(s1.b, s2.a));
 }
 
 /**

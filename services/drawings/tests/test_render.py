@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 for _path in (_REPO_ROOT, os.path.join(_REPO_ROOT, "apps", "api")):
@@ -32,6 +32,7 @@ STUBBED = install_worker_dep_stubs()
 from garh_model.fold import apply_group  # noqa: E402
 from garh_model.model import empty_project_doc  # noqa: E402
 from garh_model.ops import Op  # noqa: E402
+
 from services.drawings.dimensions import (  # noqa: E402
     ChainConsistencyError,
     DimChain,
@@ -82,21 +83,21 @@ RULEPACK_DIR = os.path.join(_REPO_ROOT, "rulepacks")
 # ---------------------------------------------------------------------------
 # Corpus loading (shared by several tests; cached so the suite stays fast)
 # ---------------------------------------------------------------------------
-_CACHE: Dict[str, Any] = {}
+_CACHE: dict[str, Any] = {}
 
 
-def _fixtures() -> List[Tuple[str, Dict[str, Any]]]:
+def _fixtures() -> list[tuple[str, dict[str, Any]]]:
     out = []
     for name in sorted(os.listdir(INPUT_DIR)):
         if not name.endswith(".json"):
             continue
-        with open(os.path.join(INPUT_DIR, name), "r", encoding="utf-8") as handle:
+        with open(os.path.join(INPUT_DIR, name), encoding="utf-8") as handle:
             out.append((name, json.load(handle)))
     assert out, "fixtures/sheets/inputs/ is empty — the renderer has nothing to prove on"
     return out
 
 
-def _fold(fixture: Dict[str, Any]) -> Any:
+def _fold(fixture: dict[str, Any]) -> Any:
     ops = [Op.from_json(raw) for raw in fixture["ops"]]
     return apply_group(empty_project_doc(fixture.get("unitsDisplay", "ft-in")), ops).model
 
@@ -110,7 +111,7 @@ def _statement(doc: Any) -> Any:
     return evaluate(context, root=RULEPACK_DIR).areas
 
 
-def _sheet_sets() -> List[Tuple[str, Any]]:
+def _sheet_sets() -> list[tuple[str, Any]]:
     if "sets" not in _CACHE:
         sets = []
         for name, fixture in _fixtures():
@@ -121,7 +122,8 @@ def _sheet_sets() -> List[Tuple[str, Any]]:
                     build_sheet_set(
                         doc,
                         title_block=TitleBlock(
-                            firm_name="Studio Demo", project_name=fixture["name"],
+                            firm_name="Studio Demo",
+                            project_name=fixture["name"],
                             date="01-01-2026",
                         ),
                         statement=_statement(doc),
@@ -158,12 +160,14 @@ def test_every_chain_sums_exactly() -> None:
                 # to the right total is necessary but not sufficient.
                 cursor = 0
                 for segment in chain.segments:
-                    assert segment.start_mm == cursor, (
-                        "%s chain %s has a gap or overlap at %d"
-                        % (name, chain.id, segment.start_mm)
+                    assert segment.start_mm == cursor, "%s chain %s has a gap or overlap at %d" % (
+                        name,
+                        chain.id,
+                        segment.start_mm,
                     )
-                    assert segment.length_mm > 0, (
-                        "%s chain %s has a zero/negative segment" % (name, chain.id)
+                    assert segment.length_mm > 0, "%s chain %s has a zero/negative segment" % (
+                        name,
+                        chain.id,
                     )
                     cursor = segment.end_mm
                 assert cursor == chain.overall_mm
@@ -194,8 +198,13 @@ def test_chain_consistency_error_is_raised_not_corrected() -> None:
 def test_dim_geometry_refuses_an_inconsistent_chain() -> None:
     """The renderer must not draw a chain whose numbers do not add up."""
     bad = DimChain(
-        id="bad", orientation="horizontal", level=1, offset_mm=0, origin_mm=0,
-        segments=(DimSegment(0, 500),), overall_mm=900,
+        id="bad",
+        orientation="horizontal",
+        level=1,
+        offset_mm=0,
+        origin_mm=0,
+        segments=(DimSegment(0, 500),),
+        overall_mm=900,
     )
     try:
         dim_geometry(Dim(chain=bad), scale_denominator=100)
@@ -244,9 +253,18 @@ def test_dim_to_jamb_flag_changes_the_opening_chain() -> None:
 # ---------------------------------------------------------------------------
 def test_div_round_is_half_away_from_zero() -> None:
     cases = (
-        (1, 2, 1), (-1, 2, -1), (3, 2, 2), (-3, 2, -2),
-        (0, 5, 0), (5, 5, 1), (4, 5, 1), (2, 5, 0), (-2, 5, 0), (-4, 5, -1),
-        (1000, 3, 333), (-1000, 3, -333),
+        (1, 2, 1),
+        (-1, 2, -1),
+        (3, 2, 2),
+        (-3, 2, -2),
+        (0, 5, 0),
+        (5, 5, 1),
+        (4, 5, 1),
+        (2, 5, 0),
+        (-2, 5, 0),
+        (-4, 5, -1),
+        (1000, 3, 333),
+        (-1000, 3, -333),
     )
     for numerator, denominator, expected in cases:
         assert div_round(numerator, denominator) == expected, (numerator, denominator)
@@ -389,9 +407,10 @@ def test_layer_groups_are_emitted_in_layers_order() -> None:
                 chunk = svg[starts[index] : starts[index + 1]]
                 layers = layer_attr.findall(chunk)
                 indices = [order[layer] for layer in layers]
-                assert indices == sorted(indices), (
-                    "%s %s: layers out of LAYERS order: %s"
-                    % (name, drawing.sheet.number, layers)
+                assert indices == sorted(indices), "%s %s: layers out of LAYERS order: %s" % (
+                    name,
+                    drawing.sheet.number,
+                    layers,
                 )
                 # No layer opens twice in one group — that would mean two draw passes.
                 assert len(layers) == len(set(layers)), layers
@@ -439,21 +458,20 @@ def test_arc_sweep_direction_survives_the_y_flip() -> None:
     flags = {}
     for flip in (True, False):
         svg = render_group_svg(
-            DrawingGroup(
-                id="g", placement=Placement(100, flip_y=flip), primitives=(arc,)
-            )
+            DrawingGroup(id="g", placement=Placement(100, flip_y=flip), primitives=(arc,))
         )
         match = re.search(r"A [0-9.]+ [0-9.]+ 0 (\d) (\d) ", svg)
         assert match is not None, svg
         flags[flip] = (match.group(1), match.group(2))
 
-    assert flags[True] == ("0", "0"), flags[True]     # 90° sweep, clockwise on paper
-    assert flags[False] == ("0", "1"), flags[False]   # ... counter-clockwise unflipped
+    assert flags[True] == ("0", "0"), flags[True]  # 90° sweep, clockwise on paper
+    assert flags[False] == ("0", "1"), flags[False]  # ... counter-clockwise unflipped
 
     # A 270° sweep must set the large-arc flag; a quarter circle must not.
     wide = render_group_svg(
-        DrawingGroup(id="g", placement=Placement(100),
-                     primitives=(Arc((0, 0), 900, 0, 270, "A-DOOR"),))
+        DrawingGroup(
+            id="g", placement=Placement(100), primitives=(Arc((0, 0), 900, 0, 270, "A-DOOR"),)
+        )
     )
     assert re.search(r"A [0-9.]+ [0-9.]+ 0 1 0 ", wide) is not None, wide
 
@@ -464,7 +482,7 @@ def test_arc_sweep_direction_survives_the_y_flip() -> None:
 def test_escape_text_handles_every_xml_metacharacter() -> None:
     assert escape_text("a & b") == "a &amp; b"
     assert escape_text("<script>") == "&lt;script&gt;"
-    assert escape_text("say \"hi\"") == "say &quot;hi&quot;"
+    assert escape_text('say "hi"') == "say &quot;hi&quot;"
     assert escape_text("it's") == "it&apos;s"
     # Ampersand is escaped first, so nothing double-escapes.
     assert escape_text("&lt;") == "&amp;lt;"
@@ -479,11 +497,11 @@ def test_hostile_room_name_cannot_produce_executable_svg() -> None:
     concrete: the whole hostile payload set goes through the real renderer.
     """
     payloads = (
-        '<script>alert(1)</script>',
+        "<script>alert(1)</script>",
         '"><script>alert(1)</script>',
         '<foreignObject><body onload="alert(1)">x</body></foreignObject>',
         "javascript:alert(1)",
-        '<img src=x onerror=alert(1)>',
+        "<img src=x onerror=alert(1)>",
         "<!ENTITY xxe SYSTEM 'file:///etc/passwd'>",
     )
     _name, fixture = _fixtures()[0]
@@ -493,8 +511,11 @@ def test_hostile_room_name_cannot_produce_executable_svg() -> None:
         drawings = build_sheet_set(
             doc,
             title_block=TitleBlock(
-                firm_name=payload, project_name=payload, client_name=payload,
-                notes=payload, date=payload,
+                firm_name=payload,
+                project_name=payload,
+                client_name=payload,
+                notes=payload,
+                date=payload,
             ),
             statement=statement,
         )
@@ -514,11 +535,11 @@ def test_hostile_room_name_cannot_produce_executable_svg() -> None:
 
 def test_assert_sanitary_catches_each_forbidden_construct() -> None:
     cases = (
-        '<svg><script>x</script></svg>',
-        '<svg><foreignObject/></svg>',
+        "<svg><script>x</script></svg>",
+        "<svg><foreignObject/></svg>",
         '<svg><text onclick="x">a</text></svg>',
         '<svg><a href="javascript:alert(1)">x</a></svg>',
-        '<!DOCTYPE svg><svg/>',
+        "<!DOCTYPE svg><svg/>",
         '<svg><image href="data:image/svg+xml,x"/></svg>',
         "<svg><text>a\x00b</text></svg>",
     )
@@ -550,9 +571,9 @@ def test_safe_id_is_deterministic_and_xml_safe() -> None:
 # Normalisation
 # ---------------------------------------------------------------------------
 def test_normalize_svg_is_idempotent_and_only_touches_whitespace() -> None:
-    raw = '<svg>\r\n  <line/>   \r\n</svg>\r\n\r\n'
+    raw = "<svg>\r\n  <line/>   \r\n</svg>\r\n\r\n"
     once = normalize_svg(raw)
-    assert once == '<svg>\n  <line/>\n</svg>\n'
+    assert once == "<svg>\n  <line/>\n</svg>\n"
     assert normalize_svg(once) == once
     # Content is untouched: ids, numbers and attribute order all survive.
     body = '<svg><g id="g-plan-x" data-layer="A-WALL"><line x1="1.000"/></g></svg>\n'
@@ -571,7 +592,7 @@ def test_no_overlapping_text_labels_on_any_sheet() -> None:
     """
     for name, drawings in _sheet_sets():
         for drawing in drawings:
-            boxes: List[LabelBox] = []
+            boxes: list[LabelBox] = []
             for group in drawing.groups:
                 for primitive in group.primitives:
                     if not isinstance(primitive, Text) or not primitive.text.strip():
@@ -584,13 +605,20 @@ def test_no_overlapping_text_labels_on_any_sheet() -> None:
                     elif primitive.anchor == "end":
                         x_um -= width
                     boxes.append(
-                        LabelBox(x_um, y_um - height, width, height,
-                                 primitive.element_id or primitive.text[:24])
+                        LabelBox(
+                            x_um,
+                            y_um - height,
+                            width,
+                            height,
+                            primitive.element_id or primitive.text[:24],
+                        )
                     )
             collisions = find_label_collisions(boxes)
-            assert not collisions, (
-                "%s sheet %s has %d overlapping label pair(s): %s"
-                % (name, drawing.sheet.number, len(collisions), collisions[:3])
+            assert not collisions, "%s sheet %s has %d overlapping label pair(s): %s" % (
+                name,
+                drawing.sheet.number,
+                len(collisions),
+                collisions[:3],
             )
 
 
@@ -612,8 +640,12 @@ def test_every_f7a_sheet_kind_is_produced() -> None:
     drawings = build_sheet_set(doc, title_block=TitleBlock(), statement=_statement(doc))
     kinds = {str(d.sheet.kind) for d in drawings}
     assert kinds == {
-        "site-plan", "floor-plan", "elevation", "section",
-        "door-window-schedule", "area-statement",
+        "site-plan",
+        "floor-plan",
+        "elevation",
+        "section",
+        "door-window-schedule",
+        "area-statement",
     }, kinds
     # All four elevations, and one plan per storey with walls.
     assert len(drawings.by_kind("elevation")) == 4
@@ -660,9 +692,7 @@ def test_inner_chains_measure_real_room_clear_dimensions() -> None:
         room = rooms[room_id]
         xs = [p.x for p in room.polygon]
         ys = [p.y for p in room.polygon]
-        expected = (max(xs) - min(xs)) if chain.orientation == "horizontal" else (
-            max(ys) - min(ys)
-        )
+        expected = (max(xs) - min(xs)) if chain.orientation == "horizontal" else (max(ys) - min(ys))
         assert chain.overall_mm == expected, (chain.id, chain.overall_mm, expected)
 
 
@@ -699,8 +729,7 @@ def test_title_block_prints_every_field_even_when_empty() -> None:
     frame = default_frame(title_block=TitleBlock(firm_name="Studio Demo"))
     group = frame_group(frame, revisions=(("A", "01-01-2026", "First issue"),))
     texts = [p.text for p in group.primitives if isinstance(p, Text)]
-    for label in ("PROJECT", "CLIENT", "ARCHITECT", "SCALE", "DATE", "DRAWN",
-                  "CHECKED", "REV"):
+    for label in ("PROJECT", "CLIENT", "ARCHITECT", "SCALE", "DATE", "DRAWN", "CHECKED", "REV"):
         assert any(label in text for text in texts), label
     assert "Studio Demo" in texts
     assert "DESCRIPTION" in texts and "First issue" in texts
@@ -753,7 +782,7 @@ def test_adapter_converts_the_real_projection_engine_output() -> None:
         assert primitive.layer in LAYER_NAMES, primitive.layer
 
     # Coordinates pass through untouched — the adapter makes no geometry decision.
-    for source, target in zip(stream, adapted):
+    for source, target in zip(stream, adapted, strict=False):
         if hasattr(source, "a") and hasattr(source, "b"):
             assert target.a == tuple(source.a) and target.b == tuple(source.b)
         elif hasattr(source, "points"):
@@ -771,8 +800,12 @@ def test_adapter_converts_the_real_projection_engine_output() -> None:
     from services.drawings.sheets import Scale, Viewport
 
     sheet = _sheet(
-        sheet_id="adapted", kind="floor-plan", number="A-02A", title="Ground Floor Plan",
-        viewport=Viewport(storey_id=storey_id), scale=Scale(100),
+        sheet_id="adapted",
+        kind="floor-plan",
+        number="A-02A",
+        title="Ground Floor Plan",
+        viewport=Viewport(storey_id=storey_id),
+        scale=Scale(100),
         title_block=TitleBlock(firm_name="Studio Demo"),
     )
     svg = render_sheet_svg(
@@ -924,7 +957,7 @@ if __name__ == "__main__":  # pragma: no cover
             try:
                 _fn()
                 print("PASS %s" % _name)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 failures += 1
                 print("FAIL %s" % _name)
                 traceback.print_exc()

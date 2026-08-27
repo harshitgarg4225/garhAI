@@ -34,10 +34,11 @@ return notes.
 from __future__ import annotations
 
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.schedules.display import (
     DASH,
@@ -71,7 +72,7 @@ __all__ = [
 #: some of these differently (``garh_model.ROOM_TYPES`` vs the packs' ``roomType``), and
 #: a statement that silently counted a terrace as carpet would overstate the number the
 #: client is buying.
-CARPET_EXCLUDED_ROOM_TYPES: Tuple[str, ...] = (
+CARPET_EXCLUDED_ROOM_TYPES: tuple[str, ...] = (
     "balcony",
     "courtyard",
     "duct",
@@ -110,7 +111,7 @@ class CarpetRow:
     counted_rooms: int
     excluded_rooms: int
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "storeyId": self.storey_id,
             "carpetAreaMm2": self.carpet_area_mm2,
@@ -121,7 +122,7 @@ class CarpetRow:
 
 def carpet_by_storey(
     source: Any, *, exclude_types: Sequence[str] = CARPET_EXCLUDED_ROOM_TYPES
-) -> Dict[str, CarpetRow]:
+) -> dict[str, CarpetRow]:
     """Carpet area per storey, from the rooms of ``source``.
 
     ``source`` is a ``garh_rules`` ``EvaluationContext`` (the same object the engine
@@ -132,11 +133,13 @@ def carpet_by_storey(
     here would be a second geometry implementation to keep in step.
     """
     excluded = frozenset(exclude_types)
-    out: Dict[str, CarpetRow] = {}
+    out: dict[str, CarpetRow] = {}
     for storey_id, room_type, area_mm2 in _rooms_of(source):
         row = out.get(storey_id)
         if row is None:
-            row = CarpetRow(storey_id=storey_id, carpet_area_mm2=0, counted_rooms=0, excluded_rooms=0)
+            row = CarpetRow(
+                storey_id=storey_id, carpet_area_mm2=0, counted_rooms=0, excluded_rooms=0
+            )
         if room_type in excluded:
             out[storey_id] = CarpetRow(
                 storey_id=storey_id,
@@ -154,7 +157,7 @@ def carpet_by_storey(
     return out
 
 
-def _rooms_of(source: Any) -> Tuple[Tuple[str, str, int], ...]:
+def _rooms_of(source: Any) -> tuple[tuple[str, str, int], ...]:
     """``(storey_id, room_type, area_mm2)`` for every room, from any supported source."""
     if isinstance(source, Mapping):
         model = source.get("model") if isinstance(source.get("model"), Mapping) else source
@@ -166,9 +169,7 @@ def _rooms_of(source: Any) -> Tuple[Tuple[str, str, int], ...]:
     summary = getattr(source, "model", None)
     if summary is not None and hasattr(summary, "rooms") and not hasattr(summary, "walls"):
         # rules EvaluationContext: raw_type is the model's spelling, type the pack's.
-        return tuple(
-            (r.storey_id, (r.raw_type or r.type), r.area_mm2) for r in summary.rooms
-        )
+        return tuple((r.storey_id, (r.raw_type or r.type), r.area_mm2) for r in summary.rooms)
     house = getattr(source, "house", source)
     rooms = getattr(house, "rooms", None)
     if rooms is None:
@@ -189,17 +190,17 @@ class StoreyLine:
     storey_id: str
     index: int
     label: str
-    built_up_area_mm2: Optional[int]
-    carpet_area_mm2: Optional[int]
+    built_up_area_mm2: int | None
+    carpet_area_mm2: int | None
 
     @property
-    def efficiency(self) -> Optional[Fraction]:
+    def efficiency(self) -> Fraction | None:
         """Carpet ÷ built-up as an exact rational — the "usable %" clients ask for."""
         if self.carpet_area_mm2 is None or not self.built_up_area_mm2:
             return None
         return Fraction(self.carpet_area_mm2, self.built_up_area_mm2)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "storeyId": self.storey_id,
             "index": self.index,
@@ -216,16 +217,16 @@ class SetbackLine:
     edge_index: int
     role: str
     provided_mm: int
-    required_mm: Optional[int]
+    required_mm: int | None
     shortfall_mm: int
     status: str
-    rule_ids: Tuple[str, ...]
+    rule_ids: tuple[str, ...]
 
     @property
     def label(self) -> str:
         return self.role.replace("-", " ").title()
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "edgeIndex": self.edge_index,
             "role": self.role,
@@ -247,9 +248,9 @@ class AreaStatementSheet:
     """
 
     statement: Any
-    storeys: Tuple[StoreyLine, ...]
-    setbacks: Tuple[SetbackLine, ...]
-    warnings: Tuple[str, ...] = ()
+    storeys: tuple[StoreyLine, ...]
+    setbacks: tuple[SetbackLine, ...]
+    warnings: tuple[str, ...] = ()
 
     # -- pass-through numbers (never recomputed) ---------------------------
     @property
@@ -261,7 +262,7 @@ class AreaStatementSheet:
         return self.statement.total_built_up_area_mm2
 
     @property
-    def total_carpet_area_mm2(self) -> Optional[int]:
+    def total_carpet_area_mm2(self) -> int | None:
         values = [line.carpet_area_mm2 for line in self.storeys]
         if any(value is None for value in values):
             return None
@@ -272,7 +273,7 @@ class AreaStatementSheet:
         return self.statement.far_achieved
 
     @property
-    def far_allowed(self) -> Optional[Fraction]:
+    def far_allowed(self) -> Fraction | None:
         return self.statement.far_allowed
 
     @property
@@ -280,19 +281,21 @@ class AreaStatementSheet:
         return self.statement.coverage_achieved
 
     @property
-    def coverage_allowed(self) -> Optional[Fraction]:
+    def coverage_allowed(self) -> Fraction | None:
         return self.statement.coverage_allowed
 
     # -- rows --------------------------------------------------------------
-    def area_rows(self) -> Tuple[AreaStatementRow, ...]:
+    def area_rows(self) -> tuple[AreaStatementRow, ...]:
         """The area-valued lines as the shared ``sheets.AreaStatementRow`` primitive.
 
         Only the mm² lines: setbacks (mm), floors and parking (counts) are not areas and
         do not belong in a row type whose field is ``area_mm2``. The full municipal
         table, including those, is :meth:`table`.
         """
-        rows: List[AreaStatementRow] = [
-            AreaStatementRow(label="Plot area", area_mm2=self.plot_area_mm2, note="As per document"),
+        rows: list[AreaStatementRow] = [
+            AreaStatementRow(
+                label="Plot area", area_mm2=self.plot_area_mm2, note="As per document"
+            ),
             AreaStatementRow(
                 label="Ground coverage",
                 area_mm2=self.statement.footprint_area_mm2,
@@ -308,9 +311,7 @@ class AreaStatementSheet:
                     note="" if line.built_up_area_mm2 is not None else "not reported by the model",
                 )
             )
-        rows.append(
-            AreaStatementRow(label="Total built-up", area_mm2=self.total_built_up_area_mm2)
-        )
+        rows.append(AreaStatementRow(label="Total built-up", area_mm2=self.total_built_up_area_mm2))
         for line in self.storeys:
             if line.carpet_area_mm2 is None:
                 continue
@@ -361,8 +362,8 @@ class AreaStatementSheet:
         self,
         *,
         title: str = "AREA STATEMENT",
-        style: Optional[TableStyle] = None,
-        origin_mm: Tuple[int, int] = (0, 0),
+        style: TableStyle | None = None,
+        origin_mm: tuple[int, int] = (0, 0),
     ) -> Table:
         """The municipal statement: description · provided · permissible/required."""
         columns = (
@@ -371,7 +372,7 @@ class AreaStatementSheet:
             Column("limit", "PERMISSIBLE / REQUIRED", "right"),
             Column("note", "REMARKS", "left"),
         )
-        rows: List[Tuple[str, str, str, str]] = [
+        rows: list[tuple[str, str, str, str]] = [
             ("Plot area", plot_area_cell(self.plot_area_mm2), DASH, "As per document"),
             (
                 "Ground coverage",
@@ -483,8 +484,8 @@ class AreaStatementSheet:
         self,
         *,
         title: str = "SETBACKS (mm)",
-        style: Optional[TableStyle] = None,
-        origin_mm: Tuple[int, int] = (0, 0),
+        style: TableStyle | None = None,
+        origin_mm: tuple[int, int] = (0, 0),
     ) -> Table:
         """The setback table on its own — the site plan prints it next to the plot."""
         columns = (
@@ -523,7 +524,7 @@ class AreaStatementSheet:
         ids = self.statement.rule_ids.get(key, ())
         return ", ".join(ids)
 
-    def footnotes(self) -> Tuple[str, ...]:
+    def footnotes(self) -> tuple[str, ...]:
         notes = [
             "Areas: m2 · sq ft (1 decimal). Lengths in mm. Plot area also in gaj "
             "(1 gaj = 1 sq yd = 9 sq ft).",
@@ -535,7 +536,7 @@ class AreaStatementSheet:
         notes.extend(self.warnings)
         return tuple(notes)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "statement": self.statement.to_json(),
             "storeys": [line.to_json() for line in self.storeys],
@@ -562,7 +563,7 @@ def build_area_statement_sheet(
     *,
     statement: Any = None,
     packs: Any = None,
-    rulepack_root: Optional[str] = None,
+    rulepack_root: str | None = None,
     carpet_source: Any = None,
     exclude_types: Sequence[str] = CARPET_EXCLUDED_ROOM_TYPES,
 ) -> AreaStatementSheet:
@@ -600,19 +601,20 @@ def build_area_statement_sheet(
                 field=getattr(error, "field", None),
             ) from error
 
-    warnings: List[str] = list(getattr(statement, "warnings", ()) or ())
+    warnings: list[str] = list(getattr(statement, "warnings", ()) or ())
 
-    carpet = carpet_by_storey(carpet_source if carpet_source is not None else source, exclude_types=exclude_types)
+    carpet = carpet_by_storey(
+        carpet_source if carpet_source is not None else source, exclude_types=exclude_types
+    )
     storey_refs = {ref.id: ref for ref in _storey_refs(source)}
 
-    lines: List[StoreyLine] = []
+    lines: list[StoreyLine] = []
     for row in statement.per_storey:
         ref = storey_refs.get(row.storey_id)
         carpet_row = carpet.get(row.storey_id)
         if carpet_row is None:
             warnings.append(
-                "%s has no rooms in the projection, so its carpet area is not stated."
-                % row.label
+                "%s has no rooms in the projection, so its carpet area is not stated." % row.label
             )
         built_up = row.built_up_area_mm2
         carpet_mm2 = carpet_row.carpet_area_mm2 if carpet_row is not None else None
@@ -655,7 +657,7 @@ def build_area_statement_sheet(
     )
 
 
-def _storey_refs(source: Any) -> Tuple[StoreyRef, ...]:
+def _storey_refs(source: Any) -> tuple[StoreyRef, ...]:
     """Storey names for the row labels; falls back to the helper's own labels."""
     try:
         return normalise_storeys(source)

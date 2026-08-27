@@ -254,7 +254,7 @@ describe('setBriefField', () => {
     expect(next).not.toBeNull();
     expect(roomCount((next as unknown as { rooms: RoomRequest[] }).rooms, 'bath_wc')).toBe(3);
     // Untouched fields survive.
-    expect((next as JsonObject)['storeys']).toBe(2);
+    expect((next as JsonObject).storeys).toBe(2);
   });
 
   it('refuses what it cannot edit instead of guessing', () => {
@@ -280,7 +280,7 @@ describe('canonicaliseParsedData', () => {
         { type: 'bedroom_master', count: 1 },
       ],
     });
-    const rooms = out['rooms'] as unknown as RoomRequest[];
+    const rooms = out.rooms as unknown as RoomRequest[];
     expect(rooms).toHaveLength(3);
     expect(rooms[0]?.type).toBe('bedroom_master');
     expect(rooms.every((r) => r.count === 1)).toBe(true);
@@ -337,7 +337,13 @@ describe('rooms helpers', () => {
   });
 
   it('withLivingDining swaps between combined and separate', () => {
-    const combined = withLivingDining([{ type: 'living', count: 1 }, { type: 'dining', count: 1 }], 'combined');
+    const combined = withLivingDining(
+      [
+        { type: 'living', count: 1 },
+        { type: 'dining', count: 1 },
+      ],
+      'combined',
+    );
     expect(roomCount(combined, 'living_dining')).toBe(1);
     expect(roomCount(combined, 'living')).toBe(0);
 

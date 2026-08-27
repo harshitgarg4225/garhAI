@@ -31,7 +31,7 @@ poison the solver.
 from __future__ import annotations
 
 import math
-from typing import Sequence
+from collections.abc import Sequence
 
 from services.common.assumptions import Assumption
 from services.common.logging import get_logger
@@ -83,8 +83,7 @@ def offset_polygon_inward(polygon: Polygon, setbacks_mm: Sequence[int]) -> Polyg
     if len(setbacks_mm) != count:
         raise EnvelopeError(
             "The setbacks don't line up with the plot's edges.",
-            detail="%d setbacks for %d edges (after collinear dedupe)"
-            % (len(setbacks_mm), count),
+            detail="%d setbacks for %d edges (after collinear dedupe)" % (len(setbacks_mm), count),
         )
     if any(value < 0 for value in setbacks_mm):
         raise EnvelopeError(
@@ -272,11 +271,9 @@ def _validate(envelope: Polygon, plot: Polygon, setbacks: Sequence[int]) -> None
     envelope_area = area_mm2(envelope)
     if envelope_area < MIN_ENVELOPE_AREA_MM2:
         raise EnvelopeError(
-            "After setbacks there's only %.1f m2 left to build on."
-            % (envelope_area / 1_000_000.0),
+            "After setbacks there's only %.1f m2 left to build on." % (envelope_area / 1_000_000.0),
             action="Reduce the setbacks, or check the plot dimensions.",
-            detail="envelope area %d mm2 < minimum %d mm2"
-            % (envelope_area, MIN_ENVELOPE_AREA_MM2),
+            detail="envelope area %d mm2 < minimum %d mm2" % (envelope_area, MIN_ENVELOPE_AREA_MM2),
         )
 
     # An inward offset that escapes the plot means the maths went wrong, not that the

@@ -222,7 +222,10 @@ export function generateFacadeComponents(
 ): FacadeComponentSpec[] {
   const out: FacadeComponentSpec[] = [];
   const taken = new Set<string>();
-  const mint = (kind: FacadeComponentSpec['kind'], anchorKey: string): FacadeComponentSpec['id'] => {
+  const mint = (
+    kind: FacadeComponentSpec['kind'],
+    anchorKey: string,
+  ): FacadeComponentSpec['id'] => {
     const id = derivedIdUnique(
       'facadecomp',
       `facade|${kit.id}|${String(seed)}|${kind}|${anchorKey}`,
@@ -334,7 +337,12 @@ export function generateFacadeComponents(
       }
       // Seeded, rule-legal alignment: centred on the anchor, or flushed to the
       // wall end nearest it. Both keep the band on the picked bay.
-      const align = pickVariant(seed, 'cladding-align', CLADDING_ALIGN_VARIANTS, 'centre-on-anchor');
+      const align = pickVariant(
+        seed,
+        'cladding-align',
+        CLADDING_ALIGN_VARIANTS,
+        'centre-on-anchor',
+      );
       const half = Math.floor(cladding.widthMm / 2);
       let centreMm: number;
       if (align === 'flush-to-near-end') {
@@ -426,7 +434,12 @@ export function kitFitIssues(house: HouseModel, kit: FacadeKitDef): KitFitIssue[
   const issues: KitFitIssue[] = [];
   const ground = house.storeys[0];
   if (ground === undefined) {
-    return [{ severity: 'blocker', text: 'Add a storey and draw external walls first — the facade dresses them.' }];
+    return [
+      {
+        severity: 'blocker',
+        text: 'Add a storey and draw external walls first — the facade dresses them.',
+      },
+    ];
   }
   const walls = externalWallsOf(house, ground.id);
   if (walls.length === 0) {
@@ -443,7 +456,10 @@ export function kitFitIssues(house: HouseModel, kit: FacadeKitDef): KitFitIssue[
   }
 
   if (findEntryDoor(house, ground) === null) {
-    issues.push({ severity: 'note', text: 'No door on an external wall yet — the porch will be skipped.' });
+    issues.push({
+      severity: 'note',
+      text: 'No door on an external wall yet — the porch will be skipped.',
+    });
   }
 
   if (

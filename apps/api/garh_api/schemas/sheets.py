@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import Field, StrictBool, StrictInt, StrictStr, field_validator
 
@@ -78,11 +78,11 @@ class TitleBlockFields(CamelModel):
     drawn_by: StrictStr = Field(default="", max_length=64)
     checked_by: StrictStr = Field(default="", max_length=64)
     notes: StrictStr = Field(default="", max_length=240)
-    logo_url: Optional[StrictStr] = Field(default=None, max_length=512)
+    logo_url: StrictStr | None = Field(default=None, max_length=512)
 
     @field_validator("logo_url")
     @classmethod
-    def _https_only(cls, value: Optional[str]) -> Optional[str]:
+    def _https_only(cls, value: str | None) -> str | None:
         """A logo is fetched by the renderer and printed on a submission drawing.
 
         Refusing ``javascript:``/``data:`` here is not theatre: the value travels into
@@ -115,7 +115,7 @@ class DrawingPreferencesIn(CamelModel):
     )
     default_scale_denominator: StrictInt = Field(default=100, ge=1, le=2000)
     default_sheet_size: StrictStr = Field(default="A2", max_length=8)
-    revisions: List[RevisionRow] = Field(default_factory=list, max_length=MAX_REVISION_ROWS)
+    revisions: list[RevisionRow] = Field(default_factory=list, max_length=MAX_REVISION_ROWS)
 
     @field_validator("sheet_number_prefix")
     @classmethod
@@ -134,11 +134,11 @@ class DrawingPreferencesOut(ResponseModel):
     sheet_number_prefix: StrictStr = "A"
     default_scale_denominator: StrictInt = 100
     default_sheet_size: StrictStr = "A2"
-    revisions: List[RevisionRow] = Field(default_factory=list)
+    revisions: list[RevisionRow] = Field(default_factory=list)
     #: ``firm`` when the firm has saved a template, ``defaults`` when it has not.
     #: Shown as a chip, because golden rule 4 wants every default visible.
     source: StrictStr = "defaults"
-    firm_logo_url: Optional[StrictStr] = None
+    firm_logo_url: StrictStr | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -155,20 +155,20 @@ class AnnotationOut(ResponseModel):
     #: The op log's own annotation id (``annotation_01J…``). **This** is what the client
     #: passes as op 32's ``id`` to re-attach or delete — the ``id`` above is the
     #: projection row's UUID and is not addressable by an op.
-    model_annotation_id: Optional[StrictStr] = None
+    model_annotation_id: StrictStr | None = None
     sheet_id: uuid.UUID
-    sheet_slug: Optional[StrictStr] = None
-    sheet_number: Optional[StrictStr] = None
-    sheet_kind: Optional[StrictStr] = None
-    anchor_element_id: Optional[StrictStr] = None
+    sheet_slug: StrictStr | None = None
+    sheet_number: StrictStr | None = None
+    sheet_kind: StrictStr | None = None
+    anchor_element_id: StrictStr | None = None
     anchor_kind: StrictStr = "element"
     #: Annotation content as authored by op 32: ``{text, leader, style}``.
-    payload: Dict[str, Any] = Field(default_factory=dict)
+    payload: dict[str, Any] = Field(default_factory=dict)
     orphaned: StrictBool = False
     #: Present only for orphans: the element ids still drawn on that sheet, which is
     #: what the re-attach picker offers. The whole model would be unusable on a G+2.
-    reattach_candidates: List[StrictStr] = Field(default_factory=list)
-    created_at: Optional[datetime] = None
+    reattach_candidates: list[StrictStr] = Field(default_factory=list)
+    created_at: datetime | None = None
 
     @classmethod
     def of(
@@ -176,8 +176,8 @@ class AnnotationOut(ResponseModel):
         annotation: Any,
         *,
         sheet: Any = None,
-        reattach_candidates: Optional[List[str]] = None,
-    ) -> "AnnotationOut":
+        reattach_candidates: list[str] | None = None,
+    ) -> AnnotationOut:
         layout = dict(getattr(sheet, "layout", {}) or {}) if sheet is not None else {}
         payload = dict(annotation.payload or {})
         # The projection's bookkeeping key is lifted into its own field rather than
@@ -213,8 +213,8 @@ class ReviewTrayOut(ResponseModel):
     """``GET /projects/{id}/sheets/review-tray`` — the D13 surface, honestly scoped."""
 
     project_id: uuid.UUID
-    design_version_id: Optional[uuid.UUID] = None
-    orphaned: List[AnnotationOut] = Field(default_factory=list)
+    design_version_id: uuid.UUID | None = None
+    orphaned: list[AnnotationOut] = Field(default_factory=list)
     #: Anchored annotations, so the tray can say "3 of 11 notes need attention".
     attached_count: StrictInt = 0
     policy: StrictStr = NO_FUZZY_REANCHOR_POLICY
@@ -239,18 +239,18 @@ class SheetContentOut(ResponseModel):
     """
 
     sheet_id: uuid.UUID
-    slug: Optional[StrictStr] = None
-    number: Optional[StrictStr] = None
-    title: Optional[StrictStr] = None
+    slug: StrictStr | None = None
+    number: StrictStr | None = None
+    title: StrictStr | None = None
     kind: StrictStr
-    scale_denominator: Optional[StrictInt] = None
-    paper: Optional[StrictStr] = None
+    scale_denominator: StrictInt | None = None
+    paper: StrictStr | None = None
     #: Paper millimetres, for the viewer's initial fit.
-    width_mm: Optional[StrictInt] = None
-    height_mm: Optional[StrictInt] = None
+    width_mm: StrictInt | None = None
+    height_mm: StrictInt | None = None
     svg: StrictStr
     bytes: StrictInt = 0
-    generated_at: Optional[datetime] = None
+    generated_at: datetime | None = None
 
 
 class SheetSetSummaryOut(ResponseModel):
@@ -263,15 +263,15 @@ class SheetSetSummaryOut(ResponseModel):
     """
 
     project_id: uuid.UUID
-    design_version_id: Optional[uuid.UUID] = None
+    design_version_id: uuid.UUID | None = None
     sheet_count: StrictInt = 0
     chain_count: StrictInt = 0
     chain_sum_ok: StrictBool = True
     label_collisions: StrictInt = 0
-    skipped: List[Dict[str, Any]] = Field(default_factory=list)
-    notes: List[StrictStr] = Field(default_factory=list)
-    formats_available: List[StrictStr] = Field(default_factory=list)
-    generated_at: Optional[datetime] = None
+    skipped: list[dict[str, Any]] = Field(default_factory=list)
+    notes: list[StrictStr] = Field(default_factory=list)
+    formats_available: list[StrictStr] = Field(default_factory=list)
+    generated_at: datetime | None = None
 
 
 __all__ = [

@@ -7,9 +7,9 @@
 
 Ordering, and why it is this order:
 
-1. **Validate every input file first** — catalogue, rule packs, the demo brief. All of it
-   happens before the first write, so a typo in a fixture cannot leave a half-seeded
-   database behind.
+1. **Validate every input first** — catalogue, rule packs, the seed-authored demo brief.
+   All of it happens before the first write, so a typo in a fixture (or a float smuggled
+   into the brief) cannot leave a half-seeded database behind.
 2. **Firm + owner**, via the same ``AuthDirectoryRepository.create_firm_with_owner`` that
    signup uses. Keyed on ``demo@garh.ai``, which has a unique index — that key, not a
    "have I run before?" marker, is what makes this idempotent.
@@ -173,10 +173,14 @@ class SeedResult:
             lines.append("  %-22s %s" % (step, state))
         lines.append("")
         lines.append("  firm                   %s" % (self.firm_id or "-"))
-        lines.append("  user                   %s (%s)" % (self.user_id or "-", demo_data.DEMO_USER_EMAIL))
+        lines.append(
+            "  user                   %s (%s)" % (self.user_id or "-", demo_data.DEMO_USER_EMAIL)
+        )
         lines.append("  demo project           %s" % (self.project_id or "-"))
         lines.append("  version                %s" % (self.version_id or "-"))
-        lines.append("  op log                 %d op(s), head idx %d" % (self.ops_appended, self.head_idx))
+        lines.append(
+            "  op log                 %d op(s), head idx %d" % (self.ops_appended, self.head_idx)
+        )
         lines.append("  state hash             %s" % (self.state_hash or "-"))
         counts = self.catalog.get("counts") or {}
         lines.append(
@@ -204,10 +208,14 @@ class SeedResult:
             lines.append("  Not seeded yet — later phases own these (§17):")
             for item in self.pending:
                 lines.append(
-                    "    · %-11s Phase %-2s %s" % (item["item"], item["phase"], item["extensionPoint"])
+                    "    · %-11s Phase %-2s %s"
+                    % (item["item"], item["phase"], item["extensionPoint"])
                 )
         lines.append("")
-        lines.append("  Sign in with %s — in dev the code is echoed by POST /auth/otp." % demo_data.DEMO_USER_EMAIL)
+        lines.append(
+            "  Sign in with %s — in dev the code is echoed by POST /auth/otp."
+            % demo_data.DEMO_USER_EMAIL
+        )
         lines.append("")
         return "\n".join(lines)
 
@@ -217,9 +225,7 @@ class SeedResult:
 # ---------------------------------------------------------------------------
 
 
-async def _ensure_firm_and_owner(
-    session: AsyncSession, result: SeedResult
-) -> AuthPrincipal:
+async def _ensure_firm_and_owner(session: AsyncSession, result: SeedResult) -> AuthPrincipal:
     """Find or create the demo firm and its admin. Keyed on the user's email."""
     directory = AuthDirectoryRepository(session)
     principal = await directory.find_principal_by_email(demo_data.DEMO_USER_EMAIL)
@@ -238,9 +244,7 @@ async def _ensure_firm_and_owner(
     return principal
 
 
-def _firm_settings_patch(
-    catalog: CatalogBundle, rulepacks: RulepackRegistry
-) -> dict[str, Any]:
+def _firm_settings_patch(catalog: CatalogBundle, rulepacks: RulepackRegistry) -> dict[str, Any]:
     """What the seed records on the firm.
 
     ``rulePacks`` is the load-bearing entry: playbook §2 has no ``rulepacks`` table, and
@@ -419,12 +423,6 @@ async def seed(
     result.brief_source = brief.source
     if catalog.serving_warning:
         result.warnings.append(catalog.serving_warning)
-    if not brief.from_fixture:
-        result.warnings.append(
-            "The demo brief came from the compiled-in fallback, not %s. Mount "
-            "fixtures/ (compose does) so the demo project and golden brief 01 stay one "
-            "and the same house." % demo_data.DEMO_BRIEF_FIXTURE_ID
-        )
     unreviewed = [p["id"] for p in rulepacks.packs if p["reviewStatus"] != "reviewed"]
     if unreviewed:
         result.warnings.append(
@@ -471,7 +469,7 @@ async def seed(
             "pending": [item["item"] for item in result.pending],
         },
     )
-    _log.info("seed.completed", **{k: v for k, v in result.steps.items()})
+    _log.info("seed.completed", **dict(result.steps.items()))
     return result
 
 

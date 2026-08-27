@@ -38,8 +38,9 @@ after an unrelated edit.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.elevations.facade import wall_rect
 from services.drawings.elevations.vertical import U_AXES, u_of
@@ -83,14 +84,14 @@ WALL_CLEARANCE_MM = 100
 
 #: Mirror of ``garh_model.model.WET_ROOM_TYPES``. Duplicated rather than imported to keep
 #: this module dependency-free; ``tests/test_sections.py`` asserts the two agree.
-WET_ROOM_TYPES: Tuple[str, ...] = ("kitchen", "bath", "wc", "bath_wc", "utility")
+WET_ROOM_TYPES: tuple[str, ...] = ("kitchen", "bath", "wc", "bath_wc", "utility")
 
 #: ``axis`` → the compass direction of the cut plane's outward normal (where the viewer
 #: stands). A constant-``x`` cut is viewed from the east looking west; a constant-``y`` cut
 #: from the north looking south. Both then use the elevations' ``u = ẑ × n̂`` rule, so a
 #: section and an elevation never disagree about which way is screen-right.
-_AXIS_VIEW: Dict[str, str] = {"x": "E", "y": "N"}
-_OPPOSITE: Dict[str, str] = {"N": "SOUTH", "E": "WEST", "S": "NORTH", "W": "EAST"}
+_AXIS_VIEW: dict[str, str] = {"x": "E", "y": "N"}
+_OPPOSITE: dict[str, str] = {"N": "SOUTH", "E": "WEST", "S": "NORTH", "W": "EAST"}
 
 
 @dataclass(frozen=True)
@@ -111,15 +112,15 @@ class CutLine:
         return _OPPOSITE[self.view_direction]
 
     @property
-    def u_axis(self) -> Tuple[int, int]:
+    def u_axis(self) -> tuple[int, int]:
         return U_AXES[self.view_direction]
 
     def name(self) -> str:
         return "SECTION %s-%s" % (self.label, self.label)
 
     def endpoints(
-        self, bbox: Tuple[int, int, int, int], *, overrun_mm: int = 2_000
-    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        self, bbox: tuple[int, int, int, int], *, overrun_mm: int = 2_000
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
         """The two model-space ends of the cut, run past the building both ways.
 
         This is the form ``services.drawings.sheets.Viewport.section_line`` stores, so a
@@ -136,14 +137,14 @@ class CutLine:
             (x_hi + overrun_mm, self.position_mm),
         )
 
-    def straddles(self, rect: Tuple[int, int, int, int]) -> bool:
+    def straddles(self, rect: tuple[int, int, int, int]) -> bool:
         """Does the cut pass through this axis-aligned model rectangle?"""
         x_lo, y_lo, x_hi, y_hi = rect
         if self.axis == "x":
             return x_lo < self.position_mm < x_hi
         return y_lo < self.position_mm < y_hi
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "axis": self.axis,
             "positionMm": self.position_mm,
@@ -160,14 +161,14 @@ class SectionCandidate:
     line: CutLine
     stair_id: str
     score: int
-    breakdown: Tuple[Tuple[str, int], ...]
-    room_ids: Tuple[str, ...]
-    wet_room_ids: Tuple[str, ...]
-    opening_ids: Tuple[str, ...]
+    breakdown: tuple[tuple[str, int], ...]
+    room_ids: tuple[str, ...]
+    wet_room_ids: tuple[str, ...]
+    opening_ids: tuple[str, ...]
     along_flight: bool
     through_flight: bool
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "line": self.line.to_json(),
             "stairId": self.stair_id,
@@ -185,11 +186,11 @@ class SectionCandidate:
 class SectionChoice:
     """The winner, the field it beat, and what the reader should be told."""
 
-    best: Optional[SectionCandidate]
-    candidates: Tuple[SectionCandidate, ...]
-    notes: Tuple[str, ...]
+    best: SectionCandidate | None
+    candidates: tuple[SectionCandidate, ...]
+    notes: tuple[str, ...]
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "best": self.best.to_json() if self.best else None,
             "candidateCount": len(self.candidates),
@@ -200,18 +201,18 @@ class SectionChoice:
 # ---------------------------------------------------------------------------
 # Model reading helpers (duck-typed, no imports from the model core)
 # ---------------------------------------------------------------------------
-def _rect_of_polygon(polygon: Sequence[Any]) -> Tuple[int, int, int, int]:
+def _rect_of_polygon(polygon: Sequence[Any]) -> tuple[int, int, int, int]:
     xs = [int(p.x) for p in polygon]
     ys = [int(p.y) for p in polygon]
     return (min(xs), min(ys), max(xs), max(ys))
 
 
-def _wall_rect(wall: Any) -> Optional[Tuple[int, int, int, int]]:
+def _wall_rect(wall: Any) -> tuple[int, int, int, int] | None:
     """The wall's axis-aligned footprint — the elevations' reader, reused verbatim."""
     return wall_rect(wall)
 
 
-def _opening_rect(house: Any, opening: Any) -> Optional[Tuple[int, int, int, int]]:
+def _opening_rect(house: Any, opening: Any) -> tuple[int, int, int, int] | None:
     """Model-space rectangle of an opening: jamb to jamb along its wall, wall-thick across."""
     wall = next((w for w in house.walls if str(w.id) == str(opening.wall_id)), None)
     if wall is None:
@@ -252,7 +253,7 @@ def _clamp(value: int, lo: int, hi: int) -> int:
 # ---------------------------------------------------------------------------
 def score_candidate(house: Any, line: CutLine, geometry: StairGeometry) -> SectionCandidate:
     """Score one candidate cut against one stair. Pure integer arithmetic."""
-    breakdown: List[Tuple[str, int]] = []
+    breakdown: list[tuple[str, int]] = []
     total = 0
 
     along_flight = line.axis == _axis_of_travel(geometry.direction)
@@ -264,8 +265,8 @@ def score_candidate(house: Any, line: CutLine, geometry: StairGeometry) -> Secti
         total += SCORE_THROUGH_FLIGHT
         breakdown.append(("passes through the flight", SCORE_THROUGH_FLIGHT))
 
-    room_ids: List[str] = []
-    wet_ids: List[str] = []
+    room_ids: list[str] = []
+    wet_ids: list[str] = []
     for room in sorted(house.rooms, key=lambda r: str(r.id)):
         if len(room.polygon) < 3:
             continue
@@ -283,7 +284,7 @@ def score_candidate(house: Any, line: CutLine, geometry: StairGeometry) -> Secti
         total += points
         breakdown.append(("crosses %d room(s)" % len(room_ids), points))
 
-    opening_ids: List[str] = []
+    opening_ids: list[str] = []
     for opening in sorted(house.openings, key=lambda o: str(o.id)):
         rect = _opening_rect(house, opening)
         if rect is not None and line.straddles(rect):
@@ -333,7 +334,7 @@ def score_candidate(house: Any, line: CutLine, geometry: StairGeometry) -> Secti
     )
 
 
-def _candidate_positions(house: Any, axis: str, geometry: StairGeometry) -> Tuple[int, ...]:
+def _candidate_positions(house: Any, axis: str, geometry: StairGeometry) -> tuple[int, ...]:
     """Positions worth scoring for one axis: inside the stair, aimed at something useful.
 
     The generator is small on purpose. Every candidate must cross the stair, so the search
@@ -354,7 +355,7 @@ def _candidate_positions(house: Any, axis: str, geometry: StairGeometry) -> Tupl
         if axis == "x"
         else (geometry.flight_rect[1], geometry.flight_rect[3])
     )
-    raw: List[int] = [(f_lo + f_hi) // 2, (lo + hi) // 2]
+    raw: list[int] = [(f_lo + f_hi) // 2, (lo + hi) // 2]
     for room in house.rooms:
         if len(room.polygon) < 3:
             continue
@@ -366,7 +367,7 @@ def _candidate_positions(house: Any, axis: str, geometry: StairGeometry) -> Tupl
             continue
         raw.append((rect[0] + rect[2]) // 2 if axis == "x" else (rect[1] + rect[3]) // 2)
 
-    out: List[int] = []
+    out: list[int] = []
     for value in raw:
         clamped = _clamp(value, lo, hi)
         if clamped not in out:
@@ -400,7 +401,7 @@ def choose_section_line(house: Any, *, label: str = "A") -> SectionChoice:
             ),
         )
 
-    candidates: List[SectionCandidate] = []
+    candidates: list[SectionCandidate] = []
     for stair in stairs:
         geometry = stair_geometry(stair)
         for axis in ("x", "y"):
@@ -419,7 +420,7 @@ def choose_section_line(house: Any, *, label: str = "A") -> SectionChoice:
 
     ordered = sorted(candidates, key=lambda c: (-c.score, c.line.axis, c.line.position_mm))
     best = ordered[0]
-    notes: List[str] = [
+    notes: list[str] = [
         "Section line chosen by score: %s at %d (%d points, %d candidates considered)."
         % (best.line.axis, best.line.position_mm, best.score, len(candidates))
     ]

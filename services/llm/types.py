@@ -13,8 +13,9 @@ makes "mock and real behave identically" checkable.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal, Mapping
+from typing import Any, Literal
 
 #: Named units of LLM work. Fixture files and per-task tuning are keyed by these.
 TaskName = Literal["brief.parse", "copilot.ops", "rationale.write"]

@@ -109,7 +109,11 @@ function largestKey(list: readonly Candidate[]): string | null {
 // Component
 // ---------------------------------------------------------------------------
 
-export function DxfImportDialog({ open, onOpenChange, projectId }: DxfImportDialogProps): JSX.Element {
+export function DxfImportDialog({
+  open,
+  onOpenChange,
+  projectId,
+}: DxfImportDialogProps): JSX.Element {
   const display = useUnitsDisplay();
   const actions = usePlotActions();
   const pushToast = useUiStore((s) => s.pushToast);
@@ -219,7 +223,8 @@ export function DxfImportDialog({ open, onOpenChange, projectId }: DxfImportDial
         tone: 'error',
         title: "That boundary couldn't be applied.",
         description:
-          result.issues[0]?.message ?? 'The ring did not pass the model validation. Try another layer.',
+          result.issues[0]?.message ??
+          'The ring did not pass the model validation. Try another layer.',
       });
       return;
     }
@@ -436,7 +441,11 @@ function UnitsNote({ result }: { result: DxfImportResult }): JSX.Element | null 
 }
 
 /** What the parser dropped, and why — counted, never fatal, never hidden. */
-function SkippedNote({ skipped }: { skipped: Readonly<Record<string, number>> }): JSX.Element | null {
+function SkippedNote({
+  skipped,
+}: {
+  skipped: Readonly<Record<string, number>>;
+}): JSX.Element | null {
   const parts = Object.entries(skipped)
     .filter(([, count]) => count > 0)
     .map(([key, count]) => `${count} ${SKIPPED_LABELS[key] ?? key}`);
@@ -474,7 +483,10 @@ function RingPreview({
   // Screen y grows downward; plot y grows upward — flip so the shape reads
   // the same way the editor will draw it.
   const d = pts
-    .map((p, i) => `${i === 0 ? 'M' : 'L'}${(ox + p.x * scale).toFixed(1)} ${(SIZE - oy - p.y * scale).toFixed(1)}`)
+    .map(
+      (p, i) =>
+        `${i === 0 ? 'M' : 'L'}${(ox + p.x * scale).toFixed(1)} ${(SIZE - oy - p.y * scale).toFixed(1)}`,
+    )
     .join(' ');
   // Tokens store raw RGB channels so Tailwind can add alpha; wrap in rgb()
   // when using one directly (see packages/ui/src/tokens.css).

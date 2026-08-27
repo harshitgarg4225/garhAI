@@ -6,7 +6,6 @@ import uuid
 from typing import Any
 
 import httpx
-
 from garh_api.errors import PROBLEM_CONTENT_TYPE
 
 
@@ -29,9 +28,11 @@ def problem(response: httpx.Response) -> dict[str, Any]:
     means every test that touches an error path also checks the envelope.
     """
     content_type = response.headers.get("content-type", "")
-    assert content_type.startswith(PROBLEM_CONTENT_TYPE), (
-        "errors must be %s, got %r for %s %s"
-        % (PROBLEM_CONTENT_TYPE, content_type, response.request.method, response.request.url)
+    assert content_type.startswith(PROBLEM_CONTENT_TYPE), "errors must be %s, got %r for %s %s" % (
+        PROBLEM_CONTENT_TYPE,
+        content_type,
+        response.request.method,
+        response.request.url,
     )
     body = response.json()
     assert isinstance(body, dict), body

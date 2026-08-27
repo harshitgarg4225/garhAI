@@ -84,7 +84,7 @@ describe('Indian display defaults (§15)', () => {
   });
 
   it('parses what an architect actually types', () => {
-    expect(parseLengthMm("12'6\"")).toBe(3810);
+    expect(parseLengthMm('12\'6"')).toBe(3810);
     expect(parseLengthMm('3.8m')).toBe(3800);
     expect(parseLengthMm('2400')).toBe(2400);
   });

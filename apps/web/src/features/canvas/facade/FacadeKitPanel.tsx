@@ -102,7 +102,12 @@ export function FacadeKitPanel({ className }: FacadeKitPanelProps): JSX.Element 
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button size="sm" onClick={() => { apply(activeKit); }}>
+            <Button
+              size="sm"
+              onClick={() => {
+                apply(activeKit);
+              }}
+            >
               Regenerate
             </Button>
             <Button size="sm" variant="ghost" onClick={clear}>
@@ -165,8 +170,8 @@ export function FacadeKitPanel({ className }: FacadeKitPanelProps): JSX.Element 
       {!frontage ? (
         <p className="rounded-md border border-line bg-surface-sunken px-3 py-2 text-xs text-ink-muted">
           These previews use a sample house. Draw external walls in the plan — press{' '}
-          <kbd className="rounded border border-line px-1">W</kbd> — and the cards will preview
-          your own frontage instead.
+          <kbd className="rounded border border-line px-1">W</kbd> — and the cards will preview your
+          own frontage instead.
         </p>
       ) : null}
     </div>

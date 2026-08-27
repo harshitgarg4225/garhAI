@@ -90,7 +90,7 @@ import {
 /* ── the fixture plan ──────────────────────────────────────────────────────── */
 
 interface BasePlan {
-  ops: Array<{ type: string; payload: Record<string, unknown> }>;
+  ops: { type: string; payload: Record<string, unknown> }[];
   ids: Record<string, string>;
 }
 
@@ -99,7 +99,7 @@ const BASE_PLAN = JSON.parse(
 ) as BasePlan;
 
 /** The internal partition corpus command `copilot-05` thickens. */
-const SPINE_WALL_ID = BASE_PLAN.ids['wallSpine'] as string;
+const SPINE_WALL_ID = BASE_PLAN.ids.wallSpine as string;
 
 /**
  * Corpus command `copilot-05`, verbatim. One op, one element — easy to read in
@@ -122,9 +122,9 @@ test.describe('@copilot Phase 6 DoD — natural-language editing', () => {
   test('command → diff → apply → one op group → undo restores', async ({ page, request }) => {
     const providers = ((await meta(request)).providers ?? {}) as Record<string, string>;
     test.skip(
-      providers['llm'] !== 'mock',
+      providers.llm !== 'mock',
       [
-        `The stack's LLM provider is "${providers['llm'] ?? 'unknown'}", not "mock".`,
+        `The stack's LLM provider is "${providers.llm ?? 'unknown'}", not "mock".`,
         'This spec asserts the copilot PIPELINE against the fixture corpus; against a live',
         "provider its expectations would be a bet on a model's wording, which is not what",
         'the Phase 6 DoD claims. Run the stack with PROVIDER_LLM=mock.',
@@ -208,7 +208,7 @@ test.describe('@copilot Phase 6 DoD — natural-language editing', () => {
       const added = after.ops.filter((op) => op.idx > before.headIdx);
       expect(added, 'the op log did not grow by exactly the proposed op').toHaveLength(1);
       expect(added[0]?.type).toBe('wall.set_thickness');
-      expect(added[0]?.payload['wallId']).toBe(SPINE_WALL_ID);
+      expect(added[0]?.payload.wallId).toBe(SPINE_WALL_ID);
       expect(
         added[0]?.groupId,
         'the applied op did not carry the group id the SERVER minted for this proposal — the ' +
@@ -236,10 +236,7 @@ test.describe('@copilot Phase 6 DoD — natural-language editing', () => {
       // Scoped to the banner because the §15 apply toast ALSO offers an Undo,
       // and an unscoped locator would be a strict-mode violation for the most
       // confusing possible reason (two correct buttons).
-      await page
-        .getByRole('banner')
-        .getByRole('button', { name: 'Undo', exact: true })
-        .click();
+      await page.getByRole('banner').getByRole('button', { name: 'Undo', exact: true }).click();
       await waitForSaved(page);
 
       const model = await projectModel(request, token, projectId);

@@ -10,13 +10,7 @@
  * `buildingHeightMm` + parapet, so a fit shows the terrace wall too.
  */
 
-import {
-  buildingHeightMm,
-  type Bbox,
-  type HouseModel,
-  type Pt,
-  type Stair,
-} from '@garh/model';
+import { buildingHeightMm, type Bbox, type HouseModel, type Pt, type Stair } from '@garh/model';
 
 export interface BuildingExtent {
   readonly box: Bbox;

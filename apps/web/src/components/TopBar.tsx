@@ -248,7 +248,9 @@ export function TopBar({
         {onCopilotToggle === undefined ? null : (
           <Tooltip
             delayMs={400}
-            content={<ShortcutHint label={copilotOpen ? 'Hide the copilot' : 'Ask the copilot'} keys="/" />}
+            content={
+              <ShortcutHint label={copilotOpen ? 'Hide the copilot' : 'Ask the copilot'} keys="/" />
+            }
           >
             {/* `pressed` (→ aria-pressed) rather than two labels: a screen
                 reader should hear one control whose state changed, not two

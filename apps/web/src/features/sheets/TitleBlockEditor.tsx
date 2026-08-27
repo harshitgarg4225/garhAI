@@ -52,7 +52,11 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
-        setError(cause instanceof AppError ? `${cause.message} ${cause.action}` : 'Could not load your title block.');
+        setError(
+          cause instanceof AppError
+            ? `${cause.message} ${cause.action}`
+            : 'Could not load your title block.',
+        );
       });
     return () => controller.abort();
   }, []);
@@ -96,14 +100,24 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
 
   if (error) {
     return (
-      <p className={cn('rounded-md border border-line bg-surface p-4 text-xs text-fail-ink', className)}>
+      <p
+        className={cn(
+          'rounded-md border border-line bg-surface p-4 text-xs text-fail-ink',
+          className,
+        )}
+      >
         {error}
       </p>
     );
   }
   if (!prefs) {
     return (
-      <p className={cn('rounded-md border border-line bg-surface p-4 text-xs text-ink-muted', className)}>
+      <p
+        className={cn(
+          'rounded-md border border-line bg-surface p-4 text-xs text-ink-muted',
+          className,
+        )}
+      >
         Loading your title block…
       </p>
     );
@@ -115,7 +129,9 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
       current
         ? {
             ...current,
-            revisions: current.revisions.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+            revisions: current.revisions.map((row, i) =>
+              i === index ? { ...row, ...patch } : row,
+            ),
           }
         : current,
     );
@@ -132,7 +148,12 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
           {prefs.source === 'firm' ? 'Your firm’s template' : 'Defaults — not saved yet'}
         </Badge>
         <span className="ml-auto">
-          <Button size="sm" onClick={() => void save()} disabled={saving} data-testid="title-block-save">
+          <Button
+            size="sm"
+            onClick={() => void save()}
+            disabled={saving}
+            data-testid="title-block-save"
+          >
             {saving ? 'Saving…' : 'Save for the firm'}
           </Button>
         </span>
@@ -235,18 +256,16 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
           className="mt-0.5"
           checked={prefs.dimToJamb}
           data-testid="dim-to-jamb"
-          onChange={(e) =>
-            setPrefs((c) => (c ? { ...c, dimToJamb: e.currentTarget.checked } : c))
-          }
+          onChange={(e) => setPrefs((c) => (c ? { ...c, dimToJamb: e.currentTarget.checked } : c))}
         />
         <span>
           <span className="text-xs font-medium text-ink">
             Dimension openings to the jamb, not the centreline
           </span>
           <span className="mt-0.5 block text-2xs leading-4 text-ink-muted">
-            Off (the default) prints one dimension to each door and window centre. On prints
-            the clear opening between jambs. It changes every opening dimension on every
-            floor plan, so pick your office's habit once.
+            Off (the default) prints one dimension to each door and window centre. On prints the
+            clear opening between jambs. It changes every opening dimension on every floor plan, so
+            pick your office's habit once.
           </span>
         </span>
       </label>
@@ -255,9 +274,7 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
       <div className="border-t border-line px-4 py-3">
         <div className="flex items-center gap-2">
           <h3 className="text-xs font-semibold text-ink">Revisions</h3>
-          <span className="text-2xs text-ink-muted">
-            Printed on every sheet, newest last.
-          </span>
+          <span className="text-2xs text-ink-muted">Printed on every sheet, newest last.</span>
           <Button
             size="sm"
             variant="ghost"
@@ -288,7 +305,11 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
         ) : (
           <ul className="mt-2 space-y-2">
             {prefs.revisions.map((row, index) => (
-              <li key={index} className="flex flex-wrap items-center gap-2" data-testid="revision-row">
+              <li
+                key={index}
+                className="flex flex-wrap items-center gap-2"
+                data-testid="revision-row"
+              >
                 <Input
                   aria-label={`Revision ${index + 1} letter`}
                   className="w-16"

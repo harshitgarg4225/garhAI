@@ -366,7 +366,10 @@ describe('translateWallsOps', () => {
   const doc = makeTwoRoomPlan();
 
   it('moves both endpoints by the delta', () => {
-    const op = opOfType(translateWallsOps(doc, [FIXTURE_IDS.wallSpine], { x: 115, y: 0 })[0], 'wall.move');
+    const op = opOfType(
+      translateWallsOps(doc, [FIXTURE_IDS.wallSpine], { x: 115, y: 0 })[0],
+      'wall.move',
+    );
     expect(op.payload.a).toEqual({ x: 3115, y: 0 });
     expect(op.payload.b).toEqual({ x: 3115, y: 4000 });
   });

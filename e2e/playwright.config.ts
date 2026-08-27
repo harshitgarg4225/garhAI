@@ -60,11 +60,7 @@ export default defineConfig({
   forbidOnly: isCI,
 
   reporter: isCI
-    ? [
-        ['list'],
-        ['html', { outputFolder: '../playwright-report', open: 'never' }],
-        ['github'],
-      ]
+    ? [['list'], ['html', { outputFolder: '../playwright-report', open: 'never' }], ['github']]
     : [['list'], ['html', { outputFolder: '../playwright-report', open: 'never' }]],
 
   use: {

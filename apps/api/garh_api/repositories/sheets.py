@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import delete, select
@@ -79,16 +79,14 @@ class SheetRepository(ProjectScopedRepository[models.Sheet, Sheet]):
         _validate_kind(kind)
         await require_project_in_firm(self._session, self.firm_id, project_id)
         if design_version_id is not None:
-            await require_design_version_in_firm(
-                self._session, self.firm_id, design_version_id
-            )
+            await require_design_version_in_firm(self._session, self.firm_id, design_version_id)
         row = self._new_row(
             project_id=project_id,
             design_version_id=design_version_id,
             kind=kind,
             number=(number or "").strip() or None,
             layout=layout or {},
-            generated_at=generated_at or datetime.now(timezone.utc),
+            generated_at=generated_at or datetime.now(UTC),
         )
         await self._insert(row)
         return self.to_domain(row)
@@ -123,7 +121,7 @@ class SheetRepository(ProjectScopedRepository[models.Sheet, Sheet]):
         for row in existing:
             old_ids_by_key[(row.kind, row.number)] = row.id
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         new_rows: list[models.Sheet] = []
         for spec in sheets:
             number = spec.get("number")
@@ -177,7 +175,7 @@ class SheetRepository(ProjectScopedRepository[models.Sheet, Sheet]):
         self.ctx.require_write("editing a sheet")
         row = await self._require_row(sheet_id)
         row.layout = layout
-        row.generated_at = datetime.now(timezone.utc)
+        row.generated_at = datetime.now(UTC)
         await self.flush()
         return self.to_domain(row)
 
@@ -249,9 +247,7 @@ class AnnotationRepository(Repository[models.Annotation, Annotation]):
         await self._insert(row)
         return self.to_domain(row)
 
-    async def update_payload(
-        self, annotation_id: uuid.UUID, payload: dict[str, Any]
-    ) -> Annotation:
+    async def update_payload(self, annotation_id: uuid.UUID, payload: dict[str, Any]) -> Annotation:
         self.ctx.require_write("editing an annotation")
         row = await self._require_row(annotation_id)
         row.payload = payload
@@ -298,9 +294,7 @@ class AnnotationRepository(Repository[models.Annotation, Annotation]):
             self._log.info("annotation.orphaned", count=len(rows))
         return len(rows)
 
-    async def require_for_sheet(
-        self, sheet_id: uuid.UUID, annotation_id: uuid.UUID
-    ) -> Annotation:
+    async def require_for_sheet(self, sheet_id: uuid.UUID, annotation_id: uuid.UUID) -> Annotation:
         row = await self._first(
             self._sheet_scoped_select(sheet_id)
             .where(models.Annotation.id == annotation_id)

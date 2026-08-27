@@ -17,7 +17,8 @@ micrometres, matching the primitive vocabulary.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from services.drawings.render.primitives import Placement, div_round
 
@@ -31,7 +32,7 @@ __all__ = [
 
 #: Scales a scale rule actually carries, largest drawing first. §7's default is 1:100
 #: for floor plans; site plans usually land on 1:200 or 1:250.
-PREFERRED_SCALES: Tuple[int, ...] = (20, 25, 50, 75, 100, 125, 150, 200, 250, 500, 1000)
+PREFERRED_SCALES: tuple[int, ...] = (20, 25, 50, 75, 100, 125, 150, 200, 250, 500, 1000)
 
 
 class PaperRect(tuple):
@@ -44,7 +45,7 @@ class PaperRect(tuple):
 
     __slots__ = ()
 
-    def __new__(cls, x_mm: int, y_mm: int, width_mm: int, height_mm: int) -> "PaperRect":
+    def __new__(cls, x_mm: int, y_mm: int, width_mm: int, height_mm: int) -> PaperRect:
         if width_mm <= 0 or height_mm <= 0:
             raise ValueError(
                 "paper rect must have positive size, got %dx%d" % (width_mm, height_mm)
@@ -67,10 +68,10 @@ class PaperRect(tuple):
     def height_mm(self) -> int:
         return self[3]
 
-    def centre_mm(self) -> Tuple[int, int]:
+    def centre_mm(self) -> tuple[int, int]:
         return (self.x_mm + self.width_mm // 2, self.y_mm + self.height_mm // 2)
 
-    def inset(self, mm: int) -> "PaperRect":
+    def inset(self, mm: int) -> PaperRect:
         return PaperRect(
             self.x_mm + mm, self.y_mm + mm, self.width_mm - 2 * mm, self.height_mm - 2 * mm
         )
@@ -95,12 +96,12 @@ def content_rect(frame: Any, *, avoid_title_block: bool = True, gutter_mm: int =
 
 
 def choose_scale(
-    extent_model_mm: Tuple[int, int, int, int],
+    extent_model_mm: tuple[int, int, int, int],
     rect: PaperRect,
     *,
     margin_mm: int = 6,
     scales: Sequence[int] = PREFERRED_SCALES,
-    preferred: Optional[int] = None,
+    preferred: int | None = None,
 ) -> int:
     """Largest standard scale at which the extent fits inside ``rect``.
 
@@ -132,7 +133,7 @@ def choose_scale(
 
 
 def fit_placement(
-    extent_model_mm: Tuple[int, int, int, int],
+    extent_model_mm: tuple[int, int, int, int],
     rect: PaperRect,
     scale_denominator: int,
 ) -> Placement:

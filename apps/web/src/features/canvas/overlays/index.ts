@@ -141,12 +141,7 @@ export {
 } from './tags/tags';
 export type { RoomTagOptions, RoomTagVM, TagStyle } from './tags/tags';
 
-export {
-  overflowedLabels,
-  placeLabels,
-  shouldReplace,
-  ZOOM_REPLACE_RATIO,
-} from './tags/placement';
+export { overflowedLabels, placeLabels, shouldReplace, ZOOM_REPLACE_RATIO } from './tags/placement';
 export type {
   LabelPlacementKind,
   PlaceableLabel,
@@ -169,11 +164,7 @@ export {
   mapComplianceChips,
   markersFor,
 } from './compliance/mapping';
-export type {
-  ComplianceChipVM,
-  ComplianceFocus,
-  ComplianceMarker,
-} from './compliance/mapping';
+export type { ComplianceChipVM, ComplianceFocus, ComplianceMarker } from './compliance/mapping';
 
 export {
   COMPLIANCE_DEBOUNCE_BUDGET_MS,

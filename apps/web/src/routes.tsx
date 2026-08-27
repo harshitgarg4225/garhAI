@@ -230,7 +230,9 @@ function RequireAuth({ children }: { children: JSX.Element }): JSX.Element {
   if (status === 'authenticated') return children;
 
   // `state.from` is how the login screen sends you back where you were headed.
-  return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+  return (
+    <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />
+  );
 }
 
 /** The inverse: `/login` is pointless once you are signed in. */

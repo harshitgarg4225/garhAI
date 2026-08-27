@@ -24,12 +24,7 @@
 
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
-import {
-  formatIndianNumber,
-  formatLength,
-  tryParseLengthMm,
-  type UnitsDisplay,
-} from '@garh/model';
+import { formatIndianNumber, formatLength, tryParseLengthMm, type UnitsDisplay } from '@garh/model';
 import { cn } from './cn';
 import { CONTROL_CLASS, CONTROL_INVALID_CLASS, Field } from './Field';
 import { Icon } from './icons';
@@ -59,7 +54,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div className="relative flex items-center">
       {iconLeft !== undefined ? (
-        <Icon name={iconLeft} size={15} className="pointer-events-none absolute left-2.5 text-ink-subtle" />
+        <Icon
+          name={iconLeft}
+          size={15}
+          className="pointer-events-none absolute left-2.5 text-ink-subtle"
+        />
       ) : null}
       {prefix !== undefined ? (
         <span className="pointer-events-none absolute left-2.5 text-sm text-ink-muted garh-nums">
@@ -80,7 +79,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         {...rest}
       />
       {suffix !== undefined ? (
-        <span className="pointer-events-none absolute right-2.5 text-xs text-ink-subtle">{suffix}</span>
+        <span className="pointer-events-none absolute right-2.5 text-xs text-ink-subtle">
+          {suffix}
+        </span>
       ) : null}
     </div>
   );
@@ -227,11 +228,15 @@ export function LengthInput({
       return;
     }
     if (minMm !== undefined && mm < minMm) {
-      setError(`Needs to be at least ${formatLength(minMm, display)} (${formatIndianNumber(minMm)} mm).`);
+      setError(
+        `Needs to be at least ${formatLength(minMm, display)} (${formatIndianNumber(minMm)} mm).`,
+      );
       return;
     }
     if (maxMm !== undefined && mm > maxMm) {
-      setError(`Needs to be ${formatLength(maxMm, display)} (${formatIndianNumber(maxMm)} mm) or less.`);
+      setError(
+        `Needs to be ${formatLength(maxMm, display)} (${formatIndianNumber(maxMm)} mm) or less.`,
+      );
       return;
     }
     setError(undefined);

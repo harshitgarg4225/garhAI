@@ -7,8 +7,6 @@ no epsilon anywhere. The property tests exist to keep it that way.
 
 from __future__ import annotations
 
-from typing import List
-
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -43,7 +41,7 @@ COORD = st.integers(min_value=-50_000, max_value=50_000)
 SIZE = st.integers(min_value=1, max_value=20_000)
 
 
-def rect(x: int, y: int, w: int, h: int) -> List[Pt]:
+def rect(x: int, y: int, w: int, h: int) -> list[Pt]:
     return rect_polygon(x, y, x + w, y + h)
 
 

@@ -69,7 +69,9 @@ describe('every glyph draws something', () => {
         expect(value, `icon "${name}" has an out-of-grid coordinate ${raw}`).toBeGreaterThanOrEqual(
           -1,
         );
-        expect(value, `icon "${name}" has an out-of-grid coordinate ${raw}`).toBeLessThanOrEqual(25);
+        expect(value, `icon "${name}" has an out-of-grid coordinate ${raw}`).toBeLessThanOrEqual(
+          25,
+        );
       }
     }
   });
@@ -88,7 +90,7 @@ describe('Icon accessibility', () => {
   it('is hidden from screen readers when it has no title', () => {
     const element = Icon({ name: 'check' }) as unknown as { props: Record<string, unknown> };
     expect(element.props['aria-hidden']).toBe(true);
-    expect(element.props['role']).toBeUndefined();
+    expect(element.props.role).toBeUndefined();
   });
 
   it('becomes an img with a title when given one', () => {
@@ -96,6 +98,6 @@ describe('Icon accessibility', () => {
       props: Record<string, unknown>;
     };
     expect(element.props['aria-hidden']).toBeUndefined();
-    expect(element.props['role']).toBe('img');
+    expect(element.props.role).toBe('img');
   });
 });

@@ -24,18 +24,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { Button, Card } from '@garh/ui';
 import { PageBody } from '../../components';
-import {
-  AreaReadout,
-  PlotEditor,
-  RegProfilePanel,
-  RoadEdges,
-} from '../../features/plot';
-import {
-  BriefForm,
-  CompletenessMeter,
-  FreeTextParse,
-  VastuSelector,
-} from '../../features/brief';
+import { AreaReadout, PlotEditor, RegProfilePanel, RoadEdges } from '../../features/plot';
+import { BriefForm, CompletenessMeter, FreeTextParse, VastuSelector } from '../../features/brief';
 import { useProjectOutlet } from '../ProjectShell';
 import { DxfImportDialog } from './DxfImportDialog';
 
@@ -63,9 +53,8 @@ export function BriefPage(): JSX.Element {
               Plot
             </h2>
             <p className="mt-0.5 text-xs leading-5 text-ink-muted">
-              Draw the boundary below — or import it from a DXF your surveyor or CAD tool
-              exported. Corners drag, edge lengths are click-to-type, and every change is one
-              undo step.
+              Draw the boundary below — or import it from a DXF your surveyor or CAD tool exported.
+              Corners drag, edge lengths are click-to-type, and every change is one undo step.
             </p>
           </div>
           <AreaReadout />

@@ -40,8 +40,8 @@ buildable wall network raises :class:`WallSynthesisError` with a stable ``code``
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
 
 from services.solver.geometry import (
     Polygon,
@@ -67,7 +67,7 @@ INSET_INTERNAL_HIGH = 58
 INSET_EXTERNAL = EXTERNAL_WALL_MM
 
 #: Compass name of an axis-aligned outward normal, +Y = plot north.
-_OUTWARD_BY_NORMAL: Dict[Tuple[int, int], str] = {
+_OUTWARD_BY_NORMAL: dict[tuple[int, int], str] = {
     (0, 1): "N",
     (0, -1): "S",
     (1, 0): "E",
@@ -82,7 +82,7 @@ class WallSynthesisError(ValueError):
     theater); ``message`` is one plain sentence for the job log.
     """
 
-    def __init__(self, code: str, message: str, *, detail: Optional[str] = None) -> None:
+    def __init__(self, code: str, message: str, *, detail: str | None = None) -> None:
         super().__init__("%s — %s" % (code, message))
         self.code = code
         self.message = message
@@ -112,7 +112,7 @@ class RoomRect:
     x2: int
     y2: int
     #: Preserved id for §5.7 locked rooms; ``None`` mints a fresh one downstream.
-    room_id: Optional[str] = None
+    room_id: str | None = None
 
     @property
     def width_mm(self) -> int:
@@ -138,7 +138,7 @@ class CellLayout:
     """
 
     storey_index: int
-    rooms: Tuple[RoomRect, ...]
+    rooms: tuple[RoomRect, ...]
     snap_origin: Pt = (0, 0)
 
     @classmethod
@@ -147,7 +147,7 @@ class CellLayout:
         placements: Sequence[RoomPlacement],
         *,
         snap_origin: Pt = (0, 0),
-    ) -> "CellLayout":
+    ) -> CellLayout:
         """Snap and normalise one storey's placements. Deterministic: rooms are
         sorted by key, so input order can never leak into wall ordering or ids.
         """
@@ -161,8 +161,8 @@ class CellLayout:
                 detail="storey indices %s" % sorted(storey_indices),
             )
         ox, oy = snap_origin
-        rooms: List[RoomRect] = []
-        seen: Dict[str, bool] = {}
+        rooms: list[RoomRect] = []
+        seen: dict[str, bool] = {}
         for p in placements:
             if p.room_key in seen:
                 raise WallSynthesisError(
@@ -175,15 +175,17 @@ class CellLayout:
             x2 = snap_mm(p.x_mm + p.width_mm, origin=ox)
             y2 = snap_mm(p.y_mm + p.depth_mm, origin=oy)
             if p.room_id is not None and (
-                x1 != p.x_mm or y1 != p.y_mm or x2 != p.x_mm + p.width_mm or y2 != p.y_mm + p.depth_mm
+                x1 != p.x_mm
+                or y1 != p.y_mm
+                or x2 != p.x_mm + p.width_mm
+                or y2 != p.y_mm + p.depth_mm
             ):
                 # §5.7: a locked room's geometry is exact. If snapping would move
                 # it, the input was not module-aligned and honouring the lock is
                 # impossible — refuse rather than shift a wall the user froze.
                 raise WallSynthesisError(
                     "LOCKED_ROOM_MOVED",
-                    "Locked room %r is not on the 115mm module; refusing to move it."
-                    % p.room_key,
+                    "Locked room %r is not on the 115mm module; refusing to move it." % p.room_key,
                 )
             if x2 - x1 < FINE_MODULE_MM or y2 - y1 < FINE_MODULE_MM:
                 raise WallSynthesisError(
@@ -203,7 +205,9 @@ class CellLayout:
                 )
             )
         rooms.sort(key=lambda r: r.key)
-        return cls(storey_index=next(iter(storey_indices)), rooms=tuple(rooms), snap_origin=snap_origin)
+        return cls(
+            storey_index=next(iter(storey_indices)), rooms=tuple(rooms), snap_origin=snap_origin
+        )
 
     def room(self, key: str) -> RoomRect:
         for r in self.rooms:
@@ -211,7 +215,7 @@ class CellLayout:
                 return r
         raise KeyError(key)
 
-    def room_at(self, x: int, y: int) -> Optional[RoomRect]:
+    def room_at(self, x: int, y: int) -> RoomRect | None:
         """The room whose half-open cell ``[x1,x2) × [y1,y2)`` contains the point."""
         for r in self.rooms:
             if r.x1 <= x < r.x2 and r.y1 <= y < r.y2:
@@ -267,19 +271,17 @@ class WallNetwork:
     layout: CellLayout
     #: Footprint outline, CCW, on the building OUTER face (== layout lines).
     outline: Polygon
-    walls: Tuple[WallSpec, ...]
-    adjacencies: Tuple[AdjacencySpan, ...]
-    external_spans: Tuple[ExternalSpan, ...]
+    walls: tuple[WallSpec, ...]
+    adjacencies: tuple[AdjacencySpan, ...]
+    external_spans: tuple[ExternalSpan, ...]
 
     def wall(self, index: int) -> WallSpec:
         return self.walls[index]
 
-    def adjacencies_of(self, room_key: str) -> Tuple[AdjacencySpan, ...]:
-        return tuple(
-            s for s in self.adjacencies if room_key in (s.low_room, s.high_room)
-        )
+    def adjacencies_of(self, room_key: str) -> tuple[AdjacencySpan, ...]:
+        return tuple(s for s in self.adjacencies if room_key in (s.low_room, s.high_room))
 
-    def external_spans_of(self, room_key: str) -> Tuple[ExternalSpan, ...]:
+    def external_spans_of(self, room_key: str) -> tuple[ExternalSpan, ...]:
         return tuple(s for s in self.external_spans if s.room_key == room_key)
 
 
@@ -290,16 +292,16 @@ class WallNetwork:
 
 @dataclass(frozen=True)
 class _Grid:
-    xs: Tuple[int, ...]
-    ys: Tuple[int, ...]
+    xs: tuple[int, ...]
+    ys: tuple[int, ...]
     #: occ[col][row] = index into layout.rooms, or -1 for outside.
-    occ: Tuple[Tuple[int, ...], ...]
+    occ: tuple[tuple[int, ...], ...]
 
 
 def _build_grid(layout: CellLayout) -> _Grid:
     xs = tuple(sorted({v for r in layout.rooms for v in (r.x1, r.x2)}))
     ys = tuple(sorted({v for r in layout.rooms for v in (r.y1, r.y2)}))
-    occ: List[List[int]] = [[-1] * (len(ys) - 1) for _ in range(len(xs) - 1)]
+    occ: list[list[int]] = [[-1] * (len(ys) - 1) for _ in range(len(xs) - 1)]
     for index, room in enumerate(layout.rooms):
         for col in range(len(xs) - 1):
             if not (room.x1 <= xs[col] and xs[col + 1] <= room.x2):
@@ -331,8 +333,8 @@ class _Fragment:
     high: int
 
 
-def _fragments(layout: CellLayout, grid: _Grid) -> List[_Fragment]:
-    out: List[_Fragment] = []
+def _fragments(layout: CellLayout, grid: _Grid) -> list[_Fragment]:
+    out: list[_Fragment] = []
     cols = len(grid.xs) - 1
     rows = len(grid.ys) - 1
     for i, x in enumerate(grid.xs):
@@ -341,7 +343,9 @@ def _fragments(layout: CellLayout, grid: _Grid) -> List[_Fragment]:
             high = grid.occ[i][j] if i < cols else -1
             if low != high:
                 out.append(
-                    _Fragment(axis="v", line=x, lo=grid.ys[j], hi=grid.ys[j + 1], low=low, high=high)
+                    _Fragment(
+                        axis="v", line=x, lo=grid.ys[j], hi=grid.ys[j + 1], low=low, high=high
+                    )
                 )
     for j, y in enumerate(grid.ys):
         for i in range(cols):
@@ -349,7 +353,9 @@ def _fragments(layout: CellLayout, grid: _Grid) -> List[_Fragment]:
             high = grid.occ[i][j] if j < rows else -1
             if low != high:
                 out.append(
-                    _Fragment(axis="h", line=y, lo=grid.xs[i], hi=grid.xs[i + 1], low=low, high=high)
+                    _Fragment(
+                        axis="h", line=y, lo=grid.xs[i], hi=grid.xs[i + 1], low=low, high=high
+                    )
                 )
     return out
 
@@ -362,7 +368,7 @@ def _fragments(layout: CellLayout, grid: _Grid) -> List[_Fragment]:
 def _outline_ring(fragments: Sequence[_Fragment]) -> Polygon:
     """Chain the boundary fragments into ONE CCW ring, or refuse loudly."""
     # Directed so the interior is on the LEFT (CCW convention).
-    segments: List[Tuple[Pt, Pt]] = []
+    segments: list[tuple[Pt, Pt]] = []
     for f in fragments:
         if f.low != -1 and f.high != -1:
             continue
@@ -379,7 +385,7 @@ def _outline_ring(fragments: Sequence[_Fragment]) -> Polygon:
     if not segments:
         raise WallSynthesisError("EMPTY_STOREY", "No boundary found — no rooms?")
 
-    by_start: Dict[Pt, List[Tuple[Pt, Pt]]] = {}
+    by_start: dict[Pt, list[tuple[Pt, Pt]]] = {}
     for seg in segments:
         by_start.setdefault(seg[0], []).append(seg)
     for start, outgoing in by_start.items():
@@ -391,7 +397,7 @@ def _outline_ring(fragments: Sequence[_Fragment]) -> Polygon:
             )
 
     start = min(seg[0] for seg in segments)
-    ring: List[Pt] = [start]
+    ring: list[Pt] = [start]
     cursor = start
     used = 0
     while True:
@@ -424,7 +430,7 @@ def _outline_ring(fragments: Sequence[_Fragment]) -> Polygon:
 def _inset_ring(outline: Polygon, inset_mm: int) -> Polygon:
     """Inward offset of an axis-aligned CCW ring, mitred corners, exact ints."""
     count = len(outline)
-    lines: List[Tuple[str, int]] = []  # per edge: ('v', x') or ('h', y')
+    lines: list[tuple[str, int]] = []  # per edge: ('v', x') or ('h', y')
     for i in range(count):
         ax, ay = outline[i]
         bx, by = outline[(i + 1) % count]
@@ -442,7 +448,7 @@ def _inset_ring(outline: Polygon, inset_mm: int) -> Polygon:
                 "The footprint outline has a non-axis-aligned edge.",
                 detail="edge %s -> %s" % ((ax, ay), (bx, by)),
             )
-    vertices: List[Pt] = []
+    vertices: list[Pt] = []
     for i in range(count):
         prev_axis, prev_coord = lines[i - 1]
         cur_axis, cur_coord = lines[i]
@@ -497,9 +503,9 @@ def build_wall_network(layout: CellLayout) -> WallNetwork:
     outline = _outline_ring(fragments)
     centre_ring = _inset_ring(outline, INTERNAL_WALL_MM)  # 115 inward
 
-    walls: List[WallSpec] = []
-    adjacencies: List[AdjacencySpan] = []
-    external_spans: List[ExternalSpan] = []
+    walls: list[WallSpec] = []
+    adjacencies: list[AdjacencySpan] = []
+    external_spans: list[ExternalSpan] = []
 
     # ---- external walls: one per outline edge, centreline on the inset ring.
     # outline and centre_ring are index-aligned only if dedupe removed the same
@@ -519,7 +525,7 @@ def build_wall_network(layout: CellLayout) -> WallNetwork:
     outline = tuple(outline[(start_index + i) % count] for i in range(count))
     ring2 = tuple(ring2[(start_index + i) % count] for i in range(count))
 
-    wall_index_by_edge: Dict[Tuple[str, int], int] = {}
+    wall_index_by_edge: dict[tuple[str, int], int] = {}
     for i in range(count):
         oa, ob = outline[i], outline[(i + 1) % count]
         ca, cb = ring2[i], ring2[(i + 1) % count]
@@ -562,7 +568,7 @@ def build_wall_network(layout: CellLayout) -> WallNetwork:
     # ---- internal walls: maximal same-line runs of shared fragments.
     internal = [f for f in fragments if f.low != -1 and f.high != -1]
     internal.sort(key=lambda f: (f.axis, f.line, f.lo))
-    runs: List[List[_Fragment]] = []
+    runs: list[list[_Fragment]] = []
     for f in internal:
         if runs and _continues_run(runs[-1][-1], f):
             runs[-1].append(f)
@@ -629,12 +635,12 @@ def build_wall_network(layout: CellLayout) -> WallNetwork:
     )
 
 
-def _edge_key(axis: str, line: int, a: Pt, b: Pt) -> Tuple[str, int]:
+def _edge_key(axis: str, line: int, a: Pt, b: Pt) -> tuple[str, int]:
     return (axis, line)
 
 
 def _find_edge_wall(
-    wall_index_by_edge: Dict[Tuple[str, int], int],
+    wall_index_by_edge: dict[tuple[str, int], int],
     walls: Sequence[WallSpec],
     f: _Fragment,
 ) -> int:
@@ -664,7 +670,7 @@ def _find_edge_wall(
     )
 
 
-def _span_of(wall: WallSpec) -> Tuple[int, int]:
+def _span_of(wall: WallSpec) -> tuple[int, int]:
     if wall.axis == "v":
         lo, hi = wall.a[1], wall.b[1]
     else:
@@ -676,8 +682,8 @@ def _continues_run(prev: _Fragment, nxt: _Fragment) -> bool:
     return prev.axis == nxt.axis and prev.line == nxt.line and prev.hi == nxt.lo
 
 
-def _merge_adjacent_spans(spans: Sequence[AdjacencySpan]) -> List[AdjacencySpan]:
-    out: List[AdjacencySpan] = []
+def _merge_adjacent_spans(spans: Sequence[AdjacencySpan]) -> list[AdjacencySpan]:
+    out: list[AdjacencySpan] = []
     for s in sorted(spans, key=lambda s: (s.wall_index, s.lo)):
         if (
             out
@@ -698,8 +704,8 @@ def _merge_adjacent_spans(spans: Sequence[AdjacencySpan]) -> List[AdjacencySpan]
     return out
 
 
-def _merge_external_spans(spans: Sequence[ExternalSpan]) -> List[ExternalSpan]:
-    out: List[ExternalSpan] = []
+def _merge_external_spans(spans: Sequence[ExternalSpan]) -> list[ExternalSpan]:
+    out: list[ExternalSpan] = []
     for s in sorted(spans, key=lambda s: (s.wall_index, s.lo, s.room_key)):
         if (
             out
@@ -740,8 +746,6 @@ def clear_polygon(layout: CellLayout, network: WallNetwork, room_key: str) -> Po
 
     # Directed CCW boundary of the rect, fragment by fragment:
     # bottom (W->E), right (S->N), top (E->W), left (N->S).
-    sides: List[List[Tuple[str, int, int, int, int]]] = []  # (axis, line, lo, hi, inset)
-
     def classify(axis: str, line: int, lo: int, hi: int, *, room_is_high: bool) -> int:
         f_low, f_high = _sides_of(grid, axis, line, lo)
         other = f_low if room_is_high else f_high
@@ -749,12 +753,12 @@ def clear_polygon(layout: CellLayout, network: WallNetwork, room_key: str) -> Po
             return INSET_EXTERNAL
         return INSET_INTERNAL_HIGH if room_is_high else INSET_INTERNAL_LOW
 
-    def side_fragments(axis: str, line: int, lo: int, hi: int, *, room_is_high: bool) -> List[
-        Tuple[str, int, int, int, int]
-    ]:
+    def side_fragments(
+        axis: str, line: int, lo: int, hi: int, *, room_is_high: bool
+    ) -> list[tuple[str, int, int, int, int]]:
         cuts = [c for c in (grid.xs if axis == "h" else grid.ys) if lo < c < hi]
-        bounds = [lo] + cuts + [hi]
-        frags: List[Tuple[str, int, int, int, int]] = []
+        bounds = [lo, *cuts, hi]
+        frags: list[tuple[str, int, int, int, int]] = []
         for i in range(len(bounds) - 1):
             inset = classify(axis, line, bounds[i], bounds[i + 1], room_is_high=room_is_high)
             if frags and frags[-1][4] == inset:
@@ -770,23 +774,23 @@ def clear_polygon(layout: CellLayout, network: WallNetwork, room_key: str) -> Po
     left = side_fragments("v", room.x1, room.y1, room.y2, room_is_high=True)
     del room_index
 
-    ordered: List[Tuple[str, int, int, int, int, int]] = []  # + direction
+    ordered: list[tuple[str, int, int, int, int, int]] = []  # + direction
     for frag in bottom:
-        ordered.append(frag + (1,))
+        ordered.append((*frag, 1))
     for frag in right:
-        ordered.append(frag + (1,))
+        ordered.append((*frag, 1))
     for frag in reversed(top):
-        ordered.append(frag + (-1,))
+        ordered.append((*frag, -1))
     for frag in reversed(left):
-        ordered.append(frag + (-1,))
+        ordered.append((*frag, -1))
 
-    def displaced(frag: Tuple[str, int, int, int, int, int]) -> Tuple[str, int]:
+    def displaced(frag: tuple[str, int, int, int, int, int]) -> tuple[str, int]:
         axis, line, lo, hi, inset, direction = frag
         if axis == "h":
             return ("h", line + inset if line == room.y1 else line - inset)
         return ("v", line + inset if line == room.x1 else line - inset)
 
-    vertices: List[Pt] = []
+    vertices: list[Pt] = []
     total = len(ordered)
     for i in range(total):
         cur = ordered[i]
@@ -814,7 +818,7 @@ def clear_polygon(layout: CellLayout, network: WallNetwork, room_key: str) -> Po
     return ensure_ccw(ring)
 
 
-def _sides_of(grid: _Grid, axis: str, line: int, lo: int) -> Tuple[int, int]:
+def _sides_of(grid: _Grid, axis: str, line: int, lo: int) -> tuple[int, int]:
     """(low-side, high-side) occupants of the fragment starting at ``lo``."""
     if axis == "v":
         cols = len(grid.xs) - 1
@@ -831,7 +835,7 @@ def _sides_of(grid: _Grid, axis: str, line: int, lo: int) -> Tuple[int, int]:
     return (low, high)
 
 
-def _interval_index(cuts: Tuple[int, ...], lo: int) -> int:
+def _interval_index(cuts: tuple[int, ...], lo: int) -> int:
     for i in range(len(cuts) - 1):
         if cuts[i] <= lo < cuts[i + 1]:
             return i

@@ -20,9 +20,10 @@ from __future__ import annotations
 import functools
 import hashlib
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from services.common.config import REPO_ROOT
 from services.common.jsonschema_lite import SchemaValidator, ValidationFailure
@@ -126,8 +127,7 @@ class OpCatalog:
             for failure in self.validate_op(op):
                 failures.append(
                     ValidationFailure(
-                        path="ops[%d]%s"
-                        % (index, "." + failure.path if failure.path else ""),
+                        path="ops[%d]%s" % (index, "." + failure.path if failure.path else ""),
                         message=failure.message,
                         keyword=failure.keyword,
                     )
@@ -205,9 +205,7 @@ class OpCatalog:
             fields=tuple(fields),
         )
 
-    def _conditional_fields(
-        self, payload: Mapping[str, Any], seen: set[str]
-    ) -> list[OpField]:
+    def _conditional_fields(self, payload: Mapping[str, Any], seen: set[str]) -> list[OpField]:
         out: list[OpField] = []
         branches: list[Any] = []
         if isinstance(payload.get("allOf"), list):
@@ -233,9 +231,7 @@ class OpCatalog:
                     child = sub_properties.get(name, {})
                     described = self._describe(child) if child else "value"
                     note = " (when %s)" % condition if condition else " (conditional)"
-                    out.append(
-                        OpField(name=name, required=False, description=described + note)
-                    )
+                    out.append(OpField(name=name, required=False, description=described + note))
         return out
 
     def _deref(self, schema: Any, doc: str = OPS_SCHEMA) -> tuple[Mapping[str, Any], str]:
@@ -318,10 +314,13 @@ def _describe_number(name: str, schema: Mapping[str, Any]) -> str:
         ("exclusiveMaximum", "<"),
     ):
         value = schema.get(keyword)
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            # The full 2^53 sentinel range is noise in a prompt.
-            if abs(int(value)) < 9_007_199_254_740_991:
-                bounds.append("%s%s" % (symbol, value))
+        # The full 2^53 sentinel range is noise in a prompt.
+        if (
+            isinstance(value, int | float)
+            and not isinstance(value, bool)
+            and abs(int(value)) < 9_007_199_254_740_991
+        ):
+            bounds.append("%s%s" % (symbol, value))
     unit = "mm" if name.endswith("Mm") or "Mm" in name else ""
     if name.endswith("Mm2") or "Mm2" in name:
         unit = "mm2"

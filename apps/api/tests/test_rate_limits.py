@@ -20,7 +20,6 @@ import uuid
 from typing import Any
 
 import pytest
-
 from garh_api import ratelimit
 from garh_api.config import Settings
 from garh_api.ratelimit import (
@@ -33,6 +32,7 @@ from garh_api.ratelimit import (
     peek_rate_limit,
     reset_rate_limit,
 )
+
 from tests.helpers import problem
 
 pytestmark = pytest.mark.integration
@@ -306,7 +306,13 @@ async def test_rate_limit_headers_are_present_on_success(
 
 
 async def test_solver_limit_is_per_firm_not_global(
-    client: Any, api: str, session: Any, firm_a: Any, firm_b: Any, project_a: Any, settings: Settings
+    client: Any,
+    api: str,
+    session: Any,
+    firm_a: Any,
+    firm_b: Any,
+    project_a: Any,
+    settings: Settings,
 ) -> None:
     """One firm exhausting its budget must not throttle another firm."""
     from tests.factories import create_project, seed_plot_and_brief

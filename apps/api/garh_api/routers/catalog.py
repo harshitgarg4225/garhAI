@@ -31,14 +31,14 @@ import hashlib
 import json
 import os
 from functools import lru_cache
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Query, Response
+from pydantic import Field, StrictInt, StrictStr
 
 from garh_api.logging import get_logger
 from garh_api.routers import ApiError, TenantDep, repo_root
 from garh_api.schemas import ResponseModel
-from pydantic import Field, StrictInt, StrictStr
 
 _log = get_logger(__name__)
 
@@ -69,8 +69,8 @@ class RulePackSummary(ResponseModel):
     id: StrictStr
     name: StrictStr
     version: StrictStr
-    extends: Optional[StrictStr] = None
-    kind: Optional[StrictStr] = Field(
+    extends: StrictStr | None = None
+    kind: StrictStr | None = Field(
         default=None, description="'code' (NBC), 'city' (bye-laws) or 'advisory' (Vastu)."
     )
     selectable: bool = Field(
@@ -79,12 +79,12 @@ class RulePackSummary(ResponseModel):
         "chosen by a user — nbc-core is not a city choice.",
     )
     rule_count: StrictInt = 0
-    citations_base: Optional[StrictStr] = None
-    confidence: Optional[StrictStr] = Field(
+    citations_base: StrictStr | None = None
+    confidence: StrictStr | None = Field(
         default=None,
         description="'seed' until a reviewing architect signs the pack off (§6).",
     )
-    review_status: Optional[StrictStr] = None
+    review_status: StrictStr | None = None
 
 
 class RulePackListOut(ResponseModel):
@@ -105,7 +105,7 @@ class CatalogItemOut(ResponseModel):
     clearance_mm: StrictInt = Field(
         default=0, description="Free space this item needs in front of it to be usable."
     )
-    asset_url: Optional[StrictStr] = None
+    asset_url: StrictStr | None = None
     tags: list[StrictStr] = Field(default_factory=list)
 
 
@@ -115,10 +115,10 @@ class MaterialOut(ResponseModel):
     id: StrictStr
     name: StrictStr
     category: StrictStr
-    finish: Optional[StrictStr] = None
-    color_hex: Optional[StrictStr] = None
+    finish: StrictStr | None = None
+    color_hex: StrictStr | None = None
     #: Whole rupees per square metre. Indicative, for the cost chip — never a quotation.
-    price_inr_per_sqm: Optional[StrictInt] = None
+    price_inr_per_sqm: StrictInt | None = None
     surface_groups: list[StrictStr] = Field(default_factory=list)
 
 
@@ -195,9 +195,9 @@ def catalog_dir() -> str:
     return os.path.join(root, _CATALOG_DIR_CANDIDATES[0])
 
 
-def _read_json(path: str) -> Optional[Any]:
+def _read_json(path: str) -> Any | None:
     try:
-        with open(path, "r", encoding="utf-8") as handle:
+        with open(path, encoding="utf-8") as handle:
             return json.load(handle)
     except (OSError, ValueError) as exc:
         _log.warning("catalog.read_failed", path=os.path.basename(path), error=str(exc))
@@ -214,7 +214,7 @@ def _load_rulepack_index() -> list[dict[str, Any]]:
     """
     directory = rulepack_dir()
     manifest = _read_json(os.path.join(directory, "index.json"))
-    entries: Optional[list[Any]] = None
+    entries: list[Any] | None = None
     if isinstance(manifest, dict) and isinstance(manifest.get("packs"), list):
         entries = manifest["packs"]
     elif isinstance(manifest, list):
@@ -235,7 +235,7 @@ def _load_rulepack_index() -> list[dict[str, Any]]:
     return scanned
 
 
-def _review_status(value: Any) -> Optional[str]:
+def _review_status(value: Any) -> str | None:
     """``review`` is a bare string in ``index.json`` and an object inside a pack file."""
     if isinstance(value, dict):
         status = value.get("status")
@@ -264,7 +264,7 @@ def _normalise_index_entry(entry: dict[str, Any]) -> dict[str, Any]:
 
 
 @lru_cache(maxsize=8)
-def _load_rulepack(pack_id: str) -> Optional[dict[str, Any]]:
+def _load_rulepack(pack_id: str) -> dict[str, Any] | None:
     """Load one pack by id. ``lru_cache`` keeps the hot packs in memory between requests."""
     safe = _safe_pack_id(pack_id)
     data = _read_json(os.path.join(rulepack_dir(), "%s.json" % safe))
@@ -301,7 +301,7 @@ def _load_catalog(name: str) -> tuple[str, tuple[Any, ...]]:
     """``(source, items)`` for one catalogue — files if present, else the built-in table."""
     path = os.path.join(catalog_dir(), "%s.json" % name)
     data = _read_json(path) if os.path.isfile(path) else None
-    items: Optional[list[Any]] = None
+    items: list[Any] | None = None
     if isinstance(data, list):
         items = data
     elif isinstance(data, dict) and isinstance(data.get("items"), list):
@@ -381,8 +381,8 @@ async def get_rulepack(
 async def get_furniture(
     response: Response,
     ctx: TenantDep,
-    category: Optional[str] = Query(default=None, max_length=40),
-    room_type: Optional[str] = Query(default=None, alias="roomType", max_length=40),
+    category: str | None = Query(default=None, max_length=40),
+    room_type: str | None = Query(default=None, alias="roomType", max_length=40),
 ) -> CatalogOut:
     """Filterable by category and by the room type an item belongs in.
 
@@ -412,7 +412,7 @@ async def get_furniture(
 async def get_materials(
     response: Response,
     ctx: TenantDep,
-    category: Optional[str] = Query(default=None, max_length=40),
+    category: str | None = Query(default=None, max_length=40),
 ) -> CatalogOut:
     """Targets for op 29 ``material.assign``. Prices are indicative whole rupees."""
     source, items = _load_catalog("materials")
@@ -484,202 +484,616 @@ async def get_all_catalogs(response: Response, ctx: TenantDep) -> dict[str, Any]
 
 _FURNITURE: list[dict[str, Any]] = [
     # -- bedroom -----------------------------------------------------------
-    {"id": "bed-queen", "name": "Queen bed", "category": "bed",
-     "widthMm": 1525, "depthMm": 1900, "heightMm": 600,
-     "roomTypes": ["bedroom", "bedroom_master", "guest_bedroom"], "clearanceMm": 600},
-    {"id": "bed-king", "name": "King bed", "category": "bed",
-     "widthMm": 1830, "depthMm": 2000, "heightMm": 600,
-     "roomTypes": ["bedroom_master"], "clearanceMm": 600},
-    {"id": "bed-single", "name": "Single bed", "category": "bed",
-     "widthMm": 900, "depthMm": 1900, "heightMm": 600,
-     "roomTypes": ["bedroom", "guest_bedroom", "servant_room"], "clearanceMm": 600},
-    {"id": "bunk-bed", "name": "Bunk bed", "category": "bed",
-     "widthMm": 900, "depthMm": 1900, "heightMm": 1700,
-     "roomTypes": ["bedroom", "guest_bedroom"], "clearanceMm": 600},
-    {"id": "wardrobe-2door", "name": "Wardrobe (2 door)", "category": "storage",
-     "widthMm": 1200, "depthMm": 600, "heightMm": 2100,
-     "roomTypes": ["bedroom", "guest_bedroom", "dress"], "clearanceMm": 750},
-    {"id": "wardrobe-3door", "name": "Wardrobe (3 door)", "category": "storage",
-     "widthMm": 1800, "depthMm": 600, "heightMm": 2100,
-     "roomTypes": ["bedroom_master", "bedroom", "dress"], "clearanceMm": 750},
-    {"id": "bedside-table", "name": "Bedside table", "category": "table",
-     "widthMm": 450, "depthMm": 400, "heightMm": 600,
-     "roomTypes": ["bedroom", "bedroom_master", "guest_bedroom"], "clearanceMm": 300},
-    {"id": "dressing-table", "name": "Dressing table", "category": "table",
-     "widthMm": 900, "depthMm": 450, "heightMm": 1800,
-     "roomTypes": ["bedroom_master", "bedroom", "dress"], "clearanceMm": 750},
-    {"id": "study-table", "name": "Study table", "category": "table",
-     "widthMm": 1200, "depthMm": 600, "heightMm": 750,
-     "roomTypes": ["study", "bedroom", "guest_bedroom"], "clearanceMm": 750},
-    {"id": "bookshelf", "name": "Bookshelf", "category": "storage",
-     "widthMm": 900, "depthMm": 350, "heightMm": 1800,
-     "roomTypes": ["study", "living", "bedroom", "store"], "clearanceMm": 600},
+    {
+        "id": "bed-queen",
+        "name": "Queen bed",
+        "category": "bed",
+        "widthMm": 1525,
+        "depthMm": 1900,
+        "heightMm": 600,
+        "roomTypes": ["bedroom", "bedroom_master", "guest_bedroom"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "bed-king",
+        "name": "King bed",
+        "category": "bed",
+        "widthMm": 1830,
+        "depthMm": 2000,
+        "heightMm": 600,
+        "roomTypes": ["bedroom_master"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "bed-single",
+        "name": "Single bed",
+        "category": "bed",
+        "widthMm": 900,
+        "depthMm": 1900,
+        "heightMm": 600,
+        "roomTypes": ["bedroom", "guest_bedroom", "servant_room"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "bunk-bed",
+        "name": "Bunk bed",
+        "category": "bed",
+        "widthMm": 900,
+        "depthMm": 1900,
+        "heightMm": 1700,
+        "roomTypes": ["bedroom", "guest_bedroom"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "wardrobe-2door",
+        "name": "Wardrobe (2 door)",
+        "category": "storage",
+        "widthMm": 1200,
+        "depthMm": 600,
+        "heightMm": 2100,
+        "roomTypes": ["bedroom", "guest_bedroom", "dress"],
+        "clearanceMm": 750,
+    },
+    {
+        "id": "wardrobe-3door",
+        "name": "Wardrobe (3 door)",
+        "category": "storage",
+        "widthMm": 1800,
+        "depthMm": 600,
+        "heightMm": 2100,
+        "roomTypes": ["bedroom_master", "bedroom", "dress"],
+        "clearanceMm": 750,
+    },
+    {
+        "id": "bedside-table",
+        "name": "Bedside table",
+        "category": "table",
+        "widthMm": 450,
+        "depthMm": 400,
+        "heightMm": 600,
+        "roomTypes": ["bedroom", "bedroom_master", "guest_bedroom"],
+        "clearanceMm": 300,
+    },
+    {
+        "id": "dressing-table",
+        "name": "Dressing table",
+        "category": "table",
+        "widthMm": 900,
+        "depthMm": 450,
+        "heightMm": 1800,
+        "roomTypes": ["bedroom_master", "bedroom", "dress"],
+        "clearanceMm": 750,
+    },
+    {
+        "id": "study-table",
+        "name": "Study table",
+        "category": "table",
+        "widthMm": 1200,
+        "depthMm": 600,
+        "heightMm": 750,
+        "roomTypes": ["study", "bedroom", "guest_bedroom"],
+        "clearanceMm": 750,
+    },
+    {
+        "id": "bookshelf",
+        "name": "Bookshelf",
+        "category": "storage",
+        "widthMm": 900,
+        "depthMm": 350,
+        "heightMm": 1800,
+        "roomTypes": ["study", "living", "bedroom", "store"],
+        "clearanceMm": 600,
+    },
     # -- living / dining ---------------------------------------------------
-    {"id": "sofa-3seat", "name": "Sofa (3 seat)", "category": "seating",
-     "widthMm": 2100, "depthMm": 900, "heightMm": 800,
-     "roomTypes": ["living", "living_dining"], "clearanceMm": 750},
-    {"id": "sofa-2seat", "name": "Sofa (2 seat)", "category": "seating",
-     "widthMm": 1500, "depthMm": 900, "heightMm": 800,
-     "roomTypes": ["living", "living_dining"], "clearanceMm": 750},
-    {"id": "armchair", "name": "Armchair", "category": "seating",
-     "widthMm": 800, "depthMm": 850, "heightMm": 800,
-     "roomTypes": ["living", "study", "balcony", "terrace"], "clearanceMm": 600},
-    {"id": "coffee-table", "name": "Coffee table", "category": "table",
-     "widthMm": 1050, "depthMm": 600, "heightMm": 400,
-     "roomTypes": ["living", "living_dining"], "clearanceMm": 450},
-    {"id": "tv-unit", "name": "TV unit", "category": "storage",
-     "widthMm": 1800, "depthMm": 450, "heightMm": 500,
-     "roomTypes": ["living", "living_dining", "bedroom_master"], "clearanceMm": 900},
-    {"id": "dining-4", "name": "Dining table (4 seat)", "category": "table",
-     "widthMm": 1200, "depthMm": 750, "heightMm": 750,
-     "roomTypes": ["dining", "living_dining"], "clearanceMm": 900},
-    {"id": "dining-6", "name": "Dining table (6 seat)", "category": "table",
-     "widthMm": 1500, "depthMm": 900, "heightMm": 750,
-     "roomTypes": ["dining", "living_dining"], "clearanceMm": 900},
-    {"id": "dining-8", "name": "Dining table (8 seat)", "category": "table",
-     "widthMm": 2100, "depthMm": 1000, "heightMm": 750,
-     "roomTypes": ["dining"], "clearanceMm": 900},
-    {"id": "dining-chair", "name": "Dining chair", "category": "seating",
-     "widthMm": 450, "depthMm": 500, "heightMm": 900,
-     "roomTypes": ["dining", "living_dining"], "clearanceMm": 600},
-    {"id": "shoe-rack", "name": "Shoe rack", "category": "storage",
-     "widthMm": 900, "depthMm": 350, "heightMm": 900,
-     "roomTypes": ["foyer", "living", "lobby", "store"], "clearanceMm": 600},
+    {
+        "id": "sofa-3seat",
+        "name": "Sofa (3 seat)",
+        "category": "seating",
+        "widthMm": 2100,
+        "depthMm": 900,
+        "heightMm": 800,
+        "roomTypes": ["living", "living_dining"],
+        "clearanceMm": 750,
+    },
+    {
+        "id": "sofa-2seat",
+        "name": "Sofa (2 seat)",
+        "category": "seating",
+        "widthMm": 1500,
+        "depthMm": 900,
+        "heightMm": 800,
+        "roomTypes": ["living", "living_dining"],
+        "clearanceMm": 750,
+    },
+    {
+        "id": "armchair",
+        "name": "Armchair",
+        "category": "seating",
+        "widthMm": 800,
+        "depthMm": 850,
+        "heightMm": 800,
+        "roomTypes": ["living", "study", "balcony", "terrace"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "coffee-table",
+        "name": "Coffee table",
+        "category": "table",
+        "widthMm": 1050,
+        "depthMm": 600,
+        "heightMm": 400,
+        "roomTypes": ["living", "living_dining"],
+        "clearanceMm": 450,
+    },
+    {
+        "id": "tv-unit",
+        "name": "TV unit",
+        "category": "storage",
+        "widthMm": 1800,
+        "depthMm": 450,
+        "heightMm": 500,
+        "roomTypes": ["living", "living_dining", "bedroom_master"],
+        "clearanceMm": 900,
+    },
+    {
+        "id": "dining-4",
+        "name": "Dining table (4 seat)",
+        "category": "table",
+        "widthMm": 1200,
+        "depthMm": 750,
+        "heightMm": 750,
+        "roomTypes": ["dining", "living_dining"],
+        "clearanceMm": 900,
+    },
+    {
+        "id": "dining-6",
+        "name": "Dining table (6 seat)",
+        "category": "table",
+        "widthMm": 1500,
+        "depthMm": 900,
+        "heightMm": 750,
+        "roomTypes": ["dining", "living_dining"],
+        "clearanceMm": 900,
+    },
+    {
+        "id": "dining-8",
+        "name": "Dining table (8 seat)",
+        "category": "table",
+        "widthMm": 2100,
+        "depthMm": 1000,
+        "heightMm": 750,
+        "roomTypes": ["dining"],
+        "clearanceMm": 900,
+    },
+    {
+        "id": "dining-chair",
+        "name": "Dining chair",
+        "category": "seating",
+        "widthMm": 450,
+        "depthMm": 500,
+        "heightMm": 900,
+        "roomTypes": ["dining", "living_dining"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "shoe-rack",
+        "name": "Shoe rack",
+        "category": "storage",
+        "widthMm": 900,
+        "depthMm": 350,
+        "heightMm": 900,
+        "roomTypes": ["foyer", "living", "lobby", "store"],
+        "clearanceMm": 600,
+    },
     # -- kitchen / utility -------------------------------------------------
-    {"id": "kitchen-counter", "name": "Kitchen counter (1m module)", "category": "kitchen",
-     "widthMm": 1000, "depthMm": 600, "heightMm": 900,
-     "roomTypes": ["kitchen"], "clearanceMm": 1050},
-    {"id": "kitchen-sink", "name": "Kitchen sink", "category": "kitchen",
-     "widthMm": 900, "depthMm": 550, "heightMm": 200,
-     "roomTypes": ["kitchen"], "clearanceMm": 1050},
-    {"id": "hob-4burner", "name": "Hob (4 burner)", "category": "kitchen",
-     "widthMm": 600, "depthMm": 520, "heightMm": 100,
-     "roomTypes": ["kitchen"], "clearanceMm": 1050},
-    {"id": "refrigerator", "name": "Refrigerator", "category": "appliance",
-     "widthMm": 700, "depthMm": 700, "heightMm": 1800,
-     "roomTypes": ["kitchen", "utility", "store"], "clearanceMm": 900},
-    {"id": "washing-machine", "name": "Washing machine", "category": "appliance",
-     "widthMm": 600, "depthMm": 600, "heightMm": 850,
-     "roomTypes": ["utility", "bath_wc"], "clearanceMm": 750},
-    {"id": "water-heater", "name": "Geyser", "category": "appliance",
-     "widthMm": 400, "depthMm": 400, "heightMm": 600,
-     "roomTypes": ["bath", "bath_wc", "utility"], "clearanceMm": 0},
+    {
+        "id": "kitchen-counter",
+        "name": "Kitchen counter (1m module)",
+        "category": "kitchen",
+        "widthMm": 1000,
+        "depthMm": 600,
+        "heightMm": 900,
+        "roomTypes": ["kitchen"],
+        "clearanceMm": 1050,
+    },
+    {
+        "id": "kitchen-sink",
+        "name": "Kitchen sink",
+        "category": "kitchen",
+        "widthMm": 900,
+        "depthMm": 550,
+        "heightMm": 200,
+        "roomTypes": ["kitchen"],
+        "clearanceMm": 1050,
+    },
+    {
+        "id": "hob-4burner",
+        "name": "Hob (4 burner)",
+        "category": "kitchen",
+        "widthMm": 600,
+        "depthMm": 520,
+        "heightMm": 100,
+        "roomTypes": ["kitchen"],
+        "clearanceMm": 1050,
+    },
+    {
+        "id": "refrigerator",
+        "name": "Refrigerator",
+        "category": "appliance",
+        "widthMm": 700,
+        "depthMm": 700,
+        "heightMm": 1800,
+        "roomTypes": ["kitchen", "utility", "store"],
+        "clearanceMm": 900,
+    },
+    {
+        "id": "washing-machine",
+        "name": "Washing machine",
+        "category": "appliance",
+        "widthMm": 600,
+        "depthMm": 600,
+        "heightMm": 850,
+        "roomTypes": ["utility", "bath_wc"],
+        "clearanceMm": 750,
+    },
+    {
+        "id": "water-heater",
+        "name": "Geyser",
+        "category": "appliance",
+        "widthMm": 400,
+        "depthMm": 400,
+        "heightMm": 600,
+        "roomTypes": ["bath", "bath_wc", "utility"],
+        "clearanceMm": 0,
+    },
     # -- bath --------------------------------------------------------------
-    {"id": "wc-floor", "name": "WC (floor mounted)", "category": "sanitary",
-     "widthMm": 700, "depthMm": 400, "heightMm": 780,
-     "roomTypes": ["bath", "wc", "bath_wc"], "clearanceMm": 600},
-    {"id": "wc-wall-hung", "name": "WC (wall hung)", "category": "sanitary",
-     "widthMm": 550, "depthMm": 360, "heightMm": 400,
-     "roomTypes": ["bath", "wc", "bath_wc"], "clearanceMm": 600},
-    {"id": "washbasin", "name": "Washbasin", "category": "sanitary",
-     "widthMm": 550, "depthMm": 450, "heightMm": 850,
-     "roomTypes": ["bath", "wc", "bath_wc", "dining"], "clearanceMm": 600},
-    {"id": "shower-area", "name": "Shower area", "category": "sanitary",
-     "widthMm": 900, "depthMm": 900, "heightMm": 2100,
-     "roomTypes": ["bath", "bath_wc"], "clearanceMm": 0},
-    {"id": "bathtub", "name": "Bathtub", "category": "sanitary",
-     "widthMm": 1700, "depthMm": 750, "heightMm": 600,
-     "roomTypes": ["bath"], "clearanceMm": 750},
+    {
+        "id": "wc-floor",
+        "name": "WC (floor mounted)",
+        "category": "sanitary",
+        "widthMm": 700,
+        "depthMm": 400,
+        "heightMm": 780,
+        "roomTypes": ["bath", "wc", "bath_wc"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "wc-wall-hung",
+        "name": "WC (wall hung)",
+        "category": "sanitary",
+        "widthMm": 550,
+        "depthMm": 360,
+        "heightMm": 400,
+        "roomTypes": ["bath", "wc", "bath_wc"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "washbasin",
+        "name": "Washbasin",
+        "category": "sanitary",
+        "widthMm": 550,
+        "depthMm": 450,
+        "heightMm": 850,
+        "roomTypes": ["bath", "wc", "bath_wc", "dining"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "shower-area",
+        "name": "Shower area",
+        "category": "sanitary",
+        "widthMm": 900,
+        "depthMm": 900,
+        "heightMm": 2100,
+        "roomTypes": ["bath", "bath_wc"],
+        "clearanceMm": 0,
+    },
+    {
+        "id": "bathtub",
+        "name": "Bathtub",
+        "category": "sanitary",
+        "widthMm": 1700,
+        "depthMm": 750,
+        "heightMm": 600,
+        "roomTypes": ["bath"],
+        "clearanceMm": 750,
+    },
     # -- other -------------------------------------------------------------
-    {"id": "pooja-unit", "name": "Pooja unit", "category": "storage",
-     "widthMm": 900, "depthMm": 450, "heightMm": 1800,
-     "roomTypes": ["pooja", "living"], "clearanceMm": 900},
-    {"id": "car-hatchback", "name": "Car (hatchback)", "category": "vehicle",
-     "widthMm": 1700, "depthMm": 3800, "heightMm": 1500,
-     "roomTypes": ["garage", "stilt", "porch"], "clearanceMm": 600},
-    {"id": "car-sedan", "name": "Car (sedan / SUV)", "category": "vehicle",
-     "widthMm": 1800, "depthMm": 4800, "heightMm": 1500,
-     "roomTypes": ["garage", "stilt", "porch"], "clearanceMm": 600},
-    {"id": "two-wheeler", "name": "Scooter / motorcycle", "category": "vehicle",
-     "widthMm": 700, "depthMm": 1800, "heightMm": 1100,
-     "roomTypes": ["garage", "stilt", "porch"], "clearanceMm": 450},
-    {"id": "water-tank-oht", "name": "Overhead water tank (1000 L)", "category": "service",
-     "widthMm": 1100, "depthMm": 1100, "heightMm": 1300,
-     "roomTypes": ["terrace"], "clearanceMm": 450},
+    {
+        "id": "pooja-unit",
+        "name": "Pooja unit",
+        "category": "storage",
+        "widthMm": 900,
+        "depthMm": 450,
+        "heightMm": 1800,
+        "roomTypes": ["pooja", "living"],
+        "clearanceMm": 900,
+    },
+    {
+        "id": "car-hatchback",
+        "name": "Car (hatchback)",
+        "category": "vehicle",
+        "widthMm": 1700,
+        "depthMm": 3800,
+        "heightMm": 1500,
+        "roomTypes": ["garage", "stilt", "porch"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "car-sedan",
+        "name": "Car (sedan / SUV)",
+        "category": "vehicle",
+        "widthMm": 1800,
+        "depthMm": 4800,
+        "heightMm": 1500,
+        "roomTypes": ["garage", "stilt", "porch"],
+        "clearanceMm": 600,
+    },
+    {
+        "id": "two-wheeler",
+        "name": "Scooter / motorcycle",
+        "category": "vehicle",
+        "widthMm": 700,
+        "depthMm": 1800,
+        "heightMm": 1100,
+        "roomTypes": ["garage", "stilt", "porch"],
+        "clearanceMm": 450,
+    },
+    {
+        "id": "water-tank-oht",
+        "name": "Overhead water tank (1000 L)",
+        "category": "service",
+        "widthMm": 1100,
+        "depthMm": 1100,
+        "heightMm": 1300,
+        "roomTypes": ["terrace"],
+        "clearanceMm": 450,
+    },
 ]
 
 _MATERIALS: list[dict[str, Any]] = [
-    {"id": "vitrified-tile-600", "name": "Vitrified tile 600×600", "category": "floor",
-     "finish": "glossy", "colorHex": "#E8E4DC", "priceInrPerSqm": 850,
-     "surfaceGroups": ["floor.interior"]},
-    {"id": "vitrified-tile-800", "name": "Vitrified tile 800×800", "category": "floor",
-     "finish": "matte", "colorHex": "#DED8CE", "priceInrPerSqm": 1150,
-     "surfaceGroups": ["floor.interior"]},
-    {"id": "granite-flooring", "name": "Granite flooring", "category": "floor",
-     "finish": "polished", "colorHex": "#4A4A4A", "priceInrPerSqm": 2400,
-     "surfaceGroups": ["floor.interior", "floor.stair"]},
-    {"id": "kota-stone", "name": "Kota stone", "category": "floor",
-     "finish": "honed", "colorHex": "#6E7B6B", "priceInrPerSqm": 900,
-     "surfaceGroups": ["floor.utility", "floor.terrace"]},
-    {"id": "marble-italian", "name": "Italian marble", "category": "floor",
-     "finish": "polished", "colorHex": "#F2F0EA", "priceInrPerSqm": 4500,
-     "surfaceGroups": ["floor.interior"]},
-    {"id": "wooden-laminate", "name": "Wooden laminate", "category": "floor",
-     "finish": "textured", "colorHex": "#8B6A45", "priceInrPerSqm": 1300,
-     "surfaceGroups": ["floor.bedroom"]},
-    {"id": "cement-ips", "name": "IPS cement finish", "category": "floor",
-     "finish": "matte", "colorHex": "#9C9C97", "priceInrPerSqm": 450,
-     "surfaceGroups": ["floor.utility", "floor.parking"]},
-    {"id": "anti-skid-tile", "name": "Anti-skid ceramic tile", "category": "floor",
-     "finish": "matte", "colorHex": "#C9C4BA", "priceInrPerSqm": 650,
-     "surfaceGroups": ["floor.bath", "floor.terrace"]},
-    {"id": "ceramic-wall-tile", "name": "Ceramic wall tile", "category": "wall",
-     "finish": "glossy", "colorHex": "#F5F5F0", "priceInrPerSqm": 600,
-     "surfaceGroups": ["wall.bath", "wall.kitchen"]},
-    {"id": "interior-emulsion", "name": "Interior emulsion paint", "category": "wall",
-     "finish": "matte", "colorHex": "#F7F4EF", "priceInrPerSqm": 220,
-     "surfaceGroups": ["wall.interior", "ceiling.interior"]},
-    {"id": "exterior-texture", "name": "Exterior texture paint", "category": "wall",
-     "finish": "textured", "colorHex": "#E3DDD2", "priceInrPerSqm": 380,
-     "surfaceGroups": ["wall.exterior"]},
-    {"id": "exposed-brick", "name": "Exposed brick", "category": "wall",
-     "finish": "natural", "colorHex": "#9C4A2F", "priceInrPerSqm": 1400,
-     "surfaceGroups": ["wall.exterior", "wall.feature"]},
-    {"id": "exposed-concrete", "name": "Exposed concrete", "category": "wall",
-     "finish": "board-formed", "colorHex": "#A8A8A3", "priceInrPerSqm": 1600,
-     "surfaceGroups": ["wall.exterior", "wall.feature"]},
-    {"id": "stone-cladding", "name": "Natural stone cladding", "category": "wall",
-     "finish": "split-face", "colorHex": "#7A6E5D", "priceInrPerSqm": 2200,
-     "surfaceGroups": ["wall.exterior", "wall.feature"]},
-    {"id": "wpc-cladding", "name": "WPC wood-finish cladding", "category": "wall",
-     "finish": "wood-grain", "colorHex": "#7A5230", "priceInrPerSqm": 2000,
-     "surfaceGroups": ["wall.exterior", "facade.cladding"]},
-    {"id": "acp-panel", "name": "ACP panel", "category": "wall",
-     "finish": "matte", "colorHex": "#3C3C3C", "priceInrPerSqm": 1800,
-     "surfaceGroups": ["facade.cladding"]},
-    {"id": "glass-clear", "name": "Clear float glass", "category": "glazing",
-     "finish": "clear", "colorHex": "#CFE3E8", "priceInrPerSqm": 1200,
-     "surfaceGroups": ["window.glazing"]},
-    {"id": "glass-tinted", "name": "Tinted glass", "category": "glazing",
-     "finish": "tinted", "colorHex": "#7E9AA3", "priceInrPerSqm": 1600,
-     "surfaceGroups": ["window.glazing", "facade.glazing"]},
-    {"id": "upvc-window", "name": "uPVC window frame", "category": "joinery",
-     "finish": "matte", "colorHex": "#FFFFFF", "priceInrPerSqm": 4200,
-     "surfaceGroups": ["window.frame"]},
-    {"id": "aluminium-window", "name": "Aluminium window frame", "category": "joinery",
-     "finish": "anodised", "colorHex": "#6B6B6B", "priceInrPerSqm": 5200,
-     "surfaceGroups": ["window.frame"]},
-    {"id": "teak-door", "name": "Teak wood door", "category": "joinery",
-     "finish": "polished", "colorHex": "#6B4423", "priceInrPerSqm": 9000,
-     "surfaceGroups": ["door.main"]},
-    {"id": "flush-door", "name": "Flush door", "category": "joinery",
-     "finish": "laminated", "colorHex": "#B08A5E", "priceInrPerSqm": 2600,
-     "surfaceGroups": ["door.internal"]},
-    {"id": "ms-railing", "name": "MS railing", "category": "railing",
-     "finish": "powder-coated", "colorHex": "#2E2E2E", "priceInrPerSqm": 2800,
-     "surfaceGroups": ["railing.balcony", "railing.stair"]},
-    {"id": "ss-railing", "name": "Stainless steel railing", "category": "railing",
-     "finish": "brushed", "colorHex": "#B8BCC0", "priceInrPerSqm": 4500,
-     "surfaceGroups": ["railing.balcony", "railing.stair"]},
-    {"id": "glass-railing", "name": "Toughened glass railing", "category": "railing",
-     "finish": "clear", "colorHex": "#D6E7EC", "priceInrPerSqm": 6500,
-     "surfaceGroups": ["railing.balcony"]},
-    {"id": "clay-roof-tile", "name": "Mangalore clay roof tile", "category": "roof",
-     "finish": "natural", "colorHex": "#B5502F", "priceInrPerSqm": 1100,
-     "surfaceGroups": ["roof.pitched"]},
-    {"id": "waterproof-membrane", "name": "Waterproofing membrane", "category": "roof",
-     "finish": "matte", "colorHex": "#8E8E8E", "priceInrPerSqm": 550,
-     "surfaceGroups": ["roof.flat", "floor.terrace"]},
+    {
+        "id": "vitrified-tile-600",
+        "name": "Vitrified tile 600×600",
+        "category": "floor",
+        "finish": "glossy",
+        "colorHex": "#E8E4DC",
+        "priceInrPerSqm": 850,
+        "surfaceGroups": ["floor.interior"],
+    },
+    {
+        "id": "vitrified-tile-800",
+        "name": "Vitrified tile 800×800",
+        "category": "floor",
+        "finish": "matte",
+        "colorHex": "#DED8CE",
+        "priceInrPerSqm": 1150,
+        "surfaceGroups": ["floor.interior"],
+    },
+    {
+        "id": "granite-flooring",
+        "name": "Granite flooring",
+        "category": "floor",
+        "finish": "polished",
+        "colorHex": "#4A4A4A",
+        "priceInrPerSqm": 2400,
+        "surfaceGroups": ["floor.interior", "floor.stair"],
+    },
+    {
+        "id": "kota-stone",
+        "name": "Kota stone",
+        "category": "floor",
+        "finish": "honed",
+        "colorHex": "#6E7B6B",
+        "priceInrPerSqm": 900,
+        "surfaceGroups": ["floor.utility", "floor.terrace"],
+    },
+    {
+        "id": "marble-italian",
+        "name": "Italian marble",
+        "category": "floor",
+        "finish": "polished",
+        "colorHex": "#F2F0EA",
+        "priceInrPerSqm": 4500,
+        "surfaceGroups": ["floor.interior"],
+    },
+    {
+        "id": "wooden-laminate",
+        "name": "Wooden laminate",
+        "category": "floor",
+        "finish": "textured",
+        "colorHex": "#8B6A45",
+        "priceInrPerSqm": 1300,
+        "surfaceGroups": ["floor.bedroom"],
+    },
+    {
+        "id": "cement-ips",
+        "name": "IPS cement finish",
+        "category": "floor",
+        "finish": "matte",
+        "colorHex": "#9C9C97",
+        "priceInrPerSqm": 450,
+        "surfaceGroups": ["floor.utility", "floor.parking"],
+    },
+    {
+        "id": "anti-skid-tile",
+        "name": "Anti-skid ceramic tile",
+        "category": "floor",
+        "finish": "matte",
+        "colorHex": "#C9C4BA",
+        "priceInrPerSqm": 650,
+        "surfaceGroups": ["floor.bath", "floor.terrace"],
+    },
+    {
+        "id": "ceramic-wall-tile",
+        "name": "Ceramic wall tile",
+        "category": "wall",
+        "finish": "glossy",
+        "colorHex": "#F5F5F0",
+        "priceInrPerSqm": 600,
+        "surfaceGroups": ["wall.bath", "wall.kitchen"],
+    },
+    {
+        "id": "interior-emulsion",
+        "name": "Interior emulsion paint",
+        "category": "wall",
+        "finish": "matte",
+        "colorHex": "#F7F4EF",
+        "priceInrPerSqm": 220,
+        "surfaceGroups": ["wall.interior", "ceiling.interior"],
+    },
+    {
+        "id": "exterior-texture",
+        "name": "Exterior texture paint",
+        "category": "wall",
+        "finish": "textured",
+        "colorHex": "#E3DDD2",
+        "priceInrPerSqm": 380,
+        "surfaceGroups": ["wall.exterior"],
+    },
+    {
+        "id": "exposed-brick",
+        "name": "Exposed brick",
+        "category": "wall",
+        "finish": "natural",
+        "colorHex": "#9C4A2F",
+        "priceInrPerSqm": 1400,
+        "surfaceGroups": ["wall.exterior", "wall.feature"],
+    },
+    {
+        "id": "exposed-concrete",
+        "name": "Exposed concrete",
+        "category": "wall",
+        "finish": "board-formed",
+        "colorHex": "#A8A8A3",
+        "priceInrPerSqm": 1600,
+        "surfaceGroups": ["wall.exterior", "wall.feature"],
+    },
+    {
+        "id": "stone-cladding",
+        "name": "Natural stone cladding",
+        "category": "wall",
+        "finish": "split-face",
+        "colorHex": "#7A6E5D",
+        "priceInrPerSqm": 2200,
+        "surfaceGroups": ["wall.exterior", "wall.feature"],
+    },
+    {
+        "id": "wpc-cladding",
+        "name": "WPC wood-finish cladding",
+        "category": "wall",
+        "finish": "wood-grain",
+        "colorHex": "#7A5230",
+        "priceInrPerSqm": 2000,
+        "surfaceGroups": ["wall.exterior", "facade.cladding"],
+    },
+    {
+        "id": "acp-panel",
+        "name": "ACP panel",
+        "category": "wall",
+        "finish": "matte",
+        "colorHex": "#3C3C3C",
+        "priceInrPerSqm": 1800,
+        "surfaceGroups": ["facade.cladding"],
+    },
+    {
+        "id": "glass-clear",
+        "name": "Clear float glass",
+        "category": "glazing",
+        "finish": "clear",
+        "colorHex": "#CFE3E8",
+        "priceInrPerSqm": 1200,
+        "surfaceGroups": ["window.glazing"],
+    },
+    {
+        "id": "glass-tinted",
+        "name": "Tinted glass",
+        "category": "glazing",
+        "finish": "tinted",
+        "colorHex": "#7E9AA3",
+        "priceInrPerSqm": 1600,
+        "surfaceGroups": ["window.glazing", "facade.glazing"],
+    },
+    {
+        "id": "upvc-window",
+        "name": "uPVC window frame",
+        "category": "joinery",
+        "finish": "matte",
+        "colorHex": "#FFFFFF",
+        "priceInrPerSqm": 4200,
+        "surfaceGroups": ["window.frame"],
+    },
+    {
+        "id": "aluminium-window",
+        "name": "Aluminium window frame",
+        "category": "joinery",
+        "finish": "anodised",
+        "colorHex": "#6B6B6B",
+        "priceInrPerSqm": 5200,
+        "surfaceGroups": ["window.frame"],
+    },
+    {
+        "id": "teak-door",
+        "name": "Teak wood door",
+        "category": "joinery",
+        "finish": "polished",
+        "colorHex": "#6B4423",
+        "priceInrPerSqm": 9000,
+        "surfaceGroups": ["door.main"],
+    },
+    {
+        "id": "flush-door",
+        "name": "Flush door",
+        "category": "joinery",
+        "finish": "laminated",
+        "colorHex": "#B08A5E",
+        "priceInrPerSqm": 2600,
+        "surfaceGroups": ["door.internal"],
+    },
+    {
+        "id": "ms-railing",
+        "name": "MS railing",
+        "category": "railing",
+        "finish": "powder-coated",
+        "colorHex": "#2E2E2E",
+        "priceInrPerSqm": 2800,
+        "surfaceGroups": ["railing.balcony", "railing.stair"],
+    },
+    {
+        "id": "ss-railing",
+        "name": "Stainless steel railing",
+        "category": "railing",
+        "finish": "brushed",
+        "colorHex": "#B8BCC0",
+        "priceInrPerSqm": 4500,
+        "surfaceGroups": ["railing.balcony", "railing.stair"],
+    },
+    {
+        "id": "glass-railing",
+        "name": "Toughened glass railing",
+        "category": "railing",
+        "finish": "clear",
+        "colorHex": "#D6E7EC",
+        "priceInrPerSqm": 6500,
+        "surfaceGroups": ["railing.balcony"],
+    },
+    {
+        "id": "clay-roof-tile",
+        "name": "Mangalore clay roof tile",
+        "category": "roof",
+        "finish": "natural",
+        "colorHex": "#B5502F",
+        "priceInrPerSqm": 1100,
+        "surfaceGroups": ["roof.pitched"],
+    },
+    {
+        "id": "waterproof-membrane",
+        "name": "Waterproofing membrane",
+        "category": "roof",
+        "finish": "matte",
+        "colorHex": "#8E8E8E",
+        "priceInrPerSqm": 550,
+        "surfaceGroups": ["roof.flat", "floor.terrace"],
+    },
 ]
 
 #: The two MVP kits, exactly as §8 specifies them. ``params`` are what op 28
@@ -689,22 +1103,39 @@ _FACADE_KITS: list[dict[str, Any]] = [
         "id": "contemporary",
         "name": "Contemporary",
         "description": "Flat chajjas, a full-height cladding band at the stair bay, "
-                       "slim MS railings — monochrome with a wood accent.",
+        "slim MS railings — monochrome with a wood accent.",
         "components": {
             "windowTrim": {"style": "flush-band", "widthMm": 100, "projectionMm": 40},
-            "chajja": {"style": "flat", "projectionMm": 600, "thicknessMm": 100,
-                       "allowedProjectionsMm": [600, 750]},
+            "chajja": {
+                "style": "flat",
+                "projectionMm": 600,
+                "thicknessMm": 100,
+                "allowedProjectionsMm": [600, 750],
+            },
             "parapetProfile": {"style": "banded", "heightMm": 1050, "capThicknessMm": 75},
-            "claddingZones": {"rule": "stack full-height at entry bay",
-                              "materialId": "wpc-cladding", "widthMm": 1200},
+            "claddingZones": {
+                "rule": "stack full-height at entry bay",
+                "materialId": "wpc-cladding",
+                "widthMm": 1200,
+            },
             "porch": {"style": "cantilever", "projectionMm": 1800, "thicknessMm": 200},
             "railing": {"style": "ms-slim", "heightMm": 1050, "materialId": "ms-railing"},
         },
         "colorways": [
-            {"id": "mono-wood", "name": "Monochrome + wood",
-             "base": "#F2F0EB", "accent": "#7A5230", "trim": "#2E2E2E"},
-            {"id": "warm-grey", "name": "Warm grey",
-             "base": "#DAD5CC", "accent": "#8B6A45", "trim": "#3C3C3C"},
+            {
+                "id": "mono-wood",
+                "name": "Monochrome + wood",
+                "base": "#F2F0EB",
+                "accent": "#7A5230",
+                "trim": "#2E2E2E",
+            },
+            {
+                "id": "warm-grey",
+                "name": "Warm grey",
+                "base": "#DAD5CC",
+                "accent": "#8B6A45",
+                "trim": "#3C3C3C",
+            },
         ],
         "rules": {
             "minFacadeWidthMm": 4500,
@@ -716,21 +1147,35 @@ _FACADE_KITS: list[dict[str, Any]] = [
         "id": "modern-minimal",
         "name": "Modern Minimal",
         "description": "Recessed windows with a hidden chajja, a plain parapet and a "
-                       "glass railing — white and grey.",
+        "glass railing — white and grey.",
         "components": {
             "windowTrim": {"style": "recessed", "widthMm": 0, "projectionMm": -75},
-            "chajja": {"style": "hidden", "projectionMm": 600, "thicknessMm": 75,
-                       "allowedProjectionsMm": [600]},
+            "chajja": {
+                "style": "hidden",
+                "projectionMm": 600,
+                "thicknessMm": 75,
+                "allowedProjectionsMm": [600],
+            },
             "parapetProfile": {"style": "plain", "heightMm": 1050, "capThicknessMm": 50},
             "claddingZones": {"rule": "none", "materialId": None, "widthMm": 0},
             "porch": {"style": "flush", "projectionMm": 1200, "thicknessMm": 150},
             "railing": {"style": "glass", "heightMm": 1050, "materialId": "glass-railing"},
         },
         "colorways": [
-            {"id": "white-grey", "name": "White + grey",
-             "base": "#FFFFFF", "accent": "#8E8E8E", "trim": "#6B6B6B"},
-            {"id": "off-white", "name": "Off white",
-             "base": "#F5F3EE", "accent": "#A8A8A3", "trim": "#3C3C3C"},
+            {
+                "id": "white-grey",
+                "name": "White + grey",
+                "base": "#FFFFFF",
+                "accent": "#8E8E8E",
+                "trim": "#6B6B6B",
+            },
+            {
+                "id": "off-white",
+                "name": "Off white",
+                "base": "#F5F3EE",
+                "accent": "#A8A8A3",
+                "trim": "#3C3C3C",
+            },
         ],
         "rules": {
             "minFacadeWidthMm": 4500,

@@ -97,9 +97,7 @@ class CommentRepository(ProjectScopedRepository[models.Comment, Comment]):
         """
         ctx = self.ctx
         if not ctx.is_share_viewer or ctx.share_link_id is None:
-            raise RepositoryUsageError(
-                "create_from_share() requires a share_viewer context."
-            )
+            raise RepositoryUsageError("create_from_share() requires a share_viewer context.")
         if not ctx.scope.get("canComment"):
             raise PermissionDeniedError("This link is view-only, so comments are off.")
         raw_project_id = ctx.scope.get("projectId")

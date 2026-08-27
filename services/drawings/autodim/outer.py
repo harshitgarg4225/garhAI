@@ -30,8 +30,6 @@ sliver segment next to the corner tick.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
-
 from services.drawings.autodim.chains import (
     KIND_OUTER,
     DimChainInfo,
@@ -70,13 +68,11 @@ def _corner_slack_mm(plan: StoreyPlan) -> int:
     exactly its half-thickness inside the outer face, and floating it by 1mm absorbs the
     odd-thickness floor division.
     """
-    halves = [w.half_mm for w in plan.walls if w.is_envelope] or [
-        w.half_mm for w in plan.walls
-    ]
+    halves = [w.half_mm for w in plan.walls if w.is_envelope] or [w.half_mm for w in plan.walls]
     return (max(halves) if halves else 0) + 1
 
 
-def _cross_walls_on_side(plan: StoreyPlan, side: str, config: AutoDimConfig) -> List[WallAxis]:
+def _cross_walls_on_side(plan: StoreyPlan, side: str, config: AutoDimConfig) -> list[WallAxis]:
     """Walls that meet this side's visible facade runs, id-ordered.
 
     A wall qualifies when it is perpendicular to the facade, its span reaches the run's
@@ -88,7 +84,7 @@ def _cross_walls_on_side(plan: StoreyPlan, side: str, config: AutoDimConfig) -> 
     facade_orientation = _SIDE_ORIENTATION[side]
     cross_orientation = _CROSS_ORIENTATION[facade_orientation]
     envelope_half = _corner_slack_mm(plan)
-    found: Dict[str, WallAxis] = {}
+    found: dict[str, WallAxis] = {}
 
     for run in plan.runs.get(side, ()):
         for wall in plan.walls_of(cross_orientation):
@@ -106,7 +102,7 @@ def _cross_walls_on_side(plan: StoreyPlan, side: str, config: AutoDimConfig) -> 
 
 def build_level_1(
     plan: StoreyPlan, side: str, extents: Extents, config: AutoDimConfig
-) -> Optional[DimChainInfo]:
+) -> DimChainInfo | None:
     """Overall extent: one segment, face to face."""
     span_lo, span_hi = extents.span_for(side)
     building_line = extents.building_line_for(side)
@@ -129,7 +125,7 @@ def build_level_1(
 
 def build_level_2(
     plan: StoreyPlan, side: str, extents: Extents, config: AutoDimConfig
-) -> Optional[DimChainInfo]:
+) -> DimChainInfo | None:
     """Wall grid: the extent, broken at every wall that meets this facade."""
     span_lo, span_hi = extents.span_for(side)
     building_line = extents.building_line_for(side)
@@ -137,8 +133,8 @@ def build_level_2(
     offset = config.offset_for_level(2)
     slack = _corner_slack_mm(plan)
 
-    raw: List[int] = [span_lo, span_hi]
-    anchors: Dict[int, str] = {}
+    raw: list[int] = [span_lo, span_hi]
+    anchors: dict[int, str] = {}
 
     for wall in _cross_walls_on_side(plan, side, config):
         position = wall.axis_mm
@@ -176,7 +172,7 @@ def build_level_2(
 
 def build_level_3(
     plan: StoreyPlan, side: str, extents: Extents, config: AutoDimConfig
-) -> Optional[DimChainInfo]:
+) -> DimChainInfo | None:
     """Openings on this facade — to centreline, or to jambs when ``dimToJamb`` is set.
 
     §7 step 6: "openings dimensioned to centreline (config flag ``dimToJamb`` for firm
@@ -190,15 +186,15 @@ def build_level_3(
     outward = _OUTWARD[side]
     offset = config.offset_for_level(3)
 
-    wall_ids: List[str] = []
+    wall_ids: list[str] = []
     for run in plan.runs.get(side, ()):
         wall_ids.extend(run.wall_ids)
     openings = plan.openings_on(wall_ids)
     if not openings:
         return None
 
-    raw: List[int] = [span_lo, span_hi]
-    anchors: Dict[int, str] = {}
+    raw: list[int] = [span_lo, span_hi]
+    anchors: dict[int, str] = {}
     for opening in openings:
         if config.dim_to_jamb:
             positions = (opening.jamb_lo_mm, opening.jamb_hi_mm)
@@ -231,7 +227,7 @@ def build_level_3(
 
 def build_outer_chains(
     plan: StoreyPlan, config: AutoDimConfig = DEFAULT_CONFIG
-) -> Tuple[DimChainInfo, ...]:
+) -> tuple[DimChainInfo, ...]:
     """§7 step 2 for all four sides. Ordered side-major, level-minor: S1 S2 S3 E1 ...
 
     Deterministic by construction: ``SIDES`` is a fixed tuple and every breakpoint list
@@ -239,7 +235,7 @@ def build_outer_chains(
     """
     if plan.extents is None:
         return ()
-    out: List[DimChainInfo] = []
+    out: list[DimChainInfo] = []
     for side in SIDES:
         for builder in (build_level_1, build_level_2, build_level_3):
             chain = builder(plan, side, plan.extents, config)

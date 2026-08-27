@@ -29,7 +29,8 @@ able to read this".
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 __all__ = [
     "MAX_PIXELS",
@@ -69,11 +70,12 @@ class PngPreset(tuple):
         max_long_edge_px: int,
         background: str = "#ffffff",
         description: str = "",
-    ) -> "PngPreset":
+    ) -> PngPreset:
         if dpi <= 0 or max_long_edge_px <= 0:
             raise ValueError("preset dpi and long edge must be positive")
-        return super().__new__(cls, (name, int(dpi), int(max_long_edge_px), background,
-                                     description))
+        return super().__new__(
+            cls, (name, int(dpi), int(max_long_edge_px), background, description)
+        )
 
     @property
     def name(self) -> str:
@@ -97,7 +99,7 @@ class PngPreset(tuple):
 
 
 #: The presets. Ordered smallest to largest so a UI list reads sensibly.
-PRESETS: Dict[str, PngPreset] = {
+PRESETS: dict[str, PngPreset] = {
     preset_.name: preset_
     for preset_ in (
         PngPreset(
@@ -117,8 +119,7 @@ PRESETS: Dict[str, PngPreset] = {
             "review",
             150,
             2400,
-            description="On-screen review / email attachment. Dimension text readable "
-            "at 100%.",
+            description="On-screen review / email attachment. Dimension text readable " "at 100%.",
         ),
         PngPreset(
             "print",
@@ -137,14 +138,13 @@ def preset(name: str) -> PngPreset:
         return PRESETS[name]
     except KeyError:
         raise KeyError(
-            "%r is not a PNG preset. Expected one of: %s."
-            % (name, ", ".join(sorted(PRESETS)))
+            "%r is not a PNG preset. Expected one of: %s." % (name, ", ".join(sorted(PRESETS)))
         ) from None
 
 
 def size_for_dpi(
     paper_width_mm: int, paper_height_mm: int, spec: PngPreset
-) -> Tuple[int, int, int]:
+) -> tuple[int, int, int]:
     """``(width_px, height_px, effective_dpi)`` for a paper size under a preset.
 
     Integer arithmetic with an explicit round-half-up, not ``round()``: pixel counts
@@ -205,7 +205,7 @@ def text_legible_at(dpi: int, text_height_paper_um: int = 2_500) -> bool:
 
 def pack_plan(
     sheets: Sequence[Any], *, preset_name: str = DEFAULT_PRESET
-) -> Tuple[Dict[str, Any], ...]:
+) -> tuple[dict[str, Any], ...]:
     """The ``png-pack`` contents: one entry per sheet, with filename and pixel size.
 
     Filenames are ``01-A-01-site-plan.png`` — a numeric prefix so an unzip lists them in
@@ -214,7 +214,7 @@ def pack_plan(
     character is a support ticket on a Windows machine.
     """
     spec = preset(preset_name)
-    entries: List[Dict[str, Any]] = []
+    entries: list[dict[str, Any]] = []
     for index, sheet in enumerate(sheets, start=1):
         frame = getattr(sheet, "frame", None)
         paper = getattr(frame, "paper", None)
@@ -272,7 +272,5 @@ def blank_sheet_image(width_px: int, height_px: int, background: str = "#ffffff"
     from PIL import Image
 
     if width_px * height_px > MAX_PIXELS:
-        raise ValueError(
-            "%dx%d exceeds the %d pixel cap" % (width_px, height_px, MAX_PIXELS)
-        )
+        raise ValueError("%dx%d exceeds the %d pixel cap" % (width_px, height_px, MAX_PIXELS))
     return Image.new("RGB", (int(width_px), int(height_px)), background)

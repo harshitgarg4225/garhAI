@@ -92,8 +92,15 @@ export function EmptyState({
       </span>
 
       <div className="max-w-md">
-        <h2 className={cn('font-semibold text-ink', size === 'md' ? 'text-base' : 'text-sm')}>{title}</h2>
-        <p className={cn('mt-1 text-ink-muted', size === 'md' ? 'text-sm leading-6' : 'text-xs leading-5')}>
+        <h2 className={cn('font-semibold text-ink', size === 'md' ? 'text-base' : 'text-sm')}>
+          {title}
+        </h2>
+        <p
+          className={cn(
+            'mt-1 text-ink-muted',
+            size === 'md' ? 'text-sm leading-6' : 'text-xs leading-5',
+          )}
+        >
           {description}
         </p>
       </div>

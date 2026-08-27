@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The Vastu 0-100 score, with the per-rule breakdown the compass wheel renders.
 
 The formula is the pack's, not ours (``vastu.json`` -> ``scoring``):
@@ -27,9 +25,12 @@ drops it before evaluation, so ``off`` produces no rows rather than a wall of
 ``not_applicable``).
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from .packs import Pack, ScoringMode
 from .ratio import round_half_up
@@ -46,14 +47,14 @@ __all__ = [
 _SEVERITY_RANK: Mapping[str, int] = {"warn": 0, "fail": 1}
 
 
-def mode_for(pack: Pack, vastu_mode: str) -> Optional[ScoringMode]:
+def mode_for(pack: Pack, vastu_mode: str) -> ScoringMode | None:
     """The scoring mode in force, or ``None`` when the pack does not score."""
     if pack.scoring is None:
         return None
     return pack.scoring.modes.get(vastu_mode)
 
 
-def clamp_severity(severity: str, ceiling: Optional[str]) -> str:
+def clamp_severity(severity: str, ceiling: str | None) -> str:
     """Clamp a declared severity to a mode's ceiling. ``warn`` in advisory mode is
     how one rule set serves both modes without duplicating a single rule id."""
     if ceiling is None:
@@ -79,7 +80,7 @@ class RuleScore:
     def weighted(self) -> Fraction:
         return self.satisfaction * self.weight
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "ruleId": self.rule_id,
             "title": self.title,
@@ -104,9 +105,9 @@ class GroupScore:
     description: str
     weight: int
     score: int
-    rule_ids: Tuple[str, ...]
+    rule_ids: tuple[str, ...]
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "label": self.label,
@@ -124,15 +125,15 @@ class VastuScore:
     mode: str
     enforce: bool
     severity_ceiling: str
-    score: Optional[int]
+    score: int | None
     scale_min: int
     scale_max: int
     applicable_weight: int
     total_weight: int
-    rules: Tuple[RuleScore, ...]
-    groups: Tuple[GroupScore, ...]
+    rules: tuple[RuleScore, ...]
+    groups: tuple[GroupScore, ...]
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "packId": self.pack_id,
             "packVersion": self.pack_version,
@@ -147,7 +148,7 @@ class VastuScore:
             "groups": [g.to_json() for g in self.groups],
         }
 
-    def hard_violations(self) -> Tuple[str, ...]:
+    def hard_violations(self) -> tuple[str, ...]:
         """Rule ids marked ``hard`` that are not satisfied — what §5.2's strict mode
         may encode as CP-SAT constraints."""
         return tuple(r.rule_id for r in self.rules if r.hard and r.satisfaction < 1)
@@ -175,11 +176,11 @@ def build_score(
 
     total_weight = sum(r.weight for r in contributions)
     numerator = sum((r.weighted for r in contributions), Fraction(0))
-    score: Optional[int] = None
+    score: int | None = None
     if wants_score and total_weight > 0:
         score = round_half_up(Fraction(scoring.scale_max) * numerator / total_weight)
 
-    groups: List[GroupScore] = []
+    groups: list[GroupScore] = []
     for group_id, label, description in scoring.groups:
         members = [r for r in contributions if r.group == group_id]
         weight = sum(r.weight for r in members)
@@ -213,9 +214,7 @@ def build_score(
         scale_min=scoring.scale_min,
         scale_max=scoring.scale_max,
         applicable_weight=total_weight,
-        total_weight=sum(
-            int(rule.get("weight") or 0) for rule in pack.raw.get("rules", ())
-        ),
+        total_weight=sum(int(rule.get("weight") or 0) for rule in pack.raw.get("rules", ())),
         rules=tuple(contributions),
         groups=tuple(groups),
     )

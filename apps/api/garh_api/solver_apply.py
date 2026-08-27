@@ -35,7 +35,7 @@ the append — accepting a plan is a named moment on the timeline, and pinning i
 from __future__ import annotations
 
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -106,9 +106,7 @@ def dependency_order(ops: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Stable sort into fold-dependency bands. Same input ⇒ same output, always."""
     return sorted(
         ops,
-        key=lambda item: _DEPENDENCY_PRECEDENCE.get(
-            str(item.get("type")), _DEPENDENCY_DEFAULT
-        ),
+        key=lambda item: _DEPENDENCY_PRECEDENCE.get(str(item.get("type")), _DEPENDENCY_DEFAULT),
     )
 
 
@@ -136,9 +134,7 @@ async def expand_solver_apply_ops(
     return expanded
 
 
-async def _expand_one(
-    repo: SolverJobRepository, project_id: uuid.UUID, op_in: OpIn
-) -> OpIn:
+async def _expand_one(repo: SolverJobRepository, project_id: uuid.UUID, op_in: OpIn) -> OpIn:
     payload = op_in.payload or {}
     job_id = _job_uuid(payload.get("solverJobId"))
 
@@ -234,7 +230,7 @@ def _job_uuid(raw: Any) -> uuid.UUID:
         return uuid.UUID(str(raw))
     except (ValueError, AttributeError, TypeError):
         # An unparseable id is indistinguishable from a nonexistent one: 404, not 500.
-        raise EntityNotFoundError("solver_job", raw)
+        raise EntityNotFoundError("solver_job", raw) from None
 
 
 async def snapshot_after_solver_apply(
@@ -313,7 +309,7 @@ async def snapshot_after_solver_apply(
                 orphaned=stats["orphaned"],
                 attached=stats.get("attached", 0),
             )
-    except Exception as exc:  # noqa: BLE001 - the applied option stands regardless
+    except Exception as exc:
         _log.error(
             "solver_apply.annotation_reconcile_failed",
             project_id=str(project_id),

@@ -88,7 +88,10 @@ export function FacadeComponentPanel({
   if (component === null) {
     // Reachable: the selection can outlive a kit re-apply that replaced ids.
     return (
-      <aside className={cn('flex h-full w-full flex-col bg-surface', className)} aria-label="Facade element">
+      <aside
+        className={cn('flex h-full w-full flex-col bg-surface', className)}
+        aria-label="Facade element"
+      >
         <p className="px-3 py-6 text-xs text-ink-muted">
           This facade element no longer exists — applying or regenerating a kit replaces every
           element. Select one in the 3D view, or re-open the Facade panel.
@@ -315,9 +318,7 @@ function ComponentFields({ component, display, commit }: FieldsProps): JSX.Eleme
     case 'louver':
     case 'entry_feature':
       return (
-        <p className="text-xs text-ink-muted">
-          No editable parameters for this element kind yet.
-        </p>
+        <p className="text-xs text-ink-muted">No editable parameters for this element kind yet.</p>
       );
   }
 }

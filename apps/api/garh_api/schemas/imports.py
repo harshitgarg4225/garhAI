@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import Field, StrictBool, StrictInt, StrictStr
 
@@ -67,7 +67,7 @@ class DxfImportResultOut(ResponseModel):
     """The parsed drawing: what the layer picker renders."""
 
     layers: list[DxfLayerOut] = Field(default_factory=list)
-    units: Optional[DxfUnitsOut] = None
+    units: DxfUnitsOut | None = None
     skipped: dict[str, StrictInt] = Field(
         default_factory=dict,
         description="Entities dropped and why (openPolylines, overVertexCap, "
@@ -86,22 +86,22 @@ class DxfImportJobOut(ResponseModel):
     kind: StrictStr = DXF_IMPORT_JOB_KIND
     status: StrictStr
     progress: StrictInt = 0
-    filename: Optional[StrictStr] = None
-    size_bytes: Optional[StrictInt] = None
-    error: Optional[StrictStr] = None
-    events_url: Optional[StrictStr] = None
-    result: Optional[DxfImportResultOut] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    filename: StrictStr | None = None
+    size_bytes: StrictInt | None = None
+    error: StrictStr | None = None
+    events_url: StrictStr | None = None
+    result: DxfImportResultOut | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     @classmethod
     def of(
         cls,
         record: Any,
         *,
-        events_url: Optional[str] = None,
-        result: Optional[dict[str, Any]] = None,
-    ) -> "DxfImportJobOut":
+        events_url: str | None = None,
+        result: dict[str, Any] | None = None,
+    ) -> DxfImportJobOut:
         params = dict(record.params or {})
         size = params.get("sizeBytes")
         return cls(
@@ -120,7 +120,7 @@ class DxfImportJobOut(ResponseModel):
         )
 
 
-def _parse_iso(value: Any) -> Optional[datetime]:
+def _parse_iso(value: Any) -> datetime | None:
     if value in (None, ""):
         return None
     if isinstance(value, datetime):

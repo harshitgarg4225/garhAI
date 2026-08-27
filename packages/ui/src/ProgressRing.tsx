@@ -100,7 +100,9 @@ export function ProgressRing({
           {clamped}
         </span>
         {caption === undefined ? null : (
-          <span className="mt-0.5 text-[0.5rem] uppercase tracking-wide text-ink-subtle">{caption}</span>
+          <span className="mt-0.5 text-[0.5rem] uppercase tracking-wide text-ink-subtle">
+            {caption}
+          </span>
         )}
       </span>
     </div>

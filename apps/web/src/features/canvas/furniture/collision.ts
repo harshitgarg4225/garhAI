@@ -94,7 +94,12 @@ export function buildPlacementContext(input: BuildContextInput): PlacementContex
     if (placed.id === input.excludeFurnitureId) continue;
     if (placed.item === null) continue;
     obstacles.push(
-      toObstacle(placed.id, 'furniture', placed.item.name, footprintQuad2x(placed.item, placed.pose)),
+      toObstacle(
+        placed.id,
+        'furniture',
+        placed.item.name,
+        footprintQuad2x(placed.item, placed.pose),
+      ),
     );
   }
 
@@ -312,9 +317,7 @@ export interface FurnitureAdvisoryChip {
  * hiding the timer inside this function would put the budget somewhere the
  * surface responsible for it cannot see.
  */
-export function furnitureAdvisoryChips(
-  issues: readonly PlacementIssue[],
-): FurnitureAdvisoryChip[] {
+export function furnitureAdvisoryChips(issues: readonly PlacementIssue[]): FurnitureAdvisoryChip[] {
   return issues.map((issue, index) => ({
     id: `furniture-${issue.code}-${index}`,
     status: issue.severity === 'warn' ? 'warn' : 'not_applicable',

@@ -59,6 +59,39 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('[garh] unhandled rejection', event.reason);
 });
 
+/**
+ * Error tracking (§18), OFF by default — `VITE_SENTRY_DSN` is blank everywhere
+ * nobody configured it, and then this block costs one string check.
+ *
+ * The dynamic `import()` is the point: Vite splits `@sentry/react` into its own
+ * chunk, fetched only when a DSN is present, so the zero-keys default deploy
+ * ships zero telemetry bytes (§14 bundle budget) and zero third-party calls
+ * (locked decision). Init failures are logged and swallowed — telemetry must
+ * never take down the app it describes.
+ *
+ * PII (§13): `sendDefaultPii: false`, and `beforeSend` drops the request
+ * envelope wholesale — headers, cookies, query strings. Room and storey names
+ * are user-authored content; nothing here attaches model state to an event,
+ * and error messages should carry types and codes, not user strings.
+ */
+if (env.errorReportingDsn) {
+  void import('@sentry/react')
+    .then((Sentry) => {
+      Sentry.init({
+        dsn: env.errorReportingDsn,
+        environment: env.mode,
+        sendDefaultPii: false,
+        beforeSend(event) {
+          delete event.request;
+          return event;
+        },
+      });
+    })
+    .catch((error: unknown) => {
+      console.error('[garh] error tracking failed to load', error);
+    });
+}
+
 const container = document.getElementById('root');
 if (!container) {
   // `index.html` ships an empty `#root`. If it is missing, the document being

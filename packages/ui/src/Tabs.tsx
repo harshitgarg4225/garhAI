@@ -32,7 +32,7 @@ export interface TabItem<T extends string = string> {
 export type TabsVariant = 'underline' | 'pill';
 
 export interface TabsProps<T extends string = string> {
-  items: ReadonlyArray<TabItem<T>>;
+  items: readonly TabItem<T>[];
   value: T;
   onValueChange: (value: T) => void;
   /** Accessible name for the tablist, e.g. "Project sections". */
@@ -94,7 +94,12 @@ export function Tabs<T extends string>({
   };
 
   return (
-    <div ref={listRef} role="tablist" aria-label={label} className={cn(VARIANT_LIST[variant], className)}>
+    <div
+      ref={listRef}
+      role="tablist"
+      aria-label={label}
+      className={cn(VARIANT_LIST[variant], className)}
+    >
       {items.map((item, index) => {
         const selected = item.value === value;
         const skin = VARIANT_TAB[variant];
@@ -130,7 +135,11 @@ export function Tabs<T extends string>({
             {item.label}
             {item.count === undefined ? null : <CountBadge count={item.count} />}
             {item.attention === true ? (
-              <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-label="Needs attention" role="img" />
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-brand"
+                aria-label="Needs attention"
+                role="img"
+              />
             ) : null}
           </button>
         );
@@ -191,7 +200,12 @@ export interface TabLinksProps {
    * router dependency.
    */
   renderLink?:
-    | ((props: { href: string; className: string; children: ReactNode; 'aria-current': 'page' | undefined }) => ReactNode)
+    | ((props: {
+        href: string;
+        className: string;
+        children: ReactNode;
+        'aria-current': 'page' | undefined;
+      }) => ReactNode)
     | undefined;
   className?: string | undefined;
 }
@@ -209,7 +223,12 @@ export function TabLinks({
     <nav aria-label={label} className={cn(VARIANT_LIST[variant], className)}>
       {items.map((item) => {
         const active = item.key === activeKey;
-        const classes = cn(TAB_BASE, skin.base, active ? skin.on : skin.off, item.disabled === true && 'opacity-45');
+        const classes = cn(
+          TAB_BASE,
+          skin.base,
+          active ? skin.on : skin.off,
+          item.disabled === true && 'opacity-45',
+        );
         const body = (
           <>
             {item.icon === undefined ? null : <Icon name={item.icon} size={15} />}

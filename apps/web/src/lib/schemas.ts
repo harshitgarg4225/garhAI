@@ -114,7 +114,14 @@ export type Session = z.infer<typeof sessionSchema>;
 // Projects, plot, brief (garh_api/schemas/project.py)
 // ---------------------------------------------------------------------------
 
-export const PROJECT_STATUSES = ['draft', 'brief', 'options', 'design', 'drawings', 'archived'] as const;
+export const PROJECT_STATUSES = [
+  'draft',
+  'brief',
+  'options',
+  'design',
+  'drawings',
+  'archived',
+] as const;
 
 /**
  * The four F10 dashboard chips, as the API derives them.
@@ -568,7 +575,8 @@ export const renderJobSchema = z
     type: 'render.image',
     stage: null as string | null,
     message: null as string | null,
-    result: row.outputUrl === null ? null : ({ outputUrl: row.outputUrl } as Record<string, unknown>),
+    result:
+      row.outputUrl === null ? null : ({ outputUrl: row.outputUrl } as Record<string, unknown>),
     queuePosition: row.queueDepth,
   }));
 export type RenderJob = z.infer<typeof renderJobSchema>;

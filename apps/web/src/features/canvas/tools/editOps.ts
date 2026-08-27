@@ -98,12 +98,7 @@ export function angleDeg(a: Pt, b: Pt): number {
 }
 
 /** Build the preview record for a wall-shaped thing. */
-export function previewWall(
-  a: Pt,
-  b: Pt,
-  thicknessMm: number,
-  kind: WallKind,
-): PreviewWall {
+export function previewWall(a: Pt, b: Pt, thicknessMm: number, kind: WallKind): PreviewWall {
   return { a, b, thicknessMm, kind, lengthMm: distMm(a, b), angleDeg: angleDeg(a, b) };
 }
 
@@ -151,11 +146,7 @@ export function wallThicknessOp(wallId: Id<'wall'>, thicknessMm: number): Op {
  * Translate whole walls by a delta. The select tool's drag, and the copilot's
  * "move the kitchen wall 300 east" once it lands.
  */
-export function translateWallsOps(
-  doc: ProjectDoc,
-  wallIds: readonly string[],
-  deltaMm: Pt,
-): Op[] {
+export function translateWallsOps(doc: ProjectDoc, wallIds: readonly string[], deltaMm: Pt): Op[] {
   const ops: Op[] = [];
   for (const id of wallIds) {
     const wall = doc.house.walls.find((w) => w.id === id);
@@ -280,11 +271,7 @@ export function openingAddOp(input: OpeningAddInput): Op {
   return { type: 'opening.add', payload: { ...input } };
 }
 
-export function openingMoveOp(
-  openingId: Id<'opening'>,
-  offsetMm: number,
-  wallId?: Id<'wall'>,
-): Op {
+export function openingMoveOp(openingId: Id<'opening'>, offsetMm: number, wallId?: Id<'wall'>): Op {
   return {
     type: 'opening.move',
     payload: { openingId, offsetMm, ...(wallId === undefined ? {} : { wallId }) },

@@ -70,7 +70,9 @@ export function CardHeader({
           <p className="mt-0.5 text-xs leading-4 text-ink-muted">{description}</p>
         )}
       </div>
-      {actions === undefined ? null : <div className="flex shrink-0 items-center gap-1">{actions}</div>}
+      {actions === undefined ? null : (
+        <div className="flex shrink-0 items-center gap-1">{actions}</div>
+      )}
     </div>
   );
 }

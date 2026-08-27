@@ -12,11 +12,10 @@ from __future__ import annotations
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import pool
-
 from garh_api.config import get_settings
 from garh_api.db import build_sync_url, get_sync_engine
 from garh_api.models import Base
+from sqlalchemy import pool
 
 config = context.config
 
@@ -31,9 +30,7 @@ def _include_object(
     obj: object, name: str | None, type_: str, reflected: bool, compare_to: object
 ) -> bool:
     """Keep autogenerate focused on our own tables."""
-    if type_ == "table" and name in ("spatial_ref_sys",):
-        return False
-    return True
+    return not (type_ == "table" and name in ("spatial_ref_sys",))
 
 
 def run_migrations_offline() -> None:

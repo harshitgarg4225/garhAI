@@ -1,7 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-
     // Same reasoning as packages/model/tsconfig.json: consumed as TypeScript
     // SOURCE, never emitted, so `composite` (inherited) must be off or tsc
     // fails with TS6304 against `noEmit`.

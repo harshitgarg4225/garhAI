@@ -35,9 +35,9 @@ if str(REPO_ROOT) not in sys.path:
 FIXTURES = REPO_ROOT / "fixtures" / "dxf"
 
 from garh_api import queue as api_queue  # noqa: E402
-from tests.helpers import problem  # noqa: E402
 
 from services.drawings import dxf_import  # noqa: E402
+from tests.helpers import problem  # noqa: E402
 
 #: fixture → (layer, expected CCW ring starting at the lexicographic minimum, mm²).
 RECT_RING = [(0, 0), (9144, 0), (9144, 12192), (0, 12192)]
@@ -231,9 +231,7 @@ async def test_handler_sniffs_out_non_dxf_bytes() -> None:
     envelope = _import_envelope(
         {
             "dxf": BlobRef(
-                inline_base64=base64.b64encode(b"%PDF-1.7 definitely not a dxf").decode(
-                    "ascii"
-                )
+                inline_base64=base64.b64encode(b"%PDF-1.7 definitely not a dxf").decode("ascii")
             )
         }
     )
@@ -338,9 +336,7 @@ async def test_upload_requires_auth(client, api, project_a) -> None:
     assert response.status_code == 401
 
 
-async def test_import_job_is_invisible_cross_tenant(
-    client, api, firm_a, firm_b, project_a
-) -> None:
+async def test_import_job_is_invisible_cross_tenant(client, api, firm_a, firm_b, project_a) -> None:
     created = await client.post(
         "%s/projects/%s/import/dxf" % (api, project_a.id),
         headers=firm_a.headers,
@@ -354,9 +350,7 @@ async def test_import_job_is_invisible_cross_tenant(
     assert problem(stolen)["code"] == "not_found"
 
 
-async def test_result_layers_surface_after_worker_success(
-    client, api, firm_a, project_a
-) -> None:
+async def test_result_layers_surface_after_worker_success(client, api, firm_a, project_a) -> None:
     created = await client.post(
         "%s/projects/%s/import/dxf" % (api, project_a.id),
         headers=firm_a.headers,

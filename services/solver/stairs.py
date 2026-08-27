@@ -25,8 +25,8 @@ deterministically, so stage A and a resumed job always agree on the geometry.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
 
 from services.solver.geometry import bbox, point_in_polygon, zone_for_point
 from services.solver.program import DEFAULT_STOREY_HEIGHT_MM, load_vastu_zone_rules
@@ -43,7 +43,7 @@ MAX_CANDIDATES = 6
 
 #: Outward side of an axis-aligned envelope edge, from its direction on a CCW ring:
 #: interior is to the LEFT of a directed edge, so outward is its right normal.
-_OUTWARD_BY_DIRECTION: Dict[Tuple[int, int], str] = {
+_OUTWARD_BY_DIRECTION: dict[tuple[int, int], str] = {
     (1, 0): "S",  # heading east → outward -Y
     (-1, 0): "N",
     (0, 1): "E",  # heading north → outward +X
@@ -54,7 +54,7 @@ _OUTWARD_BY_DIRECTION: Dict[Tuple[int, int], str] = {
 class StairError(ValueError):
     """A storey height no legal stair can serve. Typed, actionable."""
 
-    def __init__(self, code: str, message: str, *, detail: Optional[str] = None) -> None:
+    def __init__(self, code: str, message: str, *, detail: str | None = None) -> None:
         super().__init__("%s — %s" % (code, message))
         self.code = code
         self.message = message
@@ -76,10 +76,10 @@ class NbcStairLimits:
     headroom_min_mm: int
 
 
-_LIMITS_CACHE: Dict[str, NbcStairLimits] = {}
+_LIMITS_CACHE: dict[str, NbcStairLimits] = {}
 
 
-def load_stair_limits(root: Optional[str] = None) -> NbcStairLimits:
+def load_stair_limits(root: str | None = None) -> NbcStairLimits:
     import os
 
     key = os.path.abspath(root) if root else "<default>"
@@ -126,7 +126,7 @@ class DoglegStair:
     well_width_mm: int
     well_depth_mm: int
 
-    def well_cells(self, module_mm: int = COARSE_MODULE_MM) -> Tuple[int, int]:
+    def well_cells(self, module_mm: int = COARSE_MODULE_MM) -> tuple[int, int]:
         """(width, depth) snapped UP to whole grid cells — a well may not shrink."""
         return (_ceil_div(self.well_width_mm, module_mm), _ceil_div(self.well_depth_mm, module_mm))
 
@@ -137,10 +137,10 @@ def _ceil_div(numerator: int, denominator: int) -> int:
 
 def size_dogleg(
     floor_to_floor_mm: int = DEFAULT_STOREY_HEIGHT_MM,
-    limits: Optional[NbcStairLimits] = None,
+    limits: NbcStairLimits | None = None,
     *,
-    flight_width_mm: Optional[int] = None,
-    root: Optional[str] = None,
+    flight_width_mm: int | None = None,
+    root: str | None = None,
 ) -> DoglegStair:
     """Size the default dogleg from the NBC bounds and the storey height.
 
@@ -187,7 +187,7 @@ def snap_up_mm(value: int, module_mm: int = COARSE_MODULE_MM) -> int:
 def entry_edge_index(params: SolveParams) -> int:
     """Which plot edge the entrance faces: widest road, tie → ``front``, tie → lowest."""
     best_index = 0
-    best_rank: Optional[Tuple[int, int, int]] = None
+    best_rank: tuple[int, int, int] | None = None
     for edge in params.edges:
         rank = (edge.road_width_mm, 1 if edge.role == "front" else 0, -edge.index)
         if best_rank is None or rank > best_rank:
@@ -227,7 +227,7 @@ def _sign(value: int) -> int:
     return 0 if value == 0 else (1 if value > 0 else -1)
 
 
-def edge_outward_side(polygon: Sequence[Tuple[int, int]], edge_index: int) -> Optional[str]:
+def edge_outward_side(polygon: Sequence[tuple[int, int]], edge_index: int) -> str | None:
     """Outward plot-local side of an axis-aligned CCW polygon edge; ``None`` if slanted.
 
     Public because stage A uses it to know which footprint side a stair anchor pins
@@ -244,9 +244,11 @@ def edge_outward_side(polygon: Sequence[Tuple[int, int]], edge_index: int) -> Op
 # ---------------------------------------------------------------------------
 
 
-def _envelope_edges(polygon: Sequence[Tuple[int, int]]) -> List[Tuple[int, Tuple[int, int], Tuple[int, int], str]]:
+def _envelope_edges(
+    polygon: Sequence[tuple[int, int]],
+) -> list[tuple[int, tuple[int, int], tuple[int, int], str]]:
     """(index, a, b, outward side) for every axis-aligned envelope edge."""
-    out: List[Tuple[int, Tuple[int, int], Tuple[int, int], str]] = []
+    out: list[tuple[int, tuple[int, int], tuple[int, int], str]] = []
     count = len(polygon)
     for index in range(count):
         a = polygon[index]
@@ -258,7 +260,7 @@ def _envelope_edges(polygon: Sequence[Tuple[int, int]]) -> List[Tuple[int, Tuple
     return out
 
 
-def _well_dims_for_side(side: str, long_mm: int, short_mm: int) -> Tuple[int, int]:
+def _well_dims_for_side(side: str, long_mm: int, short_mm: int) -> tuple[int, int]:
     """(dx, dy) with the SHORT dimension parallel to the hugged edge.
 
     Perpendicular, not parallel, after first execution: the axis NORMAL to the
@@ -279,7 +281,7 @@ def well_rect_for(
     *,
     stair: DoglegStair,
     module_mm: int = COARSE_MODULE_MM,
-) -> Tuple[int, int, int, int]:
+) -> tuple[int, int, int, int]:
     """Re-derive the exact well rectangle from an anchor. Pure and deterministic —
     a resumed job and a fresh solve compute the identical box.
 
@@ -305,27 +307,33 @@ def well_rect_for(
     return (x1, y1, x1 + dx, y1 + dy)
 
 
-def _box_inside(polygon: Sequence[Tuple[int, int]], rect: Tuple[int, int, int, int]) -> bool:
+def _box_inside(polygon: Sequence[tuple[int, int]], rect: tuple[int, int, int, int]) -> bool:
     """Corner + edge-midpoint + centre containment — sound for rectilinear envelopes
     whose features are at least one 300mm module wide (the grid guarantees that)."""
     x1, y1, x2, y2 = rect
     mx, my = (x1 + x2) // 2, (y1 + y2) // 2
     probes = (
-        (x1, y1), (x2, y1), (x2, y2), (x1, y2),
-        (mx, y1), (mx, y2), (x1, my), (x2, my),
+        (x1, y1),
+        (x2, y1),
+        (x2, y2),
+        (x1, y2),
+        (mx, y1),
+        (mx, y2),
+        (x1, my),
+        (x2, my),
         (mx, my),
     )
     return all(point_in_polygon(p, polygon) for p in probes)
 
 
 def _positions_on_edge(
-    a: Tuple[int, int],
-    b: Tuple[int, int],
+    a: tuple[int, int],
+    b: tuple[int, int],
     side: str,
-    dims: Tuple[int, int],
-    origin: Tuple[int, int],
+    dims: tuple[int, int],
+    origin: tuple[int, int],
     module_mm: int,
-) -> List[Tuple[str, Tuple[int, int]]]:
+) -> list[tuple[str, tuple[int, int]]]:
     """Flush SW-corner origins along one envelope edge: both ends and the middle,
     snapped to the module grid anchored at the envelope bbox minimum."""
     dx, dy = dims
@@ -339,7 +347,7 @@ def _positions_on_edge(
     def snap_to(value: int, anchor_mm: int) -> int:
         return anchor_mm + _ceil_div(value - anchor_mm, module_mm) * module_mm
 
-    out: List[Tuple[str, Tuple[int, int]]] = []
+    out: list[tuple[str, tuple[int, int]]] = []
     if side in ("S", "N"):
         y = lo_y if side == "S" else hi_y - dy
         starts = (
@@ -361,7 +369,7 @@ def _positions_on_edge(
     return out
 
 
-def _stair_allowed_zones(params: SolveParams, root: Optional[str]) -> Tuple[str, ...]:
+def _stair_allowed_zones(params: SolveParams, root: str | None) -> tuple[str, ...]:
     """The Vastu pack's allowed stair zones (advisory prior — never a hard filter)."""
     if params.vastu_mode == "off":
         return ()
@@ -376,11 +384,11 @@ def enumerate_stair_candidates(
     params: SolveParams,
     *,
     limit: int = MAX_CANDIDATES,
-    limits: Optional[NbcStairLimits] = None,
+    limits: NbcStairLimits | None = None,
     floor_to_floor_mm: int = DEFAULT_STOREY_HEIGHT_MM,
     module_mm: int = COARSE_MODULE_MM,
-    root: Optional[str] = None,
-) -> Tuple[StairAnchor, ...]:
+    root: str | None = None,
+) -> tuple[StairAnchor, ...]:
     """§5.2 stair candidates, best-prior first, at most ``limit`` (≤6), ≥3 whenever
     the envelope physically admits three.
 
@@ -400,8 +408,8 @@ def enumerate_stair_candidates(
     entry = entry_side(params)
     allowed_zones = _stair_allowed_zones(params, root)
 
-    seen: Dict[Tuple[int, int], bool] = {}
-    scored: List[Tuple[int, str, Tuple[int, int], int]] = []
+    seen: dict[tuple[int, int], bool] = {}
+    scored: list[tuple[int, str, tuple[int, int], int]] = []
     for edge_index, a, b, side in _envelope_edges(ring):
         dims = _well_dims_for_side(side, long_mm, short_mm)
         for label, position in _positions_on_edge(a, b, side, dims, origin, module_mm):
@@ -422,7 +430,9 @@ def enumerate_stair_candidates(
                 centre = ((rect[0] + rect[2]) // 2, (rect[1] + rect[3]) // 2)
                 if zone_for_point(centre, plot_bbox, params.north_deg) in allowed_zones:
                     prior += 20
-            scored.append((prior, "st-%s%d-%s" % (side.lower(), edge_index, label), position, edge_index))
+            scored.append(
+                (prior, "st-%s%d-%s" % (side.lower(), edge_index, label), position, edge_index)
+            )
 
     scored.sort(key=lambda item: (-item[0], item[2][0], item[2][1], item[1]))
     top = scored[: max(1, min(limit, MAX_CANDIDATES))]
@@ -438,7 +448,7 @@ def enumerate_stair_candidates(
     )
 
 
-_ADJACENT_SIDES: Dict[str, Tuple[str, str]] = {
+_ADJACENT_SIDES: dict[str, tuple[str, str]] = {
     "N": ("E", "W"),
     "S": ("E", "W"),
     "E": ("N", "S"),

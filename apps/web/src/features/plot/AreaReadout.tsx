@@ -17,7 +17,10 @@ export interface AreaReadoutProps {
   className?: string | undefined;
 }
 
-export function AreaReadout({ withPerimeter = false, className }: AreaReadoutProps): JSX.Element | null {
+export function AreaReadout({
+  withPerimeter = false,
+  className,
+}: AreaReadoutProps): JSX.Element | null {
   const plot = usePlotDoc();
   const display = useUnitsDisplay();
 

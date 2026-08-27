@@ -87,7 +87,10 @@ export function CompliancePage(): JSX.Element {
                 </div>
                 <ul className="flex flex-col gap-2 p-4">
                   {issues.map((issue, index) => (
-                    <li key={`${complianceIssueKey(issue)}#${index}`} className="flex flex-col gap-1">
+                    <li
+                      key={`${complianceIssueKey(issue)}#${index}`}
+                      className="flex flex-col gap-1"
+                    >
                       <ComplianceChip
                         status={issue.status}
                         message={issue.message}

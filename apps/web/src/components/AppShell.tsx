@@ -37,9 +37,7 @@ export interface AppShellProps {
   userName?: string | undefined;
   onSignOut?: (() => void) | undefined;
   /** Router link for the wordmark. Defaults to a plain anchor to "/". */
-  renderHomeLink?:
-    | ((props: { className: string; children: ReactNode }) => ReactNode)
-    | undefined;
+  renderHomeLink?: ((props: { className: string; children: ReactNode }) => ReactNode) | undefined;
   /** Right-aligned header slot: search, "New project", theme toggle. */
   headerActions?: ReactNode | undefined;
   children: ReactNode;
@@ -179,7 +177,10 @@ export function ProjectLayout({
         <main
           id="main"
           tabIndex={-1}
-          className={cn('min-w-0 flex-1 outline-none', scrollBody ? 'overflow-y-auto' : 'overflow-hidden')}
+          className={cn(
+            'min-w-0 flex-1 outline-none',
+            scrollBody ? 'overflow-y-auto' : 'overflow-hidden',
+          )}
         >
           {children}
         </main>

@@ -22,16 +22,8 @@ import { AppError } from '../../lib/errors';
 import { subscribeJobEvents } from '../../lib/sse';
 import { isTerminal, selectJobsFor, useJobsStore, type JobDTO } from '../../stores/jobs';
 import { useModelStore, type DispatchResult } from '../../stores/model';
-import {
-  INITIAL_THEATER,
-  reduceTheater,
-  type TheaterState,
-} from './theater';
-import {
-  perFloorParams,
-  regenerateOthersParams,
-  type SolveRequestParams,
-} from './stats';
+import { INITIAL_THEATER, reduceTheater, type TheaterState } from './theater';
+import { perFloorParams, regenerateOthersParams, type SolveRequestParams } from './stats';
 import {
   readSolveOutcome,
   solverJobDetailSchema,
@@ -236,27 +228,24 @@ export function useOptionActions(projectId: string): UseOptionActions {
     [],
   );
 
-  const setRoomLocked = useCallback(
-    (roomId: string, locked: boolean): DispatchResult | null => {
-      const store = useModelStore.getState();
-      const room = store.doc.house.rooms.find((r) => r.id === roomId);
-      if (room === undefined) return null;
-      const op = {
-        type: 'room.assign',
-        payload: {
-          roomId: room.id,
-          type: room.type,
-          ...(room.name !== '' ? { name: room.name } : {}),
-          locked,
-        },
-      } as unknown as Op;
-      return store.dispatch([op], {
-        label: locked ? 'Room locked for re-solve' : 'Room unlocked',
-        source: 'manual',
-      });
-    },
-    [],
-  );
+  const setRoomLocked = useCallback((roomId: string, locked: boolean): DispatchResult | null => {
+    const store = useModelStore.getState();
+    const room = store.doc.house.rooms.find((r) => r.id === roomId);
+    if (room === undefined) return null;
+    const op = {
+      type: 'room.assign',
+      payload: {
+        roomId: room.id,
+        type: room.type,
+        ...(room.name !== '' ? { name: room.name } : {}),
+        locked,
+      },
+    } as unknown as Op;
+    return store.dispatch([op], {
+      label: locked ? 'Room locked for re-solve' : 'Room unlocked',
+      source: 'manual',
+    });
+  }, []);
 
   const regenerateOthers = useCallback((): Promise<JobDTO> => {
     const locked = useModelStore
@@ -288,4 +277,3 @@ export function useOptionActions(projectId: string): UseOptionActions {
     regenerateFloor,
   };
 }
-

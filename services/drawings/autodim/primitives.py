@@ -28,8 +28,6 @@ it draws comes from the coordinates.
 
 from __future__ import annotations
 
-from typing import Tuple
-
 from services.drawings.projection.primitives import (
     Line,
     Point,
@@ -54,7 +52,7 @@ KIND_LEADER = "dim-leader"
 #: The dimension value itself.
 KIND_TEXT = "dim-text"
 
-DIM_KINDS: Tuple[str, ...] = (
+DIM_KINDS: tuple[str, ...] = (
     KIND_DIM,
     KIND_WITNESS,
     KIND_TICK,

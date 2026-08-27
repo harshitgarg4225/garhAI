@@ -65,16 +65,17 @@ are named in ``DECISIONS.md`` as still unwired.
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from garh_api.logging import get_logger
 
 _log = get_logger(__name__)
 
-Point = Tuple[int, int]
+Point = tuple[int, int]
 
 #: Packs every project gets. ``nbc-core`` is national and unconditional.
-BASE_PACKS: Tuple[str, ...] = ("nbc-core",)
+BASE_PACKS: tuple[str, ...] = ("nbc-core",)
 
 #: city_pack value -> rulepack id. A project with no city pack still gets NBC.
 CITY_PACK_IDS: Mapping[str, str] = {"blr": "blr", "ncr": "ncr", "hyd": "hyd"}
@@ -84,7 +85,7 @@ _WET_ROOM_TYPES = frozenset({"bath", "wc", "bath_wc", "toilet", "powder"})
 _GARAGE_ROOM_TYPES = frozenset({"garage", "stilt", "parking"})
 
 #: Assembled once per report so the reader knows which numbers are approximations.
-_NOTES: Tuple[str, ...] = (
+_NOTES: tuple[str, ...] = (
     "Edge roles are derived: widest road = front, opposite edge = rear.",
     "Provided setbacks are measured to external wall faces on the ground storey.",
     "Stair headroom is approximated as the storey clear height (no landing soffit "
@@ -110,7 +111,7 @@ class ComplianceUnavailable(RuntimeError):
 # ---------------------------------------------------------------------------
 
 
-def _ring(points: Sequence[Mapping[str, Any]]) -> List[Point]:
+def _ring(points: Sequence[Mapping[str, Any]]) -> list[Point]:
     return [(int(p["x"]), int(p["y"])) for p in points]
 
 
@@ -160,7 +161,7 @@ def _least_width_mm(ring: Sequence[Point]) -> int:
     """
     if len(ring) < 3:
         return 0
-    best: Optional[int] = None
+    best: int | None = None
     for i, (x1, y1) in enumerate(ring):
         x2, y2 = ring[(i + 1) % len(ring)]
         dx, dy = x2 - x1, y2 - y1
@@ -213,11 +214,12 @@ def _touches_ring(a: Point, b: Point, ring: Sequence[Point], tolerance_mm: int =
     """
     for i, v1 in enumerate(ring):
         v2 = ring[(i + 1) % len(ring)]
-        if _segment_distance_mm(a, b, v1, v2) <= tolerance_mm:
-            # Require an overlap in the running direction too, so a wall merely
-            # pointing at a corner does not count as bounding the room.
-            if min(_segment_length_mm(a, b), _segment_length_mm(v1, v2)) > 0:
-                return True
+        # Require an overlap in the running direction too, so a wall merely
+        # pointing at a corner does not count as bounding the room.
+        if _segment_distance_mm(a, b, v1, v2) <= tolerance_mm and (
+            min(_segment_length_mm(a, b), _segment_length_mm(v1, v2)) > 0
+        ):
+            return True
     return False
 
 
@@ -226,7 +228,7 @@ def _touches_ring(a: Point, b: Point, ring: Sequence[Point], tolerance_mm: int =
 # ---------------------------------------------------------------------------
 
 
-def _edge_roles(edge_count: int, road_widths: Mapping[int, Optional[int]]) -> List[str]:
+def _edge_roles(edge_count: int, road_widths: Mapping[int, int | None]) -> list[str]:
     """Assign front/rear/side-a/side-b/other. See module docstring, approximation 1."""
     roles = ["other"] * edge_count
     if edge_count == 0:
@@ -268,10 +270,10 @@ def build_evaluation_context(
     zone_category: str = "residential",
     building_use: str = DEFAULT_BUILDING_USE,
     dwelling_units: int = 1,
-    parking_spaces_provided: Optional[int] = None,
-    rwh_declared: Optional[bool] = None,
-    overrides: Optional[Mapping[str, Any]] = None,
-) -> Dict[str, Any]:
+    parking_spaces_provided: int | None = None,
+    rwh_declared: bool | None = None,
+    overrides: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     """Project a folded ``ProjectDoc`` (JSON form) into the engine's input contract.
 
     ``document`` is the camelCase dict the server holds — see
@@ -287,7 +289,7 @@ def build_evaluation_context(
 
     boundary = _ring(plot_doc.get("boundary") or [])
     roads_raw = plot_doc.get("roads") or []
-    road_widths: Dict[int, Optional[int]] = {}
+    road_widths: dict[int, int | None] = {}
     for road in roads_raw:
         try:
             road_widths[int(road["edgeIndex"])] = (
@@ -304,8 +306,6 @@ def build_evaluation_context(
     balconies = list(house.get("balconies") or [])
     levels = dict(house.get("levels") or {})
 
-    storey_index_by_id = {str(s.get("id")): i for i, s in enumerate(storeys)}
-    storey_by_id = {str(s.get("id")): s for s in storeys}
     ground_id = str(storeys[0].get("id")) if storeys else None
 
     # ---- plot -------------------------------------------------------------
@@ -316,7 +316,7 @@ def build_evaluation_context(
         if w.get("kind") == "external" and (ground_id is None or w.get("storeyId") == ground_id)
     ]
 
-    edges: List[Dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
     for i in range(len(boundary)):
         v1 = boundary[i]
         v2 = boundary[(i + 1) % len(boundary)]
@@ -340,8 +340,8 @@ def build_evaluation_context(
 
     plot_area = _polygon_area_mm2(boundary)
     front_edges = [e for e in edges if e["role"] == "front"]
-    frontage_mm: Optional[int] = None
-    depth_mm: Optional[int] = None
+    frontage_mm: int | None = None
+    depth_mm: int | None = None
     if front_edges and len(boundary) >= 3:
         idx = int(front_edges[0]["index"])
         frontage_mm = _segment_length_mm(boundary[idx], boundary[(idx + 1) % len(boundary)])
@@ -349,7 +349,7 @@ def build_evaluation_context(
             # Mean depth. Exact for a rectangle, honest-average for L/T.
             depth_mm = plot_area // frontage_mm
 
-    plot: Dict[str, Any] = {
+    plot: dict[str, Any] = {
         "boundaryMm": [list(p) for p in boundary],
         "areaMm2": plot_area,
         "northDeg": int(plot_doc.get("northDeg") or 0) % 360,
@@ -360,7 +360,7 @@ def build_evaluation_context(
     }
 
     # ---- storeys / areas --------------------------------------------------
-    slabs_by_storey: Dict[str, List[Mapping[str, Any]]] = {}
+    slabs_by_storey: dict[str, list[Mapping[str, Any]]] = {}
     for slab in house.get("slabs") or []:
         if slab.get("kind") == "floor":
             slabs_by_storey.setdefault(str(slab.get("storeyId")), []).append(slab)
@@ -374,7 +374,7 @@ def build_evaluation_context(
     has_stilt = bool(brief_data.get("hasStilt"))
     has_basement = bool(brief_data.get("hasBasement"))
 
-    storey_rows: List[Dict[str, Any]] = []
+    storey_rows: list[dict[str, Any]] = []
     for i, storey in enumerate(storeys):
         height = int(storey.get("heightMm") or 0)
         slab_thickness = int((storey.get("level") or {}).get("slabThicknessMm") or 0)
@@ -406,11 +406,11 @@ def build_evaluation_context(
 
     # ---- rooms ------------------------------------------------------------
     walls_by_id = {str(w.get("id")): w for w in walls}
-    room_rings: Dict[str, List[Point]] = {
+    room_rings: dict[str, list[Point]] = {
         str(r.get("id")): _ring(r.get("polygon") or []) for r in rooms
     }
 
-    def _room_ids_for_wall(wall: Mapping[str, Any]) -> List[str]:
+    def _room_ids_for_wall(wall: Mapping[str, Any]) -> list[str]:
         a = (int(wall["a"]["x"]), int(wall["a"]["y"]))
         b = (int(wall["b"]["x"]), int(wall["b"]["y"]))
         storey_id = str(wall.get("storeyId"))
@@ -421,11 +421,11 @@ def build_evaluation_context(
             and _touches_ring(a, b, room_rings[str(room.get("id"))])
         ]
 
-    wall_room_ids: Dict[str, List[str]] = {
+    wall_room_ids: dict[str, list[str]] = {
         wall_id: _room_ids_for_wall(wall) for wall_id, wall in walls_by_id.items()
     }
 
-    ventilation_by_room: Dict[str, int] = {}
+    ventilation_by_room: dict[str, int] = {}
     for opening in openings:
         if opening.get("kind") not in ("window", "ventilator"):
             continue
@@ -441,8 +441,8 @@ def build_evaluation_context(
         for room_id in room_ids
     }
 
-    room_rows: List[Dict[str, Any]] = []
-    room_type_by_id: Dict[str, str] = {}
+    room_rows: list[dict[str, Any]] = []
+    room_type_by_id: dict[str, str] = {}
     for room in rooms:
         room_id = str(room.get("id"))
         ring = room_rings[room_id]
@@ -490,7 +490,8 @@ def build_evaluation_context(
         if main_entrance_id is not None and opening.get("id") == main_entrance_id:
             return "main-entrance"
         adjoining = {
-            room_type_by_id.get(rid, "") for rid in wall_room_ids.get(str(opening.get("wallId")), ())
+            room_type_by_id.get(rid, "")
+            for rid in wall_room_ids.get(str(opening.get("wallId")), ())
         }
         if adjoining & _WET_ROOM_TYPES:
             return "bath"
@@ -498,7 +499,7 @@ def build_evaluation_context(
             return "garage"
         return "internal"
 
-    def _outward_normal_deg(wall: Optional[Mapping[str, Any]]) -> Optional[int]:
+    def _outward_normal_deg(wall: Mapping[str, Any] | None) -> int | None:
         """Compass bearing of the wall's outward normal, in plot-local degrees.
 
         Only meaningful for an external wall; the sign convention assumes the
@@ -515,7 +516,7 @@ def build_evaluation_context(
         nx, ny = by - ay, ax - bx
         return _round_half_away(math.degrees(math.atan2(nx, ny))) % 360
 
-    opening_rows: List[Dict[str, Any]] = []
+    opening_rows: list[dict[str, Any]] = []
     for opening in openings:
         wall = walls_by_id.get(str(opening.get("wallId")))
         opening_rows.append(
@@ -534,7 +535,7 @@ def build_evaluation_context(
         )
 
     # ---- stairs -----------------------------------------------------------
-    stair_rows: List[Dict[str, Any]] = []
+    stair_rows: list[dict[str, Any]] = []
     for stair in stairs:
         storey_id = str(stair.get("storeyId"))
         storey_row = next((r for r in storey_rows if r["id"] == storey_id), None)
@@ -554,7 +555,7 @@ def build_evaluation_context(
         )
 
     # ---- projections (balconies) -----------------------------------------
-    projection_rows: List[Dict[str, Any]] = []
+    projection_rows: list[dict[str, Any]] = []
     for balcony in balconies:
         ring = _ring(balcony.get("polygon") or [])
         edge_role = "other"
@@ -580,7 +581,7 @@ def build_evaluation_context(
             }
         )
 
-    model: Dict[str, Any] = {
+    model: dict[str, Any] = {
         "storeyCount": len(storey_rows),
         "hasStilt": has_stilt,
         "hasBasement": has_basement,
@@ -598,7 +599,7 @@ def build_evaluation_context(
     }
 
     city_pack = str((plot_doc.get("regProfile") or {}).get("cityPack") or "custom")
-    profile: Dict[str, Any] = {
+    profile: dict[str, Any] = {
         "cityPack": city_pack,
         "zoneCategory": zone_category,
         "buildingUse": building_use,
@@ -632,7 +633,7 @@ def build_evaluation_context(
     }
 
 
-def packs_for(document: Mapping[str, Any], *, city_pack: Optional[str] = None) -> Tuple[str, ...]:
+def packs_for(document: Mapping[str, Any], *, city_pack: str | None = None) -> tuple[str, ...]:
     """Which packs a project loads: nbc-core + its city pack + vastu when enabled.
 
     ``vastu`` is loaded only when ``vastuMode != 'off'`` — the pack's own contract is
@@ -642,7 +643,7 @@ def packs_for(document: Mapping[str, Any], *, city_pack: Optional[str] = None) -
     plot_doc = dict(document.get("plot") or {})
     brief_doc = dict(document.get("brief") or {})
     resolved = city_pack or (plot_doc.get("regProfile") or {}).get("cityPack")
-    packs: List[str] = list(BASE_PACKS)
+    packs: list[str] = list(BASE_PACKS)
     pack_id = CITY_PACK_IDS.get(str(resolved or ""))
     if pack_id is not None:
         packs.append(pack_id)
@@ -651,7 +652,7 @@ def packs_for(document: Mapping[str, Any], *, city_pack: Optional[str] = None) -
     return tuple(packs)
 
 
-def cannot_evaluate_reason(document: Mapping[str, Any]) -> Optional[str]:
+def cannot_evaluate_reason(document: Mapping[str, Any]) -> str | None:
     """Why the rules cannot run yet, or ``None`` when they can.
 
     Not an exception and not a silent empty report: "we have not checked this because
@@ -665,16 +666,18 @@ def cannot_evaluate_reason(document: Mapping[str, Any]) -> Optional[str]:
     """
     boundary = (document.get("plot") or {}).get("boundary") or []
     if len(boundary) < 3:
-        return "Draw the plot boundary first — setbacks, coverage and FAR are all measured against it."
+        return (
+            "Draw the plot boundary first — setbacks, coverage and FAR are all measured against it."
+        )
     return None
 
 
 def evaluate_document(
     document: Mapping[str, Any],
     *,
-    city_pack: Optional[str] = None,
-    overrides: Optional[Mapping[str, Any]] = None,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    city_pack: str | None = None,
+    overrides: Mapping[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Run the rules against a folded document.
 
     Returns ``(report_json, pack_versions)`` — exactly the two values
@@ -703,9 +706,7 @@ def evaluate_document(
 
     payload = report.to_json()
     existing = list(payload.get("notes") or [])
-    payload["notes"] = existing + [
-        "projection: %s" % note for note in _NOTES
-    ]
+    payload["notes"] = existing + ["projection: %s" % note for note in _NOTES]
     _log.info(
         "compliance.evaluated",
         packs=",".join(packs),

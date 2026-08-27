@@ -131,9 +131,7 @@ class SolverQueueHandler(SolverJobHandler):
             else:
                 result = await run_solver(context)
         except EnvelopeError as exc:
-            raise InvalidJobError(
-                exc.message, action=exc.action, detail=exc.detail
-            ) from exc
+            raise InvalidJobError(exc.message, action=exc.action, detail=exc.detail) from exc
 
         data: dict[str, Any] = result.to_json()
         data.update(extra)
@@ -146,9 +144,7 @@ class SolverQueueHandler(SolverJobHandler):
             resumed=bool(resume_state),
         )
         message = (
-            result.banner
-            if result.banner
-            else "Generated %d plan options." % len(result.options)
+            result.banner if result.banner else "Generated %d plan options." % len(result.options)
         )
         return JobResult(data=data, message=message)
 

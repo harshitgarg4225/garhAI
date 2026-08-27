@@ -65,7 +65,13 @@ export function Badge({
 }
 
 /** Numeric counter for tabs and queues: "3". Zero renders nothing. */
-export function CountBadge({ count, tone = 'neutral' }: { count: number; tone?: BadgeTone }): JSX.Element | null {
+export function CountBadge({
+  count,
+  tone = 'neutral',
+}: {
+  count: number;
+  tone?: BadgeTone;
+}): JSX.Element | null {
   if (count <= 0) return null;
   return (
     <span

@@ -47,7 +47,15 @@ STUBBED = install_worker_dep_stubs()
 from garh_model.fold import apply_group, stair_footprint_polygon  # noqa: E402
 from garh_model.model import DEFAULTS, WET_ROOM_TYPES  # noqa: E402
 from garh_model.ops import op  # noqa: E402
+
 from services.drawings.dimensions import assert_chains_sum, find_label_collisions  # noqa: E402
+from services.drawings.elevations.demo_house import DEMO_IDS, demo_project_doc  # noqa: E402
+from services.drawings.elevations.vertical import (  # noqa: E402
+    K_FOUNDATION_LABEL,
+    K_FOUNDATION_LINE,
+    K_STAIR_PROFILE,
+    build_levels,
+)
 from services.drawings.layers import A_STAIR, A_TEXT, A_WALL_PART, LAYER_NAMES  # noqa: E402
 from services.drawings.projection.primitives import (  # noqa: E402
     Hatch,
@@ -60,22 +68,17 @@ from services.drawings.projection.primitives import (  # noqa: E402
     primitives_digest,
     validate_primitives,
 )
-from services.drawings.elevations.demo_house import DEMO_IDS, demo_project_doc  # noqa: E402
-from services.drawings.elevations.vertical import (  # noqa: E402
-    K_FOUNDATION_LABEL,
-    K_FOUNDATION_LINE,
-    K_STAIR_PROFILE,
-    build_levels,
-)
 from services.drawings.sections.choose import (  # noqa: E402
     PENALTY_ALONG_WALL,
     SCORE_ALONG_FLIGHT,
     SCORE_THROUGH_FLIGHT,
     SCORE_WET_AREA,
-    WET_ROOM_TYPES as SECTION_WET_ROOM_TYPES,
     CutLine,
     choose_section_line,
     score_candidate,
+)
+from services.drawings.sections.choose import (  # noqa: E402
+    WET_ROOM_TYPES as SECTION_WET_ROOM_TYPES,
 )
 from services.drawings.sections.project import (  # noqa: E402
     FOUNDATION_DEPTH_BELOW_PLINTH_MM,
@@ -121,9 +124,7 @@ def test_the_chosen_line_prefers_the_ground_stair_and_a_wet_area() -> None:
     assert chosen_stair.storey_id == ground_storey, "the section climbs from the entrance"
     assert CHOICE.best.along_flight
     assert CHOICE.best.wet_room_ids, "§7 asks for one wet area if possible"
-    wet_types = {
-        r.type for r in HOUSE.rooms if r.id in CHOICE.best.wet_room_ids
-    }
+    wet_types = {r.type for r in HOUSE.rooms if r.id in CHOICE.best.wet_room_ids}
     assert wet_types <= set(WET_ROOM_TYPES), wet_types
 
 
@@ -171,7 +172,10 @@ def test_choosing_is_deterministic_and_explains_itself() -> None:
 def test_no_stair_means_no_section_and_an_honest_note() -> None:
     doc = apply_group(
         DOC,
-        [op("stair.delete", stairId=DEMO_IDS["ff_stair"]), op("stair.delete", stairId=DEMO_IDS["gf_stair"])],
+        [
+            op("stair.delete", stairId=DEMO_IDS["ff_stair"]),
+            op("stair.delete", stairId=DEMO_IDS["gf_stair"]),
+        ],
     ).model
     choice = choose_section_line(doc.house)
     assert choice.best is None
@@ -216,8 +220,12 @@ def test_cut_line_round_trips_into_a_sheet_viewport() -> None:
 # The foundation line: §7's liability boundary
 # ---------------------------------------------------------------------------
 def test_foundation_line_is_dashed_900_below_plinth_and_labelled_exactly() -> None:
-    lines = [item for item in by_kind(DRAWING.primitives, K_FOUNDATION_LINE) if isinstance(item, Line)]
-    labels = [item for item in by_kind(DRAWING.primitives, K_FOUNDATION_LABEL) if isinstance(item, Text)]
+    lines = [
+        item for item in by_kind(DRAWING.primitives, K_FOUNDATION_LINE) if isinstance(item, Line)
+    ]
+    labels = [
+        item for item in by_kind(DRAWING.primitives, K_FOUNDATION_LABEL) if isinstance(item, Text)
+    ]
     assert len(lines) == 1, "exactly one indicative foundation line"
     assert len(labels) == 1
     line = lines[0]
@@ -304,7 +312,9 @@ def test_mumty_is_derived_over_the_stair_and_labelled_indicative() -> None:
 
 
 def test_parapet_is_cut_at_the_two_terrace_edges() -> None:
-    parapets = [item for item in by_kind(DRAWING.primitives, "parapet") if isinstance(item, Polyline)]
+    parapets = [
+        item for item in by_kind(DRAWING.primitives, "parapet") if isinstance(item, Polyline)
+    ]
     assert len(parapets) == 2, "a cut crosses the parapet at both ends of the terrace"
     levels = build_levels(HOUSE)
     for item in parapets:
@@ -312,15 +322,13 @@ def test_parapet_is_cut_at_the_two_terrace_edges() -> None:
         assert zs == {levels.terrace_mm, levels.parapet_top_mm}
         us = sorted({point[0] for point in item.points})
         assert us[1] - us[0] == PARAPET_THICKNESS_MM
-    assert PARAPET_THICKNESS_MM == DEFAULTS.parapet_thickness_mm
+    assert DEFAULTS.parapet_thickness_mm == PARAPET_THICKNESS_MM
 
 
 def test_slab_void_over_the_stair_well() -> None:
     """The stair well is a hole in the slab, so the cut slab arrives in two pieces."""
     slabs = [
-        item
-        for item in by_kind(DRAWING.primitives, "slab-edge")
-        if isinstance(item, Polyline)
+        item for item in by_kind(DRAWING.primitives, "slab-edge") if isinstance(item, Polyline)
     ]
     levels = build_levels(HOUSE)
     first_floor = levels.storeys[1]
@@ -367,9 +375,7 @@ def test_a_dogleg_draws_its_first_flight_and_says_the_rest_is_not_drawn() -> Non
     assert any("return flight is not drawn" in item for item in DRAWING.notes)
 
     profiles = [
-        item
-        for item in by_kind(DRAWING.primitives, K_STAIR_PROFILE)
-        if isinstance(item, Polyline)
+        item for item in by_kind(DRAWING.primitives, K_STAIR_PROFILE) if isinstance(item, Polyline)
     ]
     assert len(profiles) == 2, "one profile per storey's flight"
     for item in profiles:
@@ -509,13 +515,12 @@ if __name__ == "__main__":  # pragma: no cover
             try:
                 fn()
                 print("PASS %s" % name)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 failures += 1
                 print("FAIL %s" % name)
                 traceback.print_exc()
     _report()
     print(
-        "\n%d test(s) failed. Stubbed dependencies: %s"
-        % (failures, ", ".join(STUBBED) or "none")
+        "\n%d test(s) failed. Stubbed dependencies: %s" % (failures, ", ".join(STUBBED) or "none")
     )
     sys.exit(1 if failures else 0)

@@ -37,9 +37,7 @@ function readSchema(name: string): Record<string, unknown> {
 describe('OP_CATALOG covers the playbook §4 table exactly', () => {
   it('has 32 ops numbered 1..32 with no gaps', () => {
     expect(OP_CATALOG).toHaveLength(32);
-    expect(OP_CATALOG.map((s) => s.number)).toEqual(
-      Array.from({ length: 32 }, (_, i) => i + 1),
-    );
+    expect(OP_CATALOG.map((s) => s.number)).toEqual(Array.from({ length: 32 }, (_, i) => i + 1));
   });
 
   it('has a unique type per entry, and OP_TYPES matches', () => {

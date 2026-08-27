@@ -17,7 +17,8 @@ import { DoubleSide, LineBasicMaterial, MeshBasicMaterial } from 'three';
 
 import { readTokenColor } from '../../../features/canvas/core';
 
-export interface PlanMaterials {
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- a type alias (not interface) carries the implicit index signature Object.values() needs to type the dispose loop below
+export type PlanMaterials = {
   /** Wall poché — the solid fill an architect reads as "wall". */
   readonly wallFill: MeshBasicMaterial;
   /** Room wash, very light: it must not fight the walls for attention. */
@@ -36,7 +37,7 @@ export interface PlanMaterials {
   readonly previewLine: LineBasicMaterial;
   /** The snap marker and the crosshair. */
   readonly snapLine: LineBasicMaterial;
-}
+};
 
 let cache: PlanMaterials | null = null;
 

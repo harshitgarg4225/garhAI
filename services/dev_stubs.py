@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import sys
 import types
+from collections.abc import Callable
+from typing import Any
 
 
 def _install_structlog() -> bool:
@@ -42,13 +44,13 @@ def _install_structlog() -> bool:
 
         info = warning = debug = error = exception = critical = msg = _noop
 
-        def bind(self, **kwargs: object) -> "_Logger":
+        def bind(self, **kwargs: object) -> _Logger:
             return self
 
-        def unbind(self, *args: object) -> "_Logger":
+        def unbind(self, *args: object) -> _Logger:
             return self
 
-        def new(self, **kwargs: object) -> "_Logger":
+        def new(self, **kwargs: object) -> _Logger:
             return self
 
     stub.get_logger = lambda *a, **k: _Logger()  # type: ignore[attr-defined]
@@ -94,8 +96,8 @@ def _install_pydantic() -> bool:
             return factory() if callable(factory) else None
         return default
 
-    def _passthrough_decorator(*args: object, **kwargs: object):
-        def deco(fn):
+    def _passthrough_decorator(*args: object, **kwargs: object) -> Callable[[Any], Any]:
+        def deco(fn: Any) -> Any:
             return fn
 
         return deco
@@ -108,10 +110,10 @@ def _install_pydantic() -> bool:
                 setattr(self, key, value)
 
         @classmethod
-        def model_validate(cls, data: object) -> "_BaseModel":
+        def model_validate(cls, data: object) -> _BaseModel:
             return cls(**data) if isinstance(data, dict) else cls()
 
-        def model_dump(self, **kwargs: object) -> dict:
+        def model_dump(self, **kwargs: object) -> dict[str, Any]:
             return dict(self.__dict__)
 
     class _AliasChoices:

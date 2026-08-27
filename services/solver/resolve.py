@@ -37,8 +37,9 @@ cell layouts and fake stage-B wall lists, no OR-Tools anywhere in the import gra
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import Any, Callable, Mapping, Optional, Sequence
+from typing import Any
 
 from services.common.errors import InvalidJobError
 from services.common.logging import get_logger
@@ -96,11 +97,11 @@ class LockedRoom:
     storey_index: int
     room_type: str
     polygon: Polygon
-    name: Optional[str] = None
+    name: str | None = None
     walls: tuple[LockedWall, ...] = ()
     #: The raw payload entry, kept verbatim so the output is *byte*-preserved —
     #: the same mapping object goes back out, never a re-serialisation.
-    raw: Optional[Mapping[str, Any]] = None
+    raw: Mapping[str, Any] | None = None
 
     def bounding_placement(self) -> RoomPlacement:
         """The locked room as a placement rect, ``room_id`` preserved.
@@ -164,7 +165,9 @@ def parse_locked_rooms(payload: Mapping[str, Any]) -> tuple[LockedRoom, ...]:
         rooms.append(
             LockedRoom(
                 id=room_id,
-                storey_index=_index(entry.get("storeyIndex", 0), "lockedRooms[%d].storeyIndex" % index),
+                storey_index=_index(
+                    entry.get("storeyIndex", 0), "lockedRooms[%d].storeyIndex" % index
+                ),
                 room_type=str(entry.get("type") or entry.get("roomType") or "unassigned"),
                 polygon=polygon,
                 name=str(entry["name"]) if isinstance(entry.get("name"), str) else None,
@@ -236,11 +239,16 @@ def _points(raw: Any, where: str) -> list[tuple[int, int]]:
 def _point(raw: Any, where: str) -> Pt:
     if isinstance(raw, Mapping):
         x, y = raw.get("x"), raw.get("y")
-    elif isinstance(raw, (list, tuple)) and len(raw) == 2:
+    elif isinstance(raw, list | tuple) and len(raw) == 2:
         x, y = raw[0], raw[1]
     else:
         raise InvalidJobError("A point could not be read.", detail="%s=%r" % (where, raw))
-    if isinstance(x, bool) or isinstance(y, bool) or not isinstance(x, int) or not isinstance(y, int):
+    if (
+        isinstance(x, bool)
+        or isinstance(y, bool)
+        or not isinstance(x, int)
+        or not isinstance(y, int)
+    ):
         raise InvalidJobError(
             "Geometry must be integer millimetres.", detail="%s=(%r, %r)" % (where, x, y)
         )
@@ -330,7 +338,7 @@ def residual_params(params: SolveParams, locked: Sequence[LockedRoom]) -> SolveP
 def strip_relocked_walls(
     locked_walls: Sequence[LockedWall],
     new_walls: Sequence[Mapping[str, Any]],
-) -> Optional[list[Mapping[str, Any]]]:
+) -> list[Mapping[str, Any]] | None:
     """Remove stage-B re-emissions of locked walls; ``None`` when one was *modified*.
 
     Stage B synthesises the whole wall network, so it may innocently re-emit a wall
@@ -400,9 +408,7 @@ def merge_walls_locked_wins(
             out.append(wall)  # untouched
             continue
         fragments = [
-            interval
-            for interval in keep
-            if interval[1] - interval[0] >= MIN_WALL_FRAGMENT_MM
+            interval for interval in keep if interval[1] - interval[0] >= MIN_WALL_FRAGMENT_MM
         ]
         if not fragments:
             log.info(
@@ -412,19 +418,15 @@ def merge_walls_locked_wins(
             )
             continue
         for findex, (frag_lo, frag_hi) in enumerate(fragments):
-            out.append(
-                _rebuild_wall(wall, axis, line, frag_lo, frag_hi, fragment_index=findex)
-            )
+            out.append(_rebuild_wall(wall, axis, line, frag_lo, frag_hi, fragment_index=findex))
     return tuple(out)
 
 
-def locked_walls_untouched(
-    locked_walls: Sequence[Any], merged: Sequence[Any]
-) -> bool:
+def locked_walls_untouched(locked_walls: Sequence[Any], merged: Sequence[Any]) -> bool:
     """True when every locked wall survived **identically** (same object or equal)."""
     if len(merged) < len(locked_walls):
         return False
-    for expected, actual in zip(locked_walls, merged):
+    for expected, actual in zip(locked_walls, merged, strict=False):
         if actual is expected:
             continue
         if actual != expected:
@@ -445,7 +447,7 @@ def _wall_get(wall: Any, key: str) -> Any:
     return getattr(wall, key, None)
 
 
-def _axis_span(geometry: tuple[Pt, Pt]) -> Optional[tuple[str, int, int, int]]:
+def _axis_span(geometry: tuple[Pt, Pt]) -> tuple[str, int, int, int] | None:
     """``(axis, fixed-coordinate, lo, hi)`` for an orthogonal segment, else None."""
     (ax, ay), (bx, by) = geometry
     if ay == by and ax != bx:
@@ -455,9 +457,7 @@ def _axis_span(geometry: tuple[Pt, Pt]) -> Optional[tuple[str, int, int, int]]:
     return None
 
 
-def _subtract_interval(
-    keep: Sequence[tuple[int, int]], lo: int, hi: int
-) -> list[tuple[int, int]]:
+def _subtract_interval(keep: Sequence[tuple[int, int]], lo: int, hi: int) -> list[tuple[int, int]]:
     """Subtract ``[lo, hi]`` from every interval. Exact integer arithmetic."""
     out: list[tuple[int, int]] = []
     for start, end in keep:
@@ -510,9 +510,9 @@ class RoomDiff:
     """How one room of the previous plan relates to the re-solved plan."""
 
     #: Placement key in the new plan, or None for a removed old room.
-    new_key: Optional[str]
+    new_key: str | None
     #: Old room id this placement inherits the story of, or None for a new room.
-    room_id: Optional[str]
+    room_id: str | None
     #: kept (same footprint) | moved | new | removed.
     relation: str
     #: Jaccard overlap ×100 (integer — no floats in wire JSON).
@@ -544,9 +544,7 @@ def _model_jaccard() -> Callable[[Sequence[Mapping[str, int]], Sequence[Mapping[
             "apps/api). Install it alongside garh-services in the solver worker image."
         ) from exc
 
-    def compute(
-        a: Sequence[Mapping[str, int]], b: Sequence[Mapping[str, int]]
-    ) -> float:
+    def compute(a: Sequence[Mapping[str, int]], b: Sequence[Mapping[str, int]]) -> float:
         return model_jaccard(
             [ModelPt(int(p["x"]), int(p["y"])) for p in a],
             [ModelPt(int(p["x"]), int(p["y"])) for p in b],
@@ -613,9 +611,7 @@ def match_unlocked_rooms(
             diffs.append(RoomDiff(new_key=placement.room_key, room_id=None, relation="new"))
     for old_index, room in enumerate(olds):
         if old_index not in taken_old:
-            diffs.append(
-                RoomDiff(new_key=None, room_id=str(room["id"]), relation="removed")
-            )
+            diffs.append(RoomDiff(new_key=None, room_id=str(room["id"]), relation="removed"))
     diffs.sort(key=lambda diff: (diff.relation, diff.new_key or "", diff.room_id or ""))
     return tuple(diffs)
 
@@ -648,7 +644,7 @@ class ResolveOutcome:
         """Merged into the job's result JSON next to ``SolveResult.to_json()``."""
         return {
             "lockedRoomIds": list(self.locked_room_ids),
-            "lockedRooms": [entry for entry in self.locked_rooms_raw],
+            "lockedRooms": list(self.locked_rooms_raw),
             "roomDiffs": [diff.to_json() for diff in self.room_diffs],
         }
 
@@ -686,9 +682,7 @@ async def run_resolve(
 
     locked = tuple(locked)
     locked_ids = tuple(sorted(room.id for room in locked))
-    locked_walls: tuple[LockedWall, ...] = tuple(
-        wall for room in locked for wall in room.walls
-    )
+    locked_walls: tuple[LockedWall, ...] = tuple(wall for room in locked for wall in room.walls)
     locked_placements = tuple(
         room.bounding_placement() for room in sorted(locked, key=lambda item: item.id)
     )
@@ -703,7 +697,7 @@ async def run_resolve(
         )
         return masked
 
-    def stage_b_post(model: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
+    def stage_b_post(model: Mapping[str, Any]) -> Mapping[str, Any] | None:
         """Shared-wall dedupe (locked side wins) + the never-touch-a-lock check."""
         walls = model.get("walls")
         if not isinstance(walls, list) or not locked_walls:
@@ -739,9 +733,7 @@ async def run_resolve(
     if previous_rooms and result.options:
         best = result.options[0]
         try:
-            diffs = match_unlocked_rooms(
-                previous_rooms, best.placements, locked_ids=locked_ids
-            )
+            diffs = match_unlocked_rooms(previous_rooms, best.placements, locked_ids=locked_ids)
         except RuntimeError as exc:
             # Degraded, not broken: the plan is still valid without the diff story.
             log.warning("resolve.diff_unavailable", error=str(exc))

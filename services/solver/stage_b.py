@@ -46,11 +46,19 @@ real reason, which is what §15's honest generation theater shows the user.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, FrozenSet, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from services.common.logging import get_logger
-from services.solver.geometry import Polygon, Pt, bbox, point_in_polygon, round_half_away, signed_area2
+from services.solver.geometry import (
+    Polygon,
+    Pt,
+    bbox,
+    point_in_polygon,
+    round_half_away,
+    signed_area2,
+)
 from services.solver.openings import (
     NbcOpeningLimits,
     OpeningError,
@@ -89,7 +97,7 @@ _STOREY_NAMES = ("Ground Floor", "First Floor", "Second Floor", "Third Floor")
 class StageBError(ValueError):
     """A candidate stage B cannot refine. Typed discard reason (§15)."""
 
-    def __init__(self, code: str, message: str, *, detail: Optional[str] = None) -> None:
+    def __init__(self, code: str, message: str, *, detail: str | None = None) -> None:
         super().__init__("%s — %s" % (code, message))
         self.code = code
         self.message = message
@@ -111,7 +119,7 @@ class StairLimits:
     headroom_min_mm: int
 
 
-def load_stair_limits(root: Optional[str] = None) -> StairLimits:
+def load_stair_limits(root: str | None = None) -> StairLimits:
     """Pull riser/tread/width/headroom from the nbc-core pack.
 
     Lazy import, same reasoning as ``openings.load_nbc_limits``: the §5.4 critic
@@ -146,7 +154,7 @@ def riser_schedule(
     riser_max_mm: int,
     *,
     tolerance_mm: int = STAIR_RISE_TOLERANCE_MM,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """``(risers_count, riser_mm)`` for one storey. Exact integers.
 
     The smallest riser count that (a) keeps every riser at or under the pack
@@ -177,7 +185,7 @@ def plan_stair(
     clear_poly: Polygon,
     storey_height_mm: int,
     limits: StairLimits,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """A Stair JSON body (minus ``id``/``storeyId``) inside the stair room.
 
     Deterministic placement rules:
@@ -205,7 +213,7 @@ def plan_stair(
     long_len = room_d if vertical else room_w
     short_len = room_w if vertical else room_d
 
-    candidates: List[Tuple[str, int, int, Optional[Dict[str, int]]]] = []
+    candidates: list[tuple[str, int, int, dict[str, int] | None]] = []
     straight_going = (count - 1) * tread
     if straight_going <= long_len and width <= short_len:
         candidates.append(("straight", width, straight_going, None))
@@ -235,9 +243,14 @@ def plan_stair(
 
     x1, y1, x2, y2 = rect
     probes = (
-        (x1, y1), (x2, y1), (x2, y2), (x1, y2),
-        ((x1 + x2) // 2, y1), ((x1 + x2) // 2, y2),
-        (x1, (y1 + y2) // 2), (x2, (y1 + y2) // 2),
+        (x1, y1),
+        (x2, y1),
+        (x2, y2),
+        (x1, y2),
+        ((x1 + x2) // 2, y1),
+        ((x1 + x2) // 2, y2),
+        (x1, (y1 + y2) // 2),
+        (x2, (y1 + y2) // 2),
         ((x1 + x2) // 2, (y1 + y2) // 2),
     )
     if not all(point_in_polygon(p, clear_poly) for p in probes):
@@ -263,7 +276,7 @@ def plan_stair(
 # ---------------------------------------------------------------------------
 
 
-def edge_outward_compass(polygon: Polygon, edge_index: int) -> Optional[str]:
+def edge_outward_compass(polygon: Polygon, edge_index: int) -> str | None:
     """Dominant compass direction of a plot edge's OUTWARD normal.
 
     Plot-local axes (+Y north on the drawing), matching the ``outward`` field of
@@ -287,7 +300,7 @@ def edge_outward_compass(polygon: Polygon, edge_index: int) -> Optional[str]:
     return "N" if ny > 0 else "S"
 
 
-def road_outwards(params: SolveParams) -> FrozenSet[str]:
+def road_outwards(params: SolveParams) -> frozenset[str]:
     """Compass directions that face a road — a bath window never faces these."""
     out = set()
     for edge in params.edges:
@@ -298,7 +311,7 @@ def road_outwards(params: SolveParams) -> FrozenSet[str]:
     return frozenset(out)
 
 
-def entry_outward(params: SolveParams) -> Optional[str]:
+def entry_outward(params: SolveParams) -> str | None:
     """Which side the main door prefers: the front edge, else the widest road."""
     fronts = [edge for edge in params.edges if edge.role == "front"]
     if fronts:
@@ -323,26 +336,26 @@ class OptionDraft:
 
     #: Full HouseModel JSON (camelCase, integer mm) — ``HouseModel.from_json``
     #: parses it verbatim; ``repair_house`` already validated it.
-    house: Dict[str, Any]
+    house: dict[str, Any]
     #: Trivial repairs that were applied (usually empty).
-    repairs: Tuple[RepairAction, ...]
+    repairs: tuple[RepairAction, ...]
     #: Structured rationale seed facts — the Phase-6 LLM verbalises, never adds.
-    facts: Tuple[str, ...]
+    facts: tuple[str, ...]
 
 
 def _storey_name(index: int) -> str:
     return _STOREY_NAMES[index] if index < len(_STOREY_NAMES) else "Floor %d" % index
 
 
-def _pt_json(point: Pt) -> Dict[str, int]:
+def _pt_json(point: Pt) -> dict[str, int]:
     return {"x": point[0], "y": point[1]}
 
 
-def _poly_json(polygon: Polygon) -> List[Dict[str, int]]:
+def _poly_json(polygon: Polygon) -> list[dict[str, int]]:
     return [_pt_json(p) for p in polygon]
 
 
-def _opening_json(spec: OpeningSpec, opening_id: str, wall_ids: Sequence[str]) -> Dict[str, Any]:
+def _opening_json(spec: OpeningSpec, opening_id: str, wall_ids: Sequence[str]) -> dict[str, Any]:
     return {
         "id": opening_id,
         "wallId": wall_ids[spec.wall_index],
@@ -361,8 +374,8 @@ def refine(
     params: SolveParams,
     envelope: BuildableEnvelope,
     *,
-    storey_height_mm: Optional[int] = None,
-    rulepack_root: Optional[str] = None,
+    storey_height_mm: int | None = None,
+    rulepack_root: str | None = None,
 ) -> OptionDraft:
     """§5.3 end to end. Raises typed errors; never returns a broken fragment.
 
@@ -373,7 +386,8 @@ def refine(
 
     ensure_model_importable()
     from garh_model.fold import stair_footprint_polygon
-    from garh_model.geometry import Pt as MPt, polygon_area_mm2
+    from garh_model.geometry import Pt as MPt
+    from garh_model.geometry import polygon_area_mm2
     from garh_model.ids import new_id
     from garh_model.model import DEFAULTS, ROOM_TYPES, SCHEMA_VERSION, Stair
 
@@ -381,7 +395,7 @@ def refine(
     opening_limits: NbcOpeningLimits = load_nbc_limits(root=rulepack_root)
     stair_limits = load_stair_limits(root=rulepack_root)
 
-    by_storey: Dict[int, List[RoomPlacement]] = {}
+    by_storey: dict[int, list[RoomPlacement]] = {}
     for placement in candidate.placements:
         if placement.room_type not in ROOM_TYPES:
             raise StageBError(
@@ -405,18 +419,18 @@ def refine(
     roads = road_outwards(params)
     locked_ids = frozenset(params.locked_room_ids)
 
-    storeys_json: List[Dict[str, Any]] = []
-    walls_json: List[Dict[str, Any]] = []
-    openings_json: List[Dict[str, Any]] = []
-    rooms_json: List[Dict[str, Any]] = []
-    stairs_json: List[Dict[str, Any]] = []
-    slabs_json: List[Dict[str, Any]] = []
-    doors_by_room: Dict[str, str] = {}
-    windows_by_room: Dict[str, List[str]] = {}
-    facts: List[str] = ["storeyHeightMm:%d(default)" % height]
+    storeys_json: list[dict[str, Any]] = []
+    walls_json: list[dict[str, Any]] = []
+    openings_json: list[dict[str, Any]] = []
+    rooms_json: list[dict[str, Any]] = []
+    stairs_json: list[dict[str, Any]] = []
+    slabs_json: list[dict[str, Any]] = []
+    doors_by_room: dict[str, str] = {}
+    windows_by_room: dict[str, list[str]] = {}
+    facts: list[str] = ["storeyHeightMm:%d(default)" % height]
 
     target_by_key = {room.key: room.target_area_mm2 for room in params.rooms}
-    per_storey: List[Tuple[str, CellLayout, WallNetwork, Dict[str, Polygon]]] = []
+    per_storey: list[tuple[str, CellLayout, WallNetwork, dict[str, Polygon]]] = []
 
     for index in storey_indexes:
         layout = CellLayout.from_placements(by_storey[index], snap_origin=snap_origin)
@@ -437,7 +451,7 @@ def refine(
             }
         )
 
-        wall_ids: List[str] = []
+        wall_ids: list[str] = []
         for wall in network.walls:
             wall_id = new_id("wall")
             wall_ids.append(wall_id)
@@ -453,8 +467,8 @@ def refine(
                 }
             )
 
-        clear_polys: Dict[str, Polygon] = {}
-        clear_areas: Dict[str, int] = {}
+        clear_polys: dict[str, Polygon] = {}
+        clear_areas: dict[str, int] = {}
         for room in layout.rooms:
             poly = clear_polygon(layout, network, room.key)
             clear_polys[room.key] = poly
@@ -481,17 +495,13 @@ def refine(
         for spec in ordered_doors:
             opening_id = new_id("opening")
             openings_json.append(_opening_json(spec, opening_id, wall_ids))
-            doors_by_room[
-                "%d:%s" % (index, spec.room_key)
-            ] = opening_id
+            doors_by_room["%d:%s" % (index, spec.room_key)] = opening_id
             if spec.role == "main-entrance":
                 facts.append("mainDoor:%s" % (entry_side or "any"))
         for spec in windows:
             opening_id = new_id("opening")
             openings_json.append(_opening_json(spec, opening_id, wall_ids))
-            windows_by_room.setdefault("%d:%s" % (index, spec.room_key), []).append(
-                opening_id
-            )
+            windows_by_room.setdefault("%d:%s" % (index, spec.room_key), []).append(opening_id)
 
         for room in layout.rooms:
             rooms_json.append(
@@ -511,9 +521,7 @@ def refine(
 
         # -- stair: every storey with a floor above needs a flight going up.
         if index < len(storey_indexes) - 1:
-            stair_rooms = sorted(
-                r.key for r in layout.rooms if r.room_type == "staircase"
-            )
+            stair_rooms = sorted(r.key for r in layout.rooms if r.room_type == "staircase")
             if not stair_rooms:
                 raise StageBError(
                     "STAIR_ROOM_MISSING",
@@ -533,7 +541,7 @@ def refine(
 
     # -- slabs: one floor slab per storey; shafts + the arriving flight are voids.
     for position, (storey_id, layout, network, clear_polys) in enumerate(per_storey):
-        cutouts: List[List[Dict[str, int]]] = []
+        cutouts: list[list[dict[str, int]]] = []
         for room in layout.rooms:
             if room.room_type in CUTOUT_ROOM_TYPES:
                 cutouts.append(_poly_json(clear_polys[room.key]))
@@ -553,7 +561,7 @@ def refine(
             }
         )
 
-    house: Dict[str, Any] = {
+    house: dict[str, Any] = {
         "schemaVersion": SCHEMA_VERSION,
         "storeys": storeys_json,
         "walls": walls_json,
@@ -567,9 +575,7 @@ def refine(
         "materials": [],
         "levels": {
             "plinthMm": DEFAULTS.plinth_mm,
-            "fflPerStoreyMm": [
-                DEFAULTS.plinth_mm + i * height for i in range(len(storeys_json))
-            ],
+            "fflPerStoreyMm": [DEFAULTS.plinth_mm + i * height for i in range(len(storeys_json))],
             "sillDefaultMm": DEFAULTS.sill_default_mm,
             "lintelDefaultMm": DEFAULTS.lintel_default_mm,
             "parapetMm": DEFAULTS.parapet_mm,
@@ -604,9 +610,7 @@ def refine(
         "facts": sorted(facts),
         "repairs": [action.to_json() for action in outcome.actions],
         "doorsByRoom": {k: doors_by_room[k] for k in sorted(doors_by_room)},
-        "windowsByRoom": {
-            k: list(windows_by_room[k]) for k in sorted(windows_by_room)
-        },
+        "windowsByRoom": {k: list(windows_by_room[k]) for k in sorted(windows_by_room)},
         "entryOutward": entry_side,
     }
     return OptionDraft(
@@ -618,7 +622,7 @@ def refine(
 
 def stage_b_refine(
     candidate: Candidate, params: SolveParams, envelope: BuildableEnvelope
-) -> Optional[Mapping[str, Any]]:
+) -> Mapping[str, Any] | None:
     """The pipeline's ``StageBFn``: model fragment, or ``None`` = discard.
 
     Every discard is logged with its typed code BEFORE returning ``None`` — the
@@ -643,7 +647,7 @@ def stage_b_refine(
 # ---------------------------------------------------------------------------
 
 
-def _empty_house_json(schema_version: int, defaults: Any, city_pack: str) -> Dict[str, Any]:
+def _empty_house_json(schema_version: int, defaults: Any, city_pack: str) -> dict[str, Any]:
     """The empty HouseModel the op list folds onto — every collection present,
     levels at the model defaults (the same DEFAULTS :func:`refine` built with)."""
     return {
@@ -670,9 +674,7 @@ def _empty_house_json(schema_version: int, defaults: Any, city_pack: str) -> Dic
     }
 
 
-def house_to_ops(
-    house: Mapping[str, Any], params: SolveParams
-) -> Tuple[Dict[str, Any], ...]:
+def house_to_ops(house: Mapping[str, Any], params: SolveParams) -> tuple[dict[str, Any], ...]:
     """Express a refined house fragment as the §4 op list that rebuilds it.
 
     The list is **proven to fold before it is returned**: every op is applied, in
@@ -693,12 +695,13 @@ def house_to_ops(
 
     ensure_model_importable()
     from garh_model.fold import fold
-    from garh_model.geometry import Pt as MPt, polygon_intersection_area_mm2
-    from garh_model.model import DEFAULTS, ProjectDoc, SCHEMA_VERSION
+    from garh_model.geometry import Pt as MPt
+    from garh_model.geometry import polygon_intersection_area_mm2
+    from garh_model.model import DEFAULTS, SCHEMA_VERSION, ProjectDoc
 
-    ops: List[Dict[str, Any]] = []
+    ops: list[dict[str, Any]] = []
     for index, storey in enumerate(house.get("storeys") or []):
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "id": storey["id"],
             "index": index,
             "heightMm": int(storey["heightMm"]),
@@ -738,7 +741,7 @@ def house_to_ops(
             }
         )
     for stair in house.get("stairs") or []:
-        stair_payload: Dict[str, Any] = {
+        stair_payload: dict[str, Any] = {
             "id": stair["id"],
             "storeyId": stair["storeyId"],
             "kind": str(stair["kind"]),
@@ -773,16 +776,16 @@ def house_to_ops(
         doc = fold(doc, op_json, compute_inverse=False).model
 
     fragment_rooms = list(house.get("rooms") or [])
-    rings_by_storey: Dict[str, List[Tuple[Dict[str, Any], List[MPt]]]] = {}
+    rings_by_storey: dict[str, list[tuple[dict[str, Any], list[MPt]]]] = {}
     for room in fragment_rooms:
         rings_by_storey.setdefault(str(room["storeyId"]), []).append(
             (room, [MPt(int(p["x"]), int(p["y"])) for p in room["polygon"]])
         )
 
-    room_ops: List[Dict[str, Any]] = []
+    room_ops: list[dict[str, Any]] = []
     for detected in sorted(doc.house.rooms, key=lambda r: (r.storey_id, r.id)):
         detected_ring = [MPt(p.x, p.y) for p in detected.polygon]
-        best: Optional[Dict[str, Any]] = None
+        best: dict[str, Any] | None = None
         best_overlap = 0
         for room, ring in rings_by_storey.get(detected.storey_id, []):
             overlap = polygon_intersection_area_mm2(ring, detected_ring)
@@ -799,7 +802,7 @@ def house_to_ops(
                 area_mm2=detected.area_mm2,
             )
             continue
-        assign: Dict[str, Any] = {"roomId": detected.id, "type": str(best["type"])}
+        assign: dict[str, Any] = {"roomId": detected.id, "type": str(best["type"])}
         if best.get("name"):
             assign["name"] = str(best["name"])
         if best.get("locked"):

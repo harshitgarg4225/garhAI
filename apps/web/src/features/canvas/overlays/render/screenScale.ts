@@ -93,6 +93,7 @@ export function useScreenScale(pxPerUnit: number): ScreenScaleHandle {
     const k = worldPerPx(core.viewport.mmPerPx) * pxRef.current;
     const children = parent.children;
     // Indexed loop, no iterator allocation — this runs on every camera commit.
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of -- see above
     for (let i = 0; i < children.length; i++) {
       children[i]?.scale.setScalar(k);
     }

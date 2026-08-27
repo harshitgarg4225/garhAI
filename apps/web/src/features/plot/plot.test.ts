@@ -263,7 +263,10 @@ describe('boundaryGroupOps', () => {
       type: 'plot.set_road',
       payload: { edgeIndex: 0, widthMm: null },
     });
-    const doc = foldAll(foldAll(emptyProjectDoc(), [boundaryOp(RECT), roadOp(0, 9000, 'Main Road')]), ops);
+    const doc = foldAll(
+      foldAll(emptyProjectDoc(), [boundaryOp(RECT), roadOp(0, 9000, 'Main Road')]),
+      ops,
+    );
     expect(doc.plot.roads).toEqual([]);
   });
 });

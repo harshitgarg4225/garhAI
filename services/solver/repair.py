@@ -35,9 +35,10 @@ from __future__ import annotations
 
 import math
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from services.solver.geometry import round_half_away
 from services.solver.types import FINE_MODULE_MM, SolveParams
@@ -50,7 +51,7 @@ WALL_END_MARGIN_MM = 115
 
 #: The one validation code a nudge may fix. A closed allowlist, not a heuristic:
 #: growing it is a reviewed decision, never a side effect.
-TRIVIALLY_REPAIRABLE_CODES: Tuple[str, ...] = ("OPENING_OUT_OF_WALL",)
+TRIVIALLY_REPAIRABLE_CODES: tuple[str, ...] = ("OPENING_OUT_OF_WALL",)
 
 
 @dataclass(frozen=True)
@@ -59,10 +60,10 @@ class DiscardReason:
 
     code: str
     message: str
-    detail: Optional[str] = None
+    detail: str | None = None
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {"code": self.code, "message": self.message}
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"code": self.code, "message": self.message}
         if self.detail is not None:
             out["detail"] = self.detail
         return out
@@ -77,7 +78,7 @@ class RepairAction:
     delta_mm: int
     description: str
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "kind": self.kind,
             "elementId": self.element_id,
@@ -94,9 +95,9 @@ class RepairOutcome:
     repaired — empty on the happy path, never fabricated.
     """
 
-    house: Optional[Dict[str, Any]]
-    actions: Tuple[RepairAction, ...] = ()
-    discard: Optional[DiscardReason] = None
+    house: dict[str, Any] | None
+    actions: tuple[RepairAction, ...] = ()
+    discard: DiscardReason | None = None
 
     @property
     def ok(self) -> bool:
@@ -127,7 +128,7 @@ def ensure_model_importable() -> None:
 # ---------------------------------------------------------------------------
 
 
-def wrap_project_doc(house: Mapping[str, Any], params: SolveParams) -> Dict[str, Any]:
+def wrap_project_doc(house: Mapping[str, Any], params: SolveParams) -> dict[str, Any]:
     """Wrap a HouseModel fragment in the ProjectDoc JSON ``validate_model`` takes.
 
     The plot section is real (boundary, north, roads from the solve params) so
@@ -160,7 +161,7 @@ def wrap_project_doc(house: Mapping[str, Any], params: SolveParams) -> Dict[str,
     }
 
 
-def validate_house(house: Mapping[str, Any], params: SolveParams) -> Tuple[Any, ...]:
+def validate_house(house: Mapping[str, Any], params: SolveParams) -> tuple[Any, ...]:
     """Run the section-3 fold invariants over the fragment. Errors only.
 
     Returns ``garh_model.validate.ValidationIssue`` rows — the same objects the
@@ -186,14 +187,14 @@ def _wall_length_mm(wall: Mapping[str, Any]) -> int:
 
 
 def _drop_sliver_walls(
-    house: Dict[str, Any],
-) -> Tuple[Dict[str, Any], List[RepairAction], Optional[DiscardReason]]:
+    house: dict[str, Any],
+) -> tuple[dict[str, Any], list[RepairAction], DiscardReason | None]:
     """Pre-pass: drop <115mm walls with no openings; a hosted sliver is fatal."""
     walls = list(house.get("walls") or [])
     openings = list(house.get("openings") or [])
     hosted = {str(o.get("wallId")) for o in openings}
-    kept: List[Mapping[str, Any]] = []
-    actions: List[RepairAction] = []
+    kept: list[Mapping[str, Any]] = []
+    actions: list[RepairAction] = []
     for wall in walls:
         length = _wall_length_mm(wall)
         if length >= FINE_MODULE_MM:
@@ -216,8 +217,7 @@ def _drop_sliver_walls(
                 kind="sliver-wall-dropped",
                 element_id=wall_id,
                 delta_mm=length,
-                description="Dropped a %dmm sliver wall (shorter than one 115mm module)."
-                % length,
+                description="Dropped a %dmm sliver wall (shorter than one 115mm module)." % length,
             )
         )
     if len(kept) != len(walls):
@@ -226,9 +226,7 @@ def _drop_sliver_walls(
     return house, actions, None
 
 
-def _nudged_offset(
-    offset_mm: int, width_mm: int, wall_length_mm: int
-) -> Optional[int]:
+def _nudged_offset(offset_mm: int, width_mm: int, wall_length_mm: int) -> int | None:
     """The nearest legal centre offset, or None when >1 module away / impossible.
 
     Mirrors ``garh_model.validate._opening_fit_issue`` arithmetic exactly:
@@ -250,8 +248,8 @@ def _nudged_offset(
 
 
 def _try_nudge_opening(
-    house: Dict[str, Any], opening_id: str, nudged: set
-) -> Tuple[Dict[str, Any], Optional[RepairAction]]:
+    house: dict[str, Any], opening_id: str, nudged: set
+) -> tuple[dict[str, Any], RepairAction | None]:
     if opening_id in nudged:
         return house, None  # one nudge per opening, ever
     walls_by_id = {str(w.get("id")): w for w in house.get("walls") or []}
@@ -291,7 +289,7 @@ def repair_house(house: Mapping[str, Any], params: SolveParams) -> RepairOutcome
     them, every nudge is the minimum legal move, and the input mapping is never
     mutated — the outcome carries a fresh dict.
     """
-    working: Dict[str, Any] = dict(house)
+    working: dict[str, Any] = dict(house)
     working, actions, fatal = _drop_sliver_walls(working)
     if fatal is not None:
         return RepairOutcome(house=None, actions=tuple(actions), discard=fatal)
@@ -302,12 +300,10 @@ def repair_house(house: Mapping[str, Any], params: SolveParams) -> RepairOutcome
         if not issues:
             return RepairOutcome(house=working, actions=tuple(actions))
         progressed = False
-        unfixable: List[Any] = []
+        unfixable: list[Any] = []
         for issue in issues:
             if issue.code in TRIVIALLY_REPAIRABLE_CODES and issue.element_ids:
-                working, action = _try_nudge_opening(
-                    working, issue.element_ids[0], nudged
-                )
+                working, action = _try_nudge_opening(working, issue.element_ids[0], nudged)
                 if action is not None:
                     actions.append(action)
                     progressed = True

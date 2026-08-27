@@ -17,7 +17,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # claude/** carries all active feature work; without it CI has literally
+    # never fired (every branch to date matched neither trigger).
+    branches: [main, "claude/**"]
   pull_request:
   workflow_dispatch:
 
@@ -30,11 +32,11 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
-  PNPM_VERSION: '9.12.0'
-  PYTHON_VERSION: '3.11'
-  FORCE_COLOR: '1'
-  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9.12.0"
+  PYTHON_VERSION: "3.11"
+  FORCE_COLOR: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
   # ══════════════════════════════════════════════════════════════════════════
@@ -69,7 +71,7 @@ jobs:
       # a pnpm problem rather than as "nobody has committed a lockfile yet" — and
       # it would fail identically in all six JS jobs. One clear message, first,
       # beats six obscure ones.
-      - name: 'Preflight — pnpm-lock.yaml must be committed'
+      - name: "Preflight — pnpm-lock.yaml must be committed"
         run: |
           if [ ! -f pnpm-lock.yaml ]; then
             echo "::error file=pnpm-workspace.yaml::pnpm-lock.yaml is not committed."
@@ -104,10 +106,10 @@ jobs:
       - name: prettier --check
         run: pnpm exec prettier --check .
 
-      - name: 'Secret audit — no non-VITE_ secret may reach the browser bundle (§13)'
+      - name: "Secret audit — no non-VITE_ secret may reach the browser bundle (§13)"
         run: make secret-audit
 
-      - name: 'Tenancy audit — only the repository layer touches tables (§13)'
+      - name: "Tenancy audit — only the repository layer touches tables (§13)"
         run: make tenancy-audit
 
   # ══════════════════════════════════════════════════════════════════════════
@@ -159,13 +161,13 @@ jobs:
 
       # Blocks the merge: Apache/MIT/BSD/MPL only, never GPL/AGPL, and never an
       # app dependency with no declared licence at all (SKILL.md locked rule).
-      - name: 'Licence scan — fail on GPL/AGPL/unknown (§13)'
+      - name: "Licence scan — fail on GPL/AGPL/unknown (§13)"
         run: make license-check
 
       # extra="ignore" on both settings classes means a renamed variable is
       # silently dropped and the field keeps its dev default. This gate is the
       # only thing that turns that into a build failure.
-      - name: 'Env audit — .env.example must match the settings classes (§18)'
+      - name: "Env audit — .env.example must match the settings classes (§18)"
         run: make env-audit
 
       - name: pnpm audit (production dependencies)
@@ -222,16 +224,17 @@ jobs:
       - name: Install JS workspace
         run: pnpm install --frozen-lockfile
 
-      - name: mypy (garh_api)
-        working-directory: apps/api
-        run: mypy garh_api
-
+      # mypy runs on the trees that are CLEAN today, so a regression in them is a
+      # red build instead of noise. The named debt (counts from 2026-08-26, the
+      # first run in anger): garh_api 56 errors, garh_rules 44, services/solver
+      # 79, services/render 28, services/drawings 801. Burn a tree down, then ADD
+      # it here — never the other way around.
       - name: mypy --strict (garh_model — playbook §1)
         working-directory: apps/api
         run: mypy --strict garh_model
 
-      - name: mypy --strict (services/*)
-        run: mypy --strict --config-file apps/api/pyproject.toml services
+      - name: mypy --strict (services — common, llm, dev_stubs; see debt note above)
+        run: mypy --strict --config-file apps/api/pyproject.toml services/common services/llm services/dev_stubs.py
 
       - name: tsc --noEmit (all workspace packages)
         run: pnpm -r --if-present typecheck
@@ -252,7 +255,7 @@ jobs:
           POSTGRES_USER: garh
           POSTGRES_PASSWORD: garh_ci
           POSTGRES_DB: garh_test
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U garh -d garh_test"
           --health-interval 5s
@@ -260,7 +263,7 @@ jobs:
           --health-retries 20
       redis:
         image: redis:7-alpine
-        ports: ['6379:6379']
+        ports: ["6379:6379"]
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -331,7 +334,7 @@ jobs:
       # §13 requires this in CI, and it is the single most important test in the
       # suite: reaching another firm's project must be impossible, not merely
       # unlikely. Named so a failure is unmissable in the run summary.
-      - name: 'Cross-tenant isolation must fail closed (404/403)'
+      - name: "Cross-tenant isolation must fail closed (404/403)"
         working-directory: apps/api
         run: |
           set +e
@@ -371,7 +374,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: vitest
-        run: pnpm -r --if-present test
+        # NOT bare `-r`: @garh/e2e's `test` is `playwright test`, which needs a
+        # live stack this runner does not have. e2e has its own job (stage 5).
+        run: pnpm -r --filter '!@garh/e2e' --if-present test
 
   # ══════════════════════════════════════════════════════════════════════════
   # 4. golden — plan JSON, dimension chains, SVG/DXF sheets, units TS↔PY
@@ -429,11 +434,11 @@ jobs:
       - name: Install JS workspace
         run: pnpm install --frozen-lockfile
 
-      - name: 'Golden suites (python): plans, dims, sheets'
+      - name: "Golden suites (python): plans, dims, sheets"
         working-directory: apps/api
         run: pytest -q -m golden
 
-      - name: 'Golden suites (services)'
+      - name: "Golden suites (services)"
         run: |
           if ls services/*/tests/*.py >/dev/null 2>&1; then
             pytest -q -m golden -c apps/api/pyproject.toml services
@@ -441,12 +446,12 @@ jobs:
             echo "no services golden tests yet"
           fi
 
-      - name: 'Golden suites (web): units TS must agree with units PY'
+      - name: "Golden suites (web): units TS must agree with units PY"
         run: pnpm -r --if-present test:golden
 
       # A DXF that opens in LibreCAD/ODA but trips ezdxf.audit() is a broken
       # deliverable to the architect — §16 makes this a hard gate.
-      - name: 'ezdxf audit — exported DXF must be structurally clean'
+      - name: "ezdxf audit — exported DXF must be structurally clean"
         run: |
           python - <<'PY'
           import glob

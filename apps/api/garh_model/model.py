@@ -38,15 +38,11 @@ from __future__ import annotations
 
 import dataclasses
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, cast
 
-try:  # pragma: no cover - typing only
-    from typing import Literal
-except ImportError:  # pragma: no cover
-    from typing_extensions import Literal  # type: ignore[assignment]
-
-from .geometry import Pt, Polygon, polygon_area_mm2
+from .geometry import Pt, polygon_area_mm2
 from .units import UnitsDisplay
 
 __all__ = [
@@ -146,7 +142,7 @@ __all__ = [
 #: Free-form JSON. Numbers inside these are INTEGERS ONLY — see the module
 #: docstring and ``validate.check_json_integral``.
 JsonValue = Any
-JsonObject = Dict[str, Any]
+JsonObject = dict[str, Any]
 
 #: The document schema version. Bump => write a migration.
 SCHEMA_VERSION = 1
@@ -157,7 +153,7 @@ SCHEMA_VERSION = 1
 
 #: Room programme types. Drives NBC minimums, furniture sets, Vastu zones,
 #: schedules and labels — so it is a closed list, not free text.
-ROOM_TYPES: Tuple[str, ...] = (
+ROOM_TYPES: tuple[str, ...] = (
     "unassigned",
     "living",
     "dining",
@@ -224,7 +220,7 @@ ROOM_TYPE_LABELS: Mapping[str, str] = {
 }
 
 #: NBC "habitable room" set — these carry the 9.5m^2 / 2.4m width / 1:10 light rules.
-HABITABLE_ROOM_TYPES: Tuple[str, ...] = (
+HABITABLE_ROOM_TYPES: tuple[str, ...] = (
     "living",
     "dining",
     "living_dining",
@@ -236,7 +232,7 @@ HABITABLE_ROOM_TYPES: Tuple[str, ...] = (
 )
 
 #: Wet rooms — drive plumbing-stack scoring and shaft adjacency.
-WET_ROOM_TYPES: Tuple[str, ...] = ("kitchen", "bath", "wc", "bath_wc", "utility")
+WET_ROOM_TYPES: tuple[str, ...] = ("kitchen", "bath", "wc", "bath_wc", "utility")
 
 
 def is_habitable_room_type(t: str) -> bool:
@@ -247,34 +243,34 @@ def is_wet_room_type(t: str) -> bool:
     return t in WET_ROOM_TYPES
 
 
-WALL_KINDS: Tuple[str, ...] = ("external", "internal", "parapet")
+WALL_KINDS: tuple[str, ...] = ("external", "internal", "parapet")
 WallKind = str
 
-OPENING_KINDS: Tuple[str, ...] = ("door", "window", "ventilator")
+OPENING_KINDS: tuple[str, ...] = ("door", "window", "ventilator")
 OpeningKind = str
 
 #: Section 3, verbatim. Sliding/fixed leaves are a v1.1 concern.
-OPENING_SWINGS: Tuple[str, ...] = ("in-left", "in-right", "out-left", "out-right")
+OPENING_SWINGS: tuple[str, ...] = ("in-left", "in-right", "out-left", "out-right")
 OpeningSwing = str
 
-STAIR_KINDS: Tuple[str, ...] = ("straight", "dogleg", "L", "U")
+STAIR_KINDS: tuple[str, ...] = ("straight", "dogleg", "L", "U")
 StairKind = str
 
 #: Orthogonal travel direction. MVP walls and stairs are orthogonal.
-DIRECTIONS_4: Tuple[str, ...] = ("N", "E", "S", "W")
+DIRECTIONS_4: tuple[str, ...] = ("N", "E", "S", "W")
 Direction4 = str
 
 #: 8-way compass, used for facing/Vastu zones and elevation naming.
-DIRECTIONS_8: Tuple[str, ...] = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+DIRECTIONS_8: tuple[str, ...] = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
 Direction8 = str
 
-SLAB_KINDS: Tuple[str, ...] = ("floor", "terrace", "plinth", "mumty")
+SLAB_KINDS: tuple[str, ...] = ("floor", "terrace", "plinth", "mumty")
 SlabKind = str
 
-RAILING_KINDS: Tuple[str, ...] = ("ms", "glass", "masonry", "ms_glass", "none")
+RAILING_KINDS: tuple[str, ...] = ("ms", "glass", "masonry", "ms_glass", "none")
 RailingKind = str
 
-FACADE_COMPONENT_KINDS: Tuple[str, ...] = (
+FACADE_COMPONENT_KINDS: tuple[str, ...] = (
     "window_trim",
     "chajja",
     "parapet_profile",
@@ -288,7 +284,7 @@ FACADE_COMPONENT_KINDS: Tuple[str, ...] = (
 FacadeComponentKind = str
 
 #: Surface groups a material can be assigned to (op 29).
-SURFACE_GROUPS: Tuple[str, ...] = (
+SURFACE_GROUPS: tuple[str, ...] = (
     "external_wall",
     "internal_wall",
     "floor",
@@ -304,15 +300,15 @@ SURFACE_GROUPS: Tuple[str, ...] = (
 )
 SurfaceGroup = str
 
-VASTU_MODES: Tuple[str, ...] = ("off", "advisory", "strict")
+VASTU_MODES: tuple[str, ...] = ("off", "advisory", "strict")
 VastuMode = str
 
 #: Where an op came from — mirrors ``ops.source`` in the DDL.
-OP_SOURCES: Tuple[str, ...] = ("manual", "copilot", "solver", "system")
+OP_SOURCES: tuple[str, ...] = ("manual", "copilot", "solver", "system")
 OpSource = str
 
 #: What a sheet annotation is anchored to (section 7 annotation anchoring).
-ANNOTATION_ANCHOR_KINDS: Tuple[str, ...] = (
+ANNOTATION_ANCHOR_KINDS: tuple[str, ...] = (
     "wall",
     "opening",
     "room",
@@ -352,14 +348,14 @@ def to_jsonable(value: Any) -> Any:
     through untouched because their keys are user/LLM data, not Python
     identifiers.
     """
-    if value is None or isinstance(value, (str, bool, int, float)):
+    if value is None or isinstance(value, str | bool | int | float):
         return value
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        out: Dict[str, Any] = {}
+        out: dict[str, Any] = {}
         for f in dataclasses.fields(value):
             out[snake_to_camel(f.name)] = to_jsonable(getattr(value, f.name))
         return out
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return [to_jsonable(v) for v in value]
     if isinstance(value, dict):
         return {str(k): to_jsonable(v) for k, v in value.items()}
@@ -370,7 +366,7 @@ def _pt_from_json(raw: Any) -> Pt:
     return Pt(int(raw["x"]), int(raw["y"]))
 
 
-def _polygon_from_json(raw: Any) -> Tuple[Pt, ...]:
+def _polygon_from_json(raw: Any) -> tuple[Pt, ...]:
     return tuple(_pt_from_json(p) for p in (raw or []))
 
 
@@ -387,7 +383,7 @@ class SizeMm:
     y_mm: int
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "SizeMm":
+    def from_json(cls, raw: Mapping[str, Any]) -> SizeMm:
         return cls(x_mm=int(raw["xMm"]), y_mm=int(raw["yMm"]))
 
 
@@ -404,12 +400,12 @@ class LevelData:
     #: Structural slab thickness under this storey's FFL.
     slab_thickness_mm: int
     #: Storey-level override of ``Levels.sill_default_mm``, or None to inherit.
-    sill_default_mm: Optional[int]
+    sill_default_mm: int | None
     #: Storey-level override of ``Levels.lintel_default_mm``, or None to inherit.
-    lintel_default_mm: Optional[int]
+    lintel_default_mm: int | None
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "LevelData":
+    def from_json(cls, raw: Mapping[str, Any]) -> LevelData:
         return cls(
             ffl_mm=int(raw["fflMm"]),
             slab_thickness_mm=int(raw["slabThicknessMm"]),
@@ -418,11 +414,11 @@ class LevelData:
         )
 
 
-def _opt_int(v: Any) -> Optional[int]:
+def _opt_int(v: Any) -> int | None:
     return None if v is None else int(v)
 
 
-def _opt_str(v: Any) -> Optional[str]:
+def _opt_str(v: Any) -> str | None:
     return None if v is None else str(v)
 
 
@@ -436,7 +432,7 @@ class Storey:
     height_mm: int
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Storey":
+    def from_json(cls, raw: Mapping[str, Any]) -> Storey:
         return cls(
             id=str(raw["id"]),
             name=str(raw["name"]),
@@ -460,7 +456,7 @@ class Wall:
     load_bearing: bool
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Wall":
+    def from_json(cls, raw: Mapping[str, Any]) -> Wall:
         return cls(
             id=str(raw["id"]),
             storey_id=str(raw["storeyId"]),
@@ -485,10 +481,10 @@ class Opening:
     offset_mm: int
     swing: OpeningSwing
     #: Schedule tag: D1, W2, V1... assigned by the schedule generator.
-    tag: Optional[str]
+    tag: str | None
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Opening":
+    def from_json(cls, raw: Mapping[str, Any]) -> Opening:
         return cls(
             id=str(raw["id"]),
             wall_id=str(raw["wallId"]),
@@ -510,19 +506,19 @@ class Room:
     #: Empty string until the user or solver names it; UI falls back to the label.
     name: str
     #: Clear (inside-face) polygon, CCW, integer mm.
-    polygon: Tuple[Pt, ...]
+    polygon: tuple[Pt, ...]
     #: Clear floor area of ``polygon``, integer mm^2.
     area_mm2: int
-    tags: Tuple[str, ...]
+    tags: tuple[str, ...]
     #: True => solver partial re-solve must return this room untouched.
     locked: bool
     #: Brief/solver target area (op 20), or None.
-    target_area_mm2: Optional[int]
+    target_area_mm2: int | None
     #: Required facing (op 20), or None.
-    must_face: Optional[Direction8]
+    must_face: Direction8 | None
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Room":
+    def from_json(cls, raw: Mapping[str, Any]) -> Room:
         return cls(
             id=str(raw["id"]),
             storey_id=str(raw["storeyId"]),
@@ -545,7 +541,7 @@ class StairLanding:
     depth_mm: int
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "StairLanding":
+    def from_json(cls, raw: Mapping[str, Any]) -> StairLanding:
         return cls(width_mm=int(raw["widthMm"]), depth_mm=int(raw["depthMm"]))
 
 
@@ -564,10 +560,10 @@ class Stair:
     width_mm: int
     #: ``risers_count * riser_mm`` must be the storey height within +/-10mm.
     risers_count: int
-    landing: Optional[StairLanding]
+    landing: StairLanding | None
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Stair":
+    def from_json(cls, raw: Mapping[str, Any]) -> Stair:
         landing = raw.get("landing")
         return cls(
             id=str(raw["id"]),
@@ -589,13 +585,13 @@ class Slab:
     storey_id: str
     kind: SlabKind
     #: Outer boundary, CCW.
-    polygon: Tuple[Pt, ...]
+    polygon: tuple[Pt, ...]
     thickness_mm: int
     #: Stair wells, double-height voids, shafts.
-    cutouts: Tuple[Tuple[Pt, ...], ...]
+    cutouts: tuple[tuple[Pt, ...], ...]
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Slab":
+    def from_json(cls, raw: Mapping[str, Any]) -> Slab:
         return cls(
             id=str(raw["id"]),
             storey_id=str(raw["storeyId"]),
@@ -617,7 +613,7 @@ class Column:
     size_mm: SizeMm
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Column":
+    def from_json(cls, raw: Mapping[str, Any]) -> Column:
         return cls(
             id=str(raw["id"]),
             storey_id=str(raw["storeyId"]),
@@ -638,7 +634,7 @@ class FurnitureInstance:
     rotation_deg: int
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "FurnitureInstance":
+    def from_json(cls, raw: Mapping[str, Any]) -> FurnitureInstance:
         return cls(
             id=str(raw["id"]),
             storey_id=str(raw["storeyId"]),
@@ -652,7 +648,7 @@ class FurnitureInstance:
 class Balcony:
     id: str
     storey_id: str
-    polygon: Tuple[Pt, ...]
+    polygon: tuple[Pt, ...]
     railing_kind: RailingKind
     railing_height_mm: int
     #: Projection beyond the building line — checked against projection rules.
@@ -660,7 +656,7 @@ class Balcony:
     slab_thickness_mm: int
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Balcony":
+    def from_json(cls, raw: Mapping[str, Any]) -> Balcony:
         return cls(
             id=str(raw["id"]),
             storey_id=str(raw["storeyId"]),
@@ -676,14 +672,14 @@ class Balcony:
 class FacadeComponent:
     id: str
     kind: FacadeComponentKind
-    storey_id: Optional[str]
-    wall_id: Optional[str]
-    opening_id: Optional[str]
+    storey_id: str | None
+    wall_id: str | None
+    opening_id: str | None
     #: Generator parameters. Integers only for lengths (projection_mm etc.).
     params: JsonObject
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "FacadeComponent":
+    def from_json(cls, raw: Mapping[str, Any]) -> FacadeComponent:
         return cls(
             id=str(raw["id"]),
             kind=str(raw["kind"]),
@@ -703,14 +699,14 @@ class FacadeModel:
     """
 
     #: Kit id, or None when no kit has been applied.
-    kit_id: Optional[str]
+    kit_id: str | None
     #: Variation seed for the generator (integer).
     seed: int
-    colorway_id: Optional[str]
-    components: Tuple[FacadeComponent, ...]
+    colorway_id: str | None
+    components: tuple[FacadeComponent, ...]
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "FacadeModel":
+    def from_json(cls, raw: Mapping[str, Any]) -> FacadeModel:
         return cls(
             kit_id=_opt_str(raw.get("kitId")),
             seed=int(raw["seed"]),
@@ -723,12 +719,12 @@ class FacadeModel:
 class SurfaceGroupRef:
     group: SurfaceGroup
     #: Narrow the assignment to one storey, or None for the whole building.
-    storey_id: Optional[str]
+    storey_id: str | None
     #: Narrow to a single element (wall/opening/facade component), or None.
-    element_id: Optional[str]
+    element_id: str | None
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "SurfaceGroupRef":
+    def from_json(cls, raw: Mapping[str, Any]) -> SurfaceGroupRef:
         return cls(
             group=str(raw["group"]),
             storey_id=_opt_str(raw.get("storeyId")),
@@ -744,7 +740,7 @@ class MaterialAssignment:
     material_id: str
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "MaterialAssignment":
+    def from_json(cls, raw: Mapping[str, Any]) -> MaterialAssignment:
         return cls(
             id=str(raw["id"]),
             target=SurfaceGroupRef.from_json(raw["target"]),
@@ -763,7 +759,7 @@ class Levels:
     #: Plinth height above ground level.
     plinth_mm: int
     #: FFL of each storey, index-aligned with ``storeys``.
-    ffl_per_storey_mm: Tuple[int, ...]
+    ffl_per_storey_mm: tuple[int, ...]
     #: Default window sill height (NBC/city packs expect 900).
     sill_default_mm: int
     #: Default lintel height above FFL (2100 typical).
@@ -772,7 +768,7 @@ class Levels:
     parapet_mm: int
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Levels":
+    def from_json(cls, raw: Mapping[str, Any]) -> Levels:
         return cls(
             plinth_mm=int(raw["plinthMm"]),
             ffl_per_storey_mm=tuple(int(v) for v in raw.get("fflPerStoreyMm", [])),
@@ -786,12 +782,12 @@ class Levels:
 class ModelMeta:
     units_display: UnitsDisplay
     #: Reference to the regulatory profile in use (``plots.reg_profile``), or None.
-    reg_profile_ref: Optional[str]
+    reg_profile_ref: str | None
     #: Reference to the brief this model was generated from, or None.
-    brief_ref: Optional[str]
+    brief_ref: str | None
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "ModelMeta":
+    def from_json(cls, raw: Mapping[str, Any]) -> ModelMeta:
         return cls(
             units_display=str(raw["unitsDisplay"]),  # type: ignore[arg-type]
             reg_profile_ref=_opt_str(raw.get("regProfileRef")),
@@ -810,24 +806,24 @@ class HouseModel:
 
     schema_version: int
     #: Ordered, ground floor = index 0.
-    storeys: Tuple[Storey, ...]
-    walls: Tuple[Wall, ...]
-    openings: Tuple[Opening, ...]
+    storeys: tuple[Storey, ...]
+    walls: tuple[Wall, ...]
+    openings: tuple[Opening, ...]
     #: DERIVED from walls by planar subdivision, but persisted with stable ids.
-    rooms: Tuple[Room, ...]
-    stairs: Tuple[Stair, ...]
+    rooms: tuple[Room, ...]
+    stairs: tuple[Stair, ...]
     #: DERIVED per storey.
-    slabs: Tuple[Slab, ...]
-    columns: Tuple[Column, ...]
-    furniture: Tuple[FurnitureInstance, ...]
+    slabs: tuple[Slab, ...]
+    columns: tuple[Column, ...]
+    furniture: tuple[FurnitureInstance, ...]
     facade: FacadeModel
-    materials: Tuple[MaterialAssignment, ...]
+    materials: tuple[MaterialAssignment, ...]
     levels: Levels
-    balconies: Tuple[Balcony, ...]
+    balconies: tuple[Balcony, ...]
     meta: ModelMeta
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "HouseModel":
+    def from_json(cls, raw: Mapping[str, Any]) -> HouseModel:
         return cls(
             schema_version=int(raw["schemaVersion"]),
             storeys=tuple(Storey.from_json(s) for s in raw.get("storeys", [])),
@@ -862,11 +858,11 @@ class Road:
     #: Index of the boundary edge ``boundary[i] -> boundary[i+1]``.
     edge_index: int
     #: Road width in mm, or None for "no road on this edge".
-    width_mm: Optional[int]
-    name: Optional[str]
+    width_mm: int | None
+    name: str | None
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Road":
+    def from_json(cls, raw: Mapping[str, Any]) -> Road:
         return cls(
             edge_index=int(raw["edgeIndex"]),
             width_mm=_opt_int(raw.get("widthMm")),
@@ -879,12 +875,12 @@ class RegProfile:
     """The regulatory profile: a city pack plus per-project overrides."""
 
     #: Rule pack id: 'blr' | 'ncr' | 'hyd' | ... (packs live in ``rulepacks/``).
-    city_pack: Optional[str]
+    city_pack: str | None
     #: Per-project overrides (logged in ``audit_log``).
     overrides: JsonObject
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "RegProfile":
+    def from_json(cls, raw: Mapping[str, Any]) -> RegProfile:
         return cls(
             city_pack=_opt_str(raw.get("cityPack")),
             overrides=dict(raw.get("overrides") or {}),
@@ -894,16 +890,16 @@ class RegProfile:
 @dataclass(frozen=True)
 class PlotDoc:
     #: Plot boundary, CCW, plot-local mm, origin at the SW corner.
-    boundary: Tuple[Pt, ...]
+    boundary: tuple[Pt, ...]
     #: Integer degrees: rotation of TRUE north from +Y, measured clockwise.
     north_deg: int
-    roads: Tuple[Road, ...]
+    roads: tuple[Road, ...]
     reg_profile: RegProfile
     #: How the boundary got here: 'manual' | 'dxf' | 'seed'.
     source: str
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "PlotDoc":
+    def from_json(cls, raw: Mapping[str, Any]) -> PlotDoc:
         return cls(
             boundary=_polygon_from_json(raw.get("boundary")),
             north_deg=int(raw["northDeg"]),
@@ -922,7 +918,7 @@ class BriefDoc:
     completeness: int
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "BriefDoc":
+    def from_json(cls, raw: Mapping[str, Any]) -> BriefDoc:
         return cls(
             data=dict(raw.get("data") or {}),
             vastu_mode=str(raw["vastuMode"]),
@@ -936,14 +932,14 @@ class Annotation:
 
     id: str
     sheet_id: str
-    anchor_element_id: Optional[str]
+    anchor_element_id: str | None
     anchor_kind: AnnotationAnchorKind
     payload: JsonObject
     #: True after a solver re-run destroyed the anchor -> Review Tray.
     orphaned: bool
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "Annotation":
+    def from_json(cls, raw: Mapping[str, Any]) -> Annotation:
         return cls(
             id=str(raw["id"]),
             sheet_id=str(raw["sheetId"]),
@@ -966,10 +962,10 @@ class ProjectDoc:
     plot: PlotDoc
     brief: BriefDoc
     house: HouseModel
-    annotations: Tuple[Annotation, ...]
+    annotations: tuple[Annotation, ...]
 
     @classmethod
-    def from_json(cls, raw: Mapping[str, Any]) -> "ProjectDoc":
+    def from_json(cls, raw: Mapping[str, Any]) -> ProjectDoc:
         return cls(
             schema_version=int(raw["schemaVersion"]),
             plot=PlotDoc.from_json(raw["plot"]),
@@ -1054,7 +1050,11 @@ def empty_house_model(units_display: str = "ft-in") -> HouseModel:
         materials=(),
         levels=empty_levels(),
         balconies=(),
-        meta=ModelMeta(units_display=units_display, reg_profile_ref=None, brief_ref=None),
+        meta=ModelMeta(
+            units_display=cast(UnitsDisplay, units_display),
+            reg_profile_ref=None,
+            brief_ref=None,
+        ),
     )
 
 
@@ -1098,7 +1098,7 @@ def default_level_data(ffl_mm: int) -> LevelData:
 # ---------------------------------------------------------------------------
 
 
-def find_storey(house: HouseModel, storey_id: str) -> Optional[Storey]:
+def find_storey(house: HouseModel, storey_id: str) -> Storey | None:
     return next((s for s in house.storeys if s.id == storey_id), None)
 
 
@@ -1109,31 +1109,31 @@ def storey_index(house: HouseModel, storey_id: str) -> int:
     return -1
 
 
-def find_wall(house: HouseModel, wall_id: str) -> Optional[Wall]:
+def find_wall(house: HouseModel, wall_id: str) -> Wall | None:
     return next((w for w in house.walls if w.id == wall_id), None)
 
 
-def find_opening(house: HouseModel, opening_id: str) -> Optional[Opening]:
+def find_opening(house: HouseModel, opening_id: str) -> Opening | None:
     return next((o for o in house.openings if o.id == opening_id), None)
 
 
-def find_room(house: HouseModel, room_id: str) -> Optional[Room]:
+def find_room(house: HouseModel, room_id: str) -> Room | None:
     return next((r for r in house.rooms if r.id == room_id), None)
 
 
-def find_stair(house: HouseModel, stair_id: str) -> Optional[Stair]:
+def find_stair(house: HouseModel, stair_id: str) -> Stair | None:
     return next((s for s in house.stairs if s.id == stair_id), None)
 
 
-def walls_of_storey(house: HouseModel, storey_id: str) -> List[Wall]:
+def walls_of_storey(house: HouseModel, storey_id: str) -> list[Wall]:
     return [w for w in house.walls if w.storey_id == storey_id]
 
 
-def rooms_of_storey(house: HouseModel, storey_id: str) -> List[Room]:
+def rooms_of_storey(house: HouseModel, storey_id: str) -> list[Room]:
     return [r for r in house.rooms if r.storey_id == storey_id]
 
 
-def openings_of_wall(house: HouseModel, wall_id: str) -> List[Opening]:
+def openings_of_wall(house: HouseModel, wall_id: str) -> list[Opening]:
     return [o for o in house.openings if o.wall_id == wall_id]
 
 
@@ -1173,7 +1173,7 @@ def built_up_area_mm2(house: HouseModel) -> int:
     return total
 
 
-def room_display_name(room: Room, ordinal: Optional[int] = None) -> str:
+def room_display_name(room: Room, ordinal: int | None = None) -> str:
     """Explicit name, else the type label, else "Room N"."""
     if room.name != "":
         return room.name

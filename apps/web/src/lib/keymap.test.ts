@@ -95,9 +95,9 @@ describe('matchBinding', () => {
     expect(matchBinding(key('z', { ctrlKey: true }), { mac: false })?.command).toBe('edit.undo');
     expect(matchBinding(key('y', { ctrlKey: true }), { mac: false })?.command).toBe('edit.redo');
     // ⇧⌘Z is the Mac redo idiom and must not be read as an undo.
-    expect(
-      matchBinding(key('z', { metaKey: true, shiftKey: true }), { mac: true })?.command,
-    ).toBe('edit.redo');
+    expect(matchBinding(key('z', { metaKey: true, shiftKey: true }), { mac: true })?.command).toBe(
+      'edit.redo',
+    );
     // Ctrl-Z on a Mac is not the primary modifier: no match.
     expect(matchBinding(key('z', { ctrlKey: true }), { mac: true })).toBeNull();
   });

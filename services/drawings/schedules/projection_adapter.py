@@ -23,7 +23,8 @@ or renamed projection API raises a message that says what to do rather than brea
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from services.drawings.schedules.table import LineItem, Table, TextItem
 
@@ -42,7 +43,7 @@ ALIGN_TO_PROJECTION = {
 
 def _projection_module() -> Any:
     try:
-        from services.drawings.projection import primitives  # noqa: WPS433
+        from services.drawings.projection import primitives
     except ImportError as error:  # pragma: no cover - depends on integration order
         raise ImportError(
             "services.drawings.projection.primitives is not importable, so a table "
@@ -64,11 +65,11 @@ def table_to_primitives(
     table: Table,
     *,
     scale_denominator: int = 100,
-    origin_model_mm: Tuple[int, int] = (0, 0),
-    owner_id: Optional[str] = None,
+    origin_model_mm: tuple[int, int] = (0, 0),
+    owner_id: str | None = None,
     kind: str = "schedule",
     validate: bool = True,
-) -> Tuple[Any, ...]:
+) -> tuple[Any, ...]:
     """The table as projection ``Text`` / ``Line`` primitives, in **model** mm.
 
     ``scale_denominator`` is the sheet's scale (1:100 → 100): paper millimetres are
@@ -86,13 +87,13 @@ def table_to_primitives(
     line_cls = primitives.Line
     sanitise = getattr(primitives, "sanitise_text", None)
 
-    def to_model(x_mm: int, y_mm: int) -> Tuple[int, int]:
+    def to_model(x_mm: int, y_mm: int) -> tuple[int, int]:
         return (
             origin_model_mm[0] + x_mm * scale_denominator,
             origin_model_mm[1] + y_mm * scale_denominator,
         )
 
-    out: List[Any] = []
+    out: list[Any] = []
     for item in table.emit():
         if isinstance(item, TextItem):
             text = sanitise(item.text) if callable(sanitise) else item.text
@@ -126,7 +127,7 @@ def table_to_primitives(
     return stream
 
 
-def primitive_counts(stream: Sequence[Any]) -> Tuple[int, int]:
+def primitive_counts(stream: Sequence[Any]) -> tuple[int, int]:
     """``(text, line)`` counts — what the smoke run prints and the tests assert."""
     text = sum(1 for item in stream if type(item).__name__ == "Text")
     line = sum(1 for item in stream if type(item).__name__ == "Line")

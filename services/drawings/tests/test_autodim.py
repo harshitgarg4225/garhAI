@@ -40,7 +40,8 @@ import json
 import os
 import sys
 import traceback
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from collections.abc import Callable, Sequence
+from typing import Any
 
 # -- bootstrap --------------------------------------------------------------
 # Self-contained on purpose: this module is both a pytest module and a script, and
@@ -54,16 +55,6 @@ for _path in (_REPO_ROOT, os.path.join(_REPO_ROOT, "apps", "api")):
 from services.dev_stubs import install_worker_dep_stubs  # noqa: E402
 
 STUBBED = install_worker_dep_stubs()
-
-from services.drawings.dimensions import (  # noqa: E402
-    ChainConsistencyError,
-    DimChain,
-    DimSegment,
-    LabelBox,
-    assert_chains_sum,
-    find_label_collisions,
-)
-from services.drawings.layers import A_DIM  # noqa: E402
 
 from services.drawings.autodim import testing as fixtures  # noqa: E402
 from services.drawings.autodim.chains import chain_from_breakpoints, merge_breakpoints  # noqa: E402
@@ -97,10 +88,17 @@ from services.drawings.autodim.primitives import (  # noqa: E402
     validate_primitives,
 )
 from services.drawings.autodim.svg_debug import render_svg  # noqa: E402
-
-GOLDEN_DIR = os.path.join(
-    _REPO_ROOT, "services", "drawings", "autodim", "goldens"
+from services.drawings.dimensions import (  # noqa: E402
+    ChainConsistencyError,
+    DimChain,
+    DimSegment,
+    LabelBox,
+    assert_chains_sum,
+    find_label_collisions,
 )
+from services.drawings.layers import A_DIM  # noqa: E402
+
+GOLDEN_DIR = os.path.join(_REPO_ROOT, "services", "drawings", "autodim", "goldens")
 
 CENTRELINE = AutoDimConfig()
 JAMB = AutoDimConfig(dim_to_jamb=True)
@@ -109,18 +107,16 @@ JAMB = AutoDimConfig(dim_to_jamb=True)
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
-def _plans() -> Tuple[Tuple[str, Any, str], ...]:
+def _plans() -> tuple[tuple[str, Any, str], ...]:
     return fixtures.all_plans()
 
 
-def _results(config: AutoDimConfig = CENTRELINE) -> Tuple[Tuple[str, Any], ...]:
+def _results(config: AutoDimConfig = CENTRELINE) -> tuple[tuple[str, Any], ...]:
     """Every fixture, dimensioned with the room-label obstacles the projector places."""
     out = []
     for name, plan, storey_id in _plans():
         obstacles = fixtures.room_label_obstacles(plan, storey_id)
-        out.append(
-            (name, dimension_storey(plan, storey_id, config=config, obstacles=obstacles))
-        )
+        out.append((name, dimension_storey(plan, storey_id, config=config, obstacles=obstacles)))
     return tuple(out)
 
 
@@ -269,8 +265,7 @@ def test_outer_chains_cover_four_sides_at_spec_offsets() -> None:
         level_1 = result.chains_at_level(1)
         _assert(
             len(level_1) == 4,
-            "%s: expected 4 overall chains (one per side), got %d"
-            % (name, len(level_1)),
+            "%s: expected 4 overall chains (one per side), got %d" % (name, len(level_1)),
         )
         _assert(
             sorted(info.side for info in level_1) == ["E", "N", "S", "W"],
@@ -310,9 +305,7 @@ def test_level_1_is_outer_face_to_outer_face() -> None:
     storey_id = fixtures.storey_id_of(house)
     result = dimension_storey(house, storey_id)
     # 6750 centreline x 7650 centreline footprint, 230mm external walls: +115 each side.
-    widths = {
-        info.side: info.chain.overall_mm for info in result.chains_at_level(1)
-    }
+    widths = {info.side: info.chain.overall_mm for info in result.chains_at_level(1)}
     _assert(widths["S"] == 6750 + 230, "south overall is %d, expected 6980" % widths["S"])
     _assert(widths["W"] == 7650 + 230, "west overall is %d, expected 7880" % widths["W"])
 
@@ -324,16 +317,12 @@ def test_level_2_breaks_at_cross_walls_not_at_corners() -> None:
     result = dimension_storey(house, storey_id)
     south = [i for i in result.chains_at_level(2) if i.side == "S"]
     _assert(len(south) == 1, "expected one south level-2 chain, got %d" % len(south))
-    breaks = [
-        south[0].chain.origin_mm + segment.end_mm
-        for segment in south[0].chain.segments[:-1]
-    ]
+    breaks = [south[0].chain.origin_mm + segment.end_mm for segment in south[0].chain.segments[:-1]]
     _assert(breaks == [4300], "south level-2 breakpoints are %r, expected [4300]" % breaks)
 
     north = [i for i in result.chains_at_level(2) if i.side == "N"]
     breaks_n = [
-        north[0].chain.origin_mm + segment.end_mm
-        for segment in north[0].chain.segments[:-1]
+        north[0].chain.origin_mm + segment.end_mm for segment in north[0].chain.segments[:-1]
     ]
     _assert(
         breaks_n == [4300, 6100],
@@ -366,16 +355,14 @@ def test_facade_occlusion_puts_recessed_openings_on_the_right_side() -> None:
     )
     _assert(
         [run.axis_mm for run in north_runs] == [10650, 8500],
-        "north runs are at %r, expected [10650, 8500]"
-        % [run.axis_mm for run in north_runs],
+        "north runs are at %r, expected [10650, 8500]" % [run.axis_mm for run in north_runs],
     )
 
     result = dimension_storey(house, storey_id)
     north_l3 = [i for i in result.chains_at_level(3) if i.side == "N"]
     _assert(len(north_l3) == 1, "expected one north level-3 chain")
     centres = [
-        north_l3[0].chain.origin_mm + segment.end_mm
-        for segment in north_l3[0].chain.segments[:-1]
+        north_l3[0].chain.origin_mm + segment.end_mm for segment in north_l3[0].chain.segments[:-1]
     ]
     _assert(
         centres == [3000, 6700],
@@ -390,10 +377,7 @@ def test_level_2_breaks_at_a_jog() -> None:
     result = dimension_storey(house, fixtures.storey_id_of(house))
     north = [i for i in result.chains_at_level(2) if i.side == "N"]
     _assert(len(north) == 1, "expected one north level-2 chain")
-    breaks = [
-        north[0].chain.origin_mm + segment.end_mm
-        for segment in north[0].chain.segments[:-1]
-    ]
+    breaks = [north[0].chain.origin_mm + segment.end_mm for segment in north[0].chain.segments[:-1]]
     _assert(breaks == [5500], "north jog breakpoint is %r, expected [5500]" % breaks)
 
 
@@ -403,7 +387,7 @@ def test_level_2_breaks_at_a_jog() -> None:
 def test_inner_chains_one_width_and_one_depth_per_room() -> None:
     """Every room gets at most one width and one depth chain, and never a third."""
     for name, result in _results():
-        seen: Dict[Tuple[str, str], int] = {}
+        seen: dict[tuple[str, str], int] = {}
         for info in result.chains:
             if info.kind != "inner":
                 continue
@@ -485,14 +469,13 @@ def test_equal_but_non_adjacent_inner_chains_are_both_kept() -> None:
     storey_id = fixtures.storey_id_of(house)
     result = dimension_storey(house, storey_id)
     widths = [
-        info for info in result.chains
-        if info.kind == "inner" and info.orientation == HORIZONTAL
-        and info.chain.overall_mm == 2928
+        info
+        for info in result.chains
+        if info.kind == "inner" and info.orientation == HORIZONTAL and info.chain.overall_mm == 2928
     ]
     _assert(
         len(widths) == 2,
-        "expected 2 surviving 2928mm width chains (living + dining), got %d"
-        % len(widths),
+        "expected 2 surviving 2928mm width chains (living + dining), got %d" % len(widths),
     )
     lines = sorted(info.line_mm for info in widths)
     _assert(
@@ -525,8 +508,7 @@ def test_inner_chain_hugs_the_door_side_wall() -> None:
         )
         _assert(
             min(faces) < info.line_mm < max(faces),
-            "room %s chain line %d is outside the room (%r)"
-            % (room.id, info.line_mm, faces),
+            "room %s chain line %d is outside the room (%r)" % (room.id, info.line_mm, faces),
         )
 
 
@@ -540,8 +522,7 @@ def test_no_two_label_boxes_overlap() -> None:
             collisions = find_label_collisions(result.label_boxes())
             _assert(
                 not collisions,
-                "%s: %d overlapping label(s): %r"
-                % (name, len(collisions), collisions[:3]),
+                "%s: %d overlapping label(s): %r" % (name, len(collisions), collisions[:3]),
             )
             assert_no_label_overlaps(result.labels)
 
@@ -621,18 +602,14 @@ def test_placement_escalates_flip_then_shift_then_shrink_then_leader() -> None:
 
     # 1. The preferred side blocked, the other free → flip. A horizontal chain's text
     #    sits *above* the line by default (DIMSTYLE ``dimtad = 1``), so block above it.
-    labels, _ = place_labels(
-        [chain], config=config, obstacles=[_band(0, 4000, y0=20, y1=500)]
-    )
+    labels, _ = place_labels([chain], config=config, obstacles=[_band(0, 4000, y0=20, y1=500)])
     _assert(
         labels[0].strategy == STRATEGY_FLIP and labels[0].flipped,
         "expected a flip, got %r" % labels[0].strategy,
     )
 
     # 2. Both sides blocked at the midpoint, free 1200mm to the right → shift.
-    labels, _ = place_labels(
-        [chain], config=config, obstacles=[_band(0, 2600)]
-    )
+    labels, _ = place_labels([chain], config=config, obstacles=[_band(0, 2600)])
     _assert(
         labels[0].strategy == STRATEGY_SHIFT and labels[0].shift_mm != 0,
         "expected a shift, got %r (shift %d)" % (labels[0].strategy, labels[0].shift_mm),
@@ -647,13 +624,11 @@ def test_placement_escalates_flip_then_shift_then_shrink_then_leader() -> None:
     )
     _assert(
         labels[0].strategy == STRATEGY_SHRINK and labels[0].shrink_step == 1,
-        "expected a shrink, got %r (step %d)"
-        % (labels[0].strategy, labels[0].shrink_step),
+        "expected a shrink, got %r (step %d)" % (labels[0].strategy, labels[0].shrink_step),
     )
     _assert(
         labels[0].height_mm == config.text_height_mm(1),
-        "shrunk label is %dmm tall, expected %d"
-        % (labels[0].height_mm, config.text_height_mm(1)),
+        "shrunk label is %dmm tall, expected %d" % (labels[0].height_mm, config.text_height_mm(1)),
     )
 
     # 4. A 400mm window: too narrow for every text size → leader.
@@ -702,8 +677,7 @@ def test_outer_labels_never_land_on_the_plan() -> None:
                 continue
             _assert(
                 not label.box.overlaps(footprint),
-                "%s: outer label %s (%r) is drawn over the plan"
-                % (name, label.id, label.text),
+                "%s: outer label %s (%r) is drawn over the plan" % (name, label.id, label.text),
             )
 
 
@@ -712,8 +686,9 @@ def test_dimension_model_covers_every_storey_including_empty_ones() -> None:
     from services.drawings.autodim.engine import dimension_model
 
     plan = dict(fixtures.json_plan_with_diagonal())
-    plan["storeys"] = list(plan["storeys"]) + [
-        {"id": "storey_TERRACE", "name": "Terrace", "heightMm": 2400}
+    plan["storeys"] = [
+        *list(plan["storeys"]),
+        {"id": "storey_TERRACE", "name": "Terrace", "heightMm": 2400},
     ]
     results = dimension_model(plan)
     _assert(len(results) == 2, "expected one result per storey, got %d" % len(results))
@@ -729,7 +704,7 @@ def test_dimension_model_covers_every_storey_including_empty_ones() -> None:
 def test_collision_grid_agrees_with_brute_force() -> None:
     """The grid is an index, not a second opinion: same answers as O(n²) overlap."""
     grid = CollisionGrid(250)
-    boxes: List[LabelBox] = []
+    boxes: list[LabelBox] = []
     # A deterministic pseudo-random spread, negative coordinates included.
     value = 12345
     for index in range(120):
@@ -791,9 +766,7 @@ def test_all_dim_text_is_plain_millimetres() -> None:
                     % (name, text, segment.length_mm),
                 )
         for label in result.labels:
-            _assert(
-                label.text.isdigit(), "%s: placed label %r is not digits" % (name, label.text)
-            )
+            _assert(label.text.isdigit(), "%s: placed label %r is not digits" % (name, label.text))
 
 
 def test_openings_dimension_to_centreline_by_default() -> None:
@@ -803,10 +776,7 @@ def test_openings_dimension_to_centreline_by_default() -> None:
     result = dimension_storey(house, storey_id, config=CENTRELINE)
     south = [i for i in result.chains_at_level(3) if i.side == "S"]
     _assert(len(south) == 1, "expected one south level-3 chain")
-    breaks = [
-        south[0].chain.origin_mm + segment.end_mm
-        for segment in south[0].chain.segments[:-1]
-    ]
+    breaks = [south[0].chain.origin_mm + segment.end_mm for segment in south[0].chain.segments[:-1]]
     _assert(
         breaks == [2700, 6100],
         "south opening centrelines are %r, expected [2700, 6100]" % breaks,
@@ -866,7 +836,7 @@ def test_wire_json_and_dataclass_models_agree() -> None:
     storey_id = fixtures.storey_id_of(house)
     from_dataclass = dimension_storey(house, storey_id)
 
-    def to_wire(model: Any) -> Dict[str, Any]:
+    def to_wire(model: Any) -> dict[str, Any]:
         return {
             "storeys": [
                 {"id": s.id, "name": s.name, "heightMm": s.height_mm} for s in model.storeys
@@ -961,13 +931,12 @@ def test_primitives_are_shared_contract_lines_and_text_on_a_dim() -> None:
         text_count = 0
         for primitive in result.primitives:
             _assert(
-                isinstance(primitive, (Line, Text)),
+                isinstance(primitive, Line | Text),
                 "%s: unexpected primitive %r" % (name, type(primitive)),
             )
             _assert(
                 primitive.layer == A_DIM,
-                "%s: primitive on layer %r, expected %s"
-                % (name, primitive.layer, A_DIM),
+                "%s: primitive on layer %r, expected %s" % (name, primitive.layer, A_DIM),
             )
             _assert(
                 primitive.kind in DIM_KINDS,
@@ -987,8 +956,7 @@ def test_primitives_are_shared_contract_lines_and_text_on_a_dim() -> None:
                 _assert(primitive.height_mm > 0, "%s: zero-height text" % name)
                 _assert(
                     (primitive.h_align, primitive.v_align) == ("center", "middle"),
-                    "%s: dim text aligned (%r, %r)"
-                    % (name, primitive.h_align, primitive.v_align),
+                    "%s: dim text aligned (%r, %r)" % (name, primitive.h_align, primitive.v_align),
                 )
             else:
                 for coordinate in primitive.a + primitive.b:
@@ -998,8 +966,7 @@ def test_primitives_are_shared_contract_lines_and_text_on_a_dim() -> None:
                     )
         _assert(
             text_count == len(result.labels),
-            "%s: %d text primitives for %d labels"
-            % (name, text_count, len(result.labels)),
+            "%s: %d text primitives for %d labels" % (name, text_count, len(result.labels)),
         )
 
 
@@ -1030,15 +997,14 @@ def _golden_path(name: str, suffix: str = "json") -> str:
     return os.path.join(GOLDEN_DIR, "autodim-%s.%s" % (name, suffix))
 
 
-def _golden_payload(name: str, plan: Any, storey_id: str) -> Dict[str, Any]:
+def _golden_payload(name: str, plan: Any, storey_id: str) -> dict[str, Any]:
     obstacles = fixtures.room_label_obstacles(plan, storey_id)
     result = dimension_storey(plan, storey_id, obstacles=obstacles)
     return {
         "fixture": name,
         "config": {"scaleDenominator": 100, "dimToJamb": False},
         "obstacles": [
-            [box.x_mm, box.y_mm, box.width_mm, box.height_mm, box.owner_id]
-            for box in obstacles
+            [box.x_mm, box.y_mm, box.width_mm, box.height_mm, box.owner_id] for box in obstacles
         ],
         "result": result.to_json(),
     }
@@ -1049,7 +1015,7 @@ def _golden_svg(name: str, plan: Any, storey_id: str) -> str:
     return render_svg(dimension_storey(plan, storey_id, obstacles=obstacles))
 
 
-def regenerate_goldens() -> List[str]:
+def regenerate_goldens() -> list[str]:
     """Write the goldens. Run via ``--regen``, in the same commit as the change."""
     if not os.path.isdir(GOLDEN_DIR):
         os.makedirs(GOLDEN_DIR)
@@ -1078,14 +1044,11 @@ def test_goldens_match() -> None:
         )
         with open(path) as handle:
             expected = handle.read()
-        actual = (
-            json.dumps(_golden_payload(name, plan, storey_id), indent=2, sort_keys=True)
-            + "\n"
-        )
+        actual = json.dumps(_golden_payload(name, plan, storey_id), indent=2, sort_keys=True) + "\n"
         if actual != expected:
             expected_lines = expected.splitlines()
             actual_lines = actual.splitlines()
-            for index, (left, right) in enumerate(zip(expected_lines, actual_lines)):
+            for index, (left, right) in enumerate(zip(expected_lines, actual_lines, strict=False)):
                 if left != right:
                     raise AssertionError(
                         "golden %s differs at line %d:\n  golden: %s\n  actual: %s\n"
@@ -1129,9 +1092,18 @@ def _report() -> None:
     print("")
     print("§7 auto-dimensioning report — 1:100, dims to opening centrelines")
     print("")
-    header = (
-        "%-18s %5s %5s %5s %5s %5s   %6s %5s %5s %5s %5s"
-        % ("fixture", "L1", "L2", "L3", "L4", "segs", "labels", "flip", "shift", "shrnk", "lead")
+    header = "%-18s %5s %5s %5s %5s %5s   %6s %5s %5s %5s %5s" % (
+        "fixture",
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "segs",
+        "labels",
+        "flip",
+        "shift",
+        "shrnk",
+        "lead",
     )
     print(header)
     print("-" * len(header))
@@ -1172,10 +1144,7 @@ def _report() -> None:
         ):
             totals[index] += value
     print("-" * len(header))
-    print(
-        "%-18s %5d %5d %5d %5d %5d   %6d %5d %5d %5d %5d"
-        % tuple(["TOTAL"] + totals)
-    )
+    print("%-18s %5d %5d %5d %5d %5d   %6d %5d %5d %5d %5d" % ("TOTAL", *totals))
     print("")
     for name, result in _results():
         print("%s — every chain, Σ segments = overall:" % name)
@@ -1203,16 +1172,16 @@ def _main(argv: Sequence[str]) -> int:
             print("wrote %s" % os.path.relpath(path, _REPO_ROOT))
         return 0
 
-    tests: List[Tuple[str, Callable[[], None]]] = [
+    tests: list[tuple[str, Callable[[], None]]] = [
         (name, obj)
         for name, obj in sorted(globals().items())
         if name.startswith("test_") and callable(obj)
     ]
-    failures: List[str] = []
+    failures: list[str] = []
     for name, fn in tests:
         try:
             fn()
-        except Exception:  # noqa: BLE001 - a harness prints, it does not re-raise
+        except Exception:
             failures.append(name)
             print("FAIL  %s" % name)
             traceback.print_exc()
@@ -1220,8 +1189,14 @@ def _main(argv: Sequence[str]) -> int:
             print("ok    %s" % name)
 
     print("")
-    print("%d/%d tests passed%s" % (len(tests) - len(failures), len(tests),
-                                    "" if not failures else "  FAILURES: " + ", ".join(failures)))
+    print(
+        "%d/%d tests passed%s"
+        % (
+            len(tests) - len(failures),
+            len(tests),
+            "" if not failures else "  FAILURES: " + ", ".join(failures),
+        )
+    )
     if STUBBED:
         print("(worker deps stubbed for this run: %s)" % ", ".join(STUBBED))
     if not failures:

@@ -157,8 +157,7 @@ export function roomTags(
       storeyId: room.storeyId,
       nameText: roomDisplayName(room, unassignedOrdinal),
       areaText: roomAreaText(room.areaMm2, display),
-      targetText:
-        room.targetAreaMm2 === null ? null : roomAreaText(room.targetAreaMm2, display),
+      targetText: room.targetAreaMm2 === null ? null : roomAreaText(room.targetAreaMm2, display),
       areaMm2: room.areaMm2,
       type: room.type,
       locked: room.locked,
@@ -217,8 +216,7 @@ export function tagsToPlaceable(
         estimateTextWidth(tag.areaText, style.areaFontPx),
       ) +
       style.paddingPx * 2;
-    const heightPx =
-      style.nameFontPx + style.lineGapPx + style.areaFontPx + style.paddingPx * 2;
+    const heightPx = style.nameFontPx + style.lineGapPx + style.areaFontPx + style.paddingPx * 2;
 
     return {
       id: tag.roomId,

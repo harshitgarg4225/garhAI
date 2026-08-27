@@ -207,7 +207,7 @@ class CollisionGrid {
  * than beside it, because the label is wide and short and a horizontal nudge
  * has to travel further to clear the same neighbour.
  */
-const NUDGE_DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
+const NUDGE_DIRECTIONS: readonly (readonly [number, number])[] = [
   [0, 1],
   [0, -1],
   [1, 0],
@@ -270,7 +270,12 @@ function candidatesFor(label: PlaceableLabel, maxSteps: number, padMm: number): 
 }
 
 /** Where a leader line meets the label box, coming from the anchor. */
-function leaderContact(centre: PlacePointF, halfW: number, halfH: number, anchor: PlacePointF): PlacePointF {
+function leaderContact(
+  centre: PlacePointF,
+  halfW: number,
+  halfH: number,
+  anchor: PlacePointF,
+): PlacePointF {
   const dx = anchor.x - centre.x;
   const dy = anchor.y - centre.y;
   if (dx === 0 && dy === 0) return centre;
@@ -314,7 +319,7 @@ export function placeLabels(
   // Deterministic order: biggest first, ties broken on id.
   const ordered = labels
     .slice()
-    .sort((a, b) => (b.priority - a.priority) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    .sort((a, b) => b.priority - a.priority || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
   let maxExtent = 0;
   for (const l of ordered) {
@@ -358,7 +363,11 @@ export function placeLabels(
     // discovering it in a golden-file diff.
     if (chosen === null) {
       if (dropUnplaceable) continue;
-      chosen = candidates[candidates.length - 1] ?? { centre: label.anchorMm, step: 0, inside: true };
+      chosen = candidates[candidates.length - 1] ?? {
+        centre: label.anchorMm,
+        step: 0,
+        inside: true,
+      };
       kind = 'overflow';
     }
 

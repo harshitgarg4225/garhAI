@@ -1,7 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-
     // This package is never emitted: `main`/`types` point at src/index.ts and
     // apps/web bundles it from source. `composite: true` (inherited from
     // tsconfig.base.json) is incompatible with `noEmit` — tsc rejects the pair

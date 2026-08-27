@@ -26,9 +26,10 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from typing import Any, AsyncIterator
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,6 +37,7 @@ from fastapi.responses import JSONResponse
 from starlette.datastructures import Headers, MutableHeaders
 
 from garh_api import MODEL_SCHEMA_VERSION, __version__
+from garh_api.auth import set_otp_mailer
 from garh_api.config import Settings, get_settings
 from garh_api.db import dispose_async_engine, session_scope
 from garh_api.errors import (
@@ -49,13 +51,14 @@ from garh_api.logging import (
     clear_request_context,
     configure_logging,
     get_logger,
-    init_error_reporting,
 )
+from garh_api.mailer import build_mailer
+from garh_api.observability import init_sentry
 from garh_api.queue import QueueUnavailableError, close_redis
 from garh_api.repositories import FLAG_REGISTRY, FlagRepository
 from garh_api.routers import api_router
-from garh_api.routers import health as health_router
 from garh_api.routers import auth as auth_router
+from garh_api.routers import health as health_router
 from garh_api.schemas import MetaOut
 
 _log = get_logger(__name__)
@@ -162,6 +165,25 @@ OPENAPI_TAGS: list[dict[str, Any]] = [
 # ---------------------------------------------------------------------------
 
 
+def _install_otp_mailer(settings: Settings) -> None:
+    """Wire the SMTP mailer (when configured) into the auth layer's delivery seam.
+
+    ``build_mailer`` returns ``None`` unless both ``SMTP_HOST`` and ``SMTP_FROM``
+    are set, and installing ``None`` *clears* the hook — so a process that builds
+    more than one app (tests do) cannot inherit a stale mailer from a previous
+    configuration. Opens no connection: the mailer dials the relay per send.
+    """
+    mailer = build_mailer(settings)
+    set_otp_mailer(mailer)
+    if mailer is not None:
+        # Host and sender domain only — never the credentials, never an address.
+        _log.info(
+            "auth.mailer_installed",
+            smtp_host=mailer.host,
+            from_domain=mailer.from_domain,
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Boot and shutdown. Every external connection is opened and closed here.
@@ -173,7 +195,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     settings = get_settings()
     configure_logging(settings)
-    init_error_reporting(settings)
+    # Error tracking, OFF unless SENTRY_DSN is set — the zero-keys default stack
+    # ships zero third-party telemetry (locked decision). Lazy inside: the SDK is
+    # only imported when a DSN exists, so this line costs one string check.
+    init_sentry(settings)
     _log.info(
         "api.starting",
         version=__version__,
@@ -183,12 +208,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         model_schema_version=MODEL_SCHEMA_VERSION,
     )
 
+    # Real OTP mail, when SMTP_* is configured; otherwise this clears the hook and
+    # dev keeps its echo (garh_api.auth._deliver_code owns that ordering).
+    _install_otp_mailer(settings)
+
     # §18: "Feature flags table read at boot".
     try:
         async with session_scope(settings) as session:
             flags = await FLAG_REGISTRY.refresh(FlagRepository(session))
         app.state.flags = flags
-    except Exception as exc:  # noqa: BLE001 - defaults are a safe starting point
+    except Exception as exc:
         app.state.flags = FLAG_REGISTRY.snapshot()
         _log.error(
             "flags.load_failed",
@@ -202,10 +231,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         from garh_api.routers.jobs import start_job_event_consumer
 
         start_job_event_consumer(app)
-    except Exception as exc:  # noqa: BLE001
-        _log.error(
-            "job_events.start_failed", error="%s: %s" % (type(exc).__name__, exc)
-        )
+    except Exception as exc:
+        _log.error("job_events.start_failed", error="%s: %s" % (type(exc).__name__, exc))
 
     try:
         yield
@@ -215,10 +242,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             from garh_api.routers.jobs import stop_job_event_consumer
 
             await stop_job_event_consumer(app)
-        except Exception as exc:  # noqa: BLE001 - shutdown must not raise
-            _log.warning(
-                "job_events.stop_failed", error="%s: %s" % (type(exc).__name__, exc)
-            )
+        except Exception as exc:
+            _log.warning("job_events.stop_failed", error="%s: %s" % (type(exc).__name__, exc))
         await close_redis()
         await dispose_async_engine()
         _log.info("api.stopped")
@@ -618,7 +643,7 @@ def _install_meta_route(app: FastAPI, settings: Settings) -> None:
                 "maxImageUploadBytes": settings.max_image_upload_bytes,
                 "signedUrlTtlSeconds": settings.s3_signed_url_ttl_seconds,
             },
-            server_time=datetime.now(timezone.utc),
+            server_time=datetime.now(UTC),
         )
 
 

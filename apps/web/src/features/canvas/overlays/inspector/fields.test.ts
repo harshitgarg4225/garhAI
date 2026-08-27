@@ -16,7 +16,7 @@ import { inspectorSelection, type InspectorField } from './fields';
 
 const doc = makeTwoRoomPlanWithOpenings();
 const house = doc.house;
-const display = 'ft-in' as const;
+const display = 'ft-in';
 
 function fieldOf(fields: readonly InspectorField[], key: string): InspectorField {
   const found = fields.find((f) => f.key === key);
@@ -73,7 +73,9 @@ describe('wall inspector', () => {
     const thickness = fieldOf(single.fields, 'thickness');
     expect(thickness.value).toBe(230);
     const thickened = applyGroup(doc, thickness.build(115), 'g2').model;
-    expect(thickened.house.walls.find((w) => w.id === FIXTURE_IDS.wallSouth)?.thicknessMm).toBe(115);
+    expect(thickened.house.walls.find((w) => w.id === FIXTURE_IDS.wallSouth)?.thicknessMm).toBe(
+      115,
+    );
   });
 
   it('marks wall kind and load-bearing read-only, with the reason', () => {

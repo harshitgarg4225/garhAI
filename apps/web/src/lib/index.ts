@@ -40,7 +40,13 @@ export {
   timeoutError,
   malformedResponseError,
 } from './errors';
-export type { ErrorCode, ProblemJson, ProblemDetail, ApiValidationIssue, AppErrorInit } from './errors';
+export type {
+  ErrorCode,
+  ProblemJson,
+  ProblemDetail,
+  ApiValidationIssue,
+  AppErrorInit,
+} from './errors';
 
 // ── Transport ──────────────────────────────────────────────────────────────
 export { http, HttpClient } from './http';

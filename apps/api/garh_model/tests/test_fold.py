@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import random
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 from hypothesis import given, settings
@@ -44,7 +44,6 @@ from garh_model.fold import (
     wall_length_mm,
 )
 from garh_model.model import empty_project_doc, to_jsonable
-from garh_model.validate import OpRejectedError
 from garh_model.ops import Op, op
 from garh_model.testing import (
     FIXTURE_IDS,
@@ -55,6 +54,7 @@ from garh_model.testing import (
     opening_ops,
     two_room_plan_ops,
 )
+from garh_model.validate import OpRejectedError
 
 GF = FIXTURE_IDS["groundStorey"]
 FF = FIXTURE_IDS["firstStorey"]
@@ -165,9 +165,9 @@ def test_merge_patch_inverse_round_trips() -> None:
     values=st.lists(st.integers(min_value=-5, max_value=5), min_size=1, max_size=4),
 )
 @settings(max_examples=60, deadline=None)
-def test_merge_patch_inverse_property(keys: List[str], values: List[int]) -> None:
-    target: Dict[str, Any] = {"a": 1, "b": {"n": 2}, "c": "keep"}
-    patch: Dict[str, Any] = {}
+def test_merge_patch_inverse_property(keys: list[str], values: list[int]) -> None:
+    target: dict[str, Any] = {"a": 1, "b": {"n": 2}, "c": "keep"}
+    patch: dict[str, Any] = {}
     for i, k in enumerate(keys):
         v = values[i % len(values)]
         patch[k] = None if v == 0 else ({"n": v} if k == "b" else v)
@@ -382,8 +382,11 @@ def test_inverse_round_trip_for_every_mutating_op() -> None:
     rooms = sorted(base.house.rooms, key=lambda r: r.polygon[0].x)
     west = rooms[0].id
 
-    scenarios: List[Op] = [
-        op("plot.set_boundary", polygon=[{"x": 0, "y": 0}, {"x": 9000, "y": 0}, {"x": 9000, "y": 9000}]),
+    scenarios: list[Op] = [
+        op(
+            "plot.set_boundary",
+            polygon=[{"x": 0, "y": 0}, {"x": 9000, "y": 0}, {"x": 9000, "y": 9000}],
+        ),
         op("plot.set_north", deg=270),
         op("plot.set_road", edgeIndex=1, widthMm=6000, name="Service Lane"),
         op("plot.set_reg_profile", cityPack="hyd", overrides={"farMax": 200}),
@@ -399,8 +402,18 @@ def test_inverse_round_trip_for_every_mutating_op() -> None:
             thicknessMm=115,
             kind="internal",
         ),
-        op("wall.move", wallId=FIXTURE_IDS["wallSpine"], a={"x": 3600, "y": 0}, b={"x": 3600, "y": 4000}),
-        op("wall.split", wallId=FIXTURE_IDS["wallSpine"], atMm=2000, newWallId=fixed_id("wall", "SP2")),
+        op(
+            "wall.move",
+            wallId=FIXTURE_IDS["wallSpine"],
+            a={"x": 3600, "y": 0},
+            b={"x": 3600, "y": 4000},
+        ),
+        op(
+            "wall.split",
+            wallId=FIXTURE_IDS["wallSpine"],
+            atMm=2000,
+            newWallId=fixed_id("wall", "SP2"),
+        ),
         op("wall.set_thickness", wallId=FIXTURE_IDS["wallSpine"], thicknessMm=200),
         op("wall.delete", wallId=FIXTURE_IDS["wallSpine"]),
         op(
@@ -432,7 +445,13 @@ def test_inverse_round_trip_for_every_mutating_op() -> None:
             widthMm=1000,
             risersCount=18,
         ),
-        op("column.set", action="add", id=FIXTURE_IDS["column"], storeyId=GF, pt={"x": 3000, "y": 2000}),
+        op(
+            "column.set",
+            action="add",
+            id=FIXTURE_IDS["column"],
+            storeyId=GF,
+            pt={"x": 3000, "y": 2000},
+        ),
         op(
             "furniture.set",
             action="place",
@@ -654,9 +673,9 @@ def test_deleting_an_external_wall_restores_the_drawing_but_may_re_derive_room_i
     assert {w.id for w in undone.house.walls} == {w.id for w in doc.house.walls}
     assert {o.id for o in undone.house.openings} == {o.id for o in doc.house.openings}
     assert len(undone.house.rooms) == len(doc.house.rooms)
-    assert {r.id for r in undone.house.rooms} != before_ids, (
-        "documented limitation: ids of rooms that died are re-derived on undo"
-    )
+    assert {
+        r.id for r in undone.house.rooms
+    } != before_ids, "documented limitation: ids of rooms that died are re-derived on undo"
 
 
 def test_known_gap_undo_is_stranded_when_a_named_room_dies() -> None:
@@ -689,7 +708,14 @@ def test_known_gap_undo_is_stranded_when_a_named_room_dies() -> None:
 
     history = [
         [op("room.assign", roomId=west.id, type="living", name="Living")],
-        [op("wall.move", wallId=FIXTURE_IDS["wallWest"], a={"x": -250, "y": 4000}, b={"x": -250, "y": 0})],
+        [
+            op(
+                "wall.move",
+                wallId=FIXTURE_IDS["wallWest"],
+                a={"x": -250, "y": 4000},
+                b={"x": -250, "y": 0},
+            )
+        ],
     ]
     for i, ops in enumerate(history):
         gid = fixed_id("group", f"K{i}")
@@ -775,7 +801,7 @@ def test_solver_option_equals_applying_its_expansion_directly() -> None:
     direct = apply_group(make_empty_doc(), head + [Op.from_json(o) for o in inner]).model
     via_solver = apply_group(
         make_empty_doc(),
-        head + [op("solver.apply_option", solverJobId="job_x", optionIndex=0, ops=inner)],
+        [*head, op("solver.apply_option", solverJobId="job_x", optionIndex=0, ops=inner)],
     ).model
     assert doc_hash(via_solver) == doc_hash(direct)
 
@@ -816,7 +842,9 @@ def test_undo_stack_walks_the_history_both_ways() -> None:
     for i, ops in enumerate(groups):
         gid = fixed_id("group", f"G{i}")
         result = apply_group(doc, ops, gid)
-        stack.push(UndoEntry(group_id=gid, ops=result.ops, inverse=result.inverse, label=f"step {i}"))
+        stack.push(
+            UndoEntry(group_id=gid, ops=result.ops, inverse=result.inverse, label=f"step {i}")
+        )
         doc = result.model
         hashes.append(doc_hash(doc))
 
@@ -884,7 +912,7 @@ def test_pushing_clears_the_redo_branch() -> None:
 _ROTATIONS = [0, 90, 180, 270]
 
 
-def _candidate_ops(rng: random.Random, doc: Any, step: int) -> List[Op]:
+def _candidate_ops(rng: random.Random, doc: Any, step: int) -> list[Op]:
     """A small, plausible edit for the current document (may be inapplicable)."""
     kind = rng.randrange(10)
     walls = [w for w in doc.house.walls if w.storey_id == GF]
@@ -990,7 +1018,7 @@ def test_random_history_undoes_and_redoes_exactly(seed: int) -> None:
     hashes = [doc_hash(doc)]
     geometries = [_geometry_signature(doc)]
     #: step_is_exact[i] — did group i preserve the SET of room ids?
-    step_is_exact: List[bool] = []
+    step_is_exact: list[bool] = []
     applied = 0
 
     for step in range(25):
@@ -1059,7 +1087,7 @@ def test_op_log_replays_to_the_same_hash(seed: int) -> None:
     """Fold a random log, then replay the same log from scratch: identical state."""
     rng = random.Random(seed)
     doc = make_two_room_plan()
-    log: List[Op] = list(two_room_plan_ops())
+    log: list[Op] = list(two_room_plan_ops())
 
     for step in range(20):
         candidate = _candidate_ops(rng, doc, step)[0]
@@ -1081,7 +1109,9 @@ def test_op_log_replays_to_the_same_hash(seed: int) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_golden_states_match_the_cross_language_fixture(golden_states: List[Dict[str, Any]]) -> None:
+def test_golden_states_match_the_cross_language_fixture(
+    golden_states: list[dict[str, Any]],
+) -> None:
     """Every case in ``fixtures/model/golden-states.json`` folds to its hash.
 
     ``packages/model/src/fold.test.ts`` asserts the same rows. A failure here
@@ -1095,14 +1125,14 @@ def test_golden_states_match_the_cross_language_fixture(golden_states: List[Dict
         assert doc_hash(doc) == case["expectedStateHash"], case["name"]
 
 
-def test_golden_states_are_also_stable_under_replay(golden_states: List[Dict[str, Any]]) -> None:
+def test_golden_states_are_also_stable_under_replay(golden_states: list[dict[str, Any]]) -> None:
     for case in golden_states:
         initial = empty_project_doc(case.get("unitsDisplay", "ft-in"))
         assert doc_hash(replay(case["ops"], initial)) == case["expectedStateHash"], case["name"]
 
 
 def test_two_room_golden_case_has_the_documented_geometry(
-    golden_states: List[Dict[str, Any]],
+    golden_states: list[dict[str, Any]],
 ) -> None:
     """Guards the fixture itself: a silently-changed fixture proves nothing."""
     case = next(c for c in golden_states if c["name"] == "two-room-plan")

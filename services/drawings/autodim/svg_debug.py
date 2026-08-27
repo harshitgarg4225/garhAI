@@ -25,7 +25,8 @@ counter-transform. Determinism follows from the primitive order, which
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from services.drawings.autodim.config import DEFAULT_CONFIG, AutoDimConfig
 from services.drawings.autodim.primitives import (
@@ -39,7 +40,7 @@ from services.drawings.autodim.primitives import (
 )
 
 #: Stroke widths in model mm, from the ``A-DIM`` lineweight (0.13mm) at 1:100.
-_STROKE_MM: Dict[str, int] = {
+_STROKE_MM: dict[str, int] = {
     KIND_DIM: 13,
     KIND_WITNESS: 10,
     KIND_TICK: 13,
@@ -48,7 +49,7 @@ _STROKE_MM: Dict[str, int] = {
 
 #: ``kind`` → CSS class. A renderer may style from ``kind``; it may never derive
 #: geometry from it (the projection module's rule).
-_CLASS: Dict[str, str] = {
+_CLASS: dict[str, str] = {
     KIND_DIM: "dim",
     KIND_WITNESS: "witness",
     KIND_TICK: "tick",
@@ -67,16 +68,13 @@ _STYLE_BLOCK = """
 
 def _escape(text: str) -> str:
     return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 
-def _bounds(primitives: Sequence[Primitive], padding_mm: int) -> Tuple[int, int, int, int]:
-    xs: List[int] = []
-    ys: List[int] = []
+def _bounds(primitives: Sequence[Primitive], padding_mm: int) -> tuple[int, int, int, int]:
+    xs: list[int] = []
+    ys: list[int] = []
     for primitive in primitives:
         if isinstance(primitive, Line):
             xs.extend((primitive.a[0], primitive.b[0]))
@@ -121,7 +119,7 @@ def render_svg(
     def sy(value: int) -> int:
         return max_y - value
 
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append(
         '<svg xmlns="http://www.w3.org/2000/svg" width="%dmm" height="%dmm" '
         'viewBox="0 0 %d %d">'
@@ -155,9 +153,7 @@ def render_svg(
         elif isinstance(primitive, Text):
             x, y = sx(primitive.position[0]), sy(primitive.position[1])
             rotate = (
-                ""
-                if primitive.rotation_deg == 0
-                else ' transform="rotate(-90 %d %d)"' % (x, y)
+                "" if primitive.rotation_deg == 0 else ' transform="rotate(-90 %d %d)"' % (x, y)
             )
             lines.append(
                 '    <text x="%d" y="%d" font-size="%d"%s>%s</text>'

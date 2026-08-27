@@ -30,8 +30,8 @@ from __future__ import annotations
 import re
 import secrets
 import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Callable, Optional, Sequence, Set
 
 from .sha256 import sha256_utf8
 
@@ -107,10 +107,10 @@ class IdError(ValueError):
 #: A ULID factory. Injectable so tests can make id generation deterministic.
 UlidFactory = Callable[[], str]
 
-_ulid_factory: Optional[UlidFactory] = None
+_ulid_factory: UlidFactory | None = None
 
 
-def set_ulid_factory(factory: Optional[UlidFactory]) -> None:
+def set_ulid_factory(factory: UlidFactory | None) -> None:
     """Install a ULID factory (tests, or a seeded solver run). ``None`` restores
     the random default."""
     global _ulid_factory
@@ -207,7 +207,7 @@ def derived_id(element_type: str, key: str) -> str:
     return f"{element_type}_{out}"
 
 
-def derived_id_unique(element_type: str, key: str, taken: Set[str]) -> str:
+def derived_id_unique(element_type: str, key: str, taken: set[str]) -> str:
     """Derived id with a collision escape hatch.
 
     ``taken`` lets the caller keep ids unique when two derived elements hash to
@@ -236,7 +236,7 @@ class ParsedId:
     raw: str
 
 
-def try_parse_id(value: object) -> Optional[ParsedId]:
+def try_parse_id(value: object) -> ParsedId | None:
     """Parse an id, or ``None`` if it is not well-formed / not a known type."""
     if not isinstance(value, str):
         return None
@@ -271,7 +271,7 @@ def is_id_of(element_type: str, value: object) -> bool:
     return parsed is not None and parsed.type == element_type
 
 
-def id_type(value: object) -> Optional[str]:
+def id_type(value: object) -> str | None:
     """``id_type('wall_01J...') == 'wall'``, else ``None``."""
     parsed = try_parse_id(value)
     return None if parsed is None else parsed.type
@@ -280,9 +280,7 @@ def id_type(value: object) -> Optional[str]:
 def assert_id_of(element_type: str, value: object, field: str) -> str:
     """Assert an id of a given type, returning it."""
     if not is_id_of(element_type, value):
-        raise IdError(
-            f"{field} must be a {element_type} id ({element_type}_<ulid>), got {value!r}"
-        )
+        raise IdError(f"{field} must be a {element_type} id ({element_type}_<ulid>), got {value!r}")
     return str(value)
 
 

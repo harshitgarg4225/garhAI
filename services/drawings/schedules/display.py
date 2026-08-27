@@ -28,7 +28,6 @@ from __future__ import annotations
 import sys
 from fractions import Fraction
 from pathlib import Path
-from typing import Optional
 
 __all__ = [
     "DASH",
@@ -80,7 +79,7 @@ def sqm_text(area_mm2: int, decimals: int = 2) -> str:
         )
     if decimals < 0:
         raise ValueError("decimals must be >= 0, got %d" % decimals)
-    scale = 10 ** decimals  # 10^2 hundredths of a m2
+    scale = 10**decimals  # 10^2 hundredths of a m2
     per_unit = 1_000_000  # mm2 per m2
     sign = "-" if area_mm2 < 0 else ""
     magnitude = abs(area_mm2)
@@ -107,34 +106,34 @@ def gaj_text(area_mm2: int, decimals: int = 0) -> str:
     return format_gaj(area_mm2, decimals)
 
 
-def area_cell(area_mm2: Optional[int]) -> str:
+def area_cell(area_mm2: int | None) -> str:
     """``'111.48 m2 · 1,200.0 sq ft'`` — the standard area cell."""
     if area_mm2 is None:
         return DASH
     return "%s m2 · %s" % (sqm_text(area_mm2), sqft_text(area_mm2))
 
 
-def plot_area_cell(area_mm2: Optional[int]) -> str:
+def plot_area_cell(area_mm2: int | None) -> str:
     """``'111.48 m2 · 1,200.0 sq ft · 133 gaj'`` — plot area only (§15)."""
     if area_mm2 is None:
         return DASH
     return "%s · %s" % (area_cell(area_mm2), gaj_text(area_mm2))
 
 
-def mm_cell(value: Optional[int]) -> str:
+def mm_cell(value: int | None) -> str:
     """A length on a table: plain millimetres, no grouping (CAD convention)."""
     if value is None:
         return DASH
     return "%d" % value
 
 
-def count_cell(value: Optional[int]) -> str:
+def count_cell(value: int | None) -> str:
     if value is None:
         return DASH
     return "%d" % value
 
 
-def ratio_cell(value: Optional[Fraction], decimals: int = 2) -> str:
+def ratio_cell(value: Fraction | None, decimals: int = 2) -> str:
     """A FAR / coverage ratio, formatted by the rules engine's own formatter."""
     if value is None:
         return DASH
@@ -144,7 +143,7 @@ def ratio_cell(value: Optional[Fraction], decimals: int = 2) -> str:
     return format_ratio(value, decimals)
 
 
-def percent_cell(value: Optional[Fraction], decimals: int = 1) -> str:
+def percent_cell(value: Fraction | None, decimals: int = 1) -> str:
     if value is None:
         return DASH
     _ensure_apps_api_on_path()

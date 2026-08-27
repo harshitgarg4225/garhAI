@@ -162,7 +162,9 @@ function wallLengthMm(wall: Wall): number {
  * rebase can still contain one, and a NaN in a vertex buffer poisons the whole
  * merged mesh — every wall on the storey vanishes, not just the bad one.
  */
-function wallFrame(wall: Wall): { ux: number; uy: number; nx: number; ny: number; lenMm: number } | null {
+function wallFrame(
+  wall: Wall,
+): { ux: number; uy: number; nx: number; ny: number; lenMm: number } | null {
   const dx = wall.b.x - wall.a.x;
   const dy = wall.b.y - wall.a.y;
   const len = Math.hypot(dx, dy);
@@ -326,12 +328,10 @@ export function openingSymbol(wall: Wall, opening: Opening): OpeningSymbol | nul
     lines.push([at(startMm, -t + inset), at(endMm, -t + inset)] as const);
   }
 
-  const ring: Pt[] = [
-    at(startMm, t),
-    at(endMm, t),
-    at(endMm, -t),
-    at(startMm, -t),
-  ].map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) }));
+  const ring: Pt[] = [at(startMm, t), at(endMm, t), at(endMm, -t), at(startMm, -t)].map((p) => ({
+    x: Math.round(p.x),
+    y: Math.round(p.y),
+  }));
 
   return { openingId: opening.id, kind: opening.kind, lines, arc, ringMm: ring };
 }

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The 18 check types. One small pure function each, and nothing else in here.
 
 The tiebreaker for every line of this module is the check-semantics table in
@@ -40,9 +38,12 @@ allowance, ``ceil`` on a requirement — so a value exactly on a limit passes an
 nothing slips through on a rounding artefact.
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Any, Callable, Dict, FrozenSet, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from .context import (
     OpeningSummary,
@@ -95,7 +96,7 @@ def check_setback_min(check: Check, instance: Instance, env: CheckEnv) -> Outcom
     edge: PlotEdge = instance.require("edge")
     limit = check.int_param("valueMm")
     provided = edge.setback_provided_mm
-    note: Optional[str] = None
+    note: str | None = None
     if check.str_param("measure", "to-building-line") == "to-projection":
         deepest = 0
         for projection in env.context.model.projections:
@@ -103,7 +104,9 @@ def check_setback_min(check: Check, instance: Instance, env: CheckEnv) -> Outcom
                 deepest = max(deepest, projection.projection_mm)
         if deepest:
             provided = provided - deepest
-            note = "Measured to the outermost projection (%d mm beyond the building line)." % deepest
+            note = (
+                "Measured to the outermost projection (%d mm beyond the building line)." % deepest
+            )
     return Outcome.at_least(provided, limit, note=note)
 
 
@@ -113,7 +116,7 @@ def check_far_max(check: Check, instance: Instance, env: CheckEnv) -> Outcome:
     ratio = check.ratio_param("ratio")
     limit = ratio.floor_of(env.context.plot.area_mm2)
     premium = check.params.get("premium")
-    note: Optional[str] = None
+    note: str | None = None
     if isinstance(premium, Mapping):
         premium_ratio = Ratio.from_json(premium["ratio"], "check.premium.ratio")
         note = "Premium FAR of %s may be available (%s). Not applied automatically." % (
@@ -276,9 +279,9 @@ def check_opening_width_min(check: Check, instance: Instance, env: CheckEnv) -> 
 # ---------------------------------------------------------------------------
 
 
-def zone_limit_of(check: Check) -> Dict[str, Any]:
+def zone_limit_of(check: Check) -> dict[str, Any]:
     """The ``limit`` object for a zone rule: only the keys the pack actually set."""
-    limit: Dict[str, Any] = {}
+    limit: dict[str, Any] = {}
     for key in ("allow", "deny", "fallback"):
         if check.params.get(key) is not None:
             limit[key] = check.params[key]
@@ -299,12 +302,8 @@ def _zone_label(check: Check, instance: Instance, env: CheckEnv) -> str:
             )
         return facing_of(opening.outward_normal_deg, env.context.plot.north_deg)
 
-    centroid: Optional[Tuple[int, int]] = None
-    if isinstance(payload, RoomSummary):
-        centroid = payload.centroid_mm
-    elif isinstance(payload, (StairSummary, OpeningSummary)):
-        centroid = payload.centroid_mm
-    elif isinstance(payload, ServiceElementSummary):
+    centroid: tuple[int, int] | None = None
+    if isinstance(payload, RoomSummary | StairSummary | OpeningSummary | ServiceElementSummary):
         centroid = payload.centroid_mm
     if centroid is None:
         raise ContextError(
@@ -443,7 +442,7 @@ class AppliedValueOverride:
 
 def substitute_value_override(
     check: Check, instance: Instance, value_overrides: Mapping[str, int]
-) -> Tuple[Check, Optional[AppliedValueOverride]]:
+) -> tuple[Check, AppliedValueOverride | None]:
     """Return the check with the architect's value substituted, when one applies.
 
     Pure and total: an empty override map, an unrelated check type, or an edge role
@@ -518,7 +517,7 @@ _REGISTRY: Mapping[str, CheckFn] = {
 
 #: The complete set the engine implements — cross-checked against the schema's own
 #: enum at pack load, so schema and engine cannot drift apart unnoticed.
-CHECK_TYPES: FrozenSet[str] = frozenset(_REGISTRY)
+CHECK_TYPES: frozenset[str] = frozenset(_REGISTRY)
 
 #: check type -> scope. ``custom`` declares its own via ``check.scope``.
 CHECK_SCOPES: Mapping[str, str] = {
@@ -566,7 +565,7 @@ RESULT_UNITS: Mapping[str, str] = {
 #: governing instance's value. Only ``zone_check``: its row reports every zone the
 #: matched targets occupy ("the toilets sit in NE and W"), because a single zone
 #: label would hide the second toilet.
-UNION_ACTUAL_CHECKS: FrozenSet[str] = frozenset({"zone_check"})
+UNION_ACTUAL_CHECKS: frozenset[str] = frozenset({"zone_check"})
 
 
 def scope_of(check: Check) -> str:
@@ -595,7 +594,7 @@ def run_check(check: Check, instance: Instance, env: CheckEnv) -> Outcome:
     return fn(check, instance, env)
 
 
-def union_actual(outcomes: Sequence[Outcome]) -> List[str]:
+def union_actual(outcomes: Sequence[Outcome]) -> list[str]:
     """Sorted unique labels across instances — the ``zone_check`` ``actual``.
 
     Plain lexicographic :func:`sorted`, which is what "sorted unique zone labels"

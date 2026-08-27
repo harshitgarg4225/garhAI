@@ -32,8 +32,9 @@ so the openings in the recessed leg still land on that side's chain instead of v
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 HORIZONTAL = "horizontal"
 VERTICAL = "vertical"
@@ -45,11 +46,11 @@ SIDE_SOUTH = "S"
 SIDE_EAST = "E"
 SIDE_NORTH = "N"
 SIDE_WEST = "W"
-SIDES: Tuple[str, ...] = (SIDE_SOUTH, SIDE_EAST, SIDE_NORTH, SIDE_WEST)
+SIDES: tuple[str, ...] = (SIDE_SOUTH, SIDE_EAST, SIDE_NORTH, SIDE_WEST)
 
 #: Which orientation of wall forms each side, and whether that side is the low or the
 #: high extreme of the perpendicular axis.
-_SIDE_GEOMETRY: Mapping[str, Tuple[str, int]] = {
+_SIDE_GEOMETRY: Mapping[str, tuple[str, int]] = {
     SIDE_SOUTH: (HORIZONTAL, -1),
     SIDE_NORTH: (HORIZONTAL, +1),
     SIDE_WEST: (VERTICAL, -1),
@@ -58,7 +59,7 @@ _SIDE_GEOMETRY: Mapping[str, Tuple[str, int]] = {
 
 #: Wall kinds that form the building envelope. ``parapet`` is included because on a
 #: terrace storey the parapet *is* the outline the reviewer measures.
-ENVELOPE_WALL_KINDS: Tuple[str, ...] = ("external", "parapet")
+ENVELOPE_WALL_KINDS: tuple[str, ...] = ("external", "parapet")
 
 SKIP_NON_ORTHOGONAL = "non-orthogonal"
 SKIP_DEGENERATE = "degenerate"
@@ -88,14 +89,14 @@ def _field(source: Any, *names: str) -> Any:
     return None
 
 
-def _point(raw: Any) -> Tuple[int, int]:
+def _point(raw: Any) -> tuple[int, int]:
     if raw is None:
         raise ValueError("wall endpoint is missing")
     if isinstance(raw, Mapping):
         return (int(raw["x"]), int(raw["y"]))
-    if isinstance(raw, (list, tuple)):
+    if isinstance(raw, list | tuple):
         return (int(raw[0]), int(raw[1]))
-    return (int(getattr(raw, "x")), int(getattr(raw, "y")))
+    return (int(raw.x), int(raw.y))
 
 
 def _house_of(model: Any) -> Any:
@@ -128,8 +129,8 @@ class WallAxis:
     kind: str
     #: The original, un-sorted endpoints — an opening's ``offset_mm`` is measured from
     #: ``a`` along the wall, so the drawing direction has to survive normalisation.
-    a: Tuple[int, int]
-    b: Tuple[int, int]
+    a: tuple[int, int]
+    b: tuple[int, int]
 
     @property
     def half_mm(self) -> int:
@@ -171,7 +172,7 @@ class OpeningRef:
     width_mm: int
     height_mm: int
     sill_mm: int
-    tag: Optional[str]
+    tag: str | None
     orientation: str
     #: Perpendicular coordinate: the host wall's centreline axis.
     axis_mm: int
@@ -227,7 +228,7 @@ class RoomRef:
         return self.vertex_count == 4
 
     @property
-    def centre(self) -> Tuple[int, int]:
+    def centre(self) -> tuple[int, int]:
         return (
             (self.min_x_mm + self.max_x_mm) // 2,
             (self.min_y_mm + self.max_y_mm) // 2,
@@ -242,7 +243,7 @@ class SkippedWall:
     reason: str
     detail: str = ""
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {"wallId": self.id, "reason": self.reason, "detail": self.detail}
 
 
@@ -268,7 +269,7 @@ class Extents:
     def depth_mm(self) -> int:
         return self.max_y_mm - self.min_y_mm
 
-    def span_for(self, side: str) -> Tuple[int, int]:
+    def span_for(self, side: str) -> tuple[int, int]:
         """The measuring interval for a side: x-range for S/N, y-range for W/E."""
         orientation, _ = _SIDE_GEOMETRY[side]
         if orientation == HORIZONTAL:
@@ -285,7 +286,7 @@ class Extents:
             return self.min_x_mm
         return self.max_x_mm
 
-    def to_json(self) -> Dict[str, int]:
+    def to_json(self) -> dict[str, int]:
         return {
             "minXMm": self.min_x_mm,
             "minYMm": self.min_y_mm,
@@ -302,7 +303,7 @@ class FacadeRun:
     axis_mm: int
     lo_mm: int
     hi_mm: int
-    wall_ids: Tuple[str, ...]
+    wall_ids: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -310,24 +311,24 @@ class StoreyPlan:
     """Everything the chain builders need about one storey. Pure data, no model refs."""
 
     storey_id: str
-    walls: Tuple[WallAxis, ...]
-    openings: Tuple[OpeningRef, ...]
-    rooms: Tuple[RoomRef, ...]
-    extents: Optional[Extents]
-    runs: Mapping[str, Tuple[FacadeRun, ...]]
-    skipped_walls: Tuple[SkippedWall, ...]
+    walls: tuple[WallAxis, ...]
+    openings: tuple[OpeningRef, ...]
+    rooms: tuple[RoomRef, ...]
+    extents: Extents | None
+    runs: Mapping[str, tuple[FacadeRun, ...]]
+    skipped_walls: tuple[SkippedWall, ...]
 
-    def walls_of(self, orientation: str) -> Tuple[WallAxis, ...]:
+    def walls_of(self, orientation: str) -> tuple[WallAxis, ...]:
         """§7 step 1's clustering: walls grouped by orientation, id-ordered."""
         return tuple(w for w in self.walls if w.orientation == orientation)
 
-    def wall_by_id(self, wall_id: str) -> Optional[WallAxis]:
+    def wall_by_id(self, wall_id: str) -> WallAxis | None:
         for wall in self.walls:
             if wall.id == wall_id:
                 return wall
         return None
 
-    def openings_on(self, wall_ids: Sequence[str]) -> Tuple[OpeningRef, ...]:
+    def openings_on(self, wall_ids: Sequence[str]) -> tuple[OpeningRef, ...]:
         wanted = set(wall_ids)
         return tuple(o for o in self.openings if o.wall_id in wanted)
 
@@ -340,7 +341,7 @@ def collect_wall_axes(
     storey_id: str,
     *,
     min_thickness_mm: int = 50,
-) -> Tuple[Tuple[WallAxis, ...], Tuple[SkippedWall, ...]]:
+) -> tuple[tuple[WallAxis, ...], tuple[SkippedWall, ...]]:
     """§7 step 1. Returns ``(orthogonal walls, skipped walls)``, both id-sorted.
 
     Pure: the same model and storey always produce the same tuples in the same order,
@@ -348,8 +349,8 @@ def collect_wall_axes(
     """
     house = _house_of(model)
     raw_walls = _field(house, "walls") or ()
-    kept: List[WallAxis] = []
-    skipped: List[SkippedWall] = []
+    kept: list[WallAxis] = []
+    skipped: list[SkippedWall] = []
 
     for raw in raw_walls:
         wall_storey = _field(raw, "storey_id", "storeyId")
@@ -365,9 +366,7 @@ def collect_wall_axes(
             skipped.append(SkippedWall(wall_id, SKIP_DEGENERATE, "zero-length wall"))
             continue
         if thickness < min_thickness_mm:
-            skipped.append(
-                SkippedWall(wall_id, SKIP_TOO_THIN, "thickness %dmm" % thickness)
-            )
+            skipped.append(SkippedWall(wall_id, SKIP_TOO_THIN, "thickness %dmm" % thickness))
             continue
 
         if ay == by:
@@ -404,7 +403,7 @@ def collect_wall_axes(
     return tuple(kept), tuple(skipped)
 
 
-def collect_openings(model: Any, walls: Sequence[WallAxis]) -> Tuple[OpeningRef, ...]:
+def collect_openings(model: Any, walls: Sequence[WallAxis]) -> tuple[OpeningRef, ...]:
     """Openings hosted by the given walls, positioned in plan coordinates.
 
     ``Opening.offset_mm`` is "distance along the host wall from ``wall.a`` to the
@@ -414,7 +413,7 @@ def collect_openings(model: Any, walls: Sequence[WallAxis]) -> Tuple[OpeningRef,
     """
     house = _house_of(model)
     by_id = {wall.id: wall for wall in walls}
-    out: List[OpeningRef] = []
+    out: list[OpeningRef] = []
 
     for raw in _field(house, "openings") or ():
         wall_id = str(_field(raw, "wall_id", "wallId"))
@@ -447,7 +446,7 @@ def collect_openings(model: Any, walls: Sequence[WallAxis]) -> Tuple[OpeningRef,
     return tuple(out)
 
 
-def collect_rooms(model: Any, storey_id: str) -> Tuple[RoomRef, ...]:
+def collect_rooms(model: Any, storey_id: str) -> tuple[RoomRef, ...]:
     """Rooms of one storey as clear bounding boxes, ordered south-west to north-east.
 
     The ordering is the reading order of a plan and it is what makes inner-chain
@@ -455,7 +454,7 @@ def collect_rooms(model: Any, storey_id: str) -> Tuple[RoomRef, ...]:
     chain, the *first* one keeps it (see :mod:`services.drawings.autodim.inner`).
     """
     house = _house_of(model)
-    out: List[RoomRef] = []
+    out: list[RoomRef] = []
     for raw in _field(house, "rooms") or ():
         if str(_field(raw, "storey_id", "storeyId")) != storey_id:
             continue
@@ -485,7 +484,7 @@ def collect_rooms(model: Any, storey_id: str) -> Tuple[RoomRef, ...]:
 # ---------------------------------------------------------------------------
 # Extents and per-side facade runs
 # ---------------------------------------------------------------------------
-def _envelope_walls(walls: Sequence[WallAxis]) -> Tuple[WallAxis, ...]:
+def _envelope_walls(walls: Sequence[WallAxis]) -> tuple[WallAxis, ...]:
     """External/parapet walls, or every wall when a fixture marks none as external.
 
     A partial plan (one room drawn in the editor, all walls "internal") still has to
@@ -495,7 +494,7 @@ def _envelope_walls(walls: Sequence[WallAxis]) -> Tuple[WallAxis, ...]:
     return envelope or tuple(walls)
 
 
-def compute_extents(walls: Sequence[WallAxis]) -> Optional[Extents]:
+def compute_extents(walls: Sequence[WallAxis]) -> Extents | None:
     """Outer-face bounding box of the envelope. ``None`` for an empty storey.
 
     Each extreme is pushed out by the half-thickness of the walls that actually sit on
@@ -508,7 +507,7 @@ def compute_extents(walls: Sequence[WallAxis]) -> Optional[Extents]:
     horizontals = [w for w in envelope if w.orientation == HORIZONTAL]
     verticals = [w for w in envelope if w.orientation == VERTICAL]
 
-    def extreme(group: Sequence[WallAxis], *, lowest: bool) -> Optional[int]:
+    def extreme(group: Sequence[WallAxis], *, lowest: bool) -> int | None:
         if not group:
             return None
         axis = min(w.axis_mm for w in group) if lowest else max(w.axis_mm for w in group)
@@ -535,12 +534,12 @@ def compute_extents(walls: Sequence[WallAxis]) -> Optional[Extents]:
 
 
 def _subtract_covered(
-    span: Tuple[int, int], covered: Sequence[Tuple[int, int]]
-) -> List[Tuple[int, int]]:
+    span: tuple[int, int], covered: Sequence[tuple[int, int]]
+) -> list[tuple[int, int]]:
     """``span`` minus every interval in ``covered``. Integer 1D interval arithmetic."""
     pieces = [span]
     for lo, hi in covered:
-        nxt: List[Tuple[int, int]] = []
+        nxt: list[tuple[int, int]] = []
         for piece_lo, piece_hi in pieces:
             if hi <= piece_lo or lo >= piece_hi:
                 nxt.append((piece_lo, piece_hi))
@@ -555,7 +554,7 @@ def _subtract_covered(
     return [(lo, hi) for lo, hi in pieces if hi > lo]
 
 
-def facade_runs(walls: Sequence[WallAxis], side: str) -> Tuple[FacadeRun, ...]:
+def facade_runs(walls: Sequence[WallAxis], side: str) -> tuple[FacadeRun, ...]:
     """The visible wall runs on one side, outermost first.
 
     Sweeps the envelope walls of the matching orientation from the outside in, keeping
@@ -564,9 +563,7 @@ def facade_runs(walls: Sequence[WallAxis], side: str) -> Tuple[FacadeRun, ...]:
     puts the recessed leg's windows on the right chain.
     """
     orientation, direction = _SIDE_GEOMETRY[side]
-    candidates = [
-        w for w in _envelope_walls(walls) if w.orientation == orientation
-    ]
+    candidates = [w for w in _envelope_walls(walls) if w.orientation == orientation]
     if not candidates:
         return ()
 
@@ -576,21 +573,20 @@ def facade_runs(walls: Sequence[WallAxis], side: str) -> Tuple[FacadeRun, ...]:
     outward = -1 if direction < 0 else 1  # multiplier that makes "outermost" smallest
     candidates.sort(key=lambda w: (outward * -w.axis_mm, w.lo_mm, w.hi_mm, w.id))
 
-    covered: List[Tuple[int, int]] = []
-    runs: List[FacadeRun] = []
+    covered: list[tuple[int, int]] = []
+    runs: list[FacadeRun] = []
     for wall in candidates:
         visible = _subtract_covered((wall.lo_mm, wall.hi_mm), covered)
         covered.append((wall.lo_mm, wall.hi_mm))
         for lo, hi in visible:
             runs.append(
-                FacadeRun(side=side, axis_mm=wall.axis_mm, lo_mm=lo, hi_mm=hi,
-                          wall_ids=(wall.id,))
+                FacadeRun(side=side, axis_mm=wall.axis_mm, lo_mm=lo, hi_mm=hi, wall_ids=(wall.id,))
             )
 
     # Merge collinear touching runs so a facade built from three collinear walls reads
     # as one run (and therefore one set of L2 breakpoints).
     runs.sort(key=lambda r: (r.axis_mm, r.lo_mm, r.hi_mm))
-    merged: List[FacadeRun] = []
+    merged: list[FacadeRun] = []
     for run in runs:
         if merged:
             last = merged[-1]
@@ -617,9 +613,7 @@ def build_storey_plan(
     min_thickness_mm: int = 50,
 ) -> StoreyPlan:
     """§7 step 1, end to end: the input every chain builder shares."""
-    walls, skipped = collect_wall_axes(
-        model, storey_id, min_thickness_mm=min_thickness_mm
-    )
+    walls, skipped = collect_wall_axes(model, storey_id, min_thickness_mm=min_thickness_mm)
     return StoreyPlan(
         storey_id=storey_id,
         walls=walls,
@@ -631,7 +625,7 @@ def build_storey_plan(
     )
 
 
-def storey_ids(model: Any) -> Tuple[str, ...]:
+def storey_ids(model: Any) -> tuple[str, ...]:
     """Every storey id in the model, in model order (ground first)."""
     house = _house_of(model)
     return tuple(str(_field(s, "id")) for s in _field(house, "storeys") or ())

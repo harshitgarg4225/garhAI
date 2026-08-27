@@ -33,7 +33,7 @@ every dimension label.
 
 from __future__ import annotations
 
-from typing import List, Sequence, Tuple
+from collections.abc import Sequence
 
 from services.drawings.layers import LAYER_NAMES, LAYERS_BY_NAME
 from services.drawings.render.primitives import (
@@ -110,7 +110,7 @@ def _mm(paper_um: int) -> str:
     return "%s%d.%03d" % (sign, whole, fraction)
 
 
-def _pt(placement: Placement, point: Pt2) -> Tuple[str, str]:
+def _pt(placement: Placement, point: Pt2) -> tuple[str, str]:
     x_um, y_um = placement.to_paper_um(point)
     return (_mm(x_um), _mm(y_um))
 
@@ -140,7 +140,7 @@ def _dash_attr(style: str) -> str:
 # Per-primitive emission. Attribute order is fixed by these functions and is
 # part of the golden contract — do not reorder without regenerating goldens.
 # ---------------------------------------------------------------------------
-def _emit_line(out: List[str], placement: Placement, prim: Line) -> None:
+def _emit_line(out: list[str], placement: Placement, prim: Line) -> None:
     x1, y1 = _pt(placement, prim.a)
     x2, y2 = _pt(placement, prim.b)
     out.append(
@@ -148,14 +148,10 @@ def _emit_line(out: List[str], placement: Placement, prim: Line) -> None:
     )
 
 
-def _emit_polyline(out: List[str], placement: Placement, prim: Polyline) -> None:
-    coords = " ".join(
-        "%s,%s" % _pt(placement, vertex) for vertex in prim.vertices
-    )
+def _emit_polyline(out: list[str], placement: Placement, prim: Polyline) -> None:
+    coords = " ".join("%s,%s" % _pt(placement, vertex) for vertex in prim.vertices)
     tag = "polygon" if prim.closed else "polyline"
-    out.append(
-        '<%s points="%s" fill="none"%s/>' % (tag, coords, _dash_attr(prim.style))
-    )
+    out.append('<%s points="%s" fill="none"%s/>' % (tag, coords, _dash_attr(prim.style)))
 
 
 def _arc_endpoint(centre: Pt2, radius_mm: int, degrees: int) -> Pt2:
@@ -177,13 +173,11 @@ def _arc_endpoint(centre: Pt2, radius_mm: int, degrees: int) -> Pt2:
     )
 
 
-def _emit_arc(out: List[str], placement: Placement, prim: Arc) -> None:
+def _emit_arc(out: list[str], placement: Placement, prim: Arc) -> None:
     sweep_deg = (prim.end_deg - prim.start_deg) % 360
     if sweep_deg == 0:
         # A full circle cannot be expressed as one SVG arc segment.
-        _emit_circle(
-            out, placement, Circle(prim.centre, prim.radius_mm, prim.layer, prim.style)
-        )
+        _emit_circle(out, placement, Circle(prim.centre, prim.radius_mm, prim.layer, prim.style))
         return
     start = _arc_endpoint(prim.centre, prim.radius_mm, prim.start_deg)
     end = _arc_endpoint(prim.centre, prim.radius_mm, prim.end_deg)
@@ -200,12 +194,11 @@ def _emit_arc(out: List[str], placement: Placement, prim: Arc) -> None:
     )
 
 
-def _emit_circle(out: List[str], placement: Placement, prim: Circle) -> None:
+def _emit_circle(out: list[str], placement: Placement, prim: Circle) -> None:
     cx, cy = _pt(placement, prim.centre)
     radius = _mm(placement.length_to_paper_um(prim.radius_mm))
     out.append(
-        '<circle cx="%s" cy="%s" r="%s" fill="none"%s/>'
-        % (cx, cy, radius, _dash_attr(prim.style))
+        '<circle cx="%s" cy="%s" r="%s" fill="none"%s/>' % (cx, cy, radius, _dash_attr(prim.style))
     )
 
 
@@ -217,7 +210,7 @@ _BASELINE_TO_SVG = {
 }
 
 
-def _emit_text(out: List[str], placement: Placement, prim: Text) -> None:
+def _emit_text(out: list[str], placement: Placement, prim: Text) -> None:
     x, y = _pt(placement, prim.at)
     height = _mm(prim.height_paper_um)
     attributes = [
@@ -235,9 +228,7 @@ def _emit_text(out: List[str], placement: Placement, prim: Text) -> None:
         # on paper, which is -90 in SVG's Y-down frame. This is the convention every
         # vertical dimension run on the sheet depends on.
         attributes.append('transform="rotate(%d %s %s)"' % (-prim.rotation_deg, x, y))
-    out.append(
-        "<text %s>%s</text>" % (" ".join(attributes), escape_text(prim.text))
-    )
+    out.append("<text %s>%s</text>" % (" ".join(attributes), escape_text(prim.text)))
 
 
 def _hatch_pattern_id(prim: Hatch, placement: Placement) -> str:
@@ -256,9 +247,7 @@ def _hatch_pattern_id(prim: Hatch, placement: Placement) -> str:
     )
 
 
-def _emit_hatch_defs(
-    out: List[str], groups: Sequence[DrawingGroup]
-) -> None:
+def _emit_hatch_defs(out: list[str], groups: Sequence[DrawingGroup]) -> None:
     """Emit one ``<pattern>`` per distinct hatch, sorted by id for stable bytes."""
     seen = {}
     for group in groups:
@@ -304,7 +293,7 @@ def _ring_path(placement: Placement, ring: Sequence[Pt2]) -> str:
     return " ".join(parts)
 
 
-def _emit_hatch(out: List[str], placement: Placement, prim: Hatch) -> None:
+def _emit_hatch(out: list[str], placement: Placement, prim: Hatch) -> None:
     path = _ring_path(placement, prim.outline)
     for hole in prim.holes:
         path += " " + _ring_path(placement, hole)
@@ -313,12 +302,10 @@ def _emit_hatch(out: List[str], placement: Placement, prim: Hatch) -> None:
     else:
         fill = "url(#%s)" % _hatch_pattern_id(prim, placement)
     # fill-rule evenodd so `holes` actually punch through (stair wells, shafts).
-    out.append(
-        '<path d="%s" fill="%s" fill-rule="evenodd" stroke="none"/>' % (path, fill)
-    )
+    out.append('<path d="%s" fill="%s" fill-rule="evenodd" stroke="none"/>' % (path, fill))
 
 
-def _emit_dim(out: List[str], placement: Placement, prim: Dim) -> None:
+def _emit_dim(out: list[str], placement: Placement, prim: Dim) -> None:
     """Explode a chain via the shared :func:`dim_geometry` and draw it.
 
     The geometry comes from the shared function, not from here, so the DXF writer's
@@ -355,7 +342,7 @@ _EMITTERS = (
 )
 
 
-def _emit_primitive(out: List[str], placement: Placement, prim: Primitive) -> None:
+def _emit_primitive(out: list[str], placement: Placement, prim: Primitive) -> None:
     for kind, emitter in _EMITTERS:
         if isinstance(prim, kind):
             emitter(out, placement, prim)  # type: ignore[arg-type]
@@ -363,8 +350,7 @@ def _emit_primitive(out: List[str], placement: Placement, prim: Primitive) -> No
     raise SvgRenderError(
         "No SVG emitter for primitive %s. Every kind in "
         "services.drawings.render.primitives.PRIMITIVE_KINDS needs one — a silently "
-        "skipped primitive is a missing wall on a submission drawing."
-        % type(prim).__name__
+        "skipped primitive is a missing wall on a submission drawing." % type(prim).__name__
     )
 
 
@@ -379,7 +365,7 @@ def render_group_svg(group: DrawingGroup) -> str:
     reviewer recognises. The fragment carries no ``<svg>`` wrapper: sheets place several
     groups, and each nests in the same document.
     """
-    out: List[str] = []
+    out: list[str] = []
     ordered = sort_by_layer(group.primitives)
     by_layer = {}
     for primitive in ordered:
@@ -436,7 +422,7 @@ def render_sheet_svg(drawing: SheetDrawing) -> str:
     width_mm = int(paper.width_mm)
     height_mm = int(paper.height_mm)
 
-    out: List[str] = []
+    out: list[str] = []
     out.append(
         '<svg xmlns="http://www.w3.org/2000/svg" width="%dmm" height="%dmm" '
         'viewBox="0 0 %d %d" version="1.1">' % (width_mm, height_mm, width_mm, height_mm)
@@ -454,7 +440,7 @@ def render_sheet_svg(drawing: SheetDrawing) -> str:
         )
     )
     out.append(
-        '<title>%s</title>'
+        "<title>%s</title>"
         % escape_text("%s %s" % (getattr(sheet, "number", ""), getattr(sheet, "title", "")))
     )
     # An opaque white ground: a transparent sheet prints as whatever is behind it and

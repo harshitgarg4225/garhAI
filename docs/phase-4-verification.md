@@ -4,11 +4,11 @@ Same discipline as `phase-0-verification.md`, `phase-2-verification.md` and
 `phase-3-verification.md`. Three categories, and the value of this document is
 that it does not blur them.
 
-| Category | Meaning |
-|---|---|
-| **EXECUTED** | Actually run on this machine. Output quoted. |
-| **TRACED** | Read end to end by hand, or checked by a script written for the purpose. No TypeScript compiler, no browser. |
-| **UNVERIFIED** | Nobody ran it and nobody could. Stated plainly, with the command that settles it. |
+| Category       | Meaning                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
+| **EXECUTED**   | Actually run on this machine. Output quoted.                                                                 |
+| **TRACED**     | Read end to end by hand, or checked by a script written for the purpose. No TypeScript compiler, no browser. |
+| **UNVERIFIED** | Nobody ran it and nobody could. Stated plainly, with the command that settles it.                            |
 
 ## The headline
 
@@ -77,7 +77,7 @@ values, room names, room areas, compliance markers — is created with it. The
 file **is not in the repository**. Nothing catches that: it is not a build
 error, not a type error, not a test failure. troika falls back to fetching
 Roboto from `fonts.gstatic.com`, which `apps/web/nginx.conf` blocks
-(`font-src 'self' data:`), so in production the labels do not render *at all*
+(`font-src 'self' data:`), so in production the labels do not render _at all_
 and nothing says why.
 
 The gate was executed both ways:
@@ -86,7 +86,7 @@ The gate was executed both ways:
   fetch it from, and the words RELEASE BLOCKER;
 - with a stub file dropped in → `exit=1`, `stale KNOWN_GAPS entries` — so the
   baseline cannot rot into a permanent excuse;
-- with a *different* asset made missing → hard failure (that is the default
+- with a _different_ asset made missing → hard failure (that is the default
   path; `KNOWN_GAPS` is a one-entry allowlist, not a mode).
 
 `make bare` therefore stays green **and** prints the blocker on every single
@@ -110,7 +110,7 @@ final run is clean.
 
 **What this does and does not prove.** It proves no import will fail to
 resolve, and no `import { thing }` names something that is not exported. It
-proves nothing about *types*. `tsc` remains the authority.
+proves nothing about _types_. `tsc` remains the authority.
 
 ### 1.4 No op-payload field drift against the JSON Schema
 
@@ -168,12 +168,12 @@ discriminator. The canvas codes against the real file. Same for `column.set`
 `userData.garhPick` and its header documented the integration as:
 
 ```ts
-const hit  = raycaster.intersectObjects(scene.children, true)[0];
+const hit = raycaster.intersectObjects(scene.children, true)[0];
 const pick = hit?.object.userData.garhPick;
 ```
 
 **The core does no such thing.** `hitTest.pickAt` raycasts
-`registry.objects()` — a flat array of *explicitly registered* objects, walked
+`registry.objects()` — a flat array of _explicitly registered_ objects, walked
 non-recursively (`intersectObjects(objects, false, …)`). A mesh that is merely
 in the scene is never tested. The furniture layer never called
 `registry.register`, so:
@@ -192,7 +192,7 @@ off there, which is honest and is not the same as picking silently not working.
 The `userData` tag is kept as a debugging label and the header now says plainly
 that **registration is the contract**.
 
-This is the §12 "one hit-testing system" rule failing in the *quiet* direction:
+This is the §12 "one hit-testing system" rule failing in the _quiet_ direction:
 not a second picker, but a module that believed it was on the shared one and was
 not.
 
@@ -200,15 +200,15 @@ not.
 
 `core/coords.ts` states the rule in its header: float → mm always rounds **half
 away from zero** via `roundMm`, never `Math.round`, because `Math.round` is
-half-*up* and would make a wall drawn westwards land one millimetre off from the
+half-_up_ and would make a wall drawn westwards land one millimetre off from the
 same wall drawn eastwards. Four call sites broke it, all of them producing
 values that go straight into a payload:
 
-| File | What it produced |
-|---|---|
-| `tools/selectTool.ts` (×2) | the drag delta for `wall.move` when a length is typed |
+| File                           | What it produced                                           |
+| ------------------------------ | ---------------------------------------------------------- |
+| `tools/selectTool.ts` (×2)     | the drag delta for `wall.move` when a length is typed      |
 | `overlays/inspector/fields.ts` | the new `b` endpoint for `wall.move` from the length field |
-| `pages/project/PlanPage.tsx` | the drop point for `furniture.set` |
+| `pages/project/PlanPage.tsx`   | the drop point for `furniture.set`                         |
 
 All four now use `ptRound` from `@garh/model` (which is `roundHalfAwayFromZero`
 per component). `tools/useToolSettings.ts` was also switched to `roundMm` for
@@ -228,15 +228,15 @@ forgotten.
 
 ## 3. Rejected — read as findings, not defects
 
-| Reported/suspected | Why it is not a defect |
-|---|---|
-| `PlanPage` spreads `{...tools.canvasHandlers}` and then sets `onClick`/`onHoverChange`, overriding the tools | `useToolController.canvasHandlers` contains neither. It supplies `onPointerDown/Move/Up`, `onDoubleClick`, `onContextMenu`, `onPointerLeave`, `onNavigatingChange`. Checked key by key. `onDoubleClick` *is* in both and is explicitly forwarded first. |
-| `Math.round` in `overlays/compliance/mapping.ts`, `overlays/tags/placement.ts`, `plan/planGeometry.ts` | Render-only. Marker positions, label collision boxes, stair/column symbol rings. Nothing there becomes an op. |
-| `view.grid` (⇧G) collides with `snap.toggle` (G); `view.dimensions` (⇧D) with `tool.door` (D) | `matchBinding` compares the modifier spec, and the unmodified branch explicitly `continue`s when `event.shiftKey`. Traced through the real function; the shifted bindings are reachable and the unshifted ones are not shadowed. |
-| A tool's `blocked` field is a compliance chip that blocks | It is not compliance. `blocked` carries `validateOpAgainstDoc` rejections (zero-length wall, opening past the 115 mm end margin, an unsolvable flight) — model validity, which must block. Compliance issues reach the canvas only through `useComplianceOverlay` → chips and markers, and `commit()` never reads them. `furniture` advisories are asserted non-blocking by their own spec. |
-| Shared plan materials will be disposed by R3F when a `<mesh material={…}>` unmounts | R3F v8 does not dispose objects passed as props, only ones it created. `PlanPage` disposes both material sets explicitly on unmount and re-creates them lazily. |
-| `MergedLayer`/`LineLayer` return `null` conditionally | Every hook runs before the return. Hook order is stable. |
-| `<FurniturePlacementProvider>` sits outside `<Canvas>` so the layer inside cannot see it | `@react-three/fiber` is pinned at 8.17.9 and auto-bridges parent context (`its-fine`, since 8.8). No `useContextBridge` needed. |
+| Reported/suspected                                                                                           | Why it is not a defect                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PlanPage` spreads `{...tools.canvasHandlers}` and then sets `onClick`/`onHoverChange`, overriding the tools | `useToolController.canvasHandlers` contains neither. It supplies `onPointerDown/Move/Up`, `onDoubleClick`, `onContextMenu`, `onPointerLeave`, `onNavigatingChange`. Checked key by key. `onDoubleClick` _is_ in both and is explicitly forwarded first.                                                                                                                                     |
+| `Math.round` in `overlays/compliance/mapping.ts`, `overlays/tags/placement.ts`, `plan/planGeometry.ts`       | Render-only. Marker positions, label collision boxes, stair/column symbol rings. Nothing there becomes an op.                                                                                                                                                                                                                                                                               |
+| `view.grid` (⇧G) collides with `snap.toggle` (G); `view.dimensions` (⇧D) with `tool.door` (D)                | `matchBinding` compares the modifier spec, and the unmodified branch explicitly `continue`s when `event.shiftKey`. Traced through the real function; the shifted bindings are reachable and the unshifted ones are not shadowed.                                                                                                                                                            |
+| A tool's `blocked` field is a compliance chip that blocks                                                    | It is not compliance. `blocked` carries `validateOpAgainstDoc` rejections (zero-length wall, opening past the 115 mm end margin, an unsolvable flight) — model validity, which must block. Compliance issues reach the canvas only through `useComplianceOverlay` → chips and markers, and `commit()` never reads them. `furniture` advisories are asserted non-blocking by their own spec. |
+| Shared plan materials will be disposed by R3F when a `<mesh material={…}>` unmounts                          | R3F v8 does not dispose objects passed as props, only ones it created. `PlanPage` disposes both material sets explicitly on unmount and re-creates them lazily.                                                                                                                                                                                                                             |
+| `MergedLayer`/`LineLayer` return `null` conditionally                                                        | Every hook runs before the return. Hook order is stable.                                                                                                                                                                                                                                                                                                                                    |
+| `<FurniturePlacementProvider>` sits outside `<Canvas>` so the layer inside cannot see it                     | `@react-three/fiber` is pinned at 8.17.9 and auto-bridges parent context (`its-fine`, since 8.8). No `useContextBridge` needed.                                                                                                                                                                                                                                                             |
 
 ---
 
@@ -279,18 +279,18 @@ forgotten.
 
 ## 5. UNVERIFIED — and the command that settles each
 
-| Item | Why | Settles it |
-|---|---|---|
-| **The whole phase typechecks** | No Node. `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess` are strict enough that hand-tracing types is not a substitute | `pnpm --filter @garh/web typecheck` |
-| **~200 vitest specs pass** | Written, never run. Numeric expectations were hand-computed against the real `roundHalfAwayFromZero`/`parseLengthMm`, and one (`dimensionText(1,'ft-in') === "0'-0\""`) was found wrong by a Python port and pinned as actual behaviour | `pnpm --filter @garh/web test` |
-| **Anything renders at all** | No browser has loaded the canvas. A single throw in `CameraRig` or the grid shader is a blank tab | `pnpm --filter @garh/web dev`, open the Plan tab |
-| **The grid shader compiles** | GLSL1 `gl_FragColor` + `#include <colorspace_fragment>` + `fwidth`, written against three r169, never handed to a GPU | as above; a shader error prints to the console |
-| **drei `<Line>` accepts `depthTest`/`opacity`/`renderOrder`** | drei 9.114.3 spreads `...rest` onto both object and material; believed correct, never compiled | first typecheck |
-| **`camera.manual = true`** | Load-bearing: without it R3F rewrites the ortho frustum on resize and discards `mmPerPx`. Typed through a local intersection because `manual` is not in `@types/three` | first render + a window resize |
-| **§14: <16 ms/frame on a G+2** | No renderer, no demo plan with three storeys | `e2e/tests/performance.spec.ts` once Phase 3 can seed a solved G+2 |
-| **`e2e/tests/plan-canvas.spec.ts` (the Phase-4 DoD)** | Needs the stack, a browser and a seeded project | `pnpm test:canvas` |
-| **Furniture picking actually works after the §2.1 fix** | The fix is correct against the registry's API as read, but no click has been dispatched | Plan tab: place a chair, click it, check the inspector shows it |
-| **The canvas label font** | Not in the repo | drop `Inter-Medium.woff` into `apps/web/public/fonts/`, then `make asset-audit` must go from WARN to clean and `KNOWN_GAPS` must be emptied |
+| Item                                                          | Why                                                                                                                                                                                                                                     | Settles it                                                                                                                                  |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **The whole phase typechecks**                                | No Node. `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess` are strict enough that hand-tracing types is not a substitute                                                                                                        | `pnpm --filter @garh/web typecheck`                                                                                                         |
+| **~200 vitest specs pass**                                    | Written, never run. Numeric expectations were hand-computed against the real `roundHalfAwayFromZero`/`parseLengthMm`, and one (`dimensionText(1,'ft-in') === "0'-0\""`) was found wrong by a Python port and pinned as actual behaviour | `pnpm --filter @garh/web test`                                                                                                              |
+| **Anything renders at all**                                   | No browser has loaded the canvas. A single throw in `CameraRig` or the grid shader is a blank tab                                                                                                                                       | `pnpm --filter @garh/web dev`, open the Plan tab                                                                                            |
+| **The grid shader compiles**                                  | GLSL1 `gl_FragColor` + `#include <colorspace_fragment>` + `fwidth`, written against three r169, never handed to a GPU                                                                                                                   | as above; a shader error prints to the console                                                                                              |
+| **drei `<Line>` accepts `depthTest`/`opacity`/`renderOrder`** | drei 9.114.3 spreads `...rest` onto both object and material; believed correct, never compiled                                                                                                                                          | first typecheck                                                                                                                             |
+| **`camera.manual = true`**                                    | Load-bearing: without it R3F rewrites the ortho frustum on resize and discards `mmPerPx`. Typed through a local intersection because `manual` is not in `@types/three`                                                                  | first render + a window resize                                                                                                              |
+| **§14: <16 ms/frame on a G+2**                                | No renderer, no demo plan with three storeys                                                                                                                                                                                            | `e2e/tests/performance.spec.ts` once Phase 3 can seed a solved G+2                                                                          |
+| **`e2e/tests/plan-canvas.spec.ts` (the Phase-4 DoD)**         | Needs the stack, a browser and a seeded project                                                                                                                                                                                         | `pnpm test:canvas`                                                                                                                          |
+| **Furniture picking actually works after the §2.1 fix**       | The fix is correct against the registry's API as read, but no click has been dispatched                                                                                                                                                 | Plan tab: place a chair, click it, check the inspector shows it                                                                             |
+| **The canvas label font**                                     | Not in the repo                                                                                                                                                                                                                         | drop `Inter-Medium.woff` into `apps/web/public/fonts/`, then `make asset-audit` must go from WARN to clean and `KNOWN_GAPS` must be emptied |
 
 ### Known functional gaps (built as designed, not defects)
 

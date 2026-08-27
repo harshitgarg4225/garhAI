@@ -27,6 +27,7 @@ dependencies = [
   "structlog==24.4.0",             # Apache-2.0 / MIT dual
   "httpx==0.27.2",                 # BSD-3
   "python-ulid==2.7.0",            # MIT
+  "sentry-sdk[fastapi]==2.68.1",   # MIT (imported lazily; inert unless SENTRY_DSN is set)
 ]
 
 [project.optional-dependencies]
@@ -63,13 +64,28 @@ select = [
   "RUF",
 ]
 ignore = [
-  "B008",  # FastAPI Depends() in defaults is idiomatic
-  "E501",  # line length is handled by the formatter
+  "B008",   # FastAPI Depends() in defaults is idiomatic
+  "E501",   # line length is handled by the formatter
+  # %-formatting is the deliberate house style (~1,370 sites when this was
+  # settled, 2026-08-26). The auto-fix is unsafe (tuple/str coercion edge cases)
+  # and converting would churn nearly every module for zero behaviour change.
+  "UP031",
+  # The repo's prose deliberately uses em-dashes, ×, § and typographic quotes in
+  # docstrings/comments/messages (~123 sites). "Fixing" them would make the
+  # prose worse, not the code better.
+  "RUF001", # ambiguous-unicode-character-string
+  "RUF002", # ambiguous-unicode-character-docstring
+  "RUF003", # ambiguous-unicode-character-comment
 ]
 
+# Patterns are **/-prefixed so they match no matter where ruff is invoked from —
+# CI runs `ruff check --config apps/api/pyproject.toml apps/api services` at the
+# repo root, where a bare "garh_api/models.py" silently matches nothing.
 [tool.ruff.lint.per-file-ignores]
-"garh_api/repositories/__init__.py" = ["F401"]  # re-export surface
-"garh_api/models.py" = ["RUF012"]               # ClassVar-ish declarative attrs
+"**/garh_api/repositories/__init__.py" = ["F401"]  # re-export surface
+"**/garh_api/models.py" = ["RUF012"]               # ClassVar-ish declarative attrs
+# Imports must follow pytest.importorskip("ortools") — order is the point.
+"**/services/solver/tests/test_stages_integration.py" = ["E402"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -95,7 +111,8 @@ module = "garh_model.*"
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["sse_starlette.*", "sentry_sdk.*"]
+# `anthropic` ships only with the real-provider extra; the mock default runs without it.
+module = ["sse_starlette.*", "sentry_sdk.*", "anthropic", "anthropic.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
@@ -112,4 +129,5 @@ addopts = "-ra --strict-markers"
 markers = [
   "integration: needs a live Postgres/Redis",
   "golden: golden-file comparison",
+  "solver: runs the real CP-SAT pipeline in-process (needs ortools; tens of seconds)",
 ]

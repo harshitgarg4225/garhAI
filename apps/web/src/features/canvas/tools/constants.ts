@@ -121,7 +121,8 @@ export const MIN_BALCONY_VERTICES = 3;
 
 export const HINTS = {
   wallIdle: 'Click to start a wall. Type a length while drawing to set it exactly.',
-  wallDrawing: 'Click for the next corner · type a length · Enter to finish · Backspace undoes the last one',
+  wallDrawing:
+    'Click for the next corner · type a length · Enter to finish · Backspace undoes the last one',
   openingIdle: 'Hover a wall to place it. X flips the swing.',
   openingPreview: 'Click to place · type a distance from the wall start · Esc to cancel',
   stairIdle: 'Click where the first step starts. X turns it, [ and ] change the type.',

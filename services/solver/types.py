@@ -11,8 +11,9 @@ which matters because §5.5's diversity filter and §5.6's gates both branch on 
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal, Mapping, Sequence
+from typing import Any, Literal
 
 from services.common.assumptions import Assumption
 from services.solver.geometry import Polygon, Pt

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The gate: every fixture in ``fixtures/rules/index.json``, enumerated from the manifest.
 
 Playbook §16 requires at least one passing and one failing fixture per rule, and
@@ -21,9 +19,11 @@ So this module asserts three separate things:
    no ``kind``/``status`` mismatch.
 """
 
+from __future__ import annotations
+
 import json
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -33,12 +33,12 @@ from garh_rules.results import FAIL, NOT_APPLICABLE, PASS, WARN
 from .conftest import FIXTURE_DIR, PACK_IDS, RULEPACK_DIR, fixture_index, load_fixture, read_json
 
 _INDEX = fixture_index()
-_ENTRIES: List[Dict[str, Any]] = list(_INDEX["fixtures"])
+_ENTRIES: list[dict[str, Any]] = list(_INDEX["fixtures"])
 
 
-def _all_pack_rules() -> Dict[str, str]:
+def _all_pack_rules() -> dict[str, str]:
     """``ruleId -> packId`` straight from the pack files."""
-    owner: Dict[str, str] = {}
+    owner: dict[str, str] = {}
     for pack_id in PACK_IDS:
         pack = read_json(os.path.join(RULEPACK_DIR, "%s.json" % pack_id))
         for rule in pack["rules"]:
@@ -61,7 +61,7 @@ def test_manifest_counts_match_the_packs() -> None:
 
 
 def test_every_rule_has_a_passing_and_a_failing_fixture() -> None:
-    seen: Dict[str, Dict[str, int]] = {}
+    seen: dict[str, dict[str, int]] = {}
     for pack_entry in _INDEX["packs"]:
         for rule_entry in pack_entry["rules"]:
             seen[rule_entry["ruleId"]] = {
@@ -99,12 +99,12 @@ def test_no_orphaned_fixture_files() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _ids(entries: List[Dict[str, Any]]) -> List[str]:
+def _ids(entries: list[dict[str, Any]]) -> list[str]:
     return [entry["fixtureId"] for entry in entries]
 
 
 @pytest.mark.parametrize("entry", _ENTRIES, ids=_ids(_ENTRIES))
-def test_fixture_produces_the_expected_row(entry: Dict[str, Any]) -> None:
+def test_fixture_produces_the_expected_row(entry: dict[str, Any]) -> None:
     doc = load_fixture(entry["path"])
     assert doc["fixtureId"] == entry["fixtureId"]
     assert doc["ruleId"] == entry["ruleId"]
@@ -126,7 +126,7 @@ def test_fixture_produces_the_expected_row(entry: Dict[str, Any]) -> None:
 
 
 @pytest.mark.parametrize("entry", _ENTRIES, ids=_ids(_ENTRIES))
-def test_fixture_kind_agrees_with_its_status(entry: Dict[str, Any]) -> None:
+def test_fixture_kind_agrees_with_its_status(entry: dict[str, Any]) -> None:
     """A ``pass`` fixture must pass; a ``fail`` fixture must be ``warn`` or ``fail``.
 
     ``fail`` does not always mean status ``fail``: it is the rule's severity,
@@ -144,7 +144,7 @@ def test_fixture_kind_agrees_with_its_status(entry: Dict[str, Any]) -> None:
 
 
 @pytest.mark.parametrize("entry", _ENTRIES, ids=_ids(_ENTRIES))
-def test_a_passing_fixture_names_no_offender(entry: Dict[str, Any]) -> None:
+def test_a_passing_fixture_names_no_offender(entry: dict[str, Any]) -> None:
     doc = load_fixture(entry["path"])
     if doc["expected"]["status"] != PASS:
         return
@@ -161,7 +161,7 @@ def test_a_passing_fixture_names_no_offender(entry: Dict[str, Any]) -> None:
 
 
 @pytest.mark.parametrize("entry", _ENTRIES, ids=_ids(_ENTRIES))
-def test_report_is_json_serialisable_and_complete(entry: Dict[str, Any]) -> None:
+def test_report_is_json_serialisable_and_complete(entry: dict[str, Any]) -> None:
     """Every row is JSON-safe and every loaded rule produced exactly one row.
 
     The JSON check is not ceremony: statuses and satisfactions are
@@ -219,7 +219,7 @@ def test_every_custom_fn_is_exercised() -> None:
     assert used == set(CUSTOM_FNS)
 
 
-def _pack_version_pairs() -> List[Tuple[str, str]]:
+def _pack_version_pairs() -> list[tuple[str, str]]:
     return [
         (pack_id, read_json(os.path.join(RULEPACK_DIR, "%s.json" % pack_id))["version"])
         for pack_id in PACK_IDS

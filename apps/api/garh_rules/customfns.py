@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The two registered ``custom`` functions. The enum is closed on purpose.
 
 ``check.fn`` is an enum in the schema, not a free string, so a pack can never
@@ -21,8 +19,11 @@ ten-thousandths limit — a float overlap could move that integer by one at exac
 the boundary the fixtures sit on.
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping
 from fractions import Fraction
-from typing import Any, List, Mapping, Tuple
+from typing import Any
 
 from .errors import PackLoadError
 from .geometry import clip_area_against_rect
@@ -110,7 +111,7 @@ def brahmasthan_open(check: Check, instance: Instance, env: CheckEnv) -> Outcome
         )
 
     worst = 0
-    offenders: List[str] = []
+    offenders: list[str] = []
     for room in env.context.model.rooms:
         if room.type in open_types:
             continue
@@ -149,5 +150,5 @@ def run_custom(check: Check, instance: Instance, env: CheckEnv) -> Outcome:
     return fn(check, instance, env)  # type: ignore[no-any-return]
 
 
-def registered_fns() -> Tuple[str, ...]:
+def registered_fns() -> tuple[str, ...]:
     return tuple(sorted(CUSTOM_FNS))

@@ -226,7 +226,11 @@ function useFurniturePlacementValue(): FurniturePlacementValue {
       const ctx = controller.getContext();
       const at = atMm === undefined ? undefined : snapPtMm(atMm, ctx.snapStepMm);
       const room = at === undefined ? null : roomAtPt(ctx.rooms, at);
-      controller.arm(item, at, at === undefined ? 0 : suggestRotationDeg(at, room?.polygon ?? null));
+      controller.arm(
+        item,
+        at,
+        at === undefined ? 0 : suggestRotationDeg(at, room?.polygon ?? null),
+      );
     },
     [controller, setTool],
   );
@@ -276,7 +280,7 @@ function useFurniturePlacementValue(): FurniturePlacementValue {
   const beginMove = useCallback(
     (furnitureId: string): boolean => {
       const target = placed.find((p) => p.id === furnitureId);
-      if (target === undefined || target.item === null) return false;
+      if (target?.item == null) return false;
       setTool('furniture');
       const pose: Pose = target.pose;
       controller.beginMove(target.id, target.item, pose);

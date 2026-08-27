@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """One test class per check type, exercised at the boundary and one unit either side.
 
 The fixture corpus already proves the packs' own rules behave; this module proves
@@ -12,7 +10,9 @@ Every assertion is on the boundary: exactly at the limit passes, one unit past i
 fails. That is where a rounding mistake lives.
 """
 
-from typing import Any, Dict, List
+from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
@@ -25,7 +25,7 @@ from garh_rules.scope import CheckEnv, instances_for
 from .conftest import RULEPACK_DIR, make_context, make_room
 
 
-def run_one(check_json: Dict[str, Any], context: Any, pack_set: PackSet) -> List[Any]:
+def run_one(check_json: dict[str, Any], context: Any, pack_set: PackSet) -> list[Any]:
     """Evaluate a hand-written check against every instance of its scope."""
     check = Check.from_json(check_json)
     env = CheckEnv(context=context, vocabulary=pack_set.vocabulary)
@@ -50,7 +50,7 @@ class TestSetbackMin:
                 {"index": 3, "role": "side-b", "roadWidthMm": None, "setbackProvidedMm": 1200},
             ]
         )
-        (_, outcome), = run_one(
+        ((_, outcome),) = run_one(
             {"type": "setback_min", "edge": "front", "valueMm": 3000}, context, nbc
         )
         assert outcome.satisfied
@@ -66,7 +66,7 @@ class TestSetbackMin:
                 {"index": 3, "role": "side-b", "roadWidthMm": None, "setbackProvidedMm": 1200},
             ]
         )
-        (_, outcome), = run_one(
+        ((_, outcome),) = run_one(
             {"type": "setback_min", "edge": "front", "valueMm": 3000}, context, nbc
         )
         assert not outcome.satisfied
@@ -91,7 +91,9 @@ class TestSetbackMin:
                 {"index": 2, "role": "rear", "roadWidthMm": None, "setbackProvidedMm": 1500},
             ]
         )
-        assert run_one({"type": "setback_min", "edge": "front", "valueMm": 3000}, context, nbc) == []
+        assert (
+            run_one({"type": "setback_min", "edge": "front", "valueMm": 3000}, context, nbc) == []
+        )
 
     def test_to_projection_measures_past_the_deepest_projection(self, nbc: PackSet) -> None:
         """Not covered by any seed pack, so it is covered here."""
@@ -121,7 +123,7 @@ class TestSetbackMin:
             "valueMm": 2000,
             "measure": "to-projection",
         }
-        (_, outcome), = run_one(check, context, nbc)
+        ((_, outcome),) = run_one(check, context, nbc)
         assert outcome.actual == 3000 - 1000  # the deepest projection, not their sum
         assert outcome.satisfied
         assert outcome.note is not None
@@ -148,7 +150,7 @@ class TestFarMax:
     def test_limit_floors_the_product(self, nbc: PackSet) -> None:
         # 1.75 x 1_000_001 = 1_750_001.75 -> floor 1_750_001
         context = make_context(area_mm2=1_000_001, model={"farCountableAreaMm2": 1_750_001})
-        (_, outcome), = run_one(
+        ((_, outcome),) = run_one(
             {"type": "far_max", "ratio": {"num": 175, "den": 100}}, context, nbc
         )
         assert outcome.limit == 1_750_001
@@ -156,7 +158,7 @@ class TestFarMax:
 
     def test_one_square_millimetre_over_fails(self, nbc: PackSet) -> None:
         context = make_context(area_mm2=1_000_001, model={"farCountableAreaMm2": 1_750_002})
-        (_, outcome), = run_one(
+        ((_, outcome),) = run_one(
             {"type": "far_max", "ratio": {"num": 175, "den": 100}}, context, nbc
         )
         assert not outcome.satisfied
@@ -169,7 +171,7 @@ class TestFarMax:
             "ratio": {"num": 2, "den": 1},
             "premium": {"ratio": {"num": 3, "den": 1}, "note": "Available on a 24 m road."},
         }
-        (_, outcome), = run_one(check, context, nbc)
+        ((_, outcome),) = run_one(check, context, nbc)
         assert outcome.limit == 200_000_000
         assert not outcome.satisfied
         assert outcome.note is not None and "Premium" in outcome.note
@@ -178,7 +180,7 @@ class TestFarMax:
 class TestCoverageMax:
     def test_boundary(self, nbc: PackSet) -> None:
         context = make_context(area_mm2=300_000_000, model={"footprintAreaMm2": 180_000_000})
-        (_, outcome), = run_one(
+        ((_, outcome),) = run_one(
             {"type": "coverage_max", "ratio": {"num": 60, "den": 100}}, context, nbc
         )
         assert outcome.limit == 180_000_000
@@ -196,18 +198,18 @@ class TestHeightMax:
         # 15 m to the top of the OHT, less mumty (2400) and OHT (1200) = 11.4 m counted,
         # which is exactly the cap — so it passes only because the exclusions applied.
         check = {"type": "height_max", "valueMm": 11_400, "excludes": ["mumty", "oht"]}
-        (_, outcome), = run_one(check, context, nbc)
+        ((_, outcome),) = run_one(check, context, nbc)
         assert outcome.actual == 15_000 - 3600
         assert outcome.satisfied
         # ... and without them the same building is over.
-        (_, unexcluded), = run_one({"type": "height_max", "valueMm": 11_400}, context, nbc)
+        ((_, unexcluded),) = run_one({"type": "height_max", "valueMm": 11_400}, context, nbc)
         assert unexcluded.actual == 15_000
         assert not unexcluded.satisfied
 
     def test_a_component_the_building_lacks_subtracts_nothing(self, nbc: PackSet) -> None:
         context = make_context(model={"buildingHeightMm": 12_000, "heightComponentsMm": {}})
         check = {"type": "height_max", "valueMm": 11_999, "excludes": ["mumty", "oht", "parapet"]}
-        (_, outcome), = run_one(check, context, nbc)
+        ((_, outcome),) = run_one(check, context, nbc)
         assert outcome.actual == 12_000
         assert not outcome.satisfied
 
@@ -215,21 +217,21 @@ class TestHeightMax:
 class TestFloorsMax:
     def test_plain_storey_count(self, nbc: PackSet) -> None:
         context = make_context(model={"storeyCount": 3})
-        (_, outcome), = run_one({"type": "floors_max", "value": 3}, context, nbc)
+        ((_, outcome),) = run_one({"type": "floors_max", "value": 3}, context, nbc)
         assert outcome.satisfied and outcome.actual == 3
 
     def test_stilt_is_free_unless_counted(self, nbc: PackSet) -> None:
         context = make_context(model={"storeyCount": 3, "hasStilt": True})
-        (_, free), = run_one({"type": "floors_max", "value": 3, "counts": []}, context, nbc)
+        ((_, free),) = run_one({"type": "floors_max", "value": 3, "counts": []}, context, nbc)
         assert free.satisfied
-        (_, counted), = run_one(
+        ((_, counted),) = run_one(
             {"type": "floors_max", "value": 3, "counts": ["stilt"]}, context, nbc
         )
         assert not counted.satisfied and counted.actual == 4
 
     def test_basement_counts_independently(self, nbc: PackSet) -> None:
         context = make_context(model={"storeyCount": 2, "hasStilt": True, "hasBasement": True})
-        (_, outcome), = run_one(
+        ((_, outcome),) = run_one(
             {"type": "floors_max", "value": 3, "counts": ["stilt", "basement"]}, context, nbc
         )
         assert outcome.actual == 4
@@ -246,7 +248,7 @@ class TestParkingMin:
             "rate": {"num": 1, "den": 2},
             "minSpaces": 1,
         }
-        (_, outcome), = run_one(check, context, nbc)
+        ((_, outcome),) = run_one(check, context, nbc)
         assert outcome.limit == 1  # ceil(0.5) = 1, and minSpaces agrees
         assert outcome.satisfied
 
@@ -256,14 +258,14 @@ class TestParkingMin:
         context = make_context(
             model={"builtUpAreaMm2": 250_000_000}, profile={"parkingSpacesProvided": 5}
         )
-        (_, exact), = run_one(
+        ((_, exact),) = run_one(
             {"type": "parking_min", "basis": "built-up-area", "rate": rate}, context, nbc
         )
         assert exact.limit == 5 and exact.satisfied
         context = make_context(
             model={"builtUpAreaMm2": 250_000_001}, profile={"parkingSpacesProvided": 5}
         )
-        (_, over), = run_one(
+        ((_, over),) = run_one(
             {"type": "parking_min", "basis": "built-up-area", "rate": rate}, context, nbc
         )
         assert over.limit == 6 and not over.satisfied
@@ -279,17 +281,17 @@ class TestRoomChecks:
         context = make_context(
             rooms=[make_room("r1", "bedroom", width=2500, depth=3800)]  # 9_500_000
         )
-        (_, outcome), = run_one({"type": "room_area_min", "valueMm2": 9_500_000}, context, nbc)
+        ((_, outcome),) = run_one({"type": "room_area_min", "valueMm2": 9_500_000}, context, nbc)
         assert outcome.satisfied and outcome.actual == 9_500_000
 
     def test_area_one_square_millimetre_short(self, nbc: PackSet) -> None:
         context = make_context(rooms=[make_room("r1", "bedroom", width=2500, depth=3800)])
-        (_, outcome), = run_one({"type": "room_area_min", "valueMm2": 9_500_001}, context, nbc)
+        ((_, outcome),) = run_one({"type": "room_area_min", "valueMm2": 9_500_001}, context, nbc)
         assert not outcome.satisfied
 
     def test_least_width_is_the_shorter_bbox_side(self, nbc: PackSet) -> None:
         context = make_context(rooms=[make_room("r1", "bedroom", width=2400, depth=9000)])
-        (_, outcome), = run_one({"type": "room_width_min", "valueMm": 2400}, context, nbc)
+        ((_, outcome),) = run_one({"type": "room_width_min", "valueMm": 2400}, context, nbc)
         assert outcome.actual == 2400 and outcome.satisfied
 
     def test_ceiling_height_is_per_room_not_per_storey(self, nbc: PackSet) -> None:
@@ -314,17 +316,15 @@ class TestRoomChecks:
             "ratio": {"num": 1, "den": 10},
             "minAreaMm2": 300_000,
         }
-        (_, outcome), = run_one(check, context, nbc)
+        ((_, outcome),) = run_one(check, context, nbc)
         assert outcome.limit == 300_000 and outcome.satisfied
 
     def test_ventilation_ratio_ceils(self, nbc: PackSet) -> None:
         # area 9_500_001 -> one tenth is 950_000.1 -> ceil 950_001
         context = make_context(
-            rooms=[
-                make_room("r1", "bedroom", width=3, depth=3_166_667, ventilation_mm2=950_000)
-            ]
+            rooms=[make_room("r1", "bedroom", width=3, depth=3_166_667, ventilation_mm2=950_000)]
         )
-        (_, outcome), = run_one(
+        ((_, outcome),) = run_one(
             {"type": "ventilation_ratio_min", "ratio": {"num": 1, "den": 10}}, context, nbc
         )
         assert outcome.limit == 950_001
@@ -334,7 +334,7 @@ class TestRoomChecks:
         context = make_context(
             rooms=[make_room("r1", "bedroom", width=1000, depth=1000, ventilation_mm2=100_000)]
         )
-        (_, outcome), = run_one(
+        ((_, outcome),) = run_one(
             {"type": "ventilation_ratio_min", "ratio": {"num": 1, "den": 10}}, context, nbc
         )
         assert outcome.limit == 100_000 and outcome.satisfied
@@ -381,7 +381,7 @@ class TestStairChecks:
             stair = dict(STAIR)
             stair[field] = value
             context = make_context(stairs=[stair])
-            (_, outcome), = run_one({"type": check_type, "valueMm": limit}, context, nbc)
+            ((_, outcome),) = run_one({"type": check_type, "valueMm": limit}, context, nbc)
             assert outcome.satisfied is expected, "%s=%d" % (field, value)
             assert outcome.actual == value
 
@@ -398,16 +398,16 @@ class TestOpeningWidthMin:
             "outwardNormalDeg": 180,
         }
         context = make_context(openings=[opening])
-        (_, outcome), = run_one({"type": "opening_width_min", "valueMm": 900}, context, nbc)
+        ((_, outcome),) = run_one({"type": "opening_width_min", "valueMm": 900}, context, nbc)
         assert outcome.satisfied
         opening = dict(opening, widthMm=899)
         context = make_context(openings=[opening])
-        (_, outcome), = run_one({"type": "opening_width_min", "valueMm": 900}, context, nbc)
+        ((_, outcome),) = run_one({"type": "opening_width_min", "valueMm": 900}, context, nbc)
         assert not outcome.satisfied
 
 
 class TestProjectionMax:
-    def _projection(self, **kwargs: Any) -> Dict[str, Any]:
+    def _projection(self, **kwargs: Any) -> dict[str, Any]:
         base = {
             "id": "p1",
             "storeyId": "storey_1",
@@ -433,9 +433,7 @@ class TestProjectionMax:
         assert not results[0][1].satisfied
 
     def test_into_setback_only_skips_projections_outside_a_setback(self, nbc: PackSet) -> None:
-        context = make_context(
-            projections=[self._projection(projectionMm=5000, intoSetback=False)]
-        )
+        context = make_context(projections=[self._projection(projectionMm=5000, intoSetback=False)])
         check = {
             "type": "projection_max",
             "element": "balcony",
@@ -445,7 +443,7 @@ class TestProjectionMax:
         assert run_one(check, context, nbc) == []
         # ... and measures it when it does encroach
         context = make_context(projections=[self._projection(projectionMm=5000, intoSetback=True)])
-        (_, outcome), = run_one(check, context, nbc)
+        ((_, outcome),) = run_one(check, context, nbc)
         assert not outcome.satisfied
 
 

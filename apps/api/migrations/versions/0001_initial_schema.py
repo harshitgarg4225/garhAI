@@ -65,9 +65,7 @@ $$ LANGUAGE plpgsql;
 
 
 def _uuid_pk() -> sa.Column:
-    return sa.Column(
-        "id", UUID, server_default=sa.text("gen_random_uuid()"), nullable=False
-    )
+    return sa.Column("id", UUID, server_default=sa.text("gen_random_uuid()"), nullable=False)
 
 
 def _timestamps() -> list[sa.Column]:
@@ -185,9 +183,7 @@ def upgrade() -> None:
         sa.Column("boundary", JSONB, server_default=sa.text("'[]'::jsonb"), nullable=False),
         sa.Column("north_deg", sa.Integer(), server_default=sa.text("0"), nullable=False),
         sa.Column("roads", JSONB, server_default=sa.text("'[]'::jsonb"), nullable=False),
-        sa.Column(
-            "reg_profile", JSONB, server_default=sa.text("'{}'::jsonb"), nullable=False
-        ),
+        sa.Column("reg_profile", JSONB, server_default=sa.text("'{}'::jsonb"), nullable=False),
         sa.Column("source", sa.Text(), server_default=sa.text("'manual'"), nullable=False),
         *_timestamps(),
         sa.PrimaryKeyConstraint("id", name="pk_plots"),
@@ -198,13 +194,9 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.UniqueConstraint("project_id", name="uq_plots_project_id"),
-        sa.CheckConstraint(
-            "north_deg >= 0 AND north_deg < 360", name="ck_plots_north_deg_range"
-        ),
+        sa.CheckConstraint("north_deg >= 0 AND north_deg < 360", name="ck_plots_north_deg_range"),
         sa.CheckConstraint("source IN ('manual', 'dxf', 'seed')", name="ck_plots_source"),
-        sa.CheckConstraint(
-            "jsonb_typeof(boundary) = 'array'", name="ck_plots_boundary_array"
-        ),
+        sa.CheckConstraint("jsonb_typeof(boundary) = 'array'", name="ck_plots_boundary_array"),
         sa.CheckConstraint("jsonb_typeof(roads) = 'array'", name="ck_plots_roads_array"),
     )
     op.create_index("ix_plots_firm_id", "plots", ["firm_id"])
@@ -268,9 +260,7 @@ def upgrade() -> None:
             name="fk_design_versions_parent_id_design_versions",
             ondelete="SET NULL",
         ),
-        sa.CheckConstraint(
-            "kind IN ('auto', 'named', 'option')", name="ck_design_versions_kind"
-        ),
+        sa.CheckConstraint("kind IN ('auto', 'named', 'option')", name="ck_design_versions_kind"),
         sa.CheckConstraint(
             "(snapshot IS NULL) = (snapshot_hash IS NULL)",
             name="ck_design_versions_snapshot_pair",
@@ -437,9 +427,7 @@ def upgrade() -> None:
         "ix_render_jobs_project_id_created_at", "render_jobs", ["project_id", "created_at"]
     )
     op.create_index("ix_render_jobs_firm_id_status", "render_jobs", ["firm_id", "status"])
-    op.create_index(
-        "ix_render_jobs_design_version_id", "render_jobs", ["design_version_id"]
-    )
+    op.create_index("ix_render_jobs_design_version_id", "render_jobs", ["design_version_id"])
 
     # ------------------------------------------------------------------
     # sheets
@@ -489,9 +477,7 @@ def upgrade() -> None:
         *_firm_id("annotations"),
         sa.Column("sheet_id", UUID, nullable=False),
         sa.Column("anchor_element_id", sa.Text(), nullable=True),
-        sa.Column(
-            "anchor_kind", sa.Text(), server_default=sa.text("'element'"), nullable=False
-        ),
+        sa.Column("anchor_kind", sa.Text(), server_default=sa.text("'element'"), nullable=False),
         sa.Column("payload", JSONB, server_default=sa.text("'{}'::jsonb"), nullable=False),
         sa.Column("orphaned", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         *_timestamps(),
@@ -513,9 +499,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_annotations_firm_id", "annotations", ["firm_id"])
     op.create_index("ix_annotations_sheet_id", "annotations", ["sheet_id"])
-    op.create_index(
-        "ix_annotations_sheet_id_orphaned", "annotations", ["sheet_id", "orphaned"]
-    )
+    op.create_index("ix_annotations_sheet_id_orphaned", "annotations", ["sheet_id", "orphaned"])
 
     # ------------------------------------------------------------------
     # compliance_reports
@@ -526,9 +510,7 @@ def upgrade() -> None:
         *_firm_id("compliance_reports"),
         sa.Column("project_id", UUID, nullable=False),
         sa.Column("design_version_id", UUID, nullable=True),
-        sa.Column(
-            "pack_versions", JSONB, server_default=sa.text("'{}'::jsonb"), nullable=False
-        ),
+        sa.Column("pack_versions", JSONB, server_default=sa.text("'{}'::jsonb"), nullable=False),
         sa.Column("results", JSONB, server_default=sa.text("'[]'::jsonb"), nullable=False),
         *_timestamps(),
         sa.PrimaryKeyConstraint("id", name="pk_compliance_reports"),
@@ -622,9 +604,7 @@ def upgrade() -> None:
         sa.CheckConstraint("length(btrim(body)) > 0", name="ck_comments_body_not_blank"),
     )
     op.create_index("ix_comments_firm_id", "comments", ["firm_id"])
-    op.create_index(
-        "ix_comments_project_id_created_at", "comments", ["project_id", "created_at"]
-    )
+    op.create_index("ix_comments_project_id_created_at", "comments", ["project_id", "created_at"])
     op.create_index("ix_comments_share_link_id", "comments", ["share_link_id"])
 
     # ------------------------------------------------------------------
@@ -664,12 +644,8 @@ def upgrade() -> None:
         sa.Column("meta", JSONB, server_default=sa.text("'{}'::jsonb"), nullable=False),
         *_timestamps(),
         sa.PrimaryKeyConstraint("id", name="pk_audit_log"),
-        sa.CheckConstraint(
-            "length(btrim(action)) > 0", name="ck_audit_log_action_not_blank"
-        ),
-        sa.CheckConstraint(
-            "length(btrim(entity)) > 0", name="ck_audit_log_entity_not_blank"
-        ),
+        sa.CheckConstraint("length(btrim(action)) > 0", name="ck_audit_log_action_not_blank"),
+        sa.CheckConstraint("length(btrim(entity)) > 0", name="ck_audit_log_entity_not_blank"),
     )
     op.create_index("ix_audit_log_firm_id", "audit_log", ["firm_id"])
     op.create_index("ix_audit_log_firm_id_created_at", "audit_log", ["firm_id", "created_at"])
@@ -706,9 +682,7 @@ def upgrade() -> None:
         sa.Column("meta", JSONB, server_default=sa.text("'{}'::jsonb"), nullable=False),
         *_timestamps(),
         sa.PrimaryKeyConstraint("id", name="pk_otp_codes"),
-        sa.CheckConstraint(
-            "attempts >= 0 AND attempts <= 5", name="ck_otp_codes_attempts_range"
-        ),
+        sa.CheckConstraint("attempts >= 0 AND attempts <= 5", name="ck_otp_codes_attempts_range"),
         sa.CheckConstraint("email = lower(email)", name="ck_otp_codes_email_lowercase"),
     )
     op.create_index("ix_otp_codes_email_created_at", "otp_codes", ["email", "created_at"])

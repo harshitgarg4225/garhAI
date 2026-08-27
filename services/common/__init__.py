@@ -94,6 +94,7 @@ __all__ = [
     "UnsupportedSchemaError",
     "ValidationFailure",
     "Worker",
+    "run_worker",
     "WorkerConfigError",
     "WorkerError",
     "WorkerMetrics",

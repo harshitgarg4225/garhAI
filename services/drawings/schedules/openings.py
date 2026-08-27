@@ -24,8 +24,9 @@ contractor never orders.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 __all__ = [
     "OPENING_KIND_ORDER",
@@ -43,7 +44,7 @@ __all__ = [
 UNKNOWN_STOREY = "(unresolved storey)"
 
 #: The §3 opening kinds, in the order a schedule prints them.
-OPENING_KIND_ORDER: Tuple[str, ...] = ("door", "window", "ventilator")
+OPENING_KIND_ORDER: tuple[str, ...] = ("door", "window", "ventilator")
 
 
 @dataclass(frozen=True)
@@ -82,10 +83,10 @@ class ScheduleOpening:
     sill_mm: int
     #: The tag already printed on an issued drawing, if any (``Opening.tag``). The
     #: tagger honours it so a re-issue never re-points D2 at a different door.
-    existing_tag: Optional[str] = None
-    wall_id: Optional[str] = None
+    existing_tag: str | None = None
+    wall_id: str | None = None
     #: Rooms this opening serves, when the source knows (rules context does).
-    room_ids: Tuple[str, ...] = ()
+    room_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         for name in ("width_mm", "height_mm", "sill_mm"):
@@ -143,7 +144,7 @@ def _default_storey_name(index: int) -> str:
     return "Floor %d" % index
 
 
-def normalise_storeys(source: Any) -> Tuple[StoreyRef, ...]:
+def normalise_storeys(source: Any) -> tuple[StoreyRef, ...]:
     """Storeys in index order, from a model, a rules context, or JSON.
 
     Order is the print order of the schedule's count columns and of the area
@@ -178,7 +179,7 @@ def normalise_storeys(source: Any) -> Tuple[StoreyRef, ...]:
         )
     if isinstance(source, Mapping):
         raw = _mapping_model(source).get("storeys") or ()
-        refs: List[StoreyRef] = []
+        refs: list[StoreyRef] = []
         for position, item in enumerate(raw):
             index = item.get("index")
             index = position if index is None else int(index)
@@ -209,7 +210,11 @@ def _rules_model(source: Any) -> Any:
     summary = getattr(source, "model", None)
     if summary is None:
         return None
-    if hasattr(summary, "storeys") and hasattr(summary, "openings") and not hasattr(summary, "walls"):
+    if (
+        hasattr(summary, "storeys")
+        and hasattr(summary, "openings")
+        and not hasattr(summary, "walls")
+    ):
         return summary
     return None
 
@@ -225,7 +230,7 @@ def _mapping_model(raw: Mapping[str, Any]) -> Mapping[str, Any]:
     return raw
 
 
-def normalise_openings(source: Any) -> Tuple[Tuple[ScheduleOpening, ...], Tuple[str, ...]]:
+def normalise_openings(source: Any) -> tuple[tuple[ScheduleOpening, ...], tuple[str, ...]]:
     """``(openings, warnings)`` from any supported source, in a deterministic order.
 
     The returned order is ``(storey index, opening id)``: source array order is *not*
@@ -233,7 +238,7 @@ def normalise_openings(source: Any) -> Tuple[Tuple[ScheduleOpening, ...], Tuple[
     produce a different order here — and the tag table would follow it. Tags must
     depend on the design, never on the history that built it.
     """
-    warnings: List[str] = []
+    warnings: list[str] = []
     storeys = normalise_storeys(source)
     storey_index = {ref.id: ref.index for ref in storeys}
 
@@ -241,7 +246,7 @@ def normalise_openings(source: Any) -> Tuple[Tuple[ScheduleOpening, ...], Tuple[
         raw_openings = list(_mapping_model(source).get("openings") or ())
         walls = list(_mapping_model(source).get("walls") or ())
         wall_storey = {str(w["id"]): str(w["storeyId"]) for w in walls if "storeyId" in w}
-        items: List[ScheduleOpening] = []
+        items: list[ScheduleOpening] = []
         for raw in raw_openings:
             wall_id = raw.get("wallId")
             storey_id = raw.get("storeyId") or (wall_storey.get(str(wall_id)) if wall_id else None)
@@ -311,16 +316,16 @@ def normalise_openings(source: Any) -> Tuple[Tuple[ScheduleOpening, ...], Tuple[
 def _make(
     *,
     id: str,
-    storey_id: Optional[str],
+    storey_id: str | None,
     kind: str,
     width_mm: int,
     height_mm: int,
     sill_mm: int,
     existing_tag: Any,
-    wall_id: Optional[str],
-    room_ids: Tuple[str, ...],
-    warnings: List[str],
-    host_wall_id: Optional[str] = None,
+    wall_id: str | None,
+    room_ids: tuple[str, ...],
+    warnings: list[str],
+    host_wall_id: str | None = None,
 ) -> ScheduleOpening:
     if storey_id is None:
         storey_id = UNKNOWN_STOREY
@@ -350,7 +355,7 @@ def _make(
 
 def _ordered(
     items: Iterable[ScheduleOpening], storey_index: Mapping[str, int]
-) -> Tuple[ScheduleOpening, ...]:
+) -> tuple[ScheduleOpening, ...]:
     # Unresolved storeys sort last (large index), then by id — total and deterministic.
     return tuple(
         sorted(items, key=lambda o: (storey_index.get(o.storey_id, 10_000), o.storey_id, o.id))
@@ -359,19 +364,17 @@ def _ordered(
 
 def storey_ids_in_print_order(
     storeys: Sequence[StoreyRef], openings: Sequence[ScheduleOpening]
-) -> Tuple[str, ...]:
+) -> tuple[str, ...]:
     """Count-column order: the model's storeys, then any unresolved bucket in use."""
     ordered = [ref.id for ref in storeys]
     extra = sorted({o.storey_id for o in openings} - set(ordered))
     return tuple(ordered + extra)
 
 
-def storey_labels(
-    storeys: Sequence[StoreyRef], storey_ids: Sequence[str]
-) -> Dict[str, str]:
+def storey_labels(storeys: Sequence[StoreyRef], storey_ids: Sequence[str]) -> dict[str, str]:
     """``storey id -> short column header``, including the unresolved bucket."""
     by_id = {ref.id: ref for ref in storeys}
-    out: Dict[str, str] = {}
+    out: dict[str, str] = {}
     for storey_id in storey_ids:
         ref = by_id.get(storey_id)
         out[storey_id] = ref.short_label if ref is not None else "?"

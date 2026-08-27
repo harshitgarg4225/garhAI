@@ -55,8 +55,9 @@ two documents with the same content hash the same regardless of insertion order.
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import Any, TypeGuard
 
 from .geometry import Pt, Seg, point_along_seg, polygon_area_mm2, rect_polygon, segment_length_mm
 from .ids import derived_id
@@ -177,7 +178,7 @@ _ESCAPES: Mapping[int, str] = {
 
 
 def _canonical_string(s: str, path: str) -> str:
-    out: List[str] = ['"']
+    out: list[str] = ['"']
     for ch in s:
         code = ord(ch)
         esc = _ESCAPES.get(code)
@@ -185,7 +186,7 @@ def _canonical_string(s: str, path: str) -> str:
             out.append(esc)
             continue
         if code < 0x20:
-            out.append("\\u{:04x}".format(code))
+            out.append(f"\\u{code:04x}")
             continue
         if 0xD800 <= code <= 0xDFFF:
             # Python holds astral characters as single code points, so any
@@ -219,11 +220,11 @@ def _canonical_write(value: Any, path: str) -> str:
         return "null"
     if isinstance(value, bool):
         return "true" if value else "false"
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return _canonical_number(value, path)
     if isinstance(value, str):
         return _canonical_string(value, path)
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         parts = [_canonical_write(v, f"{path}[{i}]") for i, v in enumerate(value)]
         return "[" + ",".join(parts) + "]"
     if isinstance(value, Mapping):
@@ -231,7 +232,9 @@ def _canonical_write(value: Any, path: str) -> str:
             if not isinstance(k, str):
                 # JavaScript object keys are always strings; a non-string key here
                 # would hash differently depending on how it stringified.
-                raise CanonicalJsonError(f"Object keys must be strings (got {type(k).__name__})", path)
+                raise CanonicalJsonError(
+                    f"Object keys must be strings (got {type(k).__name__})", path
+                )
         # Python's str ordering IS code-point ordering — the same order the
         # TypeScript hand-rolls in compareCodePoints.
         parts = [
@@ -269,13 +272,15 @@ def doc_hash(doc: ProjectDoc) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _is_json_object(v: Any) -> bool:
+def _is_json_object(v: Any) -> TypeGuard[dict[str, Any]]:
+    # Merge patches arrive from JSON, where every mapping is a plain dict; the
+    # narrowed type is what apply/invert_merge_patch take.
     return isinstance(v, Mapping)
 
 
 def apply_merge_patch(target: JsonObject, patch: JsonObject) -> JsonObject:
     """RFC 7386: ``null`` deletes a key, objects merge recursively, else replace."""
-    out: Dict[str, Any] = dict(target)
+    out: dict[str, Any] = dict(target)
     for key in patch:
         pv = patch[key]
         if pv is None:
@@ -291,7 +296,7 @@ def apply_merge_patch(target: JsonObject, patch: JsonObject) -> JsonObject:
 
 def invert_merge_patch(target: JsonObject, patch: JsonObject) -> JsonObject:
     """The patch that undoes ``patch`` applied to ``apply_merge_patch(target, patch)``."""
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     for key in patch:
         pv = patch[key]
         had = key in target
@@ -322,7 +327,7 @@ class _OrderedSet:
     __slots__ = ("_items",)
 
     def __init__(self) -> None:
-        self._items: Dict[str, None] = {}
+        self._items: dict[str, None] = {}
 
     def add(self, value: str) -> None:
         self._items[value] = None
@@ -336,7 +341,7 @@ class _OrderedSet:
     def __len__(self) -> int:
         return len(self._items)
 
-    def to_list(self) -> List[str]:
+    def to_list(self) -> list[str]:
         return list(self._items)
 
 
@@ -345,19 +350,19 @@ class _Draft:
     schema_version: int
     plot: PlotDoc
     brief: BriefDoc
-    annotations: List[Annotation]
-    storeys: List[Storey]
-    walls: List[Wall]
-    openings: List[Opening]
-    rooms: List[Room]
-    stairs: List[Stair]
-    slabs: List[Slab]
-    columns: List[Column]
-    furniture: List[FurnitureInstance]
+    annotations: list[Annotation]
+    storeys: list[Storey]
+    walls: list[Wall]
+    openings: list[Opening]
+    rooms: list[Room]
+    stairs: list[Stair]
+    slabs: list[Slab]
+    columns: list[Column]
+    furniture: list[FurnitureInstance]
     facade: FacadeModel
-    materials: List[MaterialAssignment]
+    materials: list[MaterialAssignment]
     levels: Levels
-    balconies: List[Balcony]
+    balconies: list[Balcony]
     meta: ModelMeta
     #: Storeys whose walls changed => rooms and slabs must be recomputed.
     dirty_storeys: _OrderedSet = field(default_factory=_OrderedSet)
@@ -392,9 +397,9 @@ def _to_draft(doc: ProjectDoc) -> _Draft:
     )
 
 
-def _derive_ffl_per_storey(storeys: Sequence[Storey], plinth_mm: int) -> List[int]:
+def _derive_ffl_per_storey(storeys: Sequence[Storey], plinth_mm: int) -> list[int]:
     """Derive FFL per storey from plinth + storey heights (ground FFL = plinth)."""
-    out: List[int] = []
+    out: list[int] = []
     ffl = plinth_mm
     for s in storeys:
         out.append(ffl)
@@ -402,7 +407,7 @@ def _derive_ffl_per_storey(storeys: Sequence[Storey], plinth_mm: int) -> List[in
     return out
 
 
-_STAIR_VECTORS: Mapping[str, Tuple[int, int, int, int]] = {
+_STAIR_VECTORS: Mapping[str, tuple[int, int, int, int]] = {
     # direction: (forward x, forward y, right x, right y) — right is 90 deg CW
     "N": (0, 1, 1, 0),
     "E": (1, 0, 0, -1),
@@ -411,7 +416,7 @@ _STAIR_VECTORS: Mapping[str, Tuple[int, int, int, int]] = {
 }
 
 
-def stair_footprint_polygon(stair: Stair) -> List[Pt]:
+def stair_footprint_polygon(stair: Stair) -> list[Pt]:
     """Footprint of a stair, used for slab cut-outs.
 
     EXACT for ``straight``. For ``dogleg`` / ``L`` / ``U`` this is the BOUNDING
@@ -435,9 +440,7 @@ def stair_footprint_polygon(stair: Stair) -> List[Pt]:
             width_mm = stair.width_mm + landing_width
         else:
             # dogleg and U: two parallel flights either side of the landing
-            width_mm = (
-                2 * stair.width_mm + 100 if stair.landing is None else stair.landing.width_mm
-            )
+            width_mm = 2 * stair.width_mm + 100 if stair.landing is None else stair.landing.width_mm
 
     fx, fy, rx, ry = _STAIR_VECTORS[stair.direction]
     x = stair.origin.x
@@ -457,7 +460,7 @@ def _recompute_derived(draft: _Draft) -> None:
             continue
 
         other_rooms = [r for r in draft.rooms if r.storey_id != storey_id]
-        taken_ids: Set[str] = set()
+        taken_ids: set[str] = set()
         for element in (
             list(draft.storeys)
             + list(draft.walls)
@@ -481,16 +484,10 @@ def _recompute_derived(draft: _Draft) -> None:
         draft.rooms = other_rooms + list(detection.rooms)
 
         # --- slab: outline of this storey's walls, with stair wells from below
-        storey_idx = next(
-            (i for i, s in enumerate(draft.storeys) if s.id == storey_id), -1
-        )
+        storey_idx = next((i for i, s in enumerate(draft.storeys) if s.id == storey_id), -1)
         below = draft.storeys[storey_idx - 1] if storey_idx > 0 else None
-        cutouts: List[Tuple[Pt, ...]] = (
-            [
-                tuple(stair_footprint_polygon(s))
-                for s in draft.stairs
-                if s.storey_id == below.id
-            ]
+        cutouts: list[tuple[Pt, ...]] = (
+            [tuple(stair_footprint_polygon(s)) for s in draft.stairs if s.storey_id == below.id]
             if below is not None
             else []
         )
@@ -518,9 +515,7 @@ def _finalize(draft: _Draft) -> ProjectDoc:
         draft.storeys = [
             replace(
                 s,
-                level=replace(
-                    s.level, ffl_mm=ffls[i] if i < len(ffls) else s.level.ffl_mm
-                ),
+                level=replace(s.level, ffl_mm=ffls[i] if i < len(ffls) else s.level.ffl_mm),
             )
             for i, s in enumerate(draft.storeys)
         ]
@@ -565,7 +560,7 @@ class FoldResult:
     #: Ops that, applied IN ORDER to :attr:`model`, restore the input document.
     #: Usually one op; destructive ops return several (e.g. deleting a wall
     #: returns ``wall.add`` followed by an ``opening.add`` per hosted opening).
-    inverse: Tuple[Op, ...]
+    inverse: tuple[Op, ...]
 
 
 @dataclass(frozen=True)
@@ -573,9 +568,9 @@ class FoldOutcome:
     """Non-throwing fold outcome, for the copilot dry-run loop (section 10)."""
 
     ok: bool
-    model: Optional[ProjectDoc] = None
-    inverse: Tuple[Op, ...] = ()
-    issues: Tuple[ValidationIssue, ...] = ()
+    model: ProjectDoc | None = None
+    inverse: tuple[Op, ...] = ()
+    issues: tuple[ValidationIssue, ...] = ()
 
 
 def _as_op(value: Any) -> Op:
@@ -610,7 +605,7 @@ def fold(
         return FoldResult(model=group.model, inverse=group.inverse)
 
     draft = _to_draft(model)
-    inverse: List[Op] = []
+    inverse: list[Op] = []
 
     _apply_op(draft, the_op, inverse, compute_inverse)
 
@@ -656,8 +651,8 @@ _DESTRUCTIVE_OPS = frozenset(
 
 
 def _with_room_metadata_restore(
-    before: ProjectDoc, after: ProjectDoc, inverse_ops: List[Op]
-) -> List[Op]:
+    before: ProjectDoc, after: ProjectDoc, inverse_ops: list[Op]
+) -> list[Op]:
     """Top up a geometric inverse with the room metadata it cannot restore.
 
     Rooms are derived, so an inverse that restores walls also restores room
@@ -680,7 +675,7 @@ def _with_room_metadata_restore(
     except OpRejectedError:
         return inverse_ops  # cannot predict; leave the geometric inverse alone
     restored_by_id = {r.id: r for r in dry.house.rooms}
-    extra: List[Op] = []
+    extra: list[Op] = []
     for room in before.house.rooms:
         restored = restored_by_id.get(room.id)
         if restored is None:
@@ -731,11 +726,11 @@ def _index_of(items: Sequence[Any], element_id: Any) -> int:
     return -1
 
 
-def _apply_op(draft: _Draft, the_op: Op, inverse: List[Op], want_inverse: bool) -> None:
+def _apply_op(draft: _Draft, the_op: Op, inverse: list[Op], want_inverse: bool) -> None:
     p = the_op.payload
 
     def g(key: str, fallback: Any = None) -> Any:
-        return p[key] if key in p else fallback
+        return p.get(key, fallback)
 
     def push(inv: Op) -> None:
         if want_inverse:
@@ -941,9 +936,7 @@ def _apply_op(draft: _Draft, the_op: Op, inverse: List[Op], want_inverse: bool) 
             draft.balconies = [x for x in draft.balconies if x.storey_id != storey.id]
             draft.facade = replace(
                 draft.facade,
-                components=tuple(
-                    c for c in draft.facade.components if c.storey_id != storey.id
-                ),
+                components=tuple(c for c in draft.facade.components if c.storey_id != storey.id),
             )
             draft.storeys.pop(index)
             draft.derive_levels = True
@@ -952,9 +945,7 @@ def _apply_op(draft: _Draft, the_op: Op, inverse: List[Op], want_inverse: bool) 
         idx = _index_of(draft.storeys, g("storeyId"))
         if idx >= 0:
             prev_storey = draft.storeys[idx]
-            push(
-                op("storey.set_height", storeyId=prev_storey.id, heightMm=prev_storey.height_mm)
-            )
+            push(op("storey.set_height", storeyId=prev_storey.id, heightMm=prev_storey.height_mm))
             draft.storeys[idx] = replace(prev_storey, height_mm=g("heightMm"))
             draft.derive_levels = True
 
@@ -1185,10 +1176,8 @@ def _apply_op(draft: _Draft, the_op: Op, inverse: List[Op], want_inverse: bool) 
             _touch(draft, prev_room.storey_id)
             draft.rooms[idx] = replace(
                 prev_room,
-                target_area_mm2=(
-                    p["targetAreaMm2"] if "targetAreaMm2" in p else prev_room.target_area_mm2
-                ),
-                must_face=(p["mustFace"] if "mustFace" in p else prev_room.must_face),
+                target_area_mm2=(p.get("targetAreaMm2", prev_room.target_area_mm2)),
+                must_face=(p.get("mustFace", prev_room.must_face)),
             )
 
     # ---------------------------------------------------------------- stairs
@@ -1217,7 +1206,7 @@ def _apply_op(draft: _Draft, the_op: Op, inverse: List[Op], want_inverse: bool) 
             prev_stair = draft.stairs[idx]
             patch: Mapping[str, Any] = g("patch")
             if want_inverse:
-                inv_patch: Dict[str, Any] = {}
+                inv_patch = {}
                 if "kind" in patch:
                     inv_patch["kind"] = prev_stair.kind
                 if "origin" in patch:
@@ -1241,7 +1230,9 @@ def _apply_op(draft: _Draft, the_op: Op, inverse: List[Op], want_inverse: bool) 
             draft.stairs[idx] = replace(
                 prev_stair,
                 kind=_coalesce(patch.get("kind"), prev_stair.kind),
-                origin=pt_of(patch["origin"]) if patch.get("origin") is not None else prev_stair.origin,
+                origin=pt_of(patch["origin"])
+                if patch.get("origin") is not None
+                else prev_stair.origin,
                 direction=_coalesce(patch.get("direction"), prev_stair.direction),
                 riser_mm=_coalesce(patch.get("riserMm"), prev_stair.riser_mm),
                 tread_mm=_coalesce(patch.get("treadMm"), prev_stair.tread_mm),
@@ -1391,13 +1382,9 @@ def _apply_op(draft: _Draft, the_op: Op, inverse: List[Op], want_inverse: bool) 
                     else prev_balcony.polygon
                 ),
                 railing_kind=_coalesce(g("railingKind"), prev_balcony.railing_kind),
-                railing_height_mm=_coalesce(
-                    g("railingHeightMm"), prev_balcony.railing_height_mm
-                ),
+                railing_height_mm=_coalesce(g("railingHeightMm"), prev_balcony.railing_height_mm),
                 projection_mm=_coalesce(g("projectionMm"), prev_balcony.projection_mm),
-                slab_thickness_mm=_coalesce(
-                    g("slabThicknessMm"), prev_balcony.slab_thickness_mm
-                ),
+                slab_thickness_mm=_coalesce(g("slabThicknessMm"), prev_balcony.slab_thickness_mm),
             )
         elif action == "delete" and idx >= 0:
             prev_balcony = draft.balconies[idx]
@@ -1502,7 +1489,7 @@ def _apply_op(draft: _Draft, the_op: Op, inverse: List[Op], want_inverse: bool) 
     # ---------------------------------------------------------------- levels
     elif t == "levels.set":
         prev_levels = draft.levels
-        inv_payload: Dict[str, Any] = {}
+        inv_payload: dict[str, Any] = {}
         if "plinthMm" in p:
             inv_payload["plinthMm"] = prev_levels.plinth_mm
         if "sillDefaultMm" in p:
@@ -1565,11 +1552,7 @@ def _apply_op(draft: _Draft, the_op: Op, inverse: List[Op], want_inverse: bool) 
             )
             draft.annotations[idx] = replace(
                 prev_annotation,
-                anchor_element_id=(
-                    p["anchorElementId"]
-                    if "anchorElementId" in p
-                    else prev_annotation.anchor_element_id
-                ),
+                anchor_element_id=(p.get("anchorElementId", prev_annotation.anchor_element_id)),
                 anchor_kind=_coalesce(g("anchorKind"), prev_annotation.anchor_kind),
                 payload=dict(_coalesce(g("payload"), prev_annotation.payload)),
                 orphaned=_coalesce(g("orphaned"), prev_annotation.orphaned),
@@ -1597,13 +1580,13 @@ def _dirty(draft: _Draft, storey_id: str) -> None:
     draft.touched_storeys.add(storey_id)
 
 
-def _touch(draft: _Draft, storey_id: Optional[str]) -> None:
+def _touch(draft: _Draft, storey_id: str | None) -> None:
     """Mark a storey as touched (validation scope only — geometry did not change)."""
     if storey_id is not None:
         draft.touched_storeys.add(storey_id)
 
 
-def _touch_wall(draft: _Draft, wall_id: Optional[str]) -> None:
+def _touch_wall(draft: _Draft, wall_id: str | None) -> None:
     """Validation scope for an op that edits an opening: the host wall's storey."""
     if wall_id is None:
         return
@@ -1628,7 +1611,7 @@ def _default_storey_name(index: int) -> str:
     return f"Floor {index}"
 
 
-def _opening_add_payload(o: Opening) -> Dict[str, Any]:
+def _opening_add_payload(o: Opening) -> dict[str, Any]:
     return {
         "id": o.id,
         "wallId": o.wall_id,
@@ -1642,7 +1625,7 @@ def _opening_add_payload(o: Opening) -> Dict[str, Any]:
     }
 
 
-def _stair_add_payload(s: Stair) -> Dict[str, Any]:
+def _stair_add_payload(s: Stair) -> dict[str, Any]:
     return {
         "id": s.id,
         "storeyId": s.storey_id,
@@ -1666,22 +1649,20 @@ def _stair_add_payload(s: Stair) -> Dict[str, Any]:
 class GroupResult:
     model: ProjectDoc
     #: Inverse of the WHOLE group: reversed concatenation of per-op inverses.
-    inverse: Tuple[Op, ...]
+    inverse: tuple[Op, ...]
     #: The ops as applied, with ``group_id`` stamped on each.
-    ops: Tuple[Op, ...]
+    ops: tuple[Op, ...]
 
 
-def apply_group(
-    model: ProjectDoc, ops: Sequence[Any], group_id: Optional[str] = None
-) -> GroupResult:
+def apply_group(model: ProjectDoc, ops: Sequence[Any], group_id: str | None = None) -> GroupResult:
     """Apply several ops ATOMICALLY.
 
     If any op is rejected, nothing is applied and the :class:`OpRejectedError`
     propagates. Undo/redo works on the group, not the ops.
     """
     current = model
-    inverses: List[Tuple[Op, ...]] = []
-    applied: List[Op] = []
+    inverses: list[tuple[Op, ...]] = []
+    applied: list[Op] = []
     for raw in ops:
         candidate = _as_op(raw)
         stamped = candidate if group_id is None else candidate.with_group(group_id)
@@ -1689,14 +1670,14 @@ def apply_group(
         current = result.model
         inverses.append(result.inverse)
         applied.append(stamped)
-    inverse: List[Op] = []
+    inverse: list[Op] = []
     for i in range(len(inverses) - 1, -1, -1):
         for inv_op in inverses[i]:
             inverse.append(inv_op if group_id is None else inv_op.with_group(group_id))
     return GroupResult(model=current, inverse=tuple(inverse), ops=tuple(applied))
 
 
-def replay(ops: Sequence[Any], initial: Optional[ProjectDoc] = None) -> ProjectDoc:
+def replay(ops: Sequence[Any], initial: ProjectDoc | None = None) -> ProjectDoc:
     """Fold an op log from ``initial`` (default: an empty document)."""
     current = empty_project_doc() if initial is None else initial
     for raw in ops:
@@ -1710,11 +1691,11 @@ class UndoEntry:
 
     group_id: str
     #: The ops as applied (redo replays these).
-    ops: Tuple[Op, ...]
+    ops: tuple[Op, ...]
     #: The ops that undo them, in order.
-    inverse: Tuple[Op, ...]
+    inverse: tuple[Op, ...]
     #: Short label for the undo toast: "Wall deleted".
-    label: Optional[str] = None
+    label: str | None = None
 
 
 class UndoStack:
@@ -1726,8 +1707,8 @@ class UndoStack:
     """
 
     def __init__(self, limit: int = 200) -> None:
-        self._undo: List[UndoEntry] = []
-        self._redo: List[UndoEntry] = []
+        self._undo: list[UndoEntry] = []
+        self._redo: list[UndoEntry] = []
         self._limit = limit
 
     def push(self, entry: UndoEntry) -> None:
@@ -1754,15 +1735,15 @@ class UndoStack:
         return len(self._redo)
 
     @property
-    def next_undo_label(self) -> Optional[str]:
+    def next_undo_label(self) -> str | None:
         """Label of the group that would be undone next (for the toast/menu)."""
         return self._undo[-1].label if self._undo else None
 
     @property
-    def next_redo_label(self) -> Optional[str]:
+    def next_redo_label(self) -> str | None:
         return self._redo[-1].label if self._redo else None
 
-    def undo(self, model: ProjectDoc) -> Optional[Tuple[ProjectDoc, UndoEntry]]:
+    def undo(self, model: ProjectDoc) -> tuple[ProjectDoc, UndoEntry] | None:
         """Apply the inverse of the last group, or ``None`` when there is nothing."""
         if not self._undo:
             return None
@@ -1771,7 +1752,7 @@ class UndoStack:
         self._redo.append(entry)
         return result.model, entry
 
-    def redo(self, model: ProjectDoc) -> Optional[Tuple[ProjectDoc, UndoEntry]]:
+    def redo(self, model: ProjectDoc) -> tuple[ProjectDoc, UndoEntry] | None:
         """Re-apply the last undone group, or ``None`` when there is nothing."""
         if not self._redo:
             return None
@@ -1784,7 +1765,7 @@ class UndoStack:
         self._undo = []
         self._redo = []
 
-    def to_json(self) -> Dict[str, List[Dict[str, Any]]]:
+    def to_json(self) -> dict[str, list[dict[str, Any]]]:
         """Serialisable snapshot of the history (for session restore)."""
         return {
             "undo": [_undo_entry_json(e) for e in self._undo],
@@ -1792,15 +1773,15 @@ class UndoStack:
         }
 
     @staticmethod
-    def from_json(data: Mapping[str, Any], limit: int = 200) -> "UndoStack":
+    def from_json(data: Mapping[str, Any], limit: int = 200) -> UndoStack:
         stack = UndoStack(limit)
         stack._undo = [_undo_entry_from_json(e) for e in data.get("undo", [])]
         stack._redo = [_undo_entry_from_json(e) for e in data.get("redo", [])]
         return stack
 
 
-def _undo_entry_json(entry: UndoEntry) -> Dict[str, Any]:
-    out: Dict[str, Any] = {
+def _undo_entry_json(entry: UndoEntry) -> dict[str, Any]:
+    out: dict[str, Any] = {
         "groupId": entry.group_id,
         "ops": [o.to_json() for o in entry.ops],
         "inverse": [o.to_json() for o in entry.inverse],
@@ -1846,7 +1827,7 @@ def storey_built_up_area_mm2(doc: ProjectDoc, storey_id: str) -> int:
     return total
 
 
-def locked_room_ids(doc: ProjectDoc) -> List[str]:
+def locked_room_ids(doc: ProjectDoc) -> list[str]:
     """Ids of rooms currently locked against solver re-solve (section 5.7)."""
     return [r.id for r in doc.house.rooms if r.locked]
 

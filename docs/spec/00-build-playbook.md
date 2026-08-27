@@ -48,34 +48,34 @@ You are building **Garh AI**: a web platform where an Indian architect enters a 
 Work through phases in order. Each phase = branch, implement, verify, then move on. Don't gold-plate ahead of the phase (e.g., no render UI in Phase 2).
 
 **Phase 0 — Scaffold & foundations.** Monorepo per playbook §1; docker-compose (postgres/redis/api/web/workers); CI (typecheck, lint, pytest, vitest, Playwright smoke); DB migrations (playbook §2 DDL); auth (email+OTP, JWT), firms/users/projects CRUD; tenancy repository layer; seed script with demo firm + demo project.
-*DoD:* `docker compose up` → login → create empty project; CI green; a cross-tenant access attempt test proves 404/403.
+_DoD:_ `docker compose up` → login → create empty project; CI green; a cross-tenant access attempt test proves 404/403.
 
 **Phase 1 — Model core + op engine.** Implement the model document (playbook §3), op taxonomy (§4), fold/replay, op validation, undo/redo stacks, version snapshots, provenance. Server op sequencer endpoint + optimistic client store.
-*DoD:* property-based test: any generated op sequence folds deterministically & replays to identical state hash; undo/redo round-trips 1,000 random ops; op rejected cleanly when invalid (e.g., opening wider than wall).
+_DoD:_ property-based test: any generated op sequence folds deterministically & replays to identical state hash; undo/redo round-trips 1,000 random ops; op rejected cleanly when invalid (e.g., opening wider than wall).
 
 **Phase 2 — Plot, brief, rules engine.** Plot boundary editor (rect + vertex editor w/ edge lengths, north compass, roads per edge); DXF boundary import (ezdxf); regulatory profiles + rules engine + the 3 seeded city packs and Vastu pack (playbook §6 — implement the DSL exactly, seed all listed rules); brief form + completeness meter; LLM brief-parse behind provider interface (mock returns fixture briefs).
-*DoD:* rule fixtures all pass (each rule has ≥1 passing + ≥1 failing fixture); changing city preset re-validates live; brief → chips UI.
+_DoD:_ rule fixtures all pass (each rule has ≥1 passing + ≥1 failing fixture); changing city preset re-validates live; brief → chips UI.
 
 **Phase 3 — Layout solver.** Playbook §5 exactly: envelope derivation, stair/circulation pre-placement, CP-SAT stage A, refinement stage B, door/window auto-placement, critic scoring, diversity, partial re-solve with locked-room ID preservation. Solver runs as a worker job with progress events.
-*DoD:* 20-brief golden corpus solves ≤60s each with ≥3 options; all options pass hard rules; locked-room regen preserves IDs; plan JSON goldens stable; unit tests for each constraint builder.
+_DoD:_ 20-brief golden corpus solves ≤60s each with ≥3 options; all options pass hard rules; locked-room regen preserves IDs; plan JSON goldens stable; unit tests for each constraint builder.
 
 **Phase 4 — 2D editor canvas.** Orthographic Three.js scene (one scene graph + one hit-testing system shared with 3D); tools: select/wall/door/window/stair/balcony/measure (keyboard: V/W/D/N/S/B/M); 115mm snap default + fine-grid toggle; dimension-first editing (click dim → type value → op); room auto-detection (planar subdivision) with live name/area tags; live compliance chips; furniture placement (≥30 items to start, 3D assets, Indian sizes).
-*DoD:* Playwright: draw a 2-room plan from scratch, all ops sync, undo/redo works, compliance chip appears when a bedroom < 9.5m² and disappears on fix; 60fps pan/zoom on demo G+2 (measured).
+_DoD:_ Playwright: draw a 2-room plan from scratch, all ops sync, undo/redo works, compliance chip appears when a bedroom < 9.5m² and disappears on fix; 60fps pan/zoom on demo G+2 (measured).
 
 **Phase 5 — 3D + facades.** Extrude storeys (per-floor heights), openings cut (Manifold), slabs/parapet/mumty/OHT; 2D↔3D synced selection; orbit/walk; sun widget (date/time → shadows, city-centroid lat/long); facade kit system + the 2 kits (playbook §8) applied as parametric geometry with per-element edit.
-*DoD:* plan edit reflects in 3D <100ms; facade kit applies/edits/exports consistently; screenshot-based visual regression on demo project.
+_DoD:_ plan edit reflects in 3D <100ms; facade kit applies/edits/exports consistently; screenshot-based visual regression on demo project.
 
 **Phase 6 — Copilot.** LLM structured-output → candidate ops (playbook §10 schemas); validation loop (ops → dry-run fold → rules check → diff preview); apply/reject UX; ~25-op coverage + honest "can't do that yet" for out-of-scope asks (logged).
-*DoD:* 40-command eval fixture set: ≥90% of in-scope commands produce valid applicable diffs with mock LLM fixtures + prompt-contract tests for the real provider; zero ops bypass validation.
+_DoD:_ 40-command eval fixture set: ≥90% of in-scope commands produce valid applicable diffs with mock LLM fixtures + prompt-contract tests for the real provider; zero ops bypass validation.
 
 **Phase 7 — Renders.** Render worker behind provider interface: mock (instant stylized viewport composite) + real (diffusers + ControlNet depth/MLSD, SDXL or FLUX.1-schnell, Real-ESRGAN); Precise vs Explore; exterior presets + interior Explore; render history pinned to version, stale-flag on model change; client-pack batch.
-*DoD:* e2e with mock provider; real provider integration test behind env flag; renders carry version id; concurrent job limit + queue UI states.
+_DoD:_ e2e with mock provider; real provider integration test behind env flag; renders carry version id; concurrent job limit + queue UI states.
 
 **Phase 8 — Drawings + exports (the moat).** Playbook §7 exactly: sheet model, auto-dimensioning engine, the 6 municipal sheets, title block editor, annotation anchoring (persists across manual/copilot edits; solver re-runs → review tray); exports: vector PDF (print-true scales), DXF (layer convention, DIMSTYLE), glTF, PNG/WhatsApp preset; area statement generator.
-*DoD:* golden-file suite: 10 demo projects → sheets → SVG/DXF goldens diff-clean; dims on goldens ≥90% match hand-checked reference set; DXF opens in LibreCAD/ODA viewer without errors (CI check via `dxf audit` script); every sheet regenerates ≤5min for G+1 3BHK.
+_DoD:_ golden-file suite: 10 demo projects → sheets → SVG/DXF goldens diff-clean; dims on goldens ≥90% match hand-checked reference set; DXF opens in LibreCAD/ODA viewer without errors (CI check via `dxf audit` script); every sheet regenerates ≤5min for G+1 3BHK.
 
 **Phase 9 — Polish, billing, share.** Client share links (signed scoped tokens, OTP-lite, pin comments); Razorpay behind provider interface (mock in dev) + credit metering events; onboarding tour + demo project; empty states; error/loading audit; §playbook 15 delight checklist walkthrough; §13 security checklist walkthrough; load test (50 concurrent solver jobs queue gracefully).
-*DoD:* full Playwright happy path: signup → plot → brief → generate → edit → copilot → 3D → facade → render(mock) → sheets → PDF+DXF download → share link opens read-only; Lighthouse ≥85 perf on dashboard; security checklist all ✅.
+_DoD:_ full Playwright happy path: signup → plot → brief → generate → edit → copilot → 3D → facade → render(mock) → sheets → PDF+DXF download → share link opens read-only; Lighthouse ≥85 perf on dashboard; security checklist all ✅.
 
 ## When you deviate
 

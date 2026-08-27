@@ -82,9 +82,7 @@ export function rectBoundaryMm(widthMm: number, depthMm: number): Pt[] {
 // Validation with honest reasons
 // ---------------------------------------------------------------------------
 
-export type BoundaryCheck =
-  | { readonly ok: true }
-  | { readonly ok: false; readonly reason: string };
+export type BoundaryCheck = { readonly ok: true } | { readonly ok: false; readonly reason: string };
 
 /**
  * Why a candidate boundary is not acceptable, in words the editor can show
@@ -208,7 +206,10 @@ export function insertVertexOnEdge(poly: Polygon, edgeIndex: number): PolygonEdi
 /** Remove a vertex, merging its two edges. Refuses to go below a triangle. */
 export function removeVertex(poly: Polygon, vertexIndex: number): PolygonEditResult {
   if (poly.length <= 3) {
-    return { ok: false, reason: 'A boundary needs at least 3 corners — this one cannot be removed.' };
+    return {
+      ok: false,
+      reason: 'A boundary needs at least 3 corners — this one cannot be removed.',
+    };
   }
   if (vertexIndex < 0 || vertexIndex >= poly.length) {
     return { ok: false, reason: 'That corner does not exist any more.' };
@@ -339,7 +340,11 @@ export function directionLabel(bearing: number): DirectionLabel {
  * Which way edge i FACES (its outward normal), as a compass label. For a CCW
  * ring the outward normal is the RIGHT side of a→b.
  */
-export function edgeFacing(poly: Polygon, edgeIndex: number, northDeg: number): DirectionLabel | null {
+export function edgeFacing(
+  poly: Polygon,
+  edgeIndex: number,
+  northDeg: number,
+): DirectionLabel | null {
   if (poly.length < 3) return null;
   const a = ringAt(poly, edgeIndex);
   const b = ringAt(poly, edgeIndex + 1);

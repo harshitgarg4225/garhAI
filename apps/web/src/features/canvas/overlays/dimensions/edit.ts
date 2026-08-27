@@ -112,7 +112,10 @@ function editWallGap(
     .filter((w): w is Wall => w !== undefined);
 
   if (anchorWalls.length === 0 || movingWalls.length === 0) {
-    return { ok: false, reason: 'One of the walls this dimension refers to is gone. Re-select it.' };
+    return {
+      ok: false,
+      reason: 'One of the walls this dimension refers to is gone. Re-select it.',
+    };
   }
 
   const anchorAt = firstCoordinate(anchorWalls, target.axis);

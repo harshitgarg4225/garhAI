@@ -31,8 +31,9 @@ from __future__ import annotations
 import json
 import re
 import time
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from services.common.config import WorkerSettings, get_worker_settings
 from services.common.jsonschema_lite import format_errors
@@ -58,8 +59,30 @@ _WORD = re.compile(r"[a-z0-9']+")
 #: Words carrying no signal for matching a command to a fixture.
 _STOPWORDS = frozenset(
     {
-        "a", "an", "the", "to", "of", "in", "on", "at", "for", "and", "or", "is", "it",
-        "this", "that", "please", "can", "you", "i", "we", "my", "me", "make", "do",
+        "a",
+        "an",
+        "the",
+        "to",
+        "of",
+        "in",
+        "on",
+        "at",
+        "for",
+        "and",
+        "or",
+        "is",
+        "it",
+        "this",
+        "that",
+        "please",
+        "can",
+        "you",
+        "i",
+        "we",
+        "my",
+        "me",
+        "make",
+        "do",
     }
 )
 

@@ -24,11 +24,11 @@ export interface VastuSelectorProps {
   readonly className?: string | undefined;
 }
 
-const MODES: ReadonlyArray<{
+const MODES: readonly {
   mode: VastuMode;
   title: string;
   blurb: string;
-}> = [
+}[] = [
   {
     mode: 'off',
     title: 'Off',
@@ -90,7 +90,11 @@ export function VastuSelector({ className }: VastuSelectorProps): JSX.Element {
       />
 
       {/* Mode — three radio cards */}
-      <div className="grid gap-2 px-4 pb-4 sm:grid-cols-3" role="radiogroup" aria-label="Vastu mode">
+      <div
+        className="grid gap-2 px-4 pb-4 sm:grid-cols-3"
+        role="radiogroup"
+        aria-label="Vastu mode"
+      >
         {MODES.map(({ mode, title, blurb }) => {
           const active = data.vastuDecided === true && vastuMode === mode;
           return (

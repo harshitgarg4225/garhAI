@@ -76,7 +76,11 @@ describe('reduceTheater — stage timeline', () => {
   it('updates a re-emitted stage in place instead of duplicating it', () => {
     const state = run([
       evt({ stage: 'envelope', message: 'Working out the buildable area…', data: { percent: 5 } }),
-      evt({ stage: 'envelope', message: 'Buildable area: 89 m2 across 2 floor(s).', data: { percent: 10 } }),
+      evt({
+        stage: 'envelope',
+        message: 'Buildable area: 89 m2 across 2 floor(s).',
+        data: { percent: 10 },
+      }),
     ]);
     expect(state.stages).toHaveLength(1);
     expect(state.stages[0]?.message).toBe('Buildable area: 89 m2 across 2 floor(s).');

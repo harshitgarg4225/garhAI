@@ -11,7 +11,15 @@
  * so screen readers pick up later insertions.
  */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
 import { cn } from './cn';
@@ -38,7 +46,10 @@ interface ToastCommon {
 
 /** A failure MUST offer a next action — see golden rule 9. */
 export type ToastInput =
-  | (ToastCommon & { severity?: 'info' | 'pass' | 'warn' | undefined; action?: ToastAction | undefined })
+  | (ToastCommon & {
+      severity?: 'info' | 'pass' | 'warn' | undefined;
+      action?: ToastAction | undefined;
+    })
   | (ToastCommon & { severity: 'fail'; action: ToastAction });
 
 interface ToastRecord {
@@ -159,7 +170,10 @@ export function ToastProvider({ children, limit = 4 }: ToastProviderProps): JSX.
     };
   }, []);
 
-  const api = useMemo<ToastApi>(() => ({ toast, dismiss, dismissAll }), [toast, dismiss, dismissAll]);
+  const api = useMemo<ToastApi>(
+    () => ({ toast, dismiss, dismissAll }),
+    [toast, dismiss, dismissAll],
+  );
 
   return (
     <ToastContext.Provider value={api}>

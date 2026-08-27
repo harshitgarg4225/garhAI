@@ -51,21 +51,11 @@
  * ============================================================================
  */
 
-import {
-  polygonAreaMm2,
-  pointAlongSeg,
-  rectPolygon,
-  segmentLengthMm,
-} from './geometry';
+import { polygonAreaMm2, pointAlongSeg, rectPolygon, segmentLengthMm } from './geometry';
 import type { Polygon, Pt } from './geometry';
 import { derivedId } from './ids';
 import type { GroupId, RoomId, StoreyId } from './ids';
-import {
-  DEFAULTS,
-  SCHEMA_VERSION,
-  defaultLevelData,
-  emptyProjectDoc,
-} from './model';
+import { DEFAULTS, SCHEMA_VERSION, defaultLevelData, emptyProjectDoc } from './model';
 import type {
   Annotation,
   Balcony,
@@ -373,6 +363,7 @@ export function stairFootprintPolygon(stair: Stair): Polygon {
     if (stair.kind === 'straight') {
       return { depthMm: goingOf(stair.risersCount), widthMm: stair.widthMm };
     }
+    // eslint-disable-next-line no-restricted-properties -- splits a riser COUNT across two flights; counts are not lengths, no mm rounding involved
     const perFlight = Math.ceil(stair.risersCount / 2);
     const depthMm = goingOf(perFlight) + (stair.landing?.depthMm ?? stair.widthMm);
     if (stair.kind === 'L') {
@@ -623,8 +614,7 @@ function withRoomMetadataRestore(before: ProjectDoc, after: ProjectDoc, inverseO
     const restored = restoredById.get(room.id);
     if (!restored) continue;
     const tagsDiffer =
-      restored.tags.length !== room.tags.length ||
-      restored.tags.some((t, i) => t !== room.tags[i]);
+      restored.tags.length !== room.tags.length || restored.tags.some((t, i) => t !== room.tags[i]);
     if (
       restored.type !== room.type ||
       restored.name !== room.name ||
@@ -1654,11 +1644,7 @@ export interface GroupResult {
  * Apply several ops ATOMICALLY: if any op is rejected, nothing is applied and
  * the `OpRejectedError` propagates. Undo/redo works on the group, not the ops.
  */
-export function applyGroup(
-  model: ProjectDoc,
-  ops: readonly Op[],
-  groupId?: GroupId,
-): GroupResult {
+export function applyGroup(model: ProjectDoc, ops: readonly Op[], groupId?: GroupId): GroupResult {
   let current = model;
   const inverses: Op[][] = [];
   const applied: Op[] = [];

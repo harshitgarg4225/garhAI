@@ -424,9 +424,13 @@ describe('balcony and column ops dirty their one storey', () => {
 
 describe('storey and levels ops', () => {
   it('storey.set_height on GF shifts every FFL above it: all groups rebuild', () => {
-    expectPlan(gPlusOneDoc(), [{ type: 'storey.set_height', payload: { storeyId: GF, heightMm: 3200 } }], {
-      rebuild: [GF_KEY, FF_KEY, ROOF_GROUP_KEY],
-    });
+    expectPlan(
+      gPlusOneDoc(),
+      [{ type: 'storey.set_height', payload: { storeyId: GF, heightMm: 3200 } }],
+      {
+        rebuild: [GF_KEY, FF_KEY, ROOF_GROUP_KEY],
+      },
+    );
   });
 
   it('storey.add on top creates its group, retops the roof, retops FF — GF keeps', () => {
@@ -575,30 +579,48 @@ describe('non-geometry ops rebuild nothing', () => {
     const doc = gPlusOneDoc();
     expectPlan(
       doc,
-      [{ type: 'room.assign', payload: { roomId: roomOn(doc, GF), type: 'bedroom', name: 'Bed 1' } }],
+      [
+        {
+          type: 'room.assign',
+          payload: { roomId: roomOn(doc, GF), type: 'bedroom', name: 'Bed 1' },
+        },
+      ],
       { rebuild: [] },
     );
   });
 
   it('room.assign to shaft on a LOWER storey still rebuilds nothing', () => {
     const doc = gPlusOneDoc();
-    expectPlan(doc, [{ type: 'room.assign', payload: { roomId: roomOn(doc, GF), type: 'shaft' } }], {
-      rebuild: [],
-    });
+    expectPlan(
+      doc,
+      [{ type: 'room.assign', payload: { roomId: roomOn(doc, GF), type: 'shaft' } }],
+      {
+        rebuild: [],
+      },
+    );
   });
 
   it('room.assign to shaft on the TOP storey rebuilds the roof — the OHT appears', () => {
     const doc = gPlusOneDoc();
-    expectPlan(doc, [{ type: 'room.assign', payload: { roomId: roomOn(doc, FF), type: 'shaft' } }], {
-      rebuild: [ROOF_GROUP_KEY],
-    });
+    expectPlan(
+      doc,
+      [{ type: 'room.assign', payload: { roomId: roomOn(doc, FF), type: 'shaft' } }],
+      {
+        rebuild: [ROOF_GROUP_KEY],
+      },
+    );
   });
 
   it('room.set_target rebuilds nothing', () => {
     const doc = gPlusOneDoc();
     expectPlan(
       doc,
-      [{ type: 'room.set_target', payload: { roomId: roomOn(doc, GF), targetAreaMm2: 12_000_000 } }],
+      [
+        {
+          type: 'room.set_target',
+          payload: { roomId: roomOn(doc, GF), targetAreaMm2: 12_000_000 },
+        },
+      ],
       { rebuild: [] },
     );
   });

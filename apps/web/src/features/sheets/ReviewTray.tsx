@@ -41,12 +41,7 @@ export interface ReviewTrayProps {
   className?: string;
 }
 
-export function ReviewTray({
-  tray,
-  loading,
-  onRefresh,
-  className,
-}: ReviewTrayProps): JSX.Element {
+export function ReviewTray({ tray, loading, onRefresh, className }: ReviewTrayProps): JSX.Element {
   const { toast } = useToast();
   const dispatch = useModelStore((state) => state.dispatch);
   const [busy, setBusy] = useState<string | null>(null);
@@ -56,7 +51,7 @@ export function ReviewTray({
   const total = (tray?.attachedCount ?? 0) + orphans.length;
 
   const run = useCallback(
-    async (annotation: SheetAnnotation, kind: 'reattach' | 'delete') => {
+    (annotation: SheetAnnotation, kind: 'reattach' | 'delete') => {
       const modelId = annotation.modelAnnotationId;
       if (!modelId) {
         // The projection has no op-log id for this row, so no op can address it. Say
@@ -167,7 +162,9 @@ export function ReviewTray({
                 <Icon name="alert-triangle" size={14} className="mt-0.5 shrink-0 text-warn-ink" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-ink">
-                    {annotationText(annotation) || <em className="text-ink-muted">Untitled note</em>}
+                    {annotationText(annotation) || (
+                      <em className="text-ink-muted">Untitled note</em>
+                    )}
                   </p>
                   <p className="mt-0.5 text-2xs text-ink-muted">
                     {annotation.sheetNumber ? `Sheet ${annotation.sheetNumber} · ` : ''}

@@ -153,7 +153,12 @@ export function DiffPreview({
   if (needsClarification !== undefined) {
     const chips = clarificationChips ?? [];
     return (
-      <div className={cn('flex flex-col gap-3 rounded-lg border border-line bg-surface p-4', className)}>
+      <div
+        className={cn(
+          'flex flex-col gap-3 rounded-lg border border-line bg-surface p-4',
+          className,
+        )}
+      >
         <h3 className="text-sm font-semibold text-ink">One quick question</h3>
         <p className="text-sm leading-6 text-ink-muted">{needsClarification}</p>
         {chips.length > 0 && onClarify !== undefined ? (
@@ -202,7 +207,10 @@ export function DiffPreview({
   return (
     <section
       aria-label="Proposed change"
-      className={cn('flex flex-col overflow-hidden rounded-lg border border-line bg-surface', className)}
+      className={cn(
+        'flex flex-col overflow-hidden rounded-lg border border-line bg-surface',
+        className,
+      )}
     >
       <header className="flex items-start gap-3 border-b border-line px-4 py-3">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-ink">

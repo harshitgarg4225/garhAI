@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The only geometry the rules engine is allowed to do.
 
 The engine reads **pre-derived** scalars (``room.areaMm2``, ``leastWidthMm``,
@@ -22,9 +20,11 @@ result is rounded half-up to whole millimetres *before* anything is classified,
 so the classification itself stays reproducible (``rulepacks/README.md``).
 """
 
+from __future__ import annotations
+
 import math
+from collections.abc import Sequence
 from fractions import Fraction
-from typing import List, Sequence, Tuple
 
 __all__ = [
     "Point",
@@ -41,7 +41,7 @@ __all__ = [
 
 #: An integer-millimetre point. Plot-local: origin at the plot's SW corner,
 #: +X east, +Y north *of the plot*, which true north may differ from.
-Point = Tuple[int, int]
+Point = tuple[int, int]
 Ring = Sequence[Point]
 
 
@@ -104,7 +104,7 @@ def polygon_centroid_mm(ring: Ring) -> Point:
     return (math.floor(fx + Fraction(1, 2)), math.floor(fy + Fraction(1, 2)))
 
 
-def polygon_bbox(ring: Ring) -> Tuple[int, int, int, int]:
+def polygon_bbox(ring: Ring) -> tuple[int, int, int, int]:
     """``(min_x, min_y, max_x, max_y)``."""
     xs = [p[0] for p in ring]
     ys = [p[1] for p in ring]
@@ -157,12 +157,12 @@ def rotate_ccw_deg(point: Point, degrees: int) -> Point:
 # Exact polygon ∩ axis-aligned rectangle area
 # ---------------------------------------------------------------------------
 
-_FPoint = Tuple[Fraction, Fraction]
+_FPoint = tuple[Fraction, Fraction]
 
 
 def _clip_half_plane(
     ring: Sequence[_FPoint], axis: int, bound: Fraction, keep_greater: bool
-) -> List[_FPoint]:
+) -> list[_FPoint]:
     """Sutherland-Hodgman against one axis-aligned half-plane, exactly.
 
     Intersection parameters are rationals, so :class:`~fractions.Fraction`
@@ -177,7 +177,7 @@ def _clip_half_plane(
     def inside(p: _FPoint) -> bool:
         return p[axis] >= bound if keep_greater else p[axis] <= bound
 
-    out: List[_FPoint] = []
+    out: list[_FPoint] = []
     n = len(ring)
     for i in range(n):
         cur = ring[i]
@@ -192,16 +192,14 @@ def _clip_half_plane(
                 continue
             t = (bound - cur[axis]) / span
             other = 1 - axis
-            crossing: List[Fraction] = [Fraction(0), Fraction(0)]
+            crossing: list[Fraction] = [Fraction(0), Fraction(0)]
             crossing[axis] = bound
             crossing[other] = cur[other] + (nxt[other] - cur[other]) * t
             out.append((crossing[0], crossing[1]))
     return out
 
 
-def clip_area_against_rect(
-    ring: Ring, x0: int, y0: int, x1: int, y1: int
-) -> Fraction:
+def clip_area_against_rect(ring: Ring, x0: int, y0: int, x1: int, y1: int) -> Fraction:
     """Exact area of ``ring`` ∩ the axis-aligned rectangle ``[x0,x1] x [y0,y1]``.
 
     Returns 0 for a degenerate rectangle or an empty intersection. The polygon
@@ -209,7 +207,7 @@ def clip_area_against_rect(
     """
     if x1 <= x0 or y1 <= y0 or len(ring) < 3:
         return Fraction(0)
-    poly: List[_FPoint] = [(Fraction(p[0]), Fraction(p[1])) for p in ring]
+    poly: list[_FPoint] = [(Fraction(p[0]), Fraction(p[1])) for p in ring]
     poly = _clip_half_plane(poly, 0, Fraction(x0), True)
     poly = _clip_half_plane(poly, 0, Fraction(x1), False)
     poly = _clip_half_plane(poly, 1, Fraction(y0), True)

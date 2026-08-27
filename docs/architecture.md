@@ -81,26 +81,26 @@ hard-fail plan" is a gate in the worker, not a warning in the UI.
 
 ## Where each playbook section lives
 
-| § | Concern | Code |
-|---|---|---|
-| 1 | Repo layout, tooling | root config, `Makefile`, `.github/workflows/ci.yml` |
-| 2 | Database schema | `apps/api/garh_api/models.py`, `apps/api/migrations/` |
-| 3 | Model core: geometry + document | `packages/model/src/`, `apps/api/garh_model/` |
-| 4 | Op taxonomy (~32 ops) | `packages/model/src/ops/`, mirrored in `garh_model` |
-| 5 | Layout solver | `services/solver/` |
-| 6 | Rules engine + packs | `apps/api/garh_model/rules/`, `rulepacks/` |
-| 7 | Auto-dimensioning + sheets | `services/drawings/` |
-| 8 | 3D + facade kits | `apps/web/src/three/`, `apps/web/src/facade/` |
-| 9 | Render service | `services/render/` |
-| 10 | LLM: brief parse + copilot | `apps/api/garh_api/llm/` |
-| 11 | API surface | `apps/api/garh_api/routers/` |
-| 12 | Frontend architecture | `apps/web/src/` |
-| 13 | Security | `garh_api/tenancy.py`, plus the `Makefile` guards |
-| 14 | Performance budgets | asserted in the tests that own each budget |
-| 15 | UX + delight | `apps/web/src/`, `packages/ui/` |
-| 16 | Testing + goldens | `fixtures/`, `e2e/` |
-| 17 | Seed data + demo project | `apps/api/garh_api/seed/` |
-| 18 | Env, config, deployment | `garh_api/config.py`, `.env.example`, `docker-compose.yml` |
+| §   | Concern                         | Code                                                       |
+| --- | ------------------------------- | ---------------------------------------------------------- |
+| 1   | Repo layout, tooling            | root config, `Makefile`, `.github/workflows/ci.yml`        |
+| 2   | Database schema                 | `apps/api/garh_api/models.py`, `apps/api/migrations/`      |
+| 3   | Model core: geometry + document | `packages/model/src/`, `apps/api/garh_model/`              |
+| 4   | Op taxonomy (~32 ops)           | `packages/model/src/ops/`, mirrored in `garh_model`        |
+| 5   | Layout solver                   | `services/solver/`                                         |
+| 6   | Rules engine + packs            | `apps/api/garh_model/rules/`, `rulepacks/`                 |
+| 7   | Auto-dimensioning + sheets      | `services/drawings/`                                       |
+| 8   | 3D + facade kits                | `apps/web/src/three/`, `apps/web/src/facade/`              |
+| 9   | Render service                  | `services/render/`                                         |
+| 10  | LLM: brief parse + copilot      | `apps/api/garh_api/llm/`                                   |
+| 11  | API surface                     | `apps/api/garh_api/routers/`                               |
+| 12  | Frontend architecture           | `apps/web/src/`                                            |
+| 13  | Security                        | `garh_api/tenancy.py`, plus the `Makefile` guards          |
+| 14  | Performance budgets             | asserted in the tests that own each budget                 |
+| 15  | UX + delight                    | `apps/web/src/`, `packages/ui/`                            |
+| 16  | Testing + goldens               | `fixtures/`, `e2e/`                                        |
+| 17  | Seed data + demo project        | `apps/api/garh_api/seed/`                                  |
+| 18  | Env, config, deployment         | `garh_api/config.py`, `.env.example`, `docker-compose.yml` |
 
 ---
 
@@ -113,7 +113,7 @@ The model core exists twice on purpose:
 - **`apps/api/garh_model/`** (Python) — the server validates and folds
   authoritatively; the solver, rules engine and drawing engine all read it.
 
-They must agree exactly, or the client and server disagree about what a plan *is*.
+They must agree exactly, or the client and server disagree about what a plan _is_.
 The contract that keeps them honest is the **JSON Schema in
 `packages/model/schema/`**, plus golden tests that run the same inputs through both
 implementations and compare — most importantly the units conversions, where a
@@ -139,13 +139,13 @@ return locked rooms untouched, and why that matching gets tested hard.
 The split between "must be reproducible" and "may be creative" is the core of the
 trust model, and it's worth being explicit about:
 
-| Deterministic — unit-tested against goldens | ML / LLM — validated before display |
-|---|---|
-| Layout solver (CP-SAT + heuristics) | Brief parsing (free text → Brief + assumptions) |
-| Rules engine (NBC, city bye-laws, Vastu) | Copilot (NL → typed ops) |
-| Dimensions and dimension chains | Facade kit selection |
-| Areas, FAR, coverage | Render generation |
-| DXF/PDF/SVG output | Option rationales (verbalise given facts only) |
+| Deterministic — unit-tested against goldens | ML / LLM — validated before display             |
+| ------------------------------------------- | ----------------------------------------------- |
+| Layout solver (CP-SAT + heuristics)         | Brief parsing (free text → Brief + assumptions) |
+| Rules engine (NBC, city bye-laws, Vastu)    | Copilot (NL → typed ops)                        |
+| Dimensions and dimension chains             | Facade kit selection                            |
+| Areas, FAR, coverage                        | Render generation                               |
+| DXF/PDF/SVG output                          | Option rationales (verbalise given facts only)  |
 
 Everything on the right is validated by something on the left before a user sees it.
 That's the whole creator–critic idea: the LLM proposes, the deterministic engine
@@ -171,11 +171,11 @@ dependencies, so a bug in the viewer cannot become a write path.
 
 Every external AI/GPU service sits behind an interface with a deterministic mock:
 
-| Provider | `mock` (default) | Real |
-|---|---|---|
-| `PROVIDER_LLM` | fixture-driven, deterministic | Anthropic API, structured outputs |
-| `PROVIDER_RENDER` | composites the viewport + preset tint + watermark, instant, seed-deterministic | diffusers + ControlNet, SDXL / FLUX.1-schnell, Real-ESRGAN |
-| `PROVIDER_BILLING` | in-memory | Razorpay |
+| Provider           | `mock` (default)                                                               | Real                                                       |
+| ------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `PROVIDER_LLM`     | fixture-driven, deterministic                                                  | Anthropic API, structured outputs                          |
+| `PROVIDER_RENDER`  | composites the viewport + preset tint + watermark, instant, seed-deterministic | diffusers + ControlNet, SDXL / FLUX.1-schnell, Real-ESRGAN |
+| `PROVIDER_BILLING` | in-memory                                                                      | Razorpay                                                   |
 
 This is not a testing nicety — it's what makes the entire product runnable and
 e2e-testable with **zero API keys and zero GPUs**, which in turn is what keeps CI

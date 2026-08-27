@@ -155,7 +155,10 @@ export function ShareViewerPage(): JSX.Element {
               ? 'It may have expired or been turned off. Ask the architect who sent it for a fresh link.'
               : phase.error.message
           }
-          demoAction={{ notApplicable: 'A share link is scoped to one design; there is nothing else to open here.' }}
+          demoAction={{
+            notApplicable:
+              'A share link is scoped to one design; there is nothing else to open here.',
+          }}
         />
       </main>
     );
@@ -203,12 +206,20 @@ export function ShareViewerPage(): JSX.Element {
             </TabPanel>
           ) : null}
           {granted.some((t) => t.key === 'renders') ? (
-            <TabPanel value="renders" active={tab === 'renders'} className="min-h-0 flex-1 overflow-y-auto">
+            <TabPanel
+              value="renders"
+              active={tab === 'renders'}
+              className="min-h-0 flex-1 overflow-y-auto"
+            >
               <ShareRendersView token={token} />
             </TabPanel>
           ) : null}
           {granted.some((t) => t.key === 'sheets') ? (
-            <TabPanel value="sheets" active={tab === 'sheets'} className="min-h-0 flex-1 overflow-y-auto">
+            <TabPanel
+              value="sheets"
+              active={tab === 'sheets'}
+              className="min-h-0 flex-1 overflow-y-auto"
+            >
               <ShareSheetsView token={token} />
             </TabPanel>
           ) : null}
@@ -376,7 +387,10 @@ function ShareRendersView({ token }: { token: string }): JSX.Element {
 
   if (state.name === 'loading') {
     return (
-      <SkeletonRegion label="Loading renders" className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+      <SkeletonRegion
+        label="Loading renders"
+        className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3"
+      >
         <Skeleton className="aspect-video w-full" shape="block" />
         <Skeleton className="aspect-video w-full" shape="block" />
         <Skeleton className="aspect-video w-full" shape="block" />
@@ -515,8 +529,8 @@ function ShareSheetsView({ token }: { token: string }): JSX.Element {
         ))}
       </ul>
       <p className="mt-4 text-xs text-ink-muted">
-        This link lists the set; the PDF and DXF files come from your architect (§13 — downloads
-        are not part of a share link).
+        This link lists the set; the PDF and DXF files come from your architect (§13 — downloads are
+        not part of a share link).
       </p>
     </div>
   );

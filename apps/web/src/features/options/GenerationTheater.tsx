@@ -62,9 +62,7 @@ export function GenerationTheater({
         </p>
       ))}
 
-      {theater.silhouettes.length > 0 ? (
-        <Silhouettes silhouettes={theater.silhouettes} />
-      ) : null}
+      {theater.silhouettes.length > 0 ? <Silhouettes silhouettes={theater.silhouettes} /> : null}
 
       {theater.status === 'failed' && theater.failure !== null ? (
         <FailureCard
@@ -116,11 +114,7 @@ function StageRow({ stage, jobDone }: { stage: TheaterStage; jobDone: boolean })
   );
 }
 
-function Silhouettes({
-  silhouettes,
-}: {
-  silhouettes: readonly TheaterSilhouette[];
-}): JSX.Element {
+function Silhouettes({ silhouettes }: { silhouettes: readonly TheaterSilhouette[] }): JSX.Element {
   return (
     <div>
       <p className="mb-2 text-xs font-medium text-ink-muted">
@@ -168,10 +162,7 @@ function FailureCard({
   onRetry: (() => void) | undefined;
 }): JSX.Element {
   return (
-    <div
-      role="alert"
-      className="space-y-2 rounded-md border border-fail-line bg-fail-soft p-3"
-    >
+    <div role="alert" className="space-y-2 rounded-md border border-fail-line bg-fail-soft p-3">
       <p className="text-sm font-medium text-fail-ink">{message}</p>
       {discardSummary !== null ? <p className="text-xs text-fail-ink">{discardSummary}</p> : null}
       <p className="text-xs text-fail-ink">

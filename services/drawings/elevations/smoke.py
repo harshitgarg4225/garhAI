@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", ".."))
@@ -33,10 +33,10 @@ _APPS_API = os.path.join(_REPO_ROOT, "apps", "api")
 PASS = "  ok  "
 FAIL = "  FAIL"
 
-_failures: List[str] = []
+_failures: list[str] = []
 
 
-def bootstrap() -> Tuple[str, ...]:
+def bootstrap() -> tuple[str, ...]:
     """Put the repo on the path and stub the absent worker deps. Returns what was faked."""
     for path in (_REPO_ROOT, _APPS_API):
         if path not in sys.path:
@@ -62,8 +62,7 @@ def report(drawing: Any) -> None:
     print("  by layer   : %s" % _fmt(drawing.by_layer()))
     print("  by kind    : %s" % _fmt(drawing.by_kind()))
     print(
-        "  extent     : u %d..%d mm, z %d..%d mm"
-        % (extent[0], extent[2], extent[1], extent[3])
+        "  extent     : u %d..%d mm, z %d..%d mm" % (extent[0], extent[2], extent[1], extent[3])
         if extent
         else "  extent     : (empty)"
     )
@@ -80,15 +79,18 @@ def report(drawing: Any) -> None:
                 chain.sum_of_segments(),
             )
         )
-    print("  labels     : %d, collisions %d" % (
-        len(drawing.label_boxes()),
-        len(find_label_collisions(drawing.label_boxes())),
-    ))
+    print(
+        "  labels     : %d, collisions %d"
+        % (
+            len(drawing.label_boxes()),
+            len(find_label_collisions(drawing.label_boxes())),
+        )
+    )
     for note in drawing.notes:
         print("  note       : %s" % note)
 
 
-def _fmt(counts: Dict[str, int]) -> str:
+def _fmt(counts: dict[str, int]) -> str:
     return ", ".join("%s=%d" % (key, value) for key, value in counts.items()) or "(none)"
 
 
@@ -148,7 +150,9 @@ def main() -> int:
             "%s: no overlapping labels" % direction,
             not find_label_collisions(drawing.label_boxes()),
         )
-        check("%s: no markup in any text (§13)" % direction, not find_unsafe_text(drawing.primitives))
+        check(
+            "%s: no markup in any text (§13)" % direction, not find_unsafe_text(drawing.primitives)
+        )
 
     # Level markers must be the model's own numbers.
     levels = house.levels

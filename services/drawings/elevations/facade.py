@@ -30,8 +30,9 @@ read by attribute access, which is what lets this run on a bare interpreter.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 from services.drawings.elevations.vertical import (
     PROBE_MM,
@@ -62,15 +63,15 @@ __all__ = [
 ]
 
 #: A closed ring of integer-mm model points, no repeated last vertex.
-Ring = Tuple[Tuple[int, int], ...]
+Ring = tuple[tuple[int, int], ...]
 
 
-def _pt(value: Any) -> Tuple[int, int]:
+def _pt(value: Any) -> tuple[int, int]:
     """Model ``Pt`` → plain tuple. The one place the document's point type is read."""
     return (int(value.x), int(value.y))
 
 
-def wall_axis_is_horizontal(wall: Any) -> Optional[bool]:
+def wall_axis_is_horizontal(wall: Any) -> bool | None:
     """True for a wall running along ``+X``, False along ``+Y``, None if it is neither.
 
     MVP is orthogonal-only (§7 step 1: "H/V; MVP is orthogonal-only"). A diagonal wall
@@ -85,7 +86,7 @@ def wall_axis_is_horizontal(wall: Any) -> Optional[bool]:
     return None
 
 
-def wall_rect(wall: Any) -> Optional[Tuple[int, int, int, int]]:
+def wall_rect(wall: Any) -> tuple[int, int, int, int] | None:
     """The wall's axis-aligned footprint ``(x_lo, y_lo, x_hi, y_hi)``, exact.
 
     The thickness is split ``lo = centre - t // 2`` / ``hi = lo + t`` so a 115mm wall is
@@ -106,7 +107,7 @@ def wall_rect(wall: Any) -> Optional[Tuple[int, int, int, int]]:
 # ---------------------------------------------------------------------------
 # Footprints
 # ---------------------------------------------------------------------------
-def footprint_of(house: Any, storey_id: str) -> Optional[Ring]:
+def footprint_of(house: Any, storey_id: str) -> Ring | None:
     """The storey's outer boundary: its floor slab, else the outline of its walls.
 
     The floor slab is the right answer because the model core derives it from the walls'
@@ -133,9 +134,9 @@ def footprint_of(house: Any, storey_id: str) -> Optional[Ring]:
     return ((x_lo, y_lo), (x_hi, y_lo), (x_hi, y_hi), (x_lo, y_hi))
 
 
-def footprint_rings(house: Any) -> Dict[str, Ring]:
+def footprint_rings(house: Any) -> dict[str, Ring]:
     """Footprint per storey id, skipping storeys with nothing on them."""
-    out: Dict[str, Ring] = {}
+    out: dict[str, Ring] = {}
     for storey in house.storeys:
         ring = footprint_of(house, storey.id)
         if ring is not None:
@@ -143,7 +144,7 @@ def footprint_rings(house: Any) -> Dict[str, Ring]:
     return out
 
 
-def storey_extent(ring: Ring, u_axis: Tuple[int, int]) -> Interval:
+def storey_extent(ring: Ring, u_axis: tuple[int, int]) -> Interval:
     """The storey's silhouette span in drawing ``u`` (before the origin shift)."""
     values = [u_of(x, y, u_axis) for x, y in ring]
     return (min(values), max(values))
@@ -152,7 +153,7 @@ def storey_extent(ring: Ring, u_axis: Tuple[int, int]) -> Interval:
 # ---------------------------------------------------------------------------
 # Which way does a wall face?
 # ---------------------------------------------------------------------------
-def outward_normal_of(wall: Any, footprint: Ring) -> Optional[Tuple[int, int]]:
+def outward_normal_of(wall: Any, footprint: Ring) -> tuple[int, int] | None:
     """The wall's outward normal, or None when the probe is inconclusive.
 
     Probes both sides of the centreline midpoint at ``t // 2 + PROBE_MM``. Outdoors is the
@@ -205,20 +206,20 @@ def facade_faces(
     house: Any,
     *,
     direction: str,
-    normal: Tuple[int, int],
-    u_axis: Tuple[int, int],
-    footprints: Dict[str, Ring],
-    storey_levels: Dict[str, Tuple[int, int]],
+    normal: tuple[int, int],
+    u_axis: tuple[int, int],
+    footprints: dict[str, Ring],
+    storey_levels: dict[str, tuple[int, int]],
     include_internal: bool = False,
-) -> Tuple[Tuple[FacadeFace, ...], Tuple[str, ...]]:
+) -> tuple[tuple[FacadeFace, ...], tuple[str, ...]]:
     """Every wall face pointing at the viewer, plus notes about what was skipped.
 
     ``storey_levels`` maps a storey id to ``(ffl_mm, top_mm)`` — the wall's vertical
     extent. Internal walls are excluded by default: they are behind the facade, and the
     only reason to include one would be a section, which has its own projector.
     """
-    faces: List[FacadeFace] = []
-    notes: List[str] = []
+    faces: list[FacadeFace] = []
+    notes: list[str] = []
     skipped_diagonal = 0
     for wall in sorted(house.walls, key=lambda w: str(w.id)):
         storey_id = str(wall.storey_id)
@@ -277,7 +278,7 @@ class FacadeOpening:
     wall_id: str
     storey_id: str
     kind: str
-    tag: Optional[str]
+    tag: str | None
     u_lo: int
     u_hi: int
     z_lo: int
@@ -303,9 +304,9 @@ def visible_openings(
     house: Any,
     *,
     faces: Sequence[FacadeFace],
-    u_axis: Tuple[int, int],
-    storey_ffl: Dict[str, int],
-) -> Tuple[Tuple[FacadeOpening, ...], Tuple[str, ...]]:
+    u_axis: tuple[int, int],
+    storey_ffl: dict[str, int],
+) -> tuple[tuple[FacadeOpening, ...], tuple[str, ...]]:
     """Openings on the faces the viewer can see — the hidden-line filter.
 
     Two rules, both load-bearing:
@@ -320,8 +321,8 @@ def visible_openings(
       docstring for why that is the safer default.
     """
     by_wall = {face.wall_id: face for face in faces}
-    out: List[FacadeOpening] = []
-    notes: List[str] = []
+    out: list[FacadeOpening] = []
+    notes: list[str] = []
     hidden_far = 0
     occluded = 0
     partial = 0
@@ -357,9 +358,7 @@ def visible_openings(
         if any(contains(f.u_span, span_u) and contains(f.z_span, span_z) for f in nearer):
             occluded += 1
             continue
-        if any(
-            _overlaps(f.u_span, span_u) and _overlaps(f.z_span, span_z) for f in nearer
-        ):
+        if any(_overlaps(f.u_span, span_u) and _overlaps(f.z_span, span_z) for f in nearer):
             partial += 1
         out.append(
             FacadeOpening(
@@ -394,7 +393,7 @@ def _overlaps(a: Interval, b: Interval) -> bool:
     return a[0] < b[1] and b[0] < a[1]
 
 
-def _find(items: Sequence[Any], element_id: str) -> Optional[Any]:
+def _find(items: Sequence[Any], element_id: str) -> Any | None:
     for item in items:
         if str(item.id) == element_id:
             return item
@@ -420,11 +419,11 @@ class ProjectedBalcony:
 def visible_balconies(
     house: Any,
     *,
-    normal: Tuple[int, int],
-    u_axis: Tuple[int, int],
-    footprints: Dict[str, Ring],
-    storey_ffl: Dict[str, int],
-) -> Tuple[ProjectedBalcony, ...]:
+    normal: tuple[int, int],
+    u_axis: tuple[int, int],
+    footprints: dict[str, Ring],
+    storey_ffl: dict[str, int],
+) -> tuple[ProjectedBalcony, ...]:
     """Balconies that project past the building line **on this facade**.
 
     A balcony on another face is behind the mass and is not drawn. "Past the building
@@ -432,7 +431,7 @@ def visible_balconies(
     beyond the storey footprint's, which is the same criterion the projection rules use
     for ``projection_mm``.
     """
-    out: List[ProjectedBalcony] = []
+    out: list[ProjectedBalcony] = []
     for balcony in sorted(getattr(house, "balconies", ()), key=lambda b: str(b.id)):
         storey_id = str(balcony.storey_id)
         footprint = footprints.get(storey_id)
@@ -461,7 +460,7 @@ def visible_balconies(
     return tuple(out)
 
 
-def merged_extent(spans: Sequence[Interval]) -> Optional[Interval]:
+def merged_extent(spans: Sequence[Interval]) -> Interval | None:
     """Overall span of a set of spans, or None when there are none."""
     merged = merge_intervals(spans)
     if not merged:

@@ -33,13 +33,13 @@ import uuid
 from typing import Any
 
 import pytest
-
 from garh_api.repositories import SolverJobRepository
 from garh_api.schemas.ops import MAX_CLIENT_OP_ID_LENGTH
 from garh_api.solver_apply import dependency_order, derived_client_op_id
 from garh_model import apply_group, state_hash
 from garh_model.model import empty_project_doc
 from garh_model.testing import FIXTURE_IDS
+
 from tests import factories
 from tests.helpers import op_payload, problem
 
@@ -48,7 +48,9 @@ from tests.helpers import op_payload, problem
 # ---------------------------------------------------------------------------
 
 
-def _wall(key: str, a: tuple[int, int], b: tuple[int, int], thickness: int, kind: str) -> dict[str, Any]:
+def _wall(
+    key: str, a: tuple[int, int], b: tuple[int, int], thickness: int, kind: str
+) -> dict[str, Any]:
     return {
         "type": "wall.add",
         "payload": {
@@ -127,25 +129,27 @@ def _expected_state_hash() -> str:
     return state_hash(folded.model)
 
 
-async def _succeeded_job(session: Any, actor: Any, project_id: Any, options: list[dict[str, Any]]) -> Any:
+async def _succeeded_job(
+    session: Any, actor: Any, project_id: Any, options: list[dict[str, Any]]
+) -> Any:
     job = await factories.create_solver_job(session, actor, project_id)
     updated = await SolverJobRepository(session, actor.ctx()).succeed(job.id, options)
     await session.commit()
     return updated
 
 
-def _apply_body(job_id: Any, option_index: int = 0, *, base_idx: int = -1, **op_extra: Any) -> dict[str, Any]:
-    apply_op = op_payload(
-        "solver.apply_option", solverJobId=str(job_id), optionIndex=option_index
-    )
+def _apply_body(
+    job_id: Any, option_index: int = 0, *, base_idx: int = -1, **op_extra: Any
+) -> dict[str, Any]:
+    apply_op = op_payload("solver.apply_option", solverJobId=str(job_id), optionIndex=option_index)
     apply_op.update(op_extra)
     return {"ops": [apply_op], "baseIdx": base_idx, "source": "solver"}
 
 
-async def _post_ops(client: Any, api: str, project_id: Any, headers: Any, body: dict[str, Any]) -> Any:
-    return await client.post(
-        "%s/projects/%s/ops" % (api, project_id), json=body, headers=headers
-    )
+async def _post_ops(
+    client: Any, api: str, project_id: Any, headers: Any, body: dict[str, Any]
+) -> Any:
+    return await client.post("%s/projects/%s/ops" % (api, project_id), json=body, headers=headers)
 
 
 # ---------------------------------------------------------------------------
@@ -159,9 +163,7 @@ async def test_apply_option_folds_clean_and_matches_state_hash(
 ) -> None:
     job = await _succeeded_job(session, firm_a, project_a.id, [_plan_option()])
 
-    response = await _post_ops(
-        client, api, project_a.id, firm_a.headers, _apply_body(job.id)
-    )
+    response = await _post_ops(client, api, project_a.id, firm_a.headers, _apply_body(job.id))
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["alreadyApplied"] is False
@@ -181,9 +183,7 @@ async def test_apply_option_orders_ops_by_dependency(
     dependency sort makes them foldable. A 422 here means the sort is gone."""
     job = await _succeeded_job(session, firm_a, project_a.id, [_plan_option()])
 
-    response = await _post_ops(
-        client, api, project_a.id, firm_a.headers, _apply_body(job.id)
-    )
+    response = await _post_ops(client, api, project_a.id, firm_a.headers, _apply_body(job.id))
     assert response.status_code == 200, response.text
 
     # The persisted op carries the expansion in fold order: storey before walls
@@ -240,9 +240,7 @@ async def test_locked_room_ids_survive_into_the_op_log(
     option = _plan_option(lockedRoomIds=["room_01J0000000000000000000LCK"])
     job = await _succeeded_job(session, firm_a, project_a.id, [option])
 
-    response = await _post_ops(
-        client, api, project_a.id, firm_a.headers, _apply_body(job.id)
-    )
+    response = await _post_ops(client, api, project_a.id, firm_a.headers, _apply_body(job.id))
     assert response.status_code == 200, response.text
 
     listed = await client.get(
@@ -267,15 +265,11 @@ async def test_reapply_is_a_replay_noop(
     must make the second request a replay, not a second application."""
     job = await _succeeded_job(session, firm_a, project_a.id, [_plan_option()])
 
-    first = await _post_ops(
-        client, api, project_a.id, firm_a.headers, _apply_body(job.id)
-    )
+    first = await _post_ops(client, api, project_a.id, firm_a.headers, _apply_body(job.id))
     assert first.status_code == 200, first.text
     first_body = first.json()
 
-    second = await _post_ops(
-        client, api, project_a.id, firm_a.headers, _apply_body(job.id)
-    )
+    second = await _post_ops(client, api, project_a.id, firm_a.headers, _apply_body(job.id))
     assert second.status_code == 200, second.text
     second_body = second.json()
     assert second_body["alreadyApplied"] is True
@@ -320,9 +314,7 @@ async def test_same_firm_other_project_job_is_404(
     other = await factories.create_project(session, firm_a, name="Rao Annexe")
     other_job = await _succeeded_job(session, firm_a, other.id, [_plan_option()])
 
-    response = await _post_ops(
-        client, api, project_a.id, firm_a.headers, _apply_body(other_job.id)
-    )
+    response = await _post_ops(client, api, project_a.id, firm_a.headers, _apply_body(other_job.id))
     assert response.status_code == 404, response.text
     problem(response)
 
@@ -331,9 +323,7 @@ async def test_same_firm_other_project_job_is_404(
 async def test_unparseable_job_id_is_404(
     client: Any, api: str, firm_a: Any, project_a: Any, clean_db: None, clean_redis: Any
 ) -> None:
-    response = await _post_ops(
-        client, api, project_a.id, firm_a.headers, _apply_body("not-a-uuid")
-    )
+    response = await _post_ops(client, api, project_a.id, firm_a.headers, _apply_body("not-a-uuid"))
     assert response.status_code == 404, response.text
     problem(response)
 
@@ -349,9 +339,7 @@ async def test_unfinished_job_is_409(
 ) -> None:
     job = await factories.create_solver_job(session, firm_a, project_a.id)  # queued
 
-    response = await _post_ops(
-        client, api, project_a.id, firm_a.headers, _apply_body(job.id)
-    )
+    response = await _post_ops(client, api, project_a.id, firm_a.headers, _apply_body(job.id))
     assert response.status_code == 409, response.text
     assert problem(response)["code"] == "solver_option_not_applicable"
 
@@ -382,9 +370,7 @@ async def test_apply_option_snapshots_a_design_version(
     snapshot folds to the same state the append reported."""
     job = await _succeeded_job(session, firm_a, project_a.id, [_plan_option()])
 
-    response = await _post_ops(
-        client, api, project_a.id, firm_a.headers, _apply_body(job.id)
-    )
+    response = await _post_ops(client, api, project_a.id, firm_a.headers, _apply_body(job.id))
     assert response.status_code == 200, response.text
     body = response.json()
     version_id = body["snapshotVersionId"]

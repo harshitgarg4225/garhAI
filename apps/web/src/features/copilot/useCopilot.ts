@@ -235,11 +235,7 @@ export const useCopilotStore = create<CopilotState>()((set, get) => {
       diff,
       beforeDoc,
       afterDoc: outcome.doc,
-      storeyId: pickDiffStoreyId(
-        outcome.doc,
-        touched,
-        useUiStore.getState().activeStoreyId,
-      ),
+      storeyId: pickDiffStoreyId(outcome.doc, touched, useUiStore.getState().activeStoreyId),
     });
   }
 
@@ -338,8 +334,7 @@ export const useCopilotStore = create<CopilotState>()((set, get) => {
       useUiStore.getState().pushToast({
         tone: 'success',
         title: 'Copilot edit applied',
-        description:
-          turn.ops.length === 1 ? null : `${turn.ops.length} changes, one undo step.`,
+        description: turn.ops.length === 1 ? null : `${turn.ops.length} changes, one undo step.`,
         action: { label: 'Undo', run: () => void useModelStore.getState().undo() },
       });
     },

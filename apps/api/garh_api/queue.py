@@ -89,12 +89,14 @@ later. If that changes, promote it to a table.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import time
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from datetime import UTC
+from typing import Any
 
 from garh_api.config import Settings, get_settings
 from garh_api.logging import get_logger
@@ -149,9 +151,7 @@ JOB_DRAWINGS_EXPORT = "drawings.export"
 JOB_DRAWINGS_IMPORT_DXF = "drawings.import_dxf"
 
 #: Flat tuple of all known kinds.
-JOB_KINDS: tuple[str, ...] = tuple(
-    kind for kinds in JOB_KINDS_BY_WORKER.values() for kind in kinds
-)
+JOB_KINDS: tuple[str, ...] = tuple(kind for kinds in JOB_KINDS_BY_WORKER.values() for kind in kinds)
 
 #: Export kinds accepted by ``POST /projects/:id/export`` (§11).
 EXPORT_KINDS: tuple[str, ...] = ("pdf-set", "dxf", "gltf", "png-pack")
@@ -246,12 +246,10 @@ def worker_for_kind(kind: str) -> str:
     for worker, kinds in JOB_KINDS_BY_WORKER.items():
         if kind in kinds:
             return worker
-    raise ValueError(
-        "Unknown job kind %r; expected one of %s." % (kind, ", ".join(JOB_KINDS))
-    )
+    raise ValueError("Unknown job kind %r; expected one of %s." % (kind, ", ".join(JOB_KINDS)))
 
 
-def queue_name(worker: str, settings: Optional[Settings] = None) -> str:
+def queue_name(worker: str, settings: Settings | None = None) -> str:
     """The work-queue list key for a worker."""
     cfg = settings or get_settings()
     if worker == WORKER_SOLVER:
@@ -263,19 +261,19 @@ def queue_name(worker: str, settings: Optional[Settings] = None) -> str:
     raise ValueError("Unknown worker %r; expected one of %s." % (worker, ", ".join(WORKERS)))
 
 
-def queue_for_kind(kind: str, settings: Optional[Settings] = None) -> str:
+def queue_for_kind(kind: str, settings: Settings | None = None) -> str:
     return queue_name(worker_for_kind(kind), settings)
 
 
-def delayed_queue(worker: str, settings: Optional[Settings] = None) -> str:
+def delayed_queue(worker: str, settings: Settings | None = None) -> str:
     return "%s:delayed" % queue_name(worker, settings)
 
 
-def processing_queue(worker: str, settings: Optional[Settings] = None) -> str:
+def processing_queue(worker: str, settings: Settings | None = None) -> str:
     return "%s:processing" % queue_name(worker, settings)
 
 
-def dead_letter_queue(worker: str, settings: Optional[Settings] = None) -> str:
+def dead_letter_queue(worker: str, settings: Settings | None = None) -> str:
     return "%s:dead" % queue_name(worker, settings)
 
 
@@ -319,14 +317,14 @@ class BlobRef:
     only), or ``path`` (developer scripts and golden runs).
     """
 
-    get_url: Optional[str] = None
-    put_url: Optional[str] = None
-    path: Optional[str] = None
-    inline_base64: Optional[str] = None
-    key: Optional[str] = None
-    content_type: Optional[str] = None
-    sha256: Optional[str] = None
-    size_bytes: Optional[int] = None
+    get_url: str | None = None
+    put_url: str | None = None
+    path: str | None = None
+    inline_base64: str | None = None
+    key: str | None = None
+    content_type: str | None = None
+    sha256: str | None = None
+    size_bytes: int | None = None
 
     def to_json(self) -> dict[str, Any]:
         out: dict[str, Any] = {}
@@ -391,11 +389,11 @@ class JobEnvelope:
     kind: str
     firm_id: str
     queue: str = ""
-    project_id: Optional[str] = None
-    design_version_id: Optional[str] = None
-    actor_user_id: Optional[str] = None
-    request_id: Optional[str] = None
-    idempotency_key: Optional[str] = None
+    project_id: str | None = None
+    design_version_id: str | None = None
+    actor_user_id: str | None = None
+    request_id: str | None = None
+    idempotency_key: str | None = None
     attempt: int = 1
     max_attempts: int = DEFAULT_MAX_ATTEMPTS
     enqueued_at_ms: int = field(default_factory=now_ms)
@@ -403,18 +401,16 @@ class JobEnvelope:
     not_before_ms: int = 0
     #: Hard wall-clock deadline; past it the runtime fails the job rather than starting
     #: work nobody is waiting for.
-    deadline_ms: Optional[int] = None
+    deadline_ms: int | None = None
     payload: dict[str, Any] = field(default_factory=dict)
-    payload_ref: Optional[BlobRef] = None
+    payload_ref: BlobRef | None = None
     assets: dict[str, BlobRef] = field(default_factory=dict)
     outputs: dict[str, BlobRef] = field(default_factory=dict)
     schema_version: int = ENVELOPE_SCHEMA_VERSION
 
     def __post_init__(self) -> None:
         if self.kind not in JOB_KINDS:
-            raise ValueError(
-                "kind must be one of %s, got %r." % (", ".join(JOB_KINDS), self.kind)
-            )
+            raise ValueError("kind must be one of %s, got %r." % (", ".join(JOB_KINDS), self.kind))
         if not self.firm_id:
             raise ValueError("A job envelope must carry firmId — it is the provenance.")
         if not self.job_id:
@@ -467,9 +463,7 @@ class JobEnvelope:
         the worker's lease bookkeeping ``LREM``s by exact string value, so encoding
         differences are not cosmetic.
         """
-        return json.dumps(
-            self.to_json(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
-        )
+        return json.dumps(self.to_json(), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 def new_job_id() -> str:
@@ -497,9 +491,9 @@ class ProgressEvent:
     type: str
     seq: int = 0
     ts_ms: int = field(default_factory=now_ms)
-    stage: Optional[str] = None
-    message: Optional[str] = None
-    percent: Optional[int] = None
+    stage: str | None = None
+    message: str | None = None
+    percent: int | None = None
     data: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -530,9 +524,7 @@ class ProgressEvent:
         return out
 
     def encode(self) -> str:
-        return json.dumps(
-            self.to_json(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
-        )
+        return json.dumps(self.to_json(), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
     @classmethod
     def decode(cls, raw: Any) -> ProgressEvent:
@@ -564,7 +556,7 @@ class ProgressEvent:
         return "progress"
 
 
-def _opt_str(value: Any) -> Optional[str]:
+def _opt_str(value: Any) -> str | None:
     return None if value is None else str(value)
 
 
@@ -575,7 +567,7 @@ def _opt_str(value: Any) -> Optional[str]:
 _redis_client: Any = None
 
 
-def get_redis(settings: Optional[Settings] = None) -> Any:
+def get_redis(settings: Settings | None = None) -> Any:
     """Process-wide async Redis client (``redis.asyncio``), created on first use.
 
     ``decode_responses=True``: every value we store is UTF-8 JSON, and decoding at the
@@ -609,7 +601,7 @@ async def ping() -> bool:
     """Liveness probe. Never raises."""
     try:
         return bool(await get_redis().ping())
-    except Exception:  # noqa: BLE001 - health probes must not raise
+    except Exception:
         return False
 
 
@@ -634,7 +626,7 @@ class QueueUnavailableError(RuntimeError):
 # ---------------------------------------------------------------------------
 
 
-async def enqueue(envelope: JobEnvelope, *, settings: Optional[Settings] = None) -> int:
+async def enqueue(envelope: JobEnvelope, *, settings: Settings | None = None) -> int:
     """Push a job onto its queue and publish the initial ``queued`` progress event.
 
     Returns the queue depth after the push (the UI shows "3rd in queue" from it).
@@ -652,7 +644,7 @@ async def enqueue(envelope: JobEnvelope, *, settings: Optional[Settings] = None)
             depth = int(await client.llen(key))
         else:
             depth = int(await client.lpush(key, raw))
-    except Exception as exc:  # noqa: BLE001 - normalise every redis failure
+    except Exception as exc:
         _log.error(
             "queue.enqueue_failed",
             queue=key,
@@ -660,9 +652,7 @@ async def enqueue(envelope: JobEnvelope, *, settings: Optional[Settings] = None)
             job_kind=envelope.kind,
             error="%s: %s" % (type(exc).__name__, exc),
         )
-        raise QueueUnavailableError(
-            "Could not reach the job queue to start this work."
-        ) from exc
+        raise QueueUnavailableError("Could not reach the job queue to start this work.") from exc
 
     _log.info(
         "queue.enqueued",
@@ -686,7 +676,7 @@ async def enqueue(envelope: JobEnvelope, *, settings: Optional[Settings] = None)
     return depth
 
 
-async def next_progress_seq(job_id: Any, *, settings: Optional[Settings] = None) -> int:
+async def next_progress_seq(job_id: Any, *, settings: Settings | None = None) -> int:
     """Allocate the next per-job event sequence number."""
     client = get_redis(settings)
     key = progress_seq_key(job_id)
@@ -696,7 +686,7 @@ async def next_progress_seq(job_id: Any, *, settings: Optional[Settings] = None)
 
 
 async def publish_progress(
-    event: ProgressEvent, *, settings: Optional[Settings] = None
+    event: ProgressEvent, *, settings: Settings | None = None
 ) -> ProgressEvent:
     """Publish an event to live listeners *and* append it to the replay backlog.
 
@@ -733,7 +723,7 @@ async def publish_progress(
         pipe.publish(progress_channel(stamped.job_id), raw)
         await pipe.execute()
         return stamped
-    except Exception as exc:  # noqa: BLE001 - progress must never break a job
+    except Exception as exc:
         _log.warning(
             "queue.progress_publish_failed",
             job_id=event.job_id,
@@ -743,13 +733,13 @@ async def publish_progress(
 
 
 async def read_progress_backlog(
-    job_id: Any, *, after_seq: int = 0, settings: Optional[Settings] = None
+    job_id: Any, *, after_seq: int = 0, settings: Settings | None = None
 ) -> list[ProgressEvent]:
     """Replay stored events with ``seq > after_seq`` (SSE ``Last-Event-ID`` resume)."""
     try:
         client = get_redis(settings)
         raw_items = await client.lrange(progress_log_key(job_id), 0, -1)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _log.warning(
             "queue.progress_backlog_failed",
             job_id=str(job_id),
@@ -772,7 +762,7 @@ async def progress_stream(
     job_id: Any,
     *,
     after_seq: int = 0,
-    settings: Optional[Settings] = None,
+    settings: Settings | None = None,
     poll_timeout: float = 1.0,
 ) -> AsyncIterator[ProgressEvent]:
     """Yield backlog events then live events, in ``seq`` order, without duplicates.
@@ -790,9 +780,7 @@ async def progress_stream(
     try:
         await pubsub.subscribe(progress_channel(job_id))
 
-        for event in await read_progress_backlog(
-            job_id, after_seq=after_seq, settings=settings
-        ):
+        for event in await read_progress_backlog(job_id, after_seq=after_seq, settings=settings):
             if event.seq > seen_max:
                 seen_max = event.seq
             yield event
@@ -800,9 +788,7 @@ async def progress_stream(
                 return
 
         while True:
-            message = await pubsub.get_message(
-                ignore_subscribe_messages=True, timeout=poll_timeout
-            )
+            message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=poll_timeout)
             if message is None:
                 continue
             raw = message.get("data")
@@ -819,13 +805,11 @@ async def progress_stream(
             if event.terminal:
                 return
     finally:
-        try:
+        with contextlib.suppress(Exception):
             await pubsub.aclose()
-        except Exception:  # noqa: BLE001 - teardown must not mask the real error
-            pass
 
 
-async def queue_depth(worker: str, *, settings: Optional[Settings] = None) -> int:
+async def queue_depth(worker: str, *, settings: Settings | None = None) -> int:
     """Pending items on a queue — the §18 queue-depth metric and the UI's "position".
 
     Counts the delayed set too: a job waiting out a retry backoff is genuinely still
@@ -838,11 +822,11 @@ async def queue_depth(worker: str, *, settings: Optional[Settings] = None) -> in
         pending = int(await client.llen(queue_name(worker, settings)))
         delayed = int(await client.zcard(delayed_queue(worker, settings)) or 0)
         return pending + delayed
-    except Exception:  # noqa: BLE001
+    except Exception:
         return -1
 
 
-async def queue_depths(*, settings: Optional[Settings] = None) -> dict[str, int]:
+async def queue_depths(*, settings: Settings | None = None) -> dict[str, int]:
     return {worker: await queue_depth(worker, settings=settings) for worker in WORKERS}
 
 
@@ -851,11 +835,11 @@ async def queue_depths(*, settings: Optional[Settings] = None) -> dict[str, int]
 # ---------------------------------------------------------------------------
 
 
-async def request_cancel(job_id: Any, *, settings: Optional[Settings] = None) -> None:
+async def request_cancel(job_id: Any, *, settings: Settings | None = None) -> None:
     """Ask a worker to stop. Advisory: the worker stops at its next checkpoint."""
     try:
         await get_redis(settings).set(cancel_key(job_id), "1", ex=CANCEL_TTL_SECONDS)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _log.warning(
             "queue.cancel_request_failed",
             job_id=str(job_id),
@@ -863,11 +847,9 @@ async def request_cancel(job_id: Any, *, settings: Optional[Settings] = None) ->
         )
 
 
-async def clear_cancel(job_id: Any, *, settings: Optional[Settings] = None) -> None:
-    try:
+async def clear_cancel(job_id: Any, *, settings: Settings | None = None) -> None:
+    with contextlib.suppress(Exception):
         await get_redis(settings).delete(cancel_key(job_id))
-    except Exception:  # noqa: BLE001
-        pass
 
 
 # ---------------------------------------------------------------------------
@@ -888,8 +870,8 @@ class LifecycleRecord:
     job_id: str
     kind: str
     firm_id: str
-    project_id: Optional[str]
-    design_version_id: Optional[str]
+    project_id: str | None
+    design_version_id: str | None
     type: str
     attempt: int
     event: ProgressEvent
@@ -903,7 +885,7 @@ class LifecycleRecord:
         return status_for_event(self.type)
 
 
-async def ensure_job_events_group(*, settings: Optional[Settings] = None) -> bool:
+async def ensure_job_events_group(*, settings: Settings | None = None) -> bool:
     """Create the API's consumer group on the lifecycle stream. Idempotent.
 
     ``mkstream=True`` so the group exists before any worker has ever run; ``id="0"`` so
@@ -912,12 +894,10 @@ async def ensure_job_events_group(*, settings: Optional[Settings] = None) -> boo
     """
     client = get_redis(settings)
     try:
-        await client.xgroup_create(
-            JOB_EVENTS_STREAM, JOB_EVENTS_GROUP, id="0", mkstream=True
-        )
+        await client.xgroup_create(JOB_EVENTS_STREAM, JOB_EVENTS_GROUP, id="0", mkstream=True)
         _log.info("queue.job_events_group_created", stream=JOB_EVENTS_STREAM)
         return True
-    except Exception as exc:  # noqa: BLE001 - BUSYGROUP is the normal case
+    except Exception as exc:
         if "BUSYGROUP" in str(exc):
             return True
         _log.warning(
@@ -933,7 +913,7 @@ async def read_job_events(
     *,
     count: int = 50,
     block_ms: int = 5000,
-    settings: Optional[Settings] = None,
+    settings: Settings | None = None,
 ) -> list[LifecycleRecord]:
     """Block for up to ``block_ms`` waiting for new lifecycle records.
 
@@ -950,7 +930,7 @@ async def read_job_events(
             count=count,
             block=block_ms,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         if "NOGROUP" in str(exc):
             await ensure_job_events_group(settings=settings)
             return []
@@ -989,17 +969,13 @@ def _parse_lifecycle(entry_id: str, fields: dict[str, Any]) -> LifecycleRecord:
     )
 
 
-async def ack_job_events(
-    entry_ids: list[str], *, settings: Optional[Settings] = None
-) -> int:
+async def ack_job_events(entry_ids: list[str], *, settings: Settings | None = None) -> int:
     """``XACK`` — call only after the applying transaction has committed."""
     if not entry_ids:
         return 0
     try:
-        return int(
-            await get_redis(settings).xack(JOB_EVENTS_STREAM, JOB_EVENTS_GROUP, *entry_ids)
-        )
-    except Exception as exc:  # noqa: BLE001
+        return int(await get_redis(settings).xack(JOB_EVENTS_STREAM, JOB_EVENTS_GROUP, *entry_ids))
+    except Exception as exc:
         _log.warning(
             "queue.lifecycle_ack_failed",
             count=len(entry_ids),
@@ -1014,9 +990,9 @@ async def ack_job_events(
 
 
 def _utc_now_iso() -> str:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 @dataclass(frozen=True)
@@ -1030,9 +1006,9 @@ class ExportJob:
     kind: str
     status: str
     progress: int = 0
-    design_version_id: Optional[str] = None
-    download_url: Optional[str] = None
-    error: Optional[str] = None
+    design_version_id: str | None = None
+    download_url: str | None = None
+    error: str | None = None
     params: dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=_utc_now_iso)
     updated_at: str = field(default_factory=_utc_now_iso)
@@ -1089,26 +1065,24 @@ class ExportJob:
         return ExportJob(**current)  # type: ignore[arg-type]
 
 
-async def put_export_job(job: ExportJob, *, settings: Optional[Settings] = None) -> ExportJob:
+async def put_export_job(job: ExportJob, *, settings: Settings | None = None) -> ExportJob:
     """Write/overwrite an export job record (24h TTL)."""
     client = get_redis(settings)
     payload = json.dumps(job.to_dict(), separators=(",", ":"), ensure_ascii=False)
     try:
-        await client.set(
-            export_job_key(job.firm_id, job.id), payload, ex=EXPORT_JOB_TTL_SECONDS
-        )
-    except Exception as exc:  # noqa: BLE001
+        await client.set(export_job_key(job.firm_id, job.id), payload, ex=EXPORT_JOB_TTL_SECONDS)
+    except Exception as exc:
         raise QueueUnavailableError("Could not record the export job.") from exc
     return job
 
 
 async def get_export_job(
-    firm_id: Any, job_id: Any, *, settings: Optional[Settings] = None
-) -> Optional[ExportJob]:
+    firm_id: Any, job_id: Any, *, settings: Settings | None = None
+) -> ExportJob | None:
     """Read an export job **for one firm only** — the key itself is the tenancy scope."""
     try:
         raw = await get_redis(settings).get(export_job_key(firm_id, job_id))
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
     if not raw:
         return None

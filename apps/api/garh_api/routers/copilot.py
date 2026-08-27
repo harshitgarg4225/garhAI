@@ -23,7 +23,8 @@ what the human chose.
 from __future__ import annotations
 
 import uuid
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from fastapi import APIRouter
 
@@ -242,6 +243,7 @@ async def record_decision(
     try:
         from services.llm.redaction import strip_pii
     except ImportError:  # pragma: no cover - decision logging must not need the LLM stack
+
         def strip_pii(text: str) -> str:
             return text
 

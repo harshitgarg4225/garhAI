@@ -661,9 +661,7 @@ export const useModelStore = create<ModelState>()((set, get) => ({
 // ---------------------------------------------------------------------------
 
 type SetState = (
-  partial:
-    | Partial<ModelState>
-    | ((state: ModelState) => Partial<ModelState>),
+  partial: Partial<ModelState> | ((state: ModelState) => Partial<ModelState>),
 ) => void;
 type GetState = () => ModelState;
 
@@ -842,7 +840,11 @@ function acceptAppend(
 }
 
 /** Fetch ops since `baseIdx` and rebase. Returns false if the fetch failed. */
-async function pullAndRebase(set: SetState, get: GetState, serverHeadIdx: number): Promise<boolean> {
+async function pullAndRebase(
+  set: SetState,
+  get: GetState,
+  serverHeadIdx: number,
+): Promise<boolean> {
   const s = get();
   if (!s.projectId) return false;
   try {

@@ -102,7 +102,7 @@ export class LineBuffer {
   }
 
   /** Append a polyline as `n − 1` segments. */
-  pushPolyline(pointsMm: ReadonlyArray<{ x: number; y: number }>, elevationMm = 0): void {
+  pushPolyline(pointsMm: readonly { x: number; y: number }[], elevationMm = 0): void {
     for (let i = 0; i + 1 < pointsMm.length; i++) {
       const a = pointsMm[i];
       const b = pointsMm[i + 1];

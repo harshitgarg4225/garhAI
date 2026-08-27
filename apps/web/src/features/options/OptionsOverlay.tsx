@@ -53,12 +53,7 @@ export function OptionsOverlay({
         <p className="hidden text-xs text-ink-muted sm:block">
           Apply one to put it on the canvas — it lands as a single undo step.
         </p>
-        <IconButton
-          icon="x"
-          label="Close options"
-          onClick={onClose}
-          className="ml-auto"
-        />
+        <IconButton icon="x" label="Close options" onClick={onClose} className="ml-auto" />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <OptionsPanel projectId={projectId} plotOutline={plotOutline} briefReady={briefReady} />

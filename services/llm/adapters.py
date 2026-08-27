@@ -38,11 +38,12 @@ assumption is visible *with* its reason.
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from services.common.config import WorkerSettings
 from services.common.logging import get_logger
-from services.llm.brief import BriefParseResult, BriefParser
+from services.llm.brief import BriefParser, BriefParseResult
 from services.llm.provider import LlmProvider, get_llm_provider
 
 log = get_logger("llm.adapters")
@@ -141,7 +142,7 @@ class BriefParserAdapter:
         await self._provider.aclose()
 
 
-def get_brief_parser(settings: Optional[WorkerSettings] = None) -> BriefParserAdapter:
+def get_brief_parser(settings: WorkerSettings | None = None) -> BriefParserAdapter:
     """The factory ``garh_api.routers.projects`` looks for.
 
     Honours ``PROVIDER_LLM`` exactly like :func:`get_llm_provider` — ``mock`` by

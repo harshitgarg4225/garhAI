@@ -23,7 +23,7 @@ end, in plot-local coordinates (origin at the plot's SW corner, +X east, +Y nort
 from __future__ import annotations
 
 import math
-from typing import Sequence
+from collections.abc import Sequence
 
 #: A point in integer millimetres.
 Pt = tuple[int, int]
@@ -44,7 +44,12 @@ def as_polygon(points: Sequence[Sequence[int]]) -> Polygon:
         if len(point) != 2:
             raise ValueError("vertex %d must be [x, y], got %r" % (index, point))
         x, y = point[0], point[1]
-        if isinstance(x, bool) or isinstance(y, bool) or not isinstance(x, int) or not isinstance(y, int):
+        if (
+            isinstance(x, bool)
+            or isinstance(y, bool)
+            or not isinstance(x, int)
+            or not isinstance(y, int)
+        ):
             raise ValueError(
                 "vertex %d is not integer millimetres: %r. Geometry is int mm everywhere "
                 "(SKILL.md locked decision)." % (index, point)
@@ -273,9 +278,8 @@ def _cross(origin: Pt, a: Pt, b: Pt) -> int:
 def _on_segment(a: Pt, point: Pt, b: Pt) -> bool:
     if _cross(a, b, point) != 0:
         return False
-    return (
-        min(a[0], b[0]) <= point[0] <= max(a[0], b[0])
-        and min(a[1], b[1]) <= point[1] <= max(a[1], b[1])
+    return min(a[0], b[0]) <= point[0] <= max(a[0], b[0]) and min(a[1], b[1]) <= point[1] <= max(
+        a[1], b[1]
     )
 
 

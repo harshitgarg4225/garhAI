@@ -117,7 +117,8 @@ function readThemeInto(colors: CanvasThemeColors): void {
  * violation uses these — which is what makes "selected" look the same on a wall
  * and on a piece of furniture without anyone coordinating.
  */
-export interface CanvasMaterials {
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- a type alias (not interface) carries the implicit index signature Object.values() needs to type the dispose loop below
+export type CanvasMaterials = {
   /** Outline of the current selection. */
   readonly selectionLine: LineBasicMaterial;
   /** Outline under the cursor. */
@@ -133,7 +134,7 @@ export interface CanvasMaterials {
   readonly violationFill: MeshBasicMaterial;
   /** Drag handles: light body, brand ring. */
   readonly handleFill: MeshBasicMaterial;
-}
+};
 
 let materials: CanvasMaterials | null = null;
 

@@ -87,7 +87,7 @@ class DiffusersRenderProvider:
             image = self._run_pipeline(pipe, req, prompt, base_w, base_h)
         except LicenseError:
             raise
-        except Exception as exc:  # noqa: BLE001 - torch/diffusers raise a wide family
+        except Exception as exc:
             raise ProviderError(
                 "The render engine could not finish this image.",
                 provider=self.name,
@@ -219,10 +219,8 @@ class DiffusersRenderProvider:
             checker = StableDiffusionSafetyChecker.from_pretrained(
                 "CompVis/stable-diffusion-safety-checker", torch_dtype=dtype
             ).to(self.device)
-            processor = CLIPImageProcessor.from_pretrained(
-                "openai/clip-vit-base-patch32"
-            )
-        except Exception as exc:  # noqa: BLE001
+            processor = CLIPImageProcessor.from_pretrained("openai/clip-vit-base-patch32")
+        except Exception as exc:
             raise PermanentError(
                 "Rendering is temporarily unavailable.",
                 action="Ask an administrator to check the render worker.",
@@ -275,15 +273,13 @@ class DiffusersRenderProvider:
     def _check_safety(self, image: Any) -> bool:
         if self._safety is None:
             return False
-        import numpy as np  # noqa: PLC0415 - part of the torch stack, ml extra only
+        import numpy as np
         import torch
 
         checker, processor = self._safety
         inputs = processor(images=image, return_tensors="pt").to(self.device)
         with torch.no_grad():
-            _checked, has_nsfw = checker(
-                images=[np.array(image)], clip_input=inputs.pixel_values
-            )
+            _checked, has_nsfw = checker(images=[np.array(image)], clip_input=inputs.pixel_values)
         return bool(has_nsfw and has_nsfw[0])
 
     # ------------------------------------------------------------------
@@ -307,7 +303,7 @@ class DiffusersRenderProvider:
                 return Image.fromarray(output).resize(
                     (target_w, target_h), Image.Resampling.LANCZOS
                 )
-            except Exception as exc:  # noqa: BLE001 - never fail a good image on polish
+            except Exception as exc:
                 log.warning("render.diffusers.upscale_failed", error=str(exc))
 
         self._upscaler_kind = "lanczos-fallback"
@@ -334,7 +330,7 @@ class DiffusersRenderProvider:
                 half=self.device == "cuda",
                 device=self.device,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("render.diffusers.upscaler_unavailable", error=str(exc))
             return None
         return self._upscaler

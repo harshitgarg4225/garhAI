@@ -40,7 +40,9 @@ export interface FurniturePlacementHudProps {
   readonly className?: string | undefined;
 }
 
-export function FurniturePlacementHud({ className }: FurniturePlacementHudProps): JSX.Element | null {
+export function FurniturePlacementHud({
+  className,
+}: FurniturePlacementHudProps): JSX.Element | null {
   const { controller, phase, armedItem, unitsDisplay } = useFurniturePlacement();
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -63,11 +65,7 @@ export function FurniturePlacementHud({ className }: FurniturePlacementHudProps)
       root.dataset.tone = state.tone;
 
       if (dimsRef.current !== null) {
-        dimsRef.current.textContent = formatDimensionPair(
-          item.widthMm,
-          item.depthMm,
-          unitsDisplay,
-        );
+        dimsRef.current.textContent = formatDimensionPair(item.widthMm, item.depthMm, unitsDisplay);
       }
       if (angleRef.current !== null) {
         angleRef.current.textContent = `${state.pose.rotationDeg}°`;
@@ -179,4 +177,3 @@ function writeIssues(list: HTMLUListElement | null, issues: readonly PlacementIs
     li.title = issue.basis;
   });
 }
-

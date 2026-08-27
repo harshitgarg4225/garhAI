@@ -101,9 +101,7 @@ class ProjectRepository(Repository[models.Project, Project]):
                 "status must be one of %s." % ", ".join(models.PROJECT_STATUSES)
             )
         if units not in models.PROJECT_UNITS:
-            raise RepositoryUsageError(
-                "units must be one of %s." % ", ".join(models.PROJECT_UNITS)
-            )
+            raise RepositoryUsageError("units must be one of %s." % ", ".join(models.PROJECT_UNITS))
         if architect_of_record is not None:
             await self._require_member(architect_of_record)
         row = self._new_row(
@@ -196,9 +194,7 @@ class ProjectRepository(Repository[models.Project, Project]):
         )
         result = await self._session.execute(stmt)
         if result.first() is None:
-            raise RepositoryUsageError(
-                "The architect of record must be a member of your firm."
-            )
+            raise RepositoryUsageError("The architect of record must be a member of your firm.")
 
 
 __all__ = ["ProjectPatch", "ProjectRepository"]

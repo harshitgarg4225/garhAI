@@ -36,10 +36,10 @@ Dockerfiles. The original state — ~180k lines authored on a machine with no No
 no Docker, Python 3.9 — still explains the code's shape and its bug pattern
 (below), but the split has moved:
 
-| | |
-|---|---|
-| **Executed and green** | 1,923 api+rules+model Python tests, 369 services tests, 1,579 JS unit tests, strict `tsc`, the production Vite build. In a real browser against a live stack: the @smoke journey (login → demo project → six tabs → DXF import round trip → sign-out), the copilot DoD walk, the §13 share-link journey. The full Phase-8 drawings pipeline: a live project produced 9 municipal sheets and the DXF passes `ezdxf.audit()` with 0 errors. |
-| **Still never run (or red)** | `docker compose up` verbatim (Railway proves the images, not the compose wiring). CI on GitHub — zero workflow runs; its ruff/eslint/mypy jobs would be red (thousands of mechanical lint errors, mypy debt). The real Anthropic/render providers (mock-only so far; keys are a launch gate). The CP-SAT solver's first full options run — the stages are wired and reach real CP-SAT solves, but stage-B refinement still discards all candidates (in progress). The visual-regression suite (blocked on the Inter font + a CI-minted baseline). |
+|                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Executed and green**       | 1,948 api+rules+model Python tests, 405 services tests, 1,585 JS unit tests, strict `tsc`, the production Vite build, ruff/eslint/prettier at zero errors, mypy --strict on garh_model + services/common + services/llm. In a real browser against a live stack: the @smoke journey (login → demo project → six tabs → DXF import round trip → sign-out), the copilot DoD walk, the §13 share-link journey, the full Generate → 3 options → apply loop. The Phase-8 drawings pipeline: 9 municipal sheets, DXF audits clean, a 10-page vector PDF set. Backup + restore rehearsal and a load smoke (1,280 req/s, p95 17 ms) have each run once for real. |
+| **Still never run (or red)** | `docker compose up` verbatim (Railway proves the images, not the compose wiring). The first GitHub Actions run — triggers now include `claude/**` and every locally-runnable job's exact commands are green, but zero workflows have executed yet; the e2e-smoke job's service wiring is unproven. The real Anthropic/Stability providers (adapters built and unit-tested; keys are a launch gate). The visual-regression suite (needs a CI-minted baseline). mypy debt outside the clean trees (garh_api 56, garh_rules 44, solver 79, render 28, drawings 801 — counts in ci.yml).                                                                     |
 
 `docs/phase-*-verification.md` is one ledger per phase, each splitting its claims
 into **EXECUTED / TRACED / UNVERIFIED** with the exact command that would settle
@@ -105,7 +105,7 @@ DECISIONS.md         every deviation and every dependency, with reasons
 
 - **Integer millimetres**, model-wide. Parse user input (`12'6"`, `3.8m`) to mm at
   the boundary via `packages/model/src/units.ts`; format on the way out. Rounding
-  is half-away-from-zero, *not* `Math.round`.
+  is half-away-from-zero, _not_ `Math.round`.
 - **One picker, one scene.** 2D and 3D share a single R3F canvas, camera rig and
   `PickRegistry`. Never add a second `<Canvas>`; never raycast outside the
   registry.
@@ -120,13 +120,15 @@ DECISIONS.md         every deviation and every dependency, with reasons
 
 ## Known blockers, named plainly
 
-1. **CI has never fired.** `pnpm-lock.yaml` exists now (settled 2026-08-25), but
-   ci.yml triggers only on pushes to `main` and all work lives on a feature
-   branch — zero workflow runs — and the lint/typecheck jobs would be red
-   (ruff/eslint mechanical debt, mypy never run in anger).
+1. **CI is armed but has still executed zero runs (2026-08-27).** ci.yml now
+   triggers on `claude/**` pushes, the ruff debt (~2,638) and eslint debt (~540)
+   are at zero errors, and every locally-runnable job's exact commands pass on a
+   dev box. The first real run — and especially the e2e-smoke job's service
+   containers — is proven only when it happens; trust the Actions tab, not this
+   sentence.
 2. **The Inter label font LANDED (2026-08-26).** Fetched from the rsms/inter
    v3.19 GitHub release with its OFL-1.1 licence text beside it; `make
-   asset-audit` runs clean with zero known gaps for the first time. Canvas and
+asset-audit` runs clean with zero known gaps for the first time. Canvas and
    sheet labels now render in the real face.
 3. **The rule-pack values are seeds, not law.** Every value is marked
    `"confidence": "seed"` and needs review by empaneled local architects per city

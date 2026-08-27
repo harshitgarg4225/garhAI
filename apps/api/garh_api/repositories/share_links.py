@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import delete, select
@@ -52,13 +52,11 @@ class ShareLinkRepository(ProjectScopedRepository[models.ShareLink, ShareLink]):
 
     # -- reads ---------------------------------------------------------
     async def list_active_for_project(self, project_id: uuid.UUID) -> list[ShareLink]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         stmt = (
             self._project_scoped_select(project_id)
             .where(models.ShareLink.revoked.is_(False))
-            .where(
-                (models.ShareLink.expires_at.is_(None)) | (models.ShareLink.expires_at > now)
-            )
+            .where((models.ShareLink.expires_at.is_(None)) | (models.ShareLink.expires_at > now))
             .order_by(models.ShareLink.created_at.desc())
         )
         return [self.to_domain(row) for row in await self._all(stmt)]
@@ -148,9 +146,7 @@ class ShareLinkRepository(ProjectScopedRepository[models.ShareLink, ShareLink]):
         if sections is not None:
             unknown = [s for s in sections if s not in SHARE_SECTIONS]
             if unknown:
-                raise RepositoryUsageError(
-                    "Unknown share section(s): %s." % ", ".join(unknown)
-                )
+                raise RepositoryUsageError("Unknown share section(s): %s." % ", ".join(unknown))
             scope["sections"] = list(sections)
         if can_comment is not None:
             scope["canComment"] = bool(can_comment)
@@ -199,10 +195,8 @@ class ShareTokenResolver:
         if row is None:
             _log.info("share_link.resolve_failed", reason="unknown_or_revoked")
             return None
-        if row.expires_at is not None and row.expires_at <= datetime.now(timezone.utc):
-            _log.info(
-                "share_link.resolve_failed", reason="expired", share_link_id=str(row.id)
-            )
+        if row.expires_at is not None and row.expires_at <= datetime.now(UTC):
+            _log.info("share_link.resolve_failed", reason="expired", share_link_id=str(row.id))
             return None
         return ResolvedShare(
             share_link_id=row.id,
@@ -218,7 +212,7 @@ class ShareTokenResolver:
         Housekeeping for a worker holding
         :func:`~garh_api.tenancy.system_unscoped_session` — it spans firms by nature.
         """
-        cutoff = before or datetime.now(timezone.utc)
+        cutoff = before or datetime.now(UTC)
         result = await self._session.execute(
             delete(models.ShareLink)
             .where(models.ShareLink.expires_at.is_not(None))

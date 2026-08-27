@@ -40,9 +40,10 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from services.common.assumptions import Assumption
 from services.solver.types import RoomRequest, SolveParams
@@ -89,7 +90,16 @@ REPEATING_ROOM_TYPES = frozenset({"staircase", "shaft"})
 
 #: Indian defaults for rooms whose storey the brief left blank (assumption-chipped).
 _UPPER_DEFAULT_TYPES = frozenset(
-    {"bedroom", "bedroom_master", "master_bedroom", "guest_bedroom", "bath", "wc", "bath_wc", "dress"}
+    {
+        "bedroom",
+        "bedroom_master",
+        "master_bedroom",
+        "guest_bedroom",
+        "bath",
+        "wc",
+        "bath_wc",
+        "dress",
+    }
 )
 
 _KITCHEN_TYPES = frozenset({"kitchen", "kitchen_dining"})
@@ -134,10 +144,10 @@ class NbcRoomMinima:
     wc_width_mm: int
     bath_wc_area_mm2: int
     stair_width_mm: int
-    habitable_types: Tuple[str, ...]
-    wet_types: Tuple[str, ...]
+    habitable_types: tuple[str, ...]
+    wet_types: tuple[str, ...]
 
-    def floor_for(self, room_type: str) -> Tuple[int, int, Optional[str]]:
+    def floor_for(self, room_type: str) -> tuple[int, int, str | None]:
         """(min area mm², min least-width mm, citing rule id) for a room type.
 
         ``(0, 0, None)`` for types the pack does not bound (foyer, store, …).
@@ -182,15 +192,15 @@ def _normalise(room_type: str) -> str:
     return normalise_room_type(room_type)
 
 
-_MINIMA_CACHE: Dict[str, NbcRoomMinima] = {}
-_VASTU_CACHE: Dict[str, Tuple["VastuZoneRule", ...]] = {}
+_MINIMA_CACHE: dict[str, NbcRoomMinima] = {}
+_VASTU_CACHE: dict[str, tuple[VastuZoneRule, ...]] = {}
 
 
-def _cache_key(root: Optional[str]) -> str:
+def _cache_key(root: str | None) -> str:
     return os.path.abspath(root) if root else "<default>"
 
 
-def load_room_minima(root: Optional[str] = None) -> NbcRoomMinima:
+def load_room_minima(root: str | None = None) -> NbcRoomMinima:
     """Pull every room floor out of the ``nbc-core`` pack. Lazy import + cached.
 
     The values live in the pack and only in the pack (§6: "keep values in pack,
@@ -241,10 +251,10 @@ class VastuZoneRule:
     """One ``zone_check`` rule from the vastu pack, solver-shaped."""
 
     rule_id: str
-    room_types: Tuple[str, ...]
-    allow: Tuple[str, ...]
-    fallback_allow: Tuple[str, ...]
-    deny: Tuple[str, ...]
+    room_types: tuple[str, ...]
+    allow: tuple[str, ...]
+    fallback_allow: tuple[str, ...]
+    deny: tuple[str, ...]
     hard: bool
     weight: int
 
@@ -260,13 +270,13 @@ class ZoneAllowance:
     """
 
     rule_id: str = ""
-    allow: Tuple[str, ...] = ()
-    deny: Tuple[str, ...] = ()
-    preferred: Tuple[str, ...] = ()
+    allow: tuple[str, ...] = ()
+    deny: tuple[str, ...] = ()
+    preferred: tuple[str, ...] = ()
     weight: int = 0
 
 
-def load_vastu_zone_rules(root: Optional[str] = None) -> Tuple[VastuZoneRule, ...]:
+def load_vastu_zone_rules(root: str | None = None) -> tuple[VastuZoneRule, ...]:
     """Room/stair ``zone_check`` rules out of ``rulepacks/vastu.json``. Cached."""
     key = _cache_key(root)
     cached = _VASTU_CACHE.get(key)
@@ -276,7 +286,7 @@ def load_vastu_zone_rules(root: Optional[str] = None) -> Tuple[VastuZoneRule, ..
     from garh_rules.packs import load_pack_set
 
     packs = load_pack_set(("vastu",), root=root)
-    rules: List[VastuZoneRule] = []
+    rules: list[VastuZoneRule] = []
     for rule in packs.rules:
         if rule.check.type != "zone_check":
             continue
@@ -308,23 +318,22 @@ def load_vastu_zone_rules(root: Optional[str] = None) -> Tuple[VastuZoneRule, ..
 
 def zone_allowance_for(
     room_type: str, mode: str, rules: Sequence[VastuZoneRule]
-) -> Optional[ZoneAllowance]:
+) -> ZoneAllowance | None:
     """Resolve every matching pack rule into one mode-aware allowance."""
     if mode == "off":
         return None
     normalised = _normalise(room_type)
-    allow: List[str] = []
-    deny: List[str] = []
-    preferred: List[str] = []
+    allow: list[str] = []
+    deny: list[str] = []
+    preferred: list[str] = []
     weight = 0
-    rule_ids: List[str] = []
+    rule_ids: list[str] = []
     for rule in rules:
         if normalised not in rule.room_types:
             continue
         rule_ids.append(rule.rule_id)
-        if rule.deny:
-            if mode == "strict" or rule.hard:
-                deny.extend(z for z in rule.deny if z not in deny)
+        if rule.deny and (mode == "strict" or rule.hard):
+            deny.extend(z for z in rule.deny if z not in deny)
         if rule.allow:
             if mode == "strict":
                 for zone in tuple(rule.allow) + tuple(rule.fallback_allow):
@@ -345,7 +354,7 @@ def zone_allowance_for(
     )
 
 
-def entrance_allowance(mode: str, root: Optional[str] = None) -> Tuple[str, ...]:
+def entrance_allowance(mode: str, root: str | None = None) -> tuple[str, ...]:
     """Allowed entrance sides (compass) from ``vastu.entrance.edge``; empty when off."""
     if mode == "off":
         return ()
@@ -388,15 +397,15 @@ class ProgramRoom:
     min_width_mm: int
     max_aspect_x100: int
     #: ``None`` + ``on_all_storeys`` ⇒ repeats identically on every storey.
-    storey_index: Optional[int]
+    storey_index: int | None
     needs_external_wall: bool
     is_wet: bool
     packed: bool = True
     on_all_storeys: bool = False
-    vastu: Optional[ZoneAllowance] = None
-    must_face: Optional[str] = None
+    vastu: ZoneAllowance | None = None
+    must_face: str | None = None
     locked: bool = False
-    room_id: Optional[str] = None
+    room_id: str | None = None
 
     @property
     def is_circulation(self) -> bool:
@@ -421,14 +430,14 @@ class ProgramRoom:
 class RoomProgram:
     """The full §5.2 program: rooms, adjacency, facing and Vastu — one object."""
 
-    rooms: Tuple[ProgramRoom, ...]
-    adjacency: Tuple[AdjacencySpec, ...]
+    rooms: tuple[ProgramRoom, ...]
+    adjacency: tuple[AdjacencySpec, ...]
     storeys: int
     vastu_mode: str
-    entrance_allow: Tuple[str, ...] = ()
-    plot_facing: Optional[str] = None
-    assumptions: Tuple[Assumption, ...] = ()
-    notes: Tuple[str, ...] = ()
+    entrance_allow: tuple[str, ...] = ()
+    plot_facing: str | None = None
+    assumptions: tuple[Assumption, ...] = ()
+    notes: tuple[str, ...] = ()
 
     def by_key(self, key: str) -> ProgramRoom:
         for room in self.rooms:
@@ -436,7 +445,7 @@ class RoomProgram:
                 return room
         raise KeyError(key)
 
-    def packed_rooms_for_storey(self, index: int) -> Tuple[ProgramRoom, ...]:
+    def packed_rooms_for_storey(self, index: int) -> tuple[ProgramRoom, ...]:
         """The rooms stage A packs on one storey (repeating rooms included)."""
         return tuple(
             room
@@ -445,7 +454,7 @@ class RoomProgram:
             and (room.storey_index == index or (room.on_all_storeys and index < self.storeys))
         )
 
-    def unpacked_rooms(self) -> Tuple[ProgramRoom, ...]:
+    def unpacked_rooms(self) -> tuple[ProgramRoom, ...]:
         return tuple(room for room in self.rooms if not room.packed)
 
 
@@ -454,7 +463,7 @@ class RoomProgram:
 # ---------------------------------------------------------------------------
 
 
-def _scaled(value: int, fraction: Tuple[int, int]) -> int:
+def _scaled(value: int, fraction: tuple[int, int]) -> int:
     return (value * fraction[0]) // fraction[1]
 
 
@@ -488,8 +497,8 @@ def _resolve_bounds(
     target_area: int,
     brief_min_width: int,
     minima: NbcRoomMinima,
-    assumptions: List[Assumption],
-) -> Tuple[int, int, int, int]:
+    assumptions: list[Assumption],
+) -> tuple[int, int, int, int]:
     """(min_area, target_area, max_area, min_width) with NBC floors applied."""
     nbc_area, nbc_width, cite = minima.floor_for(room_type)
     min_area = max(brief_min_area, nbc_area)
@@ -520,7 +529,7 @@ def _resolve_bounds(
 
 
 def _assign_storeys(
-    entries: List[Dict[str, Any]], storeys: int, assumptions: List[Assumption]
+    entries: list[dict[str, Any]], storeys: int, assumptions: list[Assumption]
 ) -> None:
     """Fill in missing storey indexes, in place. Deterministic; chipped.
 
@@ -547,13 +556,13 @@ def _assign_storeys(
             )
         return
 
-    counts: Dict[int, int] = {index: 0 for index in range(storeys)}
+    counts: dict[int, int] = {index: 0 for index in range(storeys)}
     for entry in entries:
         if entry["storey"] is not None:
             counts[entry["storey"]] = counts.get(entry["storey"], 0) + 1
 
-    upper_defaults: List[str] = []
-    ground_defaults: List[str] = []
+    upper_defaults: list[str] = []
+    ground_defaults: list[str] = []
     for entry in entries:
         if entry["storey"] is not None or entry["repeat"]:
             continue
@@ -593,14 +602,14 @@ def _assign_storeys(
 
 
 def _synthesise_support_rooms(
-    entries: List[Dict[str, Any]],
+    entries: list[dict[str, Any]],
     storeys: int,
     minima: NbcRoomMinima,
-    assumptions: List[Assumption],
+    assumptions: list[Assumption],
 ) -> None:
     """Every plan needs a distributor per storey; wet plans need a shaft; multi-storey
     plans need a staircase. Synthesised rooms are chips, never silent."""
-    types_by_storey: Dict[Optional[int], List[str]] = {}
+    types_by_storey: dict[int | None, list[str]] = {}
     for entry in entries:
         if entry["repeat"]:
             for index in range(storeys):
@@ -651,9 +660,7 @@ def _synthesise_support_rooms(
     if any(minima.is_wet(e["type"]) for e in entries) and not any(
         e["type"] == "shaft" for e in entries
     ):
-        entries.append(
-            _entry("shaft", "shaft", target=0, min_width=0, storey=None, repeat=True)
-        )
+        entries.append(_entry("shaft", "shaft", target=0, min_width=0, storey=None, repeat=True))
         assumptions.append(
             Assumption(
                 field="brief.rooms.shaft",
@@ -673,13 +680,13 @@ def _entry(
     *,
     target: int,
     min_width: int,
-    storey: Optional[int],
+    storey: int | None,
     min_area: int = 0,
     repeat: bool = False,
-    must_face: Optional[str] = None,
+    must_face: str | None = None,
     locked: bool = False,
     needs_external: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     return {
         "key": key,
         "type": room_type,
@@ -695,15 +702,15 @@ def _entry(
 
 
 def _finish(
-    entries: List[Dict[str, Any]],
+    entries: list[dict[str, Any]],
     *,
     storeys: int,
     vastu_mode: str,
-    plot_facing: Optional[str],
+    plot_facing: str | None,
     wishes: Sequence[AdjacencySpec],
-    root: Optional[str],
-    assumptions: List[Assumption],
-    notes: List[str],
+    root: str | None,
+    assumptions: list[Assumption],
+    notes: list[str],
 ) -> RoomProgram:
     """The shared back half of both builders: floors, support rooms, bounds, Vastu."""
     minima = load_room_minima(root)
@@ -715,7 +722,7 @@ def _finish(
     _assign_storeys(entries, storeys, assumptions)
     _synthesise_support_rooms(entries, storeys, minima, assumptions)
 
-    rooms: List[ProgramRoom] = []
+    rooms: list[ProgramRoom] = []
     for entry in entries:
         room_type = entry["type"]
         packed = room_type not in UNPACKED_ROOM_TYPES
@@ -755,8 +762,8 @@ def _finish(
             % ", ".join(unpacked)
         )
 
-    adjacency: List[AdjacencySpec] = list(wishes)
-    keys_by_type: Dict[str, str] = {}
+    adjacency: list[AdjacencySpec] = list(wishes)
+    keys_by_type: dict[str, str] = {}
     for room in rooms:
         keys_by_type.setdefault(room.room_type, room.key)
     if "kitchen" in keys_by_type and "dining" in keys_by_type:
@@ -788,13 +795,13 @@ def build_program_from_brief(
     *,
     storeys: int,
     vastu_mode: str = "advisory",
-    root: Optional[str] = None,
+    root: str | None = None,
 ) -> RoomProgram:
     """Corpus/BriefDoc ``data`` → program. ``count > 1`` expands to keyed rooms
     (``bedroom``, ``bedroom2``, …); brief ``adjacency`` wishes ride along by type."""
-    assumptions: List[Assumption] = []
-    notes: List[str] = []
-    entries: List[Dict[str, Any]] = []
+    assumptions: list[Assumption] = []
+    notes: list[str] = []
+    entries: list[dict[str, Any]] = []
     for raw in brief_data.get("rooms") or ():
         room_type = str(raw.get("type") or "other")
         count = int(raw.get("count") or 1)
@@ -814,10 +821,10 @@ def build_program_from_brief(
                 )
             )
 
-    keys_by_type: Dict[str, str] = {}
+    keys_by_type: dict[str, str] = {}
     for entry in entries:
         keys_by_type.setdefault(entry["type"], entry["key"])
-    wishes: List[AdjacencySpec] = []
+    wishes: list[AdjacencySpec] = []
     for wish in brief_data.get("adjacency") or ():
         a_key = keys_by_type.get(str(wish.get("a")))
         b_key = keys_by_type.get(str(wish.get("b")))
@@ -847,11 +854,11 @@ def build_program_from_brief(
     )
 
 
-def program_from_params(params: SolveParams, *, root: Optional[str] = None) -> RoomProgram:
+def program_from_params(params: SolveParams, *, root: str | None = None) -> RoomProgram:
     """:class:`SolveParams` (the worker payload path) → the same program shape."""
-    assumptions: List[Assumption] = []
-    notes: List[str] = []
-    entries: List[Dict[str, Any]] = []
+    assumptions: list[Assumption] = []
+    notes: list[str] = []
+    entries: list[dict[str, Any]] = []
     for request in params.rooms:
         entries.append(
             _entry(

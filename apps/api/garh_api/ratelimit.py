@@ -157,7 +157,7 @@ async def redis_healthcheck(settings: Settings | None = None) -> bool:
     """``PING`` — backs ``/readyz`` (§18). Never raises."""
     try:
         return bool(await get_redis(settings).ping())
-    except Exception:  # noqa: BLE001 - health probes must not raise
+    except Exception:
         return False
 
 

@@ -114,8 +114,14 @@ class FakeRedis:
         hi = min(size - 1, hi)
         return [] if lo > hi else list(target[lo : hi + 1])
 
+    # `timeout` mirrors redis-py's blmove signature (see RedisLike protocol).
     async def blmove(
-        self, first_list: str, second_list: str, timeout: float, src: str, dest: str
+        self,
+        first_list: str,
+        second_list: str,
+        timeout: float,  # noqa: ASYNC109
+        src: str,
+        dest: str,
     ) -> Any:
         self._maybe_fail()
         deadline = time.monotonic() + max(0.0, timeout)
@@ -190,9 +196,7 @@ class FakeRedis:
     ) -> Any:
         self._maybe_fail()
         target = self.zsets.get(name, {})
-        members = [
-            member for member, score in target.items() if float(min) <= score <= float(max)
-        ]
+        members = [member for member, score in target.items() if float(min) <= score <= float(max)]
         members.sort(key=lambda member: (target[member], member))
         offset = start or 0
         if num is None:

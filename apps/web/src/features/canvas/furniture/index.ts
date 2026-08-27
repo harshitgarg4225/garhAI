@@ -174,11 +174,7 @@ export {
   issueTone,
   roomTypeAt,
 } from './collision';
-export type {
-  BuildContextInput,
-  FurnitureAdvisoryChip,
-  PlacementContext,
-} from './collision';
+export type { BuildContextInput, FurnitureAdvisoryChip, PlacementContext } from './collision';
 
 // ── Render data + the honest box proxies ───────────────────────────────────
 export {

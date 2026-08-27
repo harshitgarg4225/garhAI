@@ -18,8 +18,9 @@ from the facts themselves. Losing the prose is much better than showing a lie.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from services.common.logging import get_logger
 from services.llm.prompts import RATIONALE_SYSTEM, rationale_user
@@ -103,9 +104,7 @@ class RationaleWriter:
         )
         problems = verify(paragraph, facts_used, clean_facts)
         if problems:
-            log.warning(
-                "llm.rationale.rejected", problems=list(problems), **result.summary()
-            )
+            log.warning("llm.rationale.rejected", problems=list(problems), **result.summary())
             return _fallback(clean_facts, problems=problems)
 
         return Rationale(
@@ -116,9 +115,7 @@ class RationaleWriter:
         )
 
 
-def verify(
-    paragraph: str, facts_used: Sequence[str], supplied: Sequence[str]
-) -> tuple[str, ...]:
+def verify(paragraph: str, facts_used: Sequence[str], supplied: Sequence[str]) -> tuple[str, ...]:
     """Return the reasons this rationale should not be shown. Empty ⇒ trustworthy."""
     problems: list[str] = []
 

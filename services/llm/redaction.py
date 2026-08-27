@@ -25,7 +25,8 @@ one that actually matters:
 from __future__ import annotations
 
 import re
-from typing import Any, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
 #: Delimiter for untrusted spans. Chosen to be improbable in architectural prose.
 FENCE_OPEN = "<<<USER_DATA"
@@ -218,8 +219,7 @@ def check_allowlists_are_pii_free() -> None:
     if offenders:
         raise RuntimeError(
             "§13 violation: PII-suspect field(s) on an LLM summary allowlist: %s. "
-            "Either drop the field or derive a non-user-authored substitute."
-            % ", ".join(offenders)
+            "Either drop the field or derive a non-user-authored substitute." % ", ".join(offenders)
         )
 
 

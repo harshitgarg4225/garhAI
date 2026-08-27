@@ -1,0 +1,27 @@
+# What Prettier must never touch — mirrors eslint.config.js's ignore rationale.
+#
+# Golden artefacts, rule packs and derived fixtures are DATA, not code, and two
+# gates compare them byte-for-byte:
+#   · `make fixture-drift` re-derives fixtures/llm/copilot-commands/** and
+#     e2e/fixtures/** with json.dumps(indent=2) and fails on any byte diff;
+#   · the golden suites diff sheet/plan outputs against their stored files.
+# A Prettier pass over those trees is a build failure dressed as tidiness.
+fixtures/
+rulepacks/
+e2e/fixtures/
+**/goldens/
+services/**/fixtures/
+
+# Generated / vendored / third-party trees.
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+**/coverage/
+**/playwright-report/
+**/test-results/
+.venv/
+
+# The Python side is ruff-format's job.
+apps/api/
+services/

@@ -136,7 +136,15 @@ export function NorthCompass({ size = 88, className }: NorthCompassProps): JSX.E
           const x2 = half + Math.sin(rad) * r;
           const y2 = half - Math.cos(rad) * r;
           return (
-            <line key={tick} x1={x1} y1={y1} x2={x2} y2={y2} className="stroke-line-strong" strokeWidth={1.5} />
+            <line
+              key={tick}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              className="stroke-line-strong"
+              strokeWidth={1.5}
+            />
           );
         })}
         {/* Needle + N label rotate together. */}

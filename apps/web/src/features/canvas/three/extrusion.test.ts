@@ -258,7 +258,10 @@ describe('stair solids', () => {
     // The model stores one origin + direction + landing (inherited fact 3);
     // inventing the turn would draw geometry the model does not carry. This
     // spec pins the honesty: kind changes nothing about the solid.
-    const straight = stairSolidProfilesF({ ...STAIR_BASE, landing: { widthMm: 900, depthMm: 1000 } }, 600);
+    const straight = stairSolidProfilesF(
+      { ...STAIR_BASE, landing: { widthMm: 900, depthMm: 1000 } },
+      600,
+    );
     const dogleg = stairSolidProfilesF(
       { ...STAIR_BASE, kind: 'dogleg', landing: { widthMm: 900, depthMm: 1000 } },
       600,

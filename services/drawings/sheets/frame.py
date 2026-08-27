@@ -29,8 +29,8 @@ below is what the current model can honestly fill in.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import List, Optional, Sequence, Tuple
 
 from services.drawings.layers import A_TITL
 from services.drawings.projection.primitives import (
@@ -62,7 +62,7 @@ CELL_PAD_MM = 1.5
 
 #: Row heights as fractions of the title block height, top row first. They sum to 1, and
 #: the assertion below is what keeps that true if somebody edits the table.
-ROW_FRACTIONS: Tuple[float, ...] = (14 / 60, 12 / 60, 12 / 60, 12 / 60, 10 / 60)
+ROW_FRACTIONS: tuple[float, ...] = (14 / 60, 12 / 60, 12 / 60, 12 / 60, 10 / 60)
 assert abs(sum(ROW_FRACTIONS) - 1.0) < 1e-9, "title block rows must fill the block"
 
 
@@ -79,7 +79,7 @@ class TitleCell:
     value_text_mm: float = VALUE_TEXT_MM
 
 
-def title_block_cells(frame: Frame) -> Tuple[TitleCell, ...]:
+def title_block_cells(frame: Frame) -> tuple[TitleCell, ...]:
     """The title block's cells, laid out proportionally for this frame.
 
     Reading order top to bottom is what a reviewer scans: who drew it, for what project,
@@ -90,13 +90,13 @@ def title_block_cells(frame: Frame) -> Tuple[TitleCell, ...]:
     height = float(frame.title_block_height_mm)
     heights = [fraction * height for fraction in ROW_FRACTIONS]
     # y of each row's bottom, top row first.
-    tops: List[float] = []
+    tops: list[float] = []
     cursor = height
     for row_height in heights:
         cursor -= row_height
         tops.append(cursor)
 
-    rows: Sequence[Sequence[Tuple[str, str, float, float]]] = (
+    rows: Sequence[Sequence[tuple[str, str, float, float]]] = (
         # (label, value, column fraction, value text size)
         (("", block.firm_name, 1.0, FIRM_TEXT_MM),),
         (("PROJECT", block.project_name, 1.0, VALUE_TEXT_MM),),
@@ -117,7 +117,7 @@ def title_block_cells(frame: Frame) -> Tuple[TitleCell, ...]:
         ),
     )
 
-    cells: List[TitleCell] = []
+    cells: list[TitleCell] = []
     for row_index, row in enumerate(rows):
         y = tops[row_index]
         row_height = heights[row_index]
@@ -139,7 +139,7 @@ def title_block_cells(frame: Frame) -> Tuple[TitleCell, ...]:
     return tuple(cells)
 
 
-def frame_primitives(frame: Frame) -> Tuple[Primitive, ...]:
+def frame_primitives(frame: Frame) -> tuple[Primitive, ...]:
     """Border, title-block box, its rules, and every non-empty label/value.
 
     Empty fields print their label but not an empty value: a blank "CHECKED BY" line is
@@ -150,7 +150,7 @@ def frame_primitives(frame: Frame) -> Tuple[Primitive, ...]:
     border_x1 = border_x0 + float(frame.drawable_width_mm())
     border_y1 = border_y0 + float(frame.drawable_height_mm())
 
-    out: List[Primitive] = [
+    out: list[Primitive] = [
         Polyline(
             layer=A_TITL,
             points=(
@@ -212,8 +212,8 @@ def frame_primitives(frame: Frame) -> Tuple[Primitive, ...]:
     return tuple(out)
 
 
-def _cell_text(cell: TitleCell, block_x: float, block_y: float) -> List[Primitive]:
-    out: List[Primitive] = []
+def _cell_text(cell: TitleCell, block_x: float, block_y: float) -> list[Primitive]:
+    out: list[Primitive] = []
     label = sanitise_text(cell.label, max_length=16)
     value = sanitise_text(cell.value, max_length=90)
     text_x = block_x + cell.x_mm + CELL_PAD_MM
@@ -253,9 +253,9 @@ def _at(x_mm: float, y_mm: float) -> Point:
 def sheet_title_block(
     frame: Frame,
     *,
-    drawing_title: Optional[str] = None,
-    sheet_number: Optional[str] = None,
-    scale_label: Optional[str] = None,
+    drawing_title: str | None = None,
+    sheet_number: str | None = None,
+    scale_label: str | None = None,
 ) -> Frame:
     """A copy of ``frame`` whose title block carries this sheet's own three fields.
 

@@ -71,7 +71,7 @@ def test_try_parse_reports_success_without_raising() -> None:
 
 def test_conversion_constants() -> None:
     assert MM_PER_INCH == 25.4
-    assert MM_PER_FOOT == pytest.approx(12 * MM_PER_INCH, rel=1e-12)
+    assert pytest.approx(12 * MM_PER_INCH, rel=1e-12) == MM_PER_FOOT
     assert MM_PER_METRE == 1000
 
 

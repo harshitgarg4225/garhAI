@@ -16,7 +16,8 @@ thread.
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Protocol, runtime_checkable
+from collections.abc import Mapping
+from typing import Any, Protocol, runtime_checkable
 
 from services.common.config import WorkerSettings, get_worker_settings
 from services.common.jsonschema_lite import SchemaValidator, ValidationFailure, format_errors
@@ -132,8 +133,7 @@ def get_llm_provider(settings: WorkerSettings | None = None) -> LlmProvider:
         return AnthropicLlmProvider(cfg)
 
     raise ValueError(
-        "Unknown PROVIDER_LLM=%r. Expected one of: %s."
-        % (provider_name, ", ".join(PROVIDER_NAMES))
+        "Unknown PROVIDER_LLM=%r. Expected one of: %s." % (provider_name, ", ".join(PROVIDER_NAMES))
     )
 
 

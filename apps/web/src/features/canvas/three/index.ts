@@ -37,12 +37,7 @@ export {
 } from './booleans';
 export type { BooleanEngineStatus, CutMeshMm, PrismCutter } from './booleans';
 
-export {
-  groupSignatures,
-  planRebuild,
-  roofSignature,
-  storeySignature,
-} from './dirty';
+export { groupSignatures, planRebuild, roofSignature, storeySignature } from './dirty';
 export type { RebuildPlan } from './dirty';
 
 export {

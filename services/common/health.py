@@ -82,13 +82,9 @@ class HealthServer:
         await self._server.wait_closed()
         self._server = None
 
-    async def _handle(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-    ) -> None:
+    async def _handle(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
-            request_line = await asyncio.wait_for(
-                reader.readline(), timeout=_READ_TIMEOUT_SECONDS
-            )
+            request_line = await asyncio.wait_for(reader.readline(), timeout=_READ_TIMEOUT_SECONDS)
             if not request_line or len(request_line) > MAX_REQUEST_BYTES:
                 await self._respond(writer, 400, "text/plain; charset=utf-8", "bad request\n")
                 return
@@ -123,7 +119,7 @@ class HealthServer:
                 await self._respond(writer, 404, "text/plain; charset=utf-8", "not found\n")
         except (TimeoutError, asyncio.IncompleteReadError, ConnectionResetError):
             return
-        except Exception as exc:  # noqa: BLE001 - a probe must never kill the worker
+        except Exception as exc:
             log.warning("health.handler_error", error=str(exc))
         finally:
             try:
@@ -135,7 +131,7 @@ class HealthServer:
     async def _healthz(self, writer: asyncio.StreamWriter) -> None:
         try:
             status = await self.probe()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             status = HealthStatus(healthy=False, reason="probe raised: %s" % exc)
         body: dict[str, Any] = {
             "status": "ok" if status.healthy else "unhealthy",

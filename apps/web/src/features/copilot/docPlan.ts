@@ -141,9 +141,7 @@ export interface DocPlanView {
  * ViewBox over BOTH documents' geometry so the before and after tiles share
  * one frame — a wall that moves must not also make the whole plan jump.
  */
-export function docPlanViewBox(
-  geometries: readonly DocPlanGeometry[],
-): DocPlanView | null {
+export function docPlanViewBox(geometries: readonly DocPlanGeometry[]): DocPlanView | null {
   const points: Pt[] = [];
   for (const g of geometries) {
     for (const w of g.walls) points.push(w.a, w.b);

@@ -73,9 +73,7 @@ const KIND_CYCLE: readonly StairKind[] = ['straight', 'dogleg', 'L', 'U'];
 const DIRECTION_CYCLE: readonly Direction4[] = ['N', 'E', 'S', 'W'];
 
 /** Forward = travel direction; right = 90° clockwise from it. Mirrors fold.ts. */
-const VECTORS: Readonly<
-  Record<Direction4, { fx: number; fy: number; rx: number; ry: number }>
-> = {
+const VECTORS: Readonly<Record<Direction4, { fx: number; fy: number; rx: number; ry: number }>> = {
   N: { fx: 0, fy: 1, rx: 1, ry: 0 },
   E: { fx: 1, fy: 0, rx: 0, ry: -1 },
   S: { fx: 0, fy: -1, rx: -1, ry: 0 },

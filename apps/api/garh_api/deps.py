@@ -268,9 +268,7 @@ async def require_share_viewer(
     token = str(request.path_params.get("token") or "")
     if not token:
         raise ShareLinkInvalidError()
-    ctx, project_id = await resolve_share_context(
-        token, session, request_id=current_request_id()
-    )
+    ctx, project_id = await resolve_share_context(token, session, request_id=current_request_id())
     request.state.tenant = ctx
     request.state.share_project_id = project_id
     return ctx

@@ -12,8 +12,9 @@ with an honest "we filled this in" reason. Silence is not reachable from here.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from services.common.assumptions import Assumption
 from services.common.logging import get_logger

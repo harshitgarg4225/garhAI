@@ -18,8 +18,9 @@ the tests share them.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Literal, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from typing import Any, Literal
 
 PHASE = "Phase 8 (Drawings & exports)"
 
@@ -175,8 +176,7 @@ def collect_wall_axes(model: Mapping[str, Any], storey_id: str) -> Any:
     Deferred to %s.
     """ % PHASE
     raise NotImplementedError(
-        "collect_wall_axes is implemented in %s (§7 step 1; MVP is orthogonal-only)."
-        % PHASE
+        "collect_wall_axes is implemented in %s (§7 step 1; MVP is orthogonal-only)." % PHASE
     )
 
 
@@ -187,8 +187,7 @@ def build_outer_chains(model: Mapping[str, Any], storey_id: str) -> tuple[DimCha
     :func:`assert_chains_sum` is the test this must satisfy.
     """ % PHASE
     raise NotImplementedError(
-        "build_outer_chains is implemented in %s (§7 step 2, using LEVEL_1/2/3_OFFSET_MM)."
-        % PHASE
+        "build_outer_chains is implemented in %s (§7 step 2, using LEVEL_1/2/3_OFFSET_MM)." % PHASE
     )
 
 

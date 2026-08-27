@@ -155,12 +155,7 @@ export function MaterialsPanel({ className }: MaterialsPanelProps): JSX.Element 
 
       {/* Material list */}
       <div className="flex flex-col gap-1 px-3 py-3">
-        <PanelBody
-          catalogue={catalogue}
-          pick={pick}
-          currentId={currentId}
-          onAssign={assign}
-        />
+        <PanelBody catalogue={catalogue} pick={pick} currentId={currentId} onAssign={assign} />
       </div>
 
       <footer className="mt-auto border-t border-line px-3 py-2.5">
@@ -206,8 +201,8 @@ function PanelBody({ catalogue, pick, currentId, onAssign }: PanelBodyProps): JS
   if (items.length === 0) {
     return (
       <p className="py-4 text-xs text-ink-muted">
-        No catalogue material declares itself for {pick.label.toLowerCase()} yet. Other groups
-        still work.
+        No catalogue material declares itself for {pick.label.toLowerCase()} yet. Other groups still
+        work.
       </p>
     );
   }

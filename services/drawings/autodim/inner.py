@@ -25,7 +25,7 @@ rooms touch across a wall. Everything else is kept, and every suppression is rep
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from services.drawings.autodim.chains import (
     KIND_INNER,
@@ -67,10 +67,10 @@ class SuppressedChain:
     room_id: str
     axis: str
     reason: str
-    duplicate_of: Optional[str] = None
+    duplicate_of: str | None = None
     value_mm: int = 0
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "chainId": self.chain_id,
             "roomId": self.room_id,
@@ -85,7 +85,7 @@ def _chain_id(storey_id: str, room_id: str, axis: str) -> str:
     return "dim.%s.room.%s.%s" % (storey_id, room_id, axis)
 
 
-def door_side_of_room(plan: StoreyPlan, room: RoomRef) -> Tuple[Optional[str], Optional[OpeningRef]]:
+def door_side_of_room(plan: StoreyPlan, room: RoomRef) -> tuple[str | None, OpeningRef | None]:
     """Which side of the room its primary door is in, and the door.
 
     A door belongs to a room's side when its host wall's *inner face* coincides with
@@ -93,8 +93,8 @@ def door_side_of_room(plan: StoreyPlan, room: RoomRef) -> Tuple[Optional[str], O
     two doors) resolve in ``SIDES`` order then by opening id — arbitrary, but fixed, and
     a fixed arbitrary choice is what determinism needs.
     """
-    best_side: Optional[str] = None
-    best_door: Optional[OpeningRef] = None
+    best_side: str | None = None
+    best_door: OpeningRef | None = None
     best_rank = (len(SIDES), "")
 
     for opening in plan.openings:
@@ -103,7 +103,7 @@ def door_side_of_room(plan: StoreyPlan, room: RoomRef) -> Tuple[Optional[str], O
         wall = plan.wall_by_id(opening.wall_id)
         if wall is None:
             continue
-        side: Optional[str] = None
+        side: str | None = None
         if wall.orientation == HORIZONTAL:
             if abs(wall.face_hi_mm - room.min_y_mm) <= FACE_MATCH_TOLERANCE_MM:
                 side = "S"
@@ -144,7 +144,7 @@ def _rooms_adjacent(a: RoomRef, b: RoomRef, orientation: str, max_gap_mm: int) -
 
 def build_inner_chains(
     plan: StoreyPlan, config: AutoDimConfig = DEFAULT_CONFIG
-) -> Tuple[Tuple[DimChainInfo, ...], Tuple[SuppressedChain, ...]]:
+) -> tuple[tuple[DimChainInfo, ...], tuple[SuppressedChain, ...]]:
     """§7 step 3. Returns ``(chains, suppressed)``, both deterministic.
 
     Rooms are visited in the plan's reading order (south-west first — see
@@ -158,10 +158,10 @@ def build_inner_chains(
     adjacency_gap = thickest + FACE_MATCH_TOLERANCE_MM
     offset = config.offset_for_level(INNER_LEVEL)
 
-    chains: List[DimChainInfo] = []
-    suppressed: List[SuppressedChain] = []
+    chains: list[DimChainInfo] = []
+    suppressed: list[SuppressedChain] = []
     # (orientation, origin, overall) -> (chain id, room)
-    seen: Dict[Tuple[str, int, int], Tuple[str, RoomRef]] = {}
+    seen: dict[tuple[str, int, int], tuple[str, RoomRef]] = {}
 
     for room in plan.rooms:
         if room.width_mm <= 0 or room.depth_mm <= 0:

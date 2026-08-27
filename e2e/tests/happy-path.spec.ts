@@ -271,9 +271,7 @@ test.describe('@happy-path Phase 9 DoD', () => {
 
       // What a client CAN do: send a comment through the anonymous endpoint.
       await guestPage.getByLabel('Your name').fill('Client Kumar');
-      await guestPage
-        .getByLabel('Your comment')
-        .fill('Love the plan — can the kitchen face east?');
+      await guestPage.getByLabel('Your comment').fill('Love the plan — can the kitchen face east?');
       await guestPage.getByRole('button', { name: 'Send' }).click();
       await expect(guestPage.getByText(/Sent — your architect/)).toBeVisible();
 

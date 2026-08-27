@@ -53,7 +53,8 @@ Stated plainly so nobody mistakes it for the finished engine:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from services.drawings.dimensions import (
     DEFAULT_DIM_TO_JAMB,
@@ -142,7 +143,7 @@ def _is_vertical(wall: Any) -> bool:
     return wall.a.x == wall.b.x
 
 
-def _wall_axis_span(wall: Any) -> Tuple[int, int]:
+def _wall_axis_span(wall: Any) -> tuple[int, int]:
     """``(lo, hi)`` of the wall along its own axis."""
     if _is_horizontal(wall):
         return (min(wall.a.x, wall.b.x), max(wall.a.x, wall.b.x))
@@ -167,7 +168,7 @@ def _half(thickness_mm: int) -> int:
     return thickness_mm // 2
 
 
-def _wall_rect(wall: Any, lo: int, hi: int) -> Tuple[Pt2, ...]:
+def _wall_rect(wall: Any, lo: int, hi: int) -> tuple[Pt2, ...]:
     """The footprint ring of a wall span, from ``lo`` to ``hi`` along its axis."""
     half = _half(wall.thickness_mm)
     line = _wall_line_mm(wall)
@@ -176,21 +177,19 @@ def _wall_rect(wall: Any, lo: int, hi: int) -> Tuple[Pt2, ...]:
     return ((line - half, lo), (line - half, hi), (line + half, hi), (line + half, lo))
 
 
-def _walls_of(house: Any, storey_id: str) -> List[Any]:
+def _walls_of(house: Any, storey_id: str) -> list[Any]:
     return [w for w in house.walls if w.storey_id == storey_id]
 
 
-def _orthogonal_only(walls: Sequence[Any]) -> List[Any]:
+def _orthogonal_only(walls: Sequence[Any]) -> list[Any]:
     return [w for w in walls if _is_horizontal(w) or _is_vertical(w)]
 
 
-def _openings_of_wall(house: Any, wall_id: str) -> List[Any]:
-    return sorted(
-        (o for o in house.openings if o.wall_id == wall_id), key=lambda o: o.offset_mm
-    )
+def _openings_of_wall(house: Any, wall_id: str) -> list[Any]:
+    return sorted((o for o in house.openings if o.wall_id == wall_id), key=lambda o: o.offset_mm)
 
 
-def building_extent(house: Any, storey_id: str) -> Optional[Tuple[int, int, int, int]]:
+def building_extent(house: Any, storey_id: str) -> tuple[int, int, int, int] | None:
     """Outer-face bounding box of a storey's walls, in model mm.
 
     This is §7's "building line": every outer dimension chain is anchored to it, so it
@@ -199,8 +198,8 @@ def building_extent(house: Any, storey_id: str) -> Optional[Tuple[int, int, int,
     walls = _orthogonal_only(_walls_of(house, storey_id))
     if not walls:
         return None
-    xs: List[int] = []
-    ys: List[int] = []
+    xs: list[int] = []
+    ys: list[int] = []
     for wall in walls:
         lo, hi = _wall_axis_span(wall)
         for x, y in _wall_rect(wall, lo, hi):
@@ -235,7 +234,7 @@ def _roof_level_mm(house: Any) -> int:
     return _storey_ffl_mm(house, len(house.storeys) - 1) + house.storeys[-1].height_mm
 
 
-def room_label_lines(room: Any) -> Tuple[str, str]:
+def room_label_lines(room: Any) -> tuple[str, str]:
     """``(name, area)`` — §7: "room label block (name, area in sqft one decimal)"."""
     from garh_model.units import format_sqft
 
@@ -256,8 +255,8 @@ def _chain_from_breaks(
     hi: int,
     breaks: Sequence[int],
     anchors: Mapping[int, str] = {},
-    storey_id: Optional[str] = None,
-) -> Optional[DimChain]:
+    storey_id: str | None = None,
+) -> DimChain | None:
     """Build a chain from sorted interior breakpoints between ``lo`` and ``hi``.
 
     **This function is why §7 step 5 holds.** The segments are consecutive differences
@@ -269,8 +268,8 @@ def _chain_from_breaks(
     Breakpoints closer than 1 mm to a neighbour are dropped: a zero-length segment
     prints as "0" on a drawing, which is worse than not printing it.
     """
-    positions: List[int] = [lo]
-    for value in sorted(set(int(v) for v in breaks)):
+    positions: list[int] = [lo]
+    for value in sorted({int(v) for v in breaks}):
         if lo < value < hi and value - positions[-1] >= 1:
             positions.append(value)
     if hi - positions[-1] < 1 and len(positions) > 1:
@@ -279,7 +278,7 @@ def _chain_from_breaks(
     if len(positions) < 2 or hi <= lo:
         return None
 
-    segments: List[DimSegment] = []
+    segments: list[DimSegment] = []
     for index in range(len(positions) - 1):
         start = positions[index]
         end = positions[index + 1]
@@ -308,7 +307,7 @@ def outer_chains(
     *,
     scale_denominator: int = 100,
     dim_to_jamb: bool = DEFAULT_DIM_TO_JAMB,
-) -> Tuple[DimChain, ...]:
+) -> tuple[DimChain, ...]:
     """§7 step 2: three levels per side of the building.
 
     Level 1 is the overall extent, level 2 the external-wall segment breakpoints (where
@@ -330,13 +329,17 @@ def outer_chains(
     def offset_for(level_offset_mm: int) -> int:
         return int(round(level_offset_mm * factor))
 
-    l1, l2, l3 = (offset_for(LEVEL_1_OFFSET_MM), offset_for(LEVEL_2_OFFSET_MM), offset_for(LEVEL_3_OFFSET_MM))
+    l1, l2, l3 = (
+        offset_for(LEVEL_1_OFFSET_MM),
+        offset_for(LEVEL_2_OFFSET_MM),
+        offset_for(LEVEL_3_OFFSET_MM),
+    )
 
     # Breakpoints: internal wall centrelines crossing each facade direction.
-    vertical_breaks: List[int] = []
-    horizontal_breaks: List[int] = []
-    vertical_anchors: Dict[int, str] = {}
-    horizontal_anchors: Dict[int, str] = {}
+    vertical_breaks: list[int] = []
+    horizontal_breaks: list[int] = []
+    vertical_anchors: dict[int, str] = {}
+    horizontal_anchors: dict[int, str] = {}
     for wall in walls:
         if _is_vertical(wall):
             vertical_breaks.append(wall.a.x)
@@ -346,11 +349,11 @@ def outer_chains(
             horizontal_anchors[wall.a.y] = wall.id
 
     # Opening positions, per facade side.
-    south_openings: List[int] = []
-    north_openings: List[int] = []
-    west_openings: List[int] = []
-    east_openings: List[int] = []
-    opening_anchors: Dict[int, str] = {}
+    south_openings: list[int] = []
+    north_openings: list[int] = []
+    west_openings: list[int] = []
+    east_openings: list[int] = []
+    opening_anchors: dict[int, str] = {}
     for wall in walls:
         if wall.kind != "external":
             continue
@@ -371,7 +374,7 @@ def outer_chains(
                 target = west_openings if line - half <= min_x else east_openings
             target.extend(positions)
 
-    chains: List[Optional[DimChain]] = [
+    chains: list[DimChain | None] = [
         # South (below the plan): horizontal chains.
         _chain_from_breaks(
             chain_id="%s-S-L1" % storey_id,
@@ -470,14 +473,14 @@ def outer_chains(
     return tuple(chain for chain in chains if chain is not None)
 
 
-def inner_chains(house: Any, storey_id: str) -> Tuple[DimChain, ...]:
+def inner_chains(house: Any, storey_id: str) -> tuple[DimChain, ...]:
     """§7 step 3: one width and one depth chain per room, at the room's inner faces.
 
     Simpler than §7 (no shared-wall duplicate suppression — see the module docstring),
     but the numbers are the room's real clear dimensions off its polygon, so a
     contractor reading them gets the right answer.
     """
-    chains: List[DimChain] = []
+    chains: list[DimChain] = []
     for room in house.rooms:
         if room.storey_id != storey_id:
             continue
@@ -516,7 +519,7 @@ def inner_chains(house: Any, storey_id: str) -> Tuple[DimChain, ...]:
 # ---------------------------------------------------------------------------
 # Plan projection (§7 "Plan projection")
 # ---------------------------------------------------------------------------
-def _wall_solid_spans(house: Any, wall: Any) -> List[Tuple[int, int]]:
+def _wall_solid_spans(house: Any, wall: Any) -> list[tuple[int, int]]:
     """Spans of a wall's axis that are solid masonry, i.e. not an opening.
 
     Pure interval arithmetic on the opening list. This is what makes "openings break
@@ -524,13 +527,13 @@ def _wall_solid_spans(house: Any, wall: Any) -> List[Tuple[int, int]]:
     both, so a filled wall can never cover a window.
     """
     lo, hi = _wall_axis_span(wall)
-    cuts: List[Tuple[int, int]] = []
+    cuts: list[tuple[int, int]] = []
     for opening in _openings_of_wall(house, wall.id):
         centre = _opening_centre_along(wall, opening)
         half = opening.width_mm // 2
         cuts.append((max(lo, centre - half), min(hi, centre + half)))
     cuts.sort()
-    spans: List[Tuple[int, int]] = []
+    spans: list[tuple[int, int]] = []
     cursor = lo
     for start, end in cuts:
         if start > cursor:
@@ -541,7 +544,7 @@ def _wall_solid_spans(house: Any, wall: Any) -> List[Tuple[int, int]]:
     return spans
 
 
-def _door_primitives(wall: Any, opening: Any, centre_along: int) -> List[Primitive]:
+def _door_primitives(wall: Any, opening: Any, centre_along: int) -> list[Primitive]:
     """Leaf + 90° swing arc (§7: "door arc + leaf")."""
     half_width = opening.width_mm // 2
     half_thickness = _half(wall.thickness_mm)
@@ -564,7 +567,7 @@ def _door_primitives(wall: Any, opening: Any, centre_along: int) -> List[Primiti
         start = 0 if inward else 180
         end = start + (-90 if swings_left else 90)
 
-    out: List[Primitive] = [
+    out: list[Primitive] = [
         Line(hinge, tip, A_DOOR, element_id=opening.id),
         Arc(
             centre=hinge,
@@ -579,26 +582,34 @@ def _door_primitives(wall: Any, opening: Any, centre_along: int) -> List[Primiti
     if _is_horizontal(wall):
         for x in (centre_along - half_width, centre_along + half_width):
             out.append(
-                Line((x, line - half_thickness), (x, line + half_thickness), A_DOOR,
-                     element_id=opening.id)
+                Line(
+                    (x, line - half_thickness),
+                    (x, line + half_thickness),
+                    A_DOOR,
+                    element_id=opening.id,
+                )
             )
     else:
         for y in (centre_along - half_width, centre_along + half_width):
             out.append(
-                Line((line - half_thickness, y), (line + half_thickness, y), A_DOOR,
-                     element_id=opening.id)
+                Line(
+                    (line - half_thickness, y),
+                    (line + half_thickness, y),
+                    A_DOOR,
+                    element_id=opening.id,
+                )
             )
     return out
 
 
-def _window_primitives(wall: Any, opening: Any, centre_along: int) -> List[Primitive]:
+def _window_primitives(wall: Any, opening: Any, centre_along: int) -> list[Primitive]:
     """§7: "window triple line" — two frame lines plus the glazing centreline."""
     half_width = opening.width_mm // 2
     half_thickness = _half(wall.thickness_mm)
     line = _wall_line_mm(wall)
     lo = centre_along - half_width
     hi = centre_along + half_width
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     if _is_horizontal(wall):
         for offset in (-half_thickness, 0, half_thickness):
             out.append(
@@ -606,8 +617,12 @@ def _window_primitives(wall: Any, opening: Any, centre_along: int) -> List[Primi
             )
         for x in (lo, hi):
             out.append(
-                Line((x, line - half_thickness), (x, line + half_thickness), A_WIND,
-                     element_id=opening.id)
+                Line(
+                    (x, line - half_thickness),
+                    (x, line + half_thickness),
+                    A_WIND,
+                    element_id=opening.id,
+                )
             )
     else:
         for offset in (-half_thickness, 0, half_thickness):
@@ -616,15 +631,19 @@ def _window_primitives(wall: Any, opening: Any, centre_along: int) -> List[Primi
             )
         for y in (lo, hi):
             out.append(
-                Line((line - half_thickness, y), (line + half_thickness, y), A_WIND,
-                     element_id=opening.id)
+                Line(
+                    (line - half_thickness, y),
+                    (line + half_thickness, y),
+                    A_WIND,
+                    element_id=opening.id,
+                )
             )
     return out
 
 
-def _stair_primitives(house: Any, stair: Any, storey: Any) -> List[Primitive]:
+def _stair_primitives(house: Any, stair: Any, storey: Any) -> list[Primitive]:
     """Treads, going arrow and the ``UP nR`` label (§7: "stairs w/ arrow + UP 15R")."""
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     ox, oy = stair.origin.x, stair.origin.y
     width = stair.width_mm
     tread = stair.tread_mm
@@ -647,13 +666,24 @@ def _stair_primitives(house: Any, stair: Any, storey: Any) -> List[Primitive]:
             y = oy + sign * index * tread
             out.append(Line((ox, y), (ox + width, y), A_STAIR, element_id=stair.id))
         arrow_x = ox + width // 2
-        out.append(Line((arrow_x, oy), (arrow_x, oy + sign * length), A_STAIR,
-                        element_id=stair.id))
+        out.append(Line((arrow_x, oy), (arrow_x, oy + sign * length), A_STAIR, element_id=stair.id))
         head = oy + sign * length
-        out.append(Line((arrow_x, head), (arrow_x - width // 6, head - sign * width // 6),
-                        A_STAIR, element_id=stair.id))
-        out.append(Line((arrow_x, head), (arrow_x + width // 6, head - sign * width // 6),
-                        A_STAIR, element_id=stair.id))
+        out.append(
+            Line(
+                (arrow_x, head),
+                (arrow_x - width // 6, head - sign * width // 6),
+                A_STAIR,
+                element_id=stair.id,
+            )
+        )
+        out.append(
+            Line(
+                (arrow_x, head),
+                (arrow_x + width // 6, head - sign * width // 6),
+                A_STAIR,
+                element_id=stair.id,
+            )
+        )
         label_at: Pt2 = (arrow_x, oy + sign * (length + 200))
     else:
         sign = 1 if stair.direction == "E" else -1
@@ -669,13 +699,24 @@ def _stair_primitives(house: Any, stair: Any, storey: Any) -> List[Primitive]:
             x = ox + sign * index * tread
             out.append(Line((x, oy), (x, oy + width), A_STAIR, element_id=stair.id))
         arrow_y = oy + width // 2
-        out.append(Line((ox, arrow_y), (ox + sign * length, arrow_y), A_STAIR,
-                        element_id=stair.id))
+        out.append(Line((ox, arrow_y), (ox + sign * length, arrow_y), A_STAIR, element_id=stair.id))
         head = ox + sign * length
-        out.append(Line((head, arrow_y), (head - sign * width // 6, arrow_y - width // 6),
-                        A_STAIR, element_id=stair.id))
-        out.append(Line((head, arrow_y), (head - sign * width // 6, arrow_y + width // 6),
-                        A_STAIR, element_id=stair.id))
+        out.append(
+            Line(
+                (head, arrow_y),
+                (head - sign * width // 6, arrow_y - width // 6),
+                A_STAIR,
+                element_id=stair.id,
+            )
+        )
+        out.append(
+            Line(
+                (head, arrow_y),
+                (head - sign * width // 6, arrow_y + width // 6),
+                A_STAIR,
+                element_id=stair.id,
+            )
+        )
         label_at = (ox + sign * (length + 200), arrow_y)
 
     out.append(
@@ -691,7 +732,7 @@ def _stair_primitives(house: Any, stair: Any, storey: Any) -> List[Primitive]:
     return out
 
 
-def _north_arrow(at: Pt2, length_mm: int, north_deg: int) -> List[Primitive]:
+def _north_arrow(at: Pt2, length_mm: int, north_deg: int) -> list[Primitive]:
     """A north arrow rotated by the plot's ``north_deg`` (clockwise from +Y)."""
     import math
 
@@ -722,9 +763,9 @@ def _north_arrow(at: Pt2, length_mm: int, north_deg: int) -> List[Primitive]:
     ]
 
 
-def _section_marker(a: Pt2, b: Pt2, tag: str) -> List[Primitive]:
+def _section_marker(a: Pt2, b: Pt2, tag: str) -> list[Primitive]:
     """A section line with a bubble and a view direction tick at each end."""
-    out: List[Primitive] = [Line(a, b, A_TEXT, style=STYLE_CENTRE)]
+    out: list[Primitive] = [Line(a, b, A_TEXT, style=STYLE_CENTRE)]
     for point in (a, b):
         out.append(Circle(point, 450, A_TEXT))
         out.append(
@@ -747,8 +788,8 @@ def plan_primitives(
     *,
     scale_denominator: int = 100,
     dim_to_jamb: bool = DEFAULT_DIM_TO_JAMB,
-    section_line: Optional[Tuple[Pt2, Pt2]] = None,
-) -> Tuple[Tuple[Primitive, ...], Tuple[DimChain, ...]]:
+    section_line: tuple[Pt2, Pt2] | None = None,
+) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
     """One storey's plan: walls, openings, stairs, room labels, dims, markers."""
     house = doc.house
     storey = next((s for s in house.storeys if s.id == storey_id), None)
@@ -756,7 +797,7 @@ def plan_primitives(
         raise KeyError("no storey %r in this model" % storey_id)
     storey_index = list(house.storeys).index(storey)
     walls = _orthogonal_only(_walls_of(house, storey_id))
-    out: List[Primitive] = []
+    out: list[Primitive] = []
 
     # -- walls: poché + faces, broken by openings -------------------------
     for wall in sorted(walls, key=lambda w: w.id):
@@ -787,7 +828,8 @@ def plan_primitives(
             if opening.tag:
                 out.append(
                     Text(
-                        at=(centre, _wall_line_mm(wall)) if _is_horizontal(wall)
+                        at=(centre, _wall_line_mm(wall))
+                        if _is_horizontal(wall)
                         else (_wall_line_mm(wall), centre),
                         text=opening.tag,
                         layer=A_TEXT,
@@ -799,13 +841,11 @@ def plan_primitives(
                 )
 
     # -- stairs -----------------------------------------------------------
-    for stair in sorted((s for s in house.stairs if s.storey_id == storey_id),
-                        key=lambda s: s.id):
+    for stair in sorted((s for s in house.stairs if s.storey_id == storey_id), key=lambda s: s.id):
         out.extend(_stair_primitives(house, stair, storey))
 
     # -- room labels + area outline ---------------------------------------
-    for room in sorted((r for r in house.rooms if r.storey_id == storey_id),
-                       key=lambda r: r.id):
+    for room in sorted((r for r in house.rooms if r.storey_id == storey_id), key=lambda r: r.id):
         xs = [p.x for p in room.polygon]
         ys = [p.y for p in room.polygon]
         centre = ((min(xs) + max(xs)) // 2, (min(ys) + max(ys)) // 2)
@@ -875,30 +915,37 @@ def plan_primitives(
 _DIRECTION_NAMES = {"N": "NORTH", "E": "EAST", "S": "SOUTH", "W": "WEST"}
 
 
-def _facade_walls(house: Any, storey_id: str, direction: str) -> List[Any]:
+def _facade_walls(house: Any, storey_id: str, direction: str) -> list[Any]:
     """External walls whose outer face lies on the named side of the building."""
     extent = building_extent(house, storey_id)
     if extent is None:
         return []
     min_x, min_y, max_x, max_y = extent
-    result: List[Any] = []
+    result: list[Any] = []
     for wall in _orthogonal_only(_walls_of(house, storey_id)):
         if wall.kind != "external":
             continue
         half = _half(wall.thickness_mm)
         line = _wall_line_mm(wall)
-        if direction == "S" and _is_horizontal(wall) and line - half <= min_y:
-            result.append(wall)
-        elif direction == "N" and _is_horizontal(wall) and line + half >= max_y:
-            result.append(wall)
-        elif direction == "W" and _is_vertical(wall) and line - half <= min_x:
-            result.append(wall)
-        elif direction == "E" and _is_vertical(wall) and line + half >= max_x:
+        if (
+            direction == "S"
+            and _is_horizontal(wall)
+            and line - half <= min_y
+            or direction == "N"
+            and _is_horizontal(wall)
+            and line + half >= max_y
+            or direction == "W"
+            and _is_vertical(wall)
+            and line - half <= min_x
+            or direction == "E"
+            and _is_vertical(wall)
+            and line + half >= max_x
+        ):
             result.append(wall)
     return result
 
 
-def _facade_along(direction: str, extent: Tuple[int, int, int, int], point_along: int) -> int:
+def _facade_along(direction: str, extent: tuple[int, int, int, int], point_along: int) -> int:
     """Map a model coordinate to the facade's left-to-right axis.
 
     N and E facades are viewed from the opposite side, so their along-axis runs
@@ -917,7 +964,7 @@ def _facade_along(direction: str, extent: Tuple[int, int, int, int], point_along
 
 def elevation_primitives(
     doc: Any, direction: str, *, scale_denominator: int = 100
-) -> Tuple[Tuple[Primitive, ...], Tuple[DimChain, ...]]:
+) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
     """One facade: ground line, plinth, storey lines, openings, level markers, height chain.
 
     Coordinates in the returned primitives are ``(along_facade_mm, height_above_datum_mm)``
@@ -936,13 +983,18 @@ def elevation_primitives(
     plinth = levels.plinth_mm
     roof = _roof_level_mm(house)
     parapet_top = roof + levels.parapet_mm
-    out: List[Primitive] = []
+    out: list[Primitive] = []
 
     # Ground line, extended past the building the way an elevation is drawn.
     out.append(Line((-600, 0), (facade_width + 600, 0), A_WALL))
     # Plinth band.
-    out.append(Polyline(((0, 0), (facade_width, 0), (facade_width, plinth), (0, plinth)),
-                        A_WALL_PART, closed=True))
+    out.append(
+        Polyline(
+            ((0, 0), (facade_width, 0), (facade_width, plinth), (0, plinth)),
+            A_WALL_PART,
+            closed=True,
+        )
+    )
     # Building envelope up to the parapet.
     out.append(
         Polyline(
@@ -952,7 +1004,7 @@ def elevation_primitives(
         )
     )
     # Floor lines and the parapet coping.
-    for index, storey in enumerate(house.storeys):
+    for index in range(len(house.storeys)):
         ffl = _storey_ffl_mm(house, index)
         out.append(Line((0, ffl), (facade_width, ffl), A_WALL_PART, style=STYLE_HIDDEN))
     out.append(Line((0, roof), (facade_width, roof), A_WALL_PART))
@@ -971,8 +1023,12 @@ def elevation_primitives(
                 top = bottom + opening.height_mm
                 layer = A_DOOR if opening.kind == "door" else A_WIND
                 out.append(
-                    Polyline(((lo, bottom), (hi, bottom), (hi, top), (lo, top)), layer,
-                             closed=True, element_id=opening.id)
+                    Polyline(
+                        ((lo, bottom), (hi, bottom), (hi, top), (lo, top)),
+                        layer,
+                        closed=True,
+                        element_id=opening.id,
+                    )
                 )
                 if opening.kind != "door":
                     mid = (bottom + top) // 2
@@ -981,8 +1037,7 @@ def elevation_primitives(
     # Level markers (§7: "floor lines ... as level markers, not chains").
     marker_x = facade_width + 400
     for label, level in _level_markers(house):
-        out.append(Line((facade_width, level), (marker_x + 900, level), A_DIM,
-                        style=STYLE_CENTRE))
+        out.append(Line((facade_width, level), (marker_x + 900, level), A_DIM, style=STYLE_CENTRE))
         out.append(
             Text(
                 at=(marker_x + 200, level + 120),
@@ -1005,8 +1060,9 @@ def elevation_primitives(
     )
     chains = (chain,) if chain is not None else ()
     assert_chains_sum(chains)
-    out.extend(Dim(chain=c, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM)
-               for c in chains)
+    out.extend(
+        Dim(chain=c, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM) for c in chains
+    )
 
     # Material callouts, only when a facade kit has actually been applied.
     facade = house.facade
@@ -1015,8 +1071,10 @@ def elevation_primitives(
             Text(
                 at=(0, parapet_top + 600),
                 text="FACADE KIT: %s%s"
-                % (facade.kit_id.upper(),
-                   (" / " + facade.colorway_id.upper()) if facade.colorway_id else ""),
+                % (
+                    facade.kit_id.upper(),
+                    (" / " + facade.colorway_id.upper()) if facade.colorway_id else "",
+                ),
                 layer=A_TEXT,
                 height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM,
             )
@@ -1024,18 +1082,18 @@ def elevation_primitives(
     return (tuple(out), chains)
 
 
-def _level_markers(house: Any) -> Tuple[Tuple[str, int], ...]:
+def _level_markers(house: Any) -> tuple[tuple[str, int], ...]:
     """The level set §7 wants on elevations and sections, deduplicated and sorted."""
     levels = house.levels
-    markers: List[Tuple[str, int]] = [("GL", 0), ("PLINTH", levels.plinth_mm)]
-    for index, storey in enumerate(house.storeys):
+    markers: list[tuple[str, int]] = [("GL", 0), ("PLINTH", levels.plinth_mm)]
+    for index in range(len(house.storeys)):
         ffl = _storey_ffl_mm(house, index)
         markers.append(("FFL %d" % index, ffl))
         markers.append(("LINTEL %d" % index, ffl + levels.lintel_default_mm))
     roof = _roof_level_mm(house)
     markers.append(("ROOF", roof))
     markers.append(("PARAPET", roof + levels.parapet_mm))
-    seen: Dict[int, str] = {}
+    seen: dict[int, str] = {}
     for label, level in markers:
         seen.setdefault(level, label)
     return tuple(sorted(((label, level) for level, label in seen.items()), key=lambda p: p[1]))
@@ -1044,7 +1102,7 @@ def _level_markers(house: Any) -> Tuple[Tuple[str, int], ...]:
 # ---------------------------------------------------------------------------
 # Section (§7 "Section (through stair)")
 # ---------------------------------------------------------------------------
-def choose_section_line(doc: Any) -> Optional[Tuple[Pt2, Pt2]]:
+def choose_section_line(doc: Any) -> tuple[Pt2, Pt2] | None:
     """§7: cut through the stair flight when there is one, else the building centre."""
     house = doc.house
     if not house.storeys:
@@ -1067,7 +1125,7 @@ def choose_section_line(doc: Any) -> Optional[Tuple[Pt2, Pt2]]:
 
 def section_primitives(
     doc: Any, *, scale_denominator: int = 100
-) -> Tuple[Tuple[Primitive, ...], Tuple[DimChain, ...]]:
+) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
     """The section: storey heights chain, sill/lintel levels, plinth, parapet, foundation.
 
     Coordinates are ``(along_cut_mm, height_above_datum_mm)``, ground at 0 — the same
@@ -1088,14 +1146,18 @@ def section_primitives(
     plinth = levels.plinth_mm
     roof = _roof_level_mm(house)
     parapet_top = roof + levels.parapet_mm
-    out: List[Primitive] = []
+    out: list[Primitive] = []
 
     # Ground and the indicative foundation (§7, verbatim label).
     out.append(Line((-900, 0), (span + 900, 0), A_WALL))
     foundation = -FOUNDATION_DEPTH_BELOW_PLINTH_MM
     out.append(
-        Polyline(((0, 0), (span, 0), (span, foundation), (0, foundation)), A_WALL_PART,
-                 closed=True, style=STYLE_DASHED)
+        Polyline(
+            ((0, 0), (span, 0), (span, foundation), (0, foundation)),
+            A_WALL_PART,
+            closed=True,
+            style=STYLE_DASHED,
+        )
     )
     out.append(
         Hatch(
@@ -1145,8 +1207,13 @@ def section_primitives(
             )
 
     # Roof slab and parapet.
-    out.append(Polyline(((0, roof), (span, roof), (span, parapet_top), (0, parapet_top)),
-                        A_WALL_PART, closed=True))
+    out.append(
+        Polyline(
+            ((0, roof), (span, roof), (span, parapet_top), (0, parapet_top)),
+            A_WALL_PART,
+            closed=True,
+        )
+    )
     out.append(Polyline(((0, plinth), (span, plinth)), A_WALL_PART))
 
     # Storey-height chain.
@@ -1158,12 +1225,13 @@ def section_primitives(
         offset_mm=-int(round(LEVEL_1_OFFSET_MM * scale_denominator / 100.0)),
         lo=foundation,
         hi=parapet_top,
-        breaks=[0] + breaks,
+        breaks=[0, *breaks],
     )
     chains = (chain,) if chain is not None else ()
     assert_chains_sum(chains)
-    out.extend(Dim(chain=c, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM)
-               for c in chains)
+    out.extend(
+        Dim(chain=c, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM) for c in chains
+    )
     return (tuple(out), chains)
 
 
@@ -1172,7 +1240,7 @@ def section_primitives(
 # ---------------------------------------------------------------------------
 def site_plan_primitives(
     doc: Any, *, statement: Any = None, scale_denominator: int = 200
-) -> Tuple[Tuple[Primitive, ...], Tuple[DimChain, ...]]:
+) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
     """Plot boundary, footprint, road, dimensioned setbacks, north, coverage/FAR note.
 
     Setback *values* are not measured here — they are read off the area statement's
@@ -1183,7 +1251,7 @@ def site_plan_primitives(
     plot = doc.plot
     house = doc.house
     boundary = [(p.x, p.y) for p in plot.boundary]
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     if len(boundary) < 3:
         return ((), ())
 
@@ -1223,7 +1291,7 @@ def site_plan_primitives(
 
     # Footprint of the ground storey.
     footprint = building_extent(house, house.storeys[0].id) if house.storeys else None
-    chains: List[DimChain] = []
+    chains: list[DimChain] = []
     if footprint is not None:
         f_min_x, f_min_y, f_max_x, f_max_y = footprint
         ring = ((f_min_x, f_min_y), (f_max_x, f_min_y), (f_max_x, f_max_y), (f_min_x, f_max_y))
@@ -1231,7 +1299,6 @@ def site_plan_primitives(
         out.append(Polyline(ring, A_WALL, closed=True))
 
         # Setback dimensions, one chain per side, anchored on the plot edge.
-        offset = int(round(600 * scale_denominator / 100.0))
         setback_specs = (
             ("front", "vertical", (f_min_x + f_max_x) // 2, min_y, f_min_y),
             ("rear", "vertical", (f_min_x + f_max_x) // 2, f_max_y, max_y),
@@ -1252,14 +1319,14 @@ def site_plan_primitives(
                 chains.append(chain)
 
     assert_chains_sum(tuple(chains))
-    out.extend(Dim(chain=c, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM)
-               for c in chains)
+    out.extend(
+        Dim(chain=c, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM) for c in chains
+    )
     out.extend(_north_arrow((max_x + 1200, max_y - 1200), 1200, plot.north_deg))
 
     # Coverage / FAR note, straight off the statement — never recomputed here.
     if statement is not None:
         from garh_model.units import format_sqm
-
         from garh_rules.formatting import format_ratio
 
         lines = [
@@ -1298,7 +1365,7 @@ _TAG_PREFIX = {"door": "D", "window": "W", "ventilator": "V"}
 _KIND_ORDER = {"door": 0, "window": 1, "ventilator": 2}
 
 
-def build_schedule_rows(house: Any) -> Tuple[Any, ...]:
+def build_schedule_rows(house: Any) -> tuple[Any, ...]:
     """Group openings by ``(kind, width, height)`` and tag them D1.., W1.., V1...
 
     Ordering is by kind then descending width then descending height — the order an
@@ -1306,7 +1373,7 @@ def build_schedule_rows(house: Any) -> Tuple[Any, ...]:
     total order that does not depend on the model's array order, so the tag an opening
     gets is stable across edits that do not change the opening set.
     """
-    groups: Dict[Tuple[str, int, int, int], Dict[str, Any]] = {}
+    groups: dict[tuple[str, int, int, int], dict[str, Any]] = {}
     wall_storey = {wall.id: wall.storey_id for wall in house.walls}
     for opening in house.openings:
         key = (opening.kind, opening.width_mm, opening.height_mm, opening.sill_mm)
@@ -1324,8 +1391,8 @@ def build_schedule_rows(house: Any) -> Tuple[Any, ...]:
             item[0][3],
         ),
     )
-    counters: Dict[str, int] = {}
-    rows: List[Any] = []
+    counters: dict[str, int] = {}
+    rows: list[Any] = []
     for (kind, width, height, sill), entry in ordered:
         prefix = _TAG_PREFIX.get(kind, "X")
         counters[prefix] = counters.get(prefix, 0) + 1
@@ -1347,9 +1414,7 @@ def build_schedule_rows(house: Any) -> Tuple[Any, ...]:
 # ---------------------------------------------------------------------------
 # Sheets
 # ---------------------------------------------------------------------------
-def _title_block(
-    base: TitleBlock, *, title: str, number: str, scale: Scale
-) -> TitleBlock:
+def _title_block(base: TitleBlock, *, title: str, number: str, scale: Scale) -> TitleBlock:
     from dataclasses import replace
 
     return replace(base, drawing_title=title, sheet_number=number, scale_label=scale.label)
@@ -1372,7 +1437,9 @@ def _sheet(
         title=title,
         viewport=viewport,
         scale=scale,
-        frame=default_frame(title_block=_title_block(title_block, title=title, number=number, scale=scale)),
+        frame=default_frame(
+            title_block=_title_block(title_block, title=title, number=number, scale=scale)
+        ),
     )
     sheet.validate()
     return sheet
@@ -1385,7 +1452,7 @@ def floor_plan_sheet(
     number: str,
     title_block: TitleBlock,
     dim_to_jamb: bool = DEFAULT_DIM_TO_JAMB,
-    revisions: Sequence[Tuple[str, str, str]] = (),
+    revisions: Sequence[tuple[str, str, str]] = (),
 ) -> SheetDrawing:
     house = doc.house
     storey = next(s for s in house.storeys if s.id == storey_id)
@@ -1403,7 +1470,10 @@ def floor_plan_sheet(
     scale = Scale(denominator)
     section_line = choose_section_line(doc)
     primitives, chains = plan_primitives(
-        doc, storey_id, scale_denominator=denominator, dim_to_jamb=dim_to_jamb,
+        doc,
+        storey_id,
+        scale_denominator=denominator,
+        dim_to_jamb=dim_to_jamb,
         section_line=section_line,
     )
     placement = fit_placement(padded, rect, denominator)
@@ -1440,7 +1510,7 @@ def elevation_sheet(
     *,
     number: str,
     title_block: TitleBlock,
-    revisions: Sequence[Tuple[str, str, str]] = (),
+    revisions: Sequence[tuple[str, str, str]] = (),
 ) -> SheetDrawing:
     frame = default_frame()
     rect = content_rect(frame)
@@ -1455,8 +1525,9 @@ def elevation_sheet(
     denominator = choose_scale(padded, rect, preferred=DEFAULT_SCALE.denominator)
     if denominator != 100:
         primitives, chains = elevation_primitives(doc, direction, scale_denominator=denominator)
-        group = DrawingGroup(id="elev-%s" % direction, placement=Placement(denominator),
-                             primitives=primitives)
+        group = DrawingGroup(
+            id="elev-%s" % direction, placement=Placement(denominator), primitives=primitives
+        )
         extent = group.extent_model_mm()
         assert extent is not None
         padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
@@ -1493,7 +1564,7 @@ def section_sheet(
     *,
     number: str,
     title_block: TitleBlock,
-    revisions: Sequence[Tuple[str, str, str]] = (),
+    revisions: Sequence[tuple[str, str, str]] = (),
 ) -> SheetDrawing:
     frame = default_frame()
     rect = content_rect(frame)
@@ -1541,7 +1612,7 @@ def site_plan_sheet(
     number: str,
     title_block: TitleBlock,
     statement: Any = None,
-    revisions: Sequence[Tuple[str, str, str]] = (),
+    revisions: Sequence[tuple[str, str, str]] = (),
 ) -> SheetDrawing:
     frame = default_frame()
     rect = content_rect(frame)
@@ -1586,8 +1657,11 @@ def site_plan_sheet(
 
 
 def schedule_sheet(
-    doc: Any, *, number: str, title_block: TitleBlock,
-    revisions: Sequence[Tuple[str, str, str]] = (),
+    doc: Any,
+    *,
+    number: str,
+    title_block: TitleBlock,
+    revisions: Sequence[tuple[str, str, str]] = (),
 ) -> SheetDrawing:
     house = doc.house
     rows = build_schedule_rows(house)
@@ -1612,8 +1686,12 @@ def schedule_sheet(
 
 
 def area_statement_sheet(
-    doc: Any, statement: Any, *, number: str, title_block: TitleBlock,
-    revisions: Sequence[Tuple[str, str, str]] = (),
+    doc: Any,
+    statement: Any,
+    *,
+    number: str,
+    title_block: TitleBlock,
+    revisions: Sequence[tuple[str, str, str]] = (),
 ) -> SheetDrawing:
     sheet = _sheet(
         sheet_id="sheet-areas",
@@ -1639,11 +1717,11 @@ class SheetSet(tuple):
 
     __slots__ = ()
 
-    def by_kind(self, kind: str) -> Tuple[SheetDrawing, ...]:
+    def by_kind(self, kind: str) -> tuple[SheetDrawing, ...]:
         return tuple(d for d in self if getattr(d.sheet, "kind", None) == kind)
 
-    def all_chains(self) -> Tuple[DimChain, ...]:
-        chains: List[DimChain] = []
+    def all_chains(self) -> tuple[DimChain, ...]:
+        chains: list[DimChain] = []
         for drawing in self:
             chains.extend(drawing.chains)
         return tuple(chains)
@@ -1652,10 +1730,10 @@ class SheetSet(tuple):
 def build_sheet_set(
     doc: Any,
     *,
-    title_block: Optional[TitleBlock] = None,
+    title_block: TitleBlock | None = None,
     statement: Any = None,
     dim_to_jamb: bool = DEFAULT_DIM_TO_JAMB,
-    revisions: Sequence[Tuple[str, str, str]] = (),
+    revisions: Sequence[tuple[str, str, str]] = (),
 ) -> SheetSet:
     """All F7-A sheets for a model: site, one plan per storey, four elevations, section, tables.
 
@@ -1670,10 +1748,11 @@ def build_sheet_set(
     design: this module must not be *able* to produce a second version of those numbers.
     """
     block = title_block or TitleBlock()
-    drawings: List[SheetDrawing] = []
+    drawings: list[SheetDrawing] = []
     drawings.append(
-        site_plan_sheet(doc, number="A-01", title_block=block, statement=statement,
-                        revisions=revisions)
+        site_plan_sheet(
+            doc, number="A-01", title_block=block, statement=statement, revisions=revisions
+        )
     )
     for index, storey in enumerate(doc.house.storeys):
         if not _walls_of(doc.house, storey.id):
@@ -1691,7 +1770,10 @@ def build_sheet_set(
     for index, direction in enumerate(("N", "E", "S", "W")):
         drawings.append(
             elevation_sheet(
-                doc, direction, number="A-03%s" % chr(ord("A") + index), title_block=block,
+                doc,
+                direction,
+                number="A-03%s" % chr(ord("A") + index),
+                title_block=block,
                 revisions=revisions,
             )
         )
@@ -1699,7 +1781,8 @@ def build_sheet_set(
     drawings.append(schedule_sheet(doc, number="A-05", title_block=block, revisions=revisions))
     if statement is not None:
         drawings.append(
-            area_statement_sheet(doc, statement, number="A-06", title_block=block,
-                                 revisions=revisions)
+            area_statement_sheet(
+                doc, statement, number="A-06", title_block=block, revisions=revisions
+            )
         )
     return SheetSet(drawings)

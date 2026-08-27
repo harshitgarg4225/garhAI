@@ -49,7 +49,7 @@ numbers, not two.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from services.drawings.projection.primitives import Point, round_half_away
 from services.drawings.sheets.model import Frame, Scale
@@ -80,14 +80,10 @@ def scale_denominator_of(scale: Any) -> int:
     """
     if isinstance(scale, bool):
         raise TypeError("scale must be a Scale or an int denominator, got %r" % (scale,))
-    if isinstance(scale, int):
-        denominator = scale
-    else:
-        denominator = getattr(scale, "denominator", None)
+    denominator = scale if isinstance(scale, int) else getattr(scale, "denominator", None)
     if isinstance(denominator, bool) or not isinstance(denominator, int) or denominator <= 0:
         raise TypeError(
-            "scale must be a Scale or a positive int denominator (100 for 1:100), got %r"
-            % (scale,)
+            "scale must be a Scale or a positive int denominator (100 for 1:100), got %r" % (scale,)
         )
     return denominator
 
@@ -114,7 +110,9 @@ class PaperTransform:
 
     def __post_init__(self) -> None:
         if not isinstance(self.scale_denominator, int) or self.scale_denominator <= 0:
-            raise ValueError("scale denominator must be a positive int, got %r" % (self.scale_denominator,))
+            raise ValueError(
+                "scale denominator must be a positive int, got %r" % (self.scale_denominator,)
+            )
 
     @property
     def scale(self) -> Scale:
@@ -152,7 +150,7 @@ class PaperTransform:
             ay + self.length_to_model_mm(paper_point[1] - oy),
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "scale": self.scale_denominator,
             "scaleLabel": self.label,
@@ -177,8 +175,8 @@ class Fit:
 
     transform: PaperTransform
     fits: bool
-    required_paper_mm: Tuple[float, float]
-    available_paper_mm: Tuple[float, float]
+    required_paper_mm: tuple[float, float]
+    available_paper_mm: tuple[float, float]
 
     def suggested_denominator(self) -> int:
         """The smallest standard denominator that would fit, or the current one."""
@@ -200,7 +198,9 @@ class Fit:
 FIT_PADDING_MM = 10.0
 
 
-def drawable_area_paper_mm(frame: Frame, *, reserve_title_block: bool = True) -> Tuple[float, float, float, float]:
+def drawable_area_paper_mm(
+    frame: Frame, *, reserve_title_block: bool = True
+) -> tuple[float, float, float, float]:
     """``(x, y, width, height)`` of the usable area in paper mm, origin bottom-left.
 
     The title block sits in the bottom-right corner, so reserving it means the drawing
@@ -218,13 +218,13 @@ def drawable_area_paper_mm(frame: Frame, *, reserve_title_block: bool = True) ->
 
 
 def fit_to_frame(
-    extent_model_mm: Optional[Tuple[int, int, int, int]],
+    extent_model_mm: tuple[int, int, int, int] | None,
     frame: Frame,
     scale: Any,
     *,
     reserve_title_block: bool = True,
     padding_mm: float = FIT_PADDING_MM,
-    offset_mm: Tuple[int, int] = (0, 0),
+    offset_mm: tuple[int, int] = (0, 0),
 ) -> Fit:
     """Centre a model extent in a frame at a fixed scale, and say whether it fits.
 

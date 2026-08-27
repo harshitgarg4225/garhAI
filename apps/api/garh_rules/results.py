@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The result row — the engine's whole output surface.
 
 Playbook §6 fixes the shape: ``{ruleId, status, actual, limit, cite, fixHint,
@@ -26,9 +24,12 @@ named consumer:
   difference between a panel that gets trusted and one that gets ignored.
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from fractions import Fraction
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from .packs import AutoFix
 
@@ -50,7 +51,7 @@ NOT_APPLICABLE = "not_applicable"
 
 #: Ordered worst-first. Used for the "worst status wins" collapse and for sorting
 #: a chip strip so the red ones are on the left.
-STATUSES: Tuple[str, ...] = (FAIL, WARN, PASS, NOT_APPLICABLE)
+STATUSES: tuple[str, ...] = (FAIL, WARN, PASS, NOT_APPLICABLE)
 
 _SEVERITY_OF_STATUS: Mapping[str, int] = {FAIL: 3, WARN: 2, PASS: 1, NOT_APPLICABLE: 0}
 
@@ -62,7 +63,7 @@ def worst_status(statuses: Sequence[str]) -> str:
     return max(statuses, key=lambda s: _SEVERITY_OF_STATUS.get(s, 0))
 
 
-def _ratio_json(value: Optional[Fraction]) -> Optional[Dict[str, int]]:
+def _ratio_json(value: Fraction | None) -> dict[str, int] | None:
     if value is None:
         return None
     return {"num": value.numerator, "den": value.denominator}
@@ -72,17 +73,17 @@ def _ratio_json(value: Optional[Fraction]) -> Optional[Dict[str, int]]:
 class ResultInstance:
     """One element measured against one rule."""
 
-    element_id: Optional[str]
+    element_id: str | None
     label: str
     status: str
     actual: Any
     limit: Any
     message: str
-    satisfaction: Optional[Fraction] = None
-    note: Optional[str] = None
+    satisfaction: Fraction | None = None
+    note: str | None = None
 
-    def to_json(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
             "elementId": self.element_id,
             "label": self.label,
             "status": self.status,
@@ -116,19 +117,19 @@ class RuleResult:
     severity: str
     declared_severity: str
     check_type: str
-    elements: Tuple[str, ...] = ()
-    cite_url: Optional[str] = None
-    autofix: Optional[AutoFix] = None
+    elements: tuple[str, ...] = ()
+    cite_url: str | None = None
+    autofix: AutoFix | None = None
     hard: bool = False
-    weight: Optional[int] = None
-    group: Optional[str] = None
-    satisfaction: Optional[Fraction] = None
-    tags: Tuple[str, ...] = ()
-    note: Optional[str] = None
+    weight: int | None = None
+    group: str | None = None
+    satisfaction: Fraction | None = None
+    tags: tuple[str, ...] = ()
+    note: str | None = None
     overridden: bool = False
-    override_reason: Optional[str] = None
-    not_applicable_reason: Optional[str] = None
-    not_applicable_field: Optional[str] = None
+    override_reason: str | None = None
+    not_applicable_reason: str | None = None
+    not_applicable_field: str | None = None
     relaxed_to_warn: bool = False
     #: The architect's value override(s) (``profile.overrides.values``) substituted
     #: into this rule's limit at evaluation time (Phase 3 wiring of the Phase-2
@@ -137,9 +138,9 @@ class RuleResult:
     #: un-blocks a logged failure. ``original_limit`` keeps the pack's own number for
     #: display (golden rule 4 — the replaced value must stay visible).
     value_overridden: bool = False
-    override_value_keys: Tuple[str, ...] = ()
+    override_value_keys: tuple[str, ...] = ()
     original_limit: Any = None
-    instances: Tuple[ResultInstance, ...] = field(default_factory=tuple)
+    instances: tuple[ResultInstance, ...] = field(default_factory=tuple)
 
     # -- predicates used by the solver gates and the UI ---------------------
     @property
@@ -161,7 +162,7 @@ class RuleResult:
         only appears when pressing it can actually do something (§15)."""
         return self.autofix is not None and self.autofix.computable
 
-    def to_json(self, *, full: bool = False) -> Dict[str, Any]:
+    def to_json(self, *, full: bool = False) -> dict[str, Any]:
         """The wire/persistence form.
 
         ``instances`` is emitted for **violated** rules only (or everything with
@@ -171,7 +172,7 @@ class RuleResult:
         the area statement needs survives regardless — it is serialised in
         ``areas.setbacks``.
         """
-        out: Dict[str, Any] = {
+        out: dict[str, Any] = {
             "ruleId": self.rule_id,
             "packId": self.pack_id,
             "status": self.status,

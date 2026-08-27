@@ -65,7 +65,10 @@ function fallbackMessage(job: JobVM): string {
     case 'succeeded':
       return 'Done.';
     case 'failed':
-      return job.error?.message ?? "This job stopped before it finished. Nothing was changed in your design.";
+      return (
+        job.error?.message ??
+        'This job stopped before it finished. Nothing was changed in your design.'
+      );
     case 'cancelled':
       return 'You cancelled this one. Nothing was changed.';
   }
@@ -126,7 +129,10 @@ export function JobCard({
           </div>
 
           <p
-            className={cn('mt-0.5 text-xs leading-5', job.status === 'failed' ? 'text-fail-ink' : 'text-ink-muted')}
+            className={cn(
+              'mt-0.5 text-xs leading-5',
+              job.status === 'failed' ? 'text-fail-ink' : 'text-ink-muted',
+            )}
             // Announce stage changes politely so a screen-reader user hears the
             // job progressing rather than having to poll the card.
             aria-live={active ? 'polite' : undefined}
@@ -167,7 +173,12 @@ export function JobCard({
             </Button>
           ) : null}
           {job.status === 'failed' && onRetry !== undefined ? (
-            <Button size="sm" variant="secondary" iconLeft="refresh" onClick={() => onRetry(job.id)}>
+            <Button
+              size="sm"
+              variant="secondary"
+              iconLeft="refresh"
+              onClick={() => onRetry(job.id)}
+            >
               Try again
             </Button>
           ) : null}

@@ -13,7 +13,7 @@ Everything that exists in the codebase right now:
 | demo firm "Studio Demo" | **seeded** |
 | user `demo@garh.ai` | **seeded** |
 | 30×40 ft Bengaluru plot, north up, 9 m road on the south edge | **seeded** (as ops) |
-| G+1 3BHK brief | **seeded** (as ops) — it *is* golden brief 01 |
+| G+1 3BHK brief | **seeded** (as ops) — seed-authored, CP-SAT-feasible (see below) |
 | ground + first storey | **seeded** (as ops) |
 | an initial op log and a named version with a folded snapshot | **seeded** |
 | a solved + edited plan | **Phase 3** — the CP-SAT solver does not exist yet |
@@ -46,15 +46,11 @@ coordinates, both languages — so a state hash printed on either side means the
 
 from __future__ import annotations
 
-import json
-import os
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
-from garh_api.logging import get_logger
-from garh_api.seed.catalog import SeedDataError, fixtures_dir
-
-_log = get_logger(__name__)
+from garh_api.seed.catalog import SeedDataError
 
 # ---------------------------------------------------------------------------
 # Identity (§17 names both of these explicitly — do not "improve" them, the e2e
@@ -74,9 +70,13 @@ DEMO_UNITS = "ft-in"
 #: nothing generated. It becomes "options" the first time the solver runs.
 DEMO_PROJECT_STATUS = "brief"
 
-#: The golden brief this project's brief is taken from — one source of truth for
-#: "30×40 ft Bengaluru, G+1, 3BHK" (see fixtures/briefs/README.md).
-DEMO_BRIEF_FIXTURE_ID = "brief-01-blr-30x40-rect-g1"
+#: The corpus sibling of this house — same plot, same G+1 3BHK headline (see
+#: fixtures/briefs/README.md). The demo brief is NOT that fixture any more: brief 01's
+#: 16-room program is CP-SAT-provably infeasible on this plot (§5.2's stair well counts
+#: toward §5.6's hard circulation cap, and 16 rooms leave no floor the arithmetic can
+#: close), so seeding it gave every first-time visitor an honest zero options. The brief
+#: below is authored here instead — see the section comment for the feasibility proof.
+DEMO_BRIEF_CORPUS_SIBLING = "brief-01-blr-30x40-rect-g1"
 
 #: Road: 9 m, on the plot's **south** edge. Edge 0 of DEMO_PLOT_POLYGON runs from
 #: (0,0) to (9144,0); with northDeg = 0 (+Y is true north) that edge is the south one.
@@ -94,89 +94,202 @@ DEMO_VERSION_NAME = "Plot and brief captured"
 
 
 # ---------------------------------------------------------------------------
-# The brief
+# The brief — authored HERE, and proven feasible against the real solver
 # ---------------------------------------------------------------------------
+#
+# This is the first brief every visitor generates plans from, so it has one hard
+# obligation the golden corpus does not: ``run_solver`` on this plot must return ≥1
+# option. ``apps/api/tests/test_seed_brief_feasible.py`` builds the exact payload
+# ``garh_api.solver_enqueue`` would enqueue for this document and runs the real CP-SAT
+# pipeline in-process; change any number below and that test re-proves it (or fails).
+#
+# What feasibility on a 30×40 ft blr plot actually requires (all execution finds):
+#
+# * The buildable envelope after blr setbacks (3.0 m front, 1.0 m sides/rear) is
+#   7144×8192 mm ≈ 58.5 m² per floor — the ceiling every storey's program shares.
+# * The §5.2 stair well is a fixed ~7.2 m² rectangle on every storey and it counts as
+#   CIRCULATION under §5.6's hard 18% cap, so every storey needs roughly 37 m²+ of
+#   real rooms just to keep the ratio legal. A sparse floor is as infeasible as an
+#   overstuffed one.
+# * Stage A tiles each storey EXACTLY, with rooms bounded in [minArea, 1.6×target].
+#   Generous targets with modest minima give the tiler the slack it needs; brief-01's
+#   16 tight rooms provably cannot tile these two floors.
+#
+# * §5.2's external-face rule gives every habitable room + the kitchen an edge on
+#   the footprint boundary, and the NBC clear-width floors make each such room
+#   ~3 m of gross wall. On a 7.1 m-wide floor that is a budget of roughly three
+#   external rooms per storey beside the stair — a separate living AND dining AND a
+#   ground bedroom provably cannot all hold it. The open ``living_dining`` (the
+#   default Indian mid-plot section anyway) hands one slot back.
+#
+# Hence: a G+1 3BHK an Indian architect would actually draw for this plot — an open
+# living-dining with the kitchen, utility, pooja, a guest bedroom and a common W.C.
+# on the ground floor; the master and second bedroom with their bath above; the
+# stair left to the solver (it synthesises the NBC well on every storey); one car
+# space declared so the ``blr.parking.plot.le240`` gate passes.
+DEMO_BRIEF_SOURCE = "garh_api.seed.demo"
 
-#: Compiled-in fallback, used only when ``fixtures/`` is not in the image. Kept small and
-#: marked, rather than a second full copy of the golden brief that could silently diverge.
-_FALLBACK_BRIEF: dict[str, Any] = {
-    "bedrooms": 3,
-    "bathrooms": 2,
-    "floorsAboveGround": 1,
-    "hasStilt": False,
-    "hasBasement": False,
-    "carParking": 1,
-    "twoWheelerParking": 1,
-    "poojaRoom": True,
-    "servantRoom": False,
-    "study": False,
-    "lift": False,
-    "vastuMode": "advisory",
-    "plotFacing": "east",
-    "budgetInr": 6_500_000,
-    "styleId": "contemporary",
-    "familySize": 6,
-    "source": "seed-fallback",
-}
+#: ``off``, deliberately. ``advisory``/``strict`` make the §5.4 critic evaluate the
+#: vastu pack against solver output whose stair rooms carry no centroid yet — that
+#: path currently faults (``stair … has no centroidMm``), killing the whole solve.
+#: Until that lands, ``off`` is the honest mode the demo can actually generate under;
+#: the Brief tab still lets a visitor flip it and see the failure themselves.
+DEMO_BRIEF_VASTU_MODE = "off"
+
+#: Plot, program and preferences captured; budget and style pending — matches what the
+#: completeness meter would show for this much of a real intake conversation.
+DEMO_BRIEF_COMPLETENESS = 80
+
+
+def demo_brief_data() -> dict[str, Any]:
+    """The demo brief's ``data`` object (a fresh copy — callers may mutate).
+
+    Areas are integer mm² and widths integer mm (the model holds no floats). Every
+    room type appears ONCE (counts expand instead): the enqueue path keys rooms by
+    type (``bedroom``, ``bedroom2``, …), so two entries of one type would collide on
+    a key — which is also why the ground bedroom is a ``guest_bedroom`` and the
+    ground toilet a ``wc``, not second ``bedroom``/``bath_wc`` rows. Only the two
+    ground-floor pins are stated; everything else takes the program layer's Indian
+    default (bedroom-ish types upstairs, the rest entry-adjacent) — the assignment
+    the feasibility proof passes under.
+    """
+    return {
+        # Headline numbers the UI chips and §17 read.
+        "bedrooms": 3,  # 3BHK: master + second bedroom + guest bedroom (§17)
+        "bathrooms": 2,  # attached-grade bath above, common W.C. below
+        "floorsAboveGround": 1,  # G+1
+        "hasStilt": False,
+        "hasBasement": False,
+        "carParking": 1,  # declared, or blr.parking.plot.le240 rejects every candidate
+        "twoWheelerParking": 1,
+        "poojaRoom": True,
+        "servantRoom": False,
+        "study": False,
+        "lift": False,
+        "plotFacing": "south",  # the 9 m road is on edge 0, the south edge
+        "budgetInr": 7_500_000,
+        "styleId": "contemporary",
+        "familySize": 5,
+        # The room program. Types are garh_model.ROOM_TYPES members exactly — an
+        # unknown type would be silently dropped by the solver's program layer.
+        "rooms": [
+            # The public half — the solver grounds these by default.
+            {
+                "type": "living_dining",
+                "count": 1,
+                "minAreaMm2": 15_000_000,
+                "targetAreaMm2": 20_000_000,
+                "minWidthMm": 3300,
+            },
+            {
+                "type": "kitchen",
+                "count": 1,
+                "minAreaMm2": 5_500_000,
+                "targetAreaMm2": 8_000_000,
+                "minWidthMm": 2400,
+            },
+            {
+                "type": "utility",
+                "count": 1,
+                "minAreaMm2": 2_000_000,
+                "targetAreaMm2": 3_200_000,
+                "minWidthMm": 1200,
+            },
+            {
+                "type": "pooja",
+                "count": 1,
+                "minAreaMm2": 1_800_000,
+                "targetAreaMm2": 3_000_000,
+                "minWidthMm": 1200,
+            },
+            # Grandparents/guests sleep downstairs — pinned, or the bedroom-ish
+            # default would stack a third wide habitable room on the upper floor,
+            # which this envelope provably cannot tile.
+            {
+                "type": "guest_bedroom",
+                "count": 1,
+                "minAreaMm2": 9_900_000,
+                "targetAreaMm2": 11_500_000,
+                "minWidthMm": 3000,
+                "storey": 0,
+            },
+            # Bath-sized, not the bare 1.1 m2 / 900 NBC floor: the §5.4 critic
+            # measures the CLEAR polygon after wall insets and the 115mm snap, and
+            # tighter gross wishes here left candidates failing
+            # nbc.room.wc.width.min (execution find).
+            {
+                "type": "wc",
+                "count": 1,
+                "minAreaMm2": 2_800_000,
+                "targetAreaMm2": 4_200_000,
+                "minWidthMm": 1500,
+                "storey": 0,
+            },
+            # The family half — bedroom-ish types default to the first floor.
+            {
+                "type": "bedroom_master",
+                "count": 1,
+                "minAreaMm2": 10_500_000,
+                "targetAreaMm2": 13_500_000,
+                "minWidthMm": 3300,
+            },
+            {
+                "type": "bedroom",
+                "count": 1,
+                "minAreaMm2": 9_900_000,
+                "targetAreaMm2": 11_500_000,
+                "minWidthMm": 3000,
+            },
+            {
+                "type": "bath_wc",
+                "count": 1,
+                "minAreaMm2": 2_800_000,
+                "targetAreaMm2": 4_200_000,
+                "minWidthMm": 1500,
+            },
+            # NO staircase row, deliberately. The solver's program layer synthesises
+            # the NBC-sized stair on every storey of a G+1 brief (and says so in an
+            # assumption chip); declaring one here attaches a gross width wish to a
+            # room whose well is a FIXED §5.2 rectangle, which provably re-tightens
+            # stage A back to infeasibility (execution find — see
+            # tests/test_seed_brief_feasible.py, which pins the working shape).
+        ],
+        # Wishes the UI shows; the §5.2 objective rewards them when the solver reads
+        # them (adjacency is advisory — the payload contract carries rooms only today).
+        "adjacency": [
+            {"a": "kitchen", "b": "living_dining", "wish": "adjacent", "weight": 80},
+            {"a": "kitchen", "b": "utility", "wish": "adjacent", "weight": 60},
+            {"a": "bedroom_master", "b": "living_dining", "wish": "apart", "weight": 40},
+        ],
+    }
 
 
 @dataclass(frozen=True)
 class DemoBrief:
-    """The demo project's brief, plus where it was read from."""
+    """The demo project's brief, plus where it was authored."""
 
     data: dict[str, Any]
     vastu_mode: str
     completeness: int
     source: str
 
-    @property
-    def from_fixture(self) -> bool:
-        return self.source.endswith(".json")
-
-
-def _brief_fixture_path() -> str:
-    return os.path.join(fixtures_dir(), "briefs", "%s.json" % DEMO_BRIEF_FIXTURE_ID)
-
 
 def load_demo_brief() -> DemoBrief:
-    """Load golden brief 01 as the demo project's brief.
+    """The demo project's brief — seed-authored, validated on every load.
 
-    The demo project and golden brief 01 describe the *same house* — 30×40 ft Bengaluru,
-    G+1, 3BHK — so they must not be two hand-maintained copies. Reading the fixture also
-    means the seed exercises the corpus: a malformed brief file fails the seed instead of
-    waiting for Phase 3.
+    The demo brief used to *be* golden brief 01; it is authored here now because the
+    corpus fixture's program is honest solver stress data while this one must actually
+    solve (the section comment above has the whole story). Validation still runs on
+    every load so an edit to :func:`demo_brief_data` that smuggles in a float fails
+    the seed with a named path instead of failing inside a fold three calls later.
     """
-    path = _brief_fixture_path()
-    if not os.path.isfile(path):
-        _log.warning(
-            "seed.brief_fixture_absent",
-            path=path,
-            consequence="using the small compiled-in fallback brief",
-        )
-        return DemoBrief(
-            data=dict(_FALLBACK_BRIEF),
-            vastu_mode="advisory",
-            completeness=60,
-            source="compiled-in fallback",
-        )
-    try:
-        with open(path, encoding="utf-8") as handle:
-            fixture = json.load(handle)
-    except (OSError, ValueError) as exc:
-        raise SeedDataError("Could not read the demo brief fixture %s: %s" % (path, exc)) from exc
-    data = fixture.get("data")
-    if not isinstance(data, dict) or not data:
-        raise SeedDataError("%s has no 'data' object." % path)
-    vastu = str(fixture.get("vastuMode") or data.get("vastuMode") or "off")
-    completeness = fixture.get("completeness")
-    if not isinstance(completeness, int) or not 0 <= completeness <= 100:
-        raise SeedDataError("%s: completeness must be an integer 0–100." % path)
-    _assert_integral(data, path=path)
+    data = demo_brief_data()
+    _assert_integral(data, path=DEMO_BRIEF_SOURCE)
     return DemoBrief(
         data=data,
-        vastu_mode=vastu,
-        completeness=completeness,
-        source=os.path.basename(path),
+        vastu_mode=DEMO_BRIEF_VASTU_MODE,
+        completeness=DEMO_BRIEF_COMPLETENESS,
+        source=DEMO_BRIEF_SOURCE,
     )
 
 
@@ -186,7 +299,7 @@ def _assert_integral(value: Any, *, path: str, where: str = "data") -> None:
     ``brief.update`` validates this too (``OP_FIELD_NOT_INT``), but failing here names the
     file and the JSON path instead of failing inside a fold three calls later.
     """
-    if value is None or isinstance(value, (str, bool)):
+    if value is None or isinstance(value, str | bool):
         return
     if isinstance(value, float):
         raise SeedDataError(
@@ -372,7 +485,10 @@ PENDING_PHASES: tuple[dict[str, str], ...] = (
 
 
 __all__ = [
-    "DEMO_BRIEF_FIXTURE_ID",
+    "DEMO_BRIEF_COMPLETENESS",
+    "DEMO_BRIEF_CORPUS_SIBLING",
+    "DEMO_BRIEF_SOURCE",
+    "DEMO_BRIEF_VASTU_MODE",
     "DEMO_CITY_PACK",
     "DEMO_COA_NUMBER",
     "DEMO_FIRM_NAME",
@@ -389,6 +505,7 @@ __all__ = [
     "DEMO_VERSION_NAME",
     "PENDING_PHASES",
     "DemoBrief",
+    "demo_brief_data",
     "demo_op_log",
     "demo_plot_polygon",
     "demo_render_requests",

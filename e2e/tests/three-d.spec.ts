@@ -173,9 +173,7 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
       const calibWall = calib.model.house.walls[0]!;
       const mmPerPx =
         Math.hypot(calibWall.b.x - calibWall.a.x, calibWall.b.y - calibWall.a.y) / RUN_PX;
-      await page.keyboard.press(
-        `${process.platform === 'darwin' ? 'Meta' : 'Control'}+z`,
-      );
+      await page.keyboard.press(`${process.platform === 'darwin' ? 'Meta' : 'Control'}+z`);
       await expect
         .poll(
           async () => (await projectModel(request, token, projectId)).model.house.walls.length,
@@ -198,10 +196,13 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
       await page.keyboard.press('v'); // select tool — later corner clicks must not draw
 
       await expect
-        .poll(async () => (await projectModel(request, token, projectId)).model.house.walls.length, {
-          timeout: SYNC_TIMEOUT_MS,
-          message: 'the four drawn walls never reached the server',
-        })
+        .poll(
+          async () => (await projectModel(request, token, projectId)).model.house.walls.length,
+          {
+            timeout: SYNC_TIMEOUT_MS,
+            message: 'the four drawn walls never reached the server',
+          },
+        )
         .toBe(4);
     });
 
@@ -389,7 +390,7 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
         'the Contemporary kit dresses a window with a chajja — the arranged window guarantees one',
       ).toBeTruthy();
 
-      const currentMm = Number(chajja!.params['projectionMm'] ?? 600);
+      const currentMm = Number(chajja!.params.projectionMm ?? 600);
       const nextMm = currentMm === 600 ? 750 : 600; // the kit's allowedProjectionsMm
 
       await selectViaHooks(page, [chajja!.id]);
@@ -411,10 +412,9 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
 
       const after = await projectModel(request, token, projectId);
       const edited = after.model.house.facade.components.find((c) => c.id === chajja!.id);
-      expect(
-        Number(edited?.params['projectionMm']),
-        'op 28 should have patched the projection',
-      ).toBe(nextMm);
+      expect(Number(edited?.params.projectionMm), 'op 28 should have patched the projection').toBe(
+        nextMm,
+      );
       expect(
         JSON.stringify(after.model.house.walls),
         '§8 again: editing a component must not touch the plan',
@@ -442,7 +442,9 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
       );
 
       const after = await hooksSnapshot(page);
-      expect(after.rebuildCount, 'a sun scrub must re-mesh NOTHING (§14)').toBe(before.rebuildCount);
+      expect(after.rebuildCount, 'a sun scrub must re-mesh NOTHING (§14)').toBe(
+        before.rebuildCount,
+      );
       expect(after.headIdx, 'a sun scrub folds from no op').toBe(before.headIdx);
       expect(after.pendingCount, 'nothing may be queued to the server').toBe(0);
       expect(

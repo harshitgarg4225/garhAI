@@ -59,9 +59,12 @@ describe('buildBoxTriangles', () => {
       const x = data.positions[i] ?? 0;
       const y = data.positions[i + 1] ?? 0;
       const z = data.positions[i + 2] ?? 0;
-      minX = Math.min(minX, x); maxX = Math.max(maxX, x);
-      minY = Math.min(minY, y); maxY = Math.max(maxY, y);
-      minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+      minZ = Math.min(minZ, z);
+      maxZ = Math.max(maxZ, z);
     }
     // x spans cx ± len/2 (dir = +x), in metres.
     expect(minX).toBeCloseTo((3000 - 750) * WORLD_PER_MM, 6);

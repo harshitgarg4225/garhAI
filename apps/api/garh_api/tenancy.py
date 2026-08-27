@@ -39,7 +39,7 @@ import uuid
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, ClassVar, Generic, TypeVar
 
 from sqlalchemy import Select, delete, func, insert, select
@@ -123,7 +123,9 @@ class EntityNotFoundError(TenancyError):
     action = "Check the link or go back to your dashboard."
 
     def __init__(self, entity: str, entity_id: Any) -> None:
-        super().__init__("%s %s was not found." % (entity.replace("_", " ").capitalize(), entity_id))
+        super().__init__(
+            "%s %s was not found." % (entity.replace("_", " ").capitalize(), entity_id)
+        )
         self.entity = entity
         self.entity_id = entity_id
 
@@ -354,7 +356,7 @@ class Page(Generic[DomainT]):
 
 def encode_cursor(created_at: datetime, entity_id: uuid.UUID) -> str:
     """Keyset cursor over ``(created_at, id)`` — stable under inserts."""
-    raw = "%s|%s" % (created_at.astimezone(timezone.utc).isoformat(), entity_id)
+    raw = "%s|%s" % (created_at.astimezone(UTC).isoformat(), entity_id)
     return base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii").rstrip("=")
 
 
@@ -501,9 +503,7 @@ class Repository(Generic[RowT, DomainT]):
 
     async def _count(self, stmt: Select[Any] | None = None) -> int:
         base = stmt if stmt is not None else self._scoped_select()
-        result = await self._session.execute(
-            select(func.count()).select_from(base.subquery())
-        )
+        result = await self._session.execute(select(func.count()).select_from(base.subquery()))
         return int(result.scalar_one())
 
     async def _page(
@@ -524,13 +524,9 @@ class Repository(Generic[RowT, DomainT]):
         if cursor:
             at, ident = decode_cursor(cursor)
             if newest_first:
-                query = query.where(
-                    (order_col < at) | ((order_col == at) & (tiebreak_col < ident))
-                )
+                query = query.where((order_col < at) | ((order_col == at) & (tiebreak_col < ident)))
             else:
-                query = query.where(
-                    (order_col > at) | ((order_col == at) & (tiebreak_col > ident))
-                )
+                query = query.where((order_col > at) | ((order_col == at) & (tiebreak_col > ident)))
 
         ordering = (
             (order_col.desc(), tiebreak_col.desc())
@@ -587,9 +583,7 @@ class Repository(Generic[RowT, DomainT]):
             if value is None or key in blocked:
                 continue
             if not hasattr(row, key):
-                raise RepositoryUsageError(
-                    "%s has no field %r." % (type(self).entity_name, key)
-                )
+                raise RepositoryUsageError("%s has no field %r." % (type(self).entity_name, key))
             setattr(row, key, value)
         await self._session.flush()
         return row
@@ -609,9 +603,7 @@ class Repository(Generic[RowT, DomainT]):
 
     # -- mapping -------------------------------------------------------
     def to_domain(self, row: RowT) -> DomainT:
-        raise NotImplementedError(
-            "%s must implement to_domain()." % type(self).__name__
-        )
+        raise NotImplementedError("%s must implement to_domain()." % type(self).__name__)
 
     # -- generic public surface ---------------------------------------
     async def get(self, entity_id: Any) -> DomainT | None:
@@ -652,9 +644,7 @@ class ProjectScopedRepository(Repository[RowT, DomainT]):
     """
 
     def _project_scoped_select(self, project_id: uuid.UUID, *entities: Any) -> Select[Any]:
-        return self._scoped_select(*entities).where(
-            type(self).row_type.project_id == project_id
-        )
+        return self._scoped_select(*entities).where(type(self).row_type.project_id == project_id)
 
     async def count_for_project(self, project_id: uuid.UUID) -> int:
         return await self._count(self._project_scoped_select(project_id))
@@ -729,7 +719,7 @@ async def system_unscoped_session(
     # `tenancy` unimportable in unit tests that never touch a database.
     from garh_api.db import get_sessionmaker
 
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     hatch_log = _log.bind(task=task, actor=actor, escape_hatch=UNSCOPED_ESCAPE_HATCH)
     hatch_log.warning("tenancy.unscoped_session.opened", reason=reason)
 
@@ -744,7 +734,7 @@ async def system_unscoped_session(
         await session.rollback()
         raise
     finally:
-        duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+        duration_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
         try:
             await _write_unscoped_audit(
                 task=task,
@@ -754,7 +744,7 @@ async def system_unscoped_session(
                 duration_ms=duration_ms,
                 error=error,
             )
-        except Exception as audit_exc:  # noqa: BLE001 - audit must not mask the real error
+        except Exception as audit_exc:
             hatch_log.error(
                 "tenancy.unscoped_session.audit_failed",
                 error="%s: %s" % (type(audit_exc).__name__, audit_exc),

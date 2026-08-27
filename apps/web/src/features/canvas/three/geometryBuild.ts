@@ -162,18 +162,34 @@ function appendPrism(
   for (const [a, b, c] of tris) {
     // Top cap, normal +Z (up).
     acc.addTriangleMm(
-      a.x, a.y, profile.topMm,
-      b.x, b.y, profile.topMm,
-      c.x, c.y, profile.topMm,
-      0, 0, 1,
+      a.x,
+      a.y,
+      profile.topMm,
+      b.x,
+      b.y,
+      profile.topMm,
+      c.x,
+      c.y,
+      profile.topMm,
+      0,
+      0,
+      1,
       target,
     );
     // Bottom cap, normal −Z (down).
     acc.addTriangleMm(
-      a.x, a.y, profile.baseMm,
-      c.x, c.y, profile.baseMm,
-      b.x, b.y, profile.baseMm,
-      0, 0, -1,
+      a.x,
+      a.y,
+      profile.baseMm,
+      c.x,
+      c.y,
+      profile.baseMm,
+      b.x,
+      b.y,
+      profile.baseMm,
+      0,
+      0,
+      -1,
       target,
     );
   }
@@ -189,17 +205,33 @@ function appendPrism(
     const nx = dy;
     const ny = -dx;
     acc.addTriangleMm(
-      p.x, p.y, profile.baseMm,
-      q.x, q.y, profile.baseMm,
-      q.x, q.y, profile.topMm,
-      nx, ny, 0,
+      p.x,
+      p.y,
+      profile.baseMm,
+      q.x,
+      q.y,
+      profile.baseMm,
+      q.x,
+      q.y,
+      profile.topMm,
+      nx,
+      ny,
+      0,
       target,
     );
     acc.addTriangleMm(
-      p.x, p.y, profile.baseMm,
-      q.x, q.y, profile.topMm,
-      p.x, p.y, profile.topMm,
-      nx, ny, 0,
+      p.x,
+      p.y,
+      profile.baseMm,
+      q.x,
+      q.y,
+      profile.topMm,
+      p.x,
+      p.y,
+      profile.topMm,
+      nx,
+      ny,
+      0,
       target,
     );
   }
@@ -229,9 +261,15 @@ function appendCutMesh(
     const vy = cy - ay;
     const vz = cz - az;
     acc.addTriangleMm(
-      ax, ay, az,
-      bx, by, bz,
-      cx, cy, cz,
+      ax,
+      ay,
+      az,
+      bx,
+      by,
+      bz,
+      cx,
+      cy,
+      cz,
       uy * vz - uz * vy,
       uz * vx - ux * vz,
       ux * vy - uy * vx,

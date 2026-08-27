@@ -26,16 +26,16 @@ import { apiBase, uniqueEmail } from '../support/env';
 test.describe('@smoke Phase 0 DoD (API)', () => {
   test('the API reports itself healthy and fully mocked', async ({ request }) => {
     const body = await meta(request);
-    const providers = body['providers'] as Record<string, string>;
+    const providers = body.providers as Record<string, string>;
 
-    expect(providers['llm'], 'the suite must run with no API keys').toBe('mock');
-    expect(providers['render'], 'the suite must run with no GPU').toBe('mock');
-    expect(providers['modelEngine'], 'without the model core no op can be validated').toBe('ready');
+    expect(providers.llm, 'the suite must run with no API keys').toBe('mock');
+    expect(providers.render, 'the suite must run with no GPU').toBe('mock');
+    expect(providers.modelEngine, 'without the model core no op can be validated').toBe('ready');
 
-    const limits = body['limits'] as Record<string, number>;
-    expect(limits['opsPerSecond']).toBe(60);
-    expect(limits['opSnapshotInterval']).toBe(200);
-    expect(limits['signedUrlTtlSeconds']).toBeLessThanOrEqual(600);
+    const limits = body.limits as Record<string, number>;
+    expect(limits.opsPerSecond).toBe(60);
+    expect(limits.opSnapshotInterval).toBe(200);
+    expect(limits.signedUrlTtlSeconds).toBeLessThanOrEqual(600);
   });
 
   test('signup, sign in, and create an empty project', async ({ request }) => {

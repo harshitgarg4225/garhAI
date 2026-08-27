@@ -211,7 +211,11 @@ export function DashboardPage(): JSX.Element {
         />
 
         {error !== null ? (
-          <ProblemPanel problem={error} onRetry={() => void load()} onNavigate={(to) => navigate(to)} />
+          <ProblemPanel
+            problem={error}
+            onRetry={() => void load()}
+            onNavigate={(to) => navigate(to)}
+          />
         ) : firstLoad ? (
           <div
             role="status"
@@ -239,8 +243,8 @@ export function DashboardPage(): JSX.Element {
           >
             <ul className="mt-4 flex max-w-md flex-col gap-1.5 text-left text-xs text-ink-muted">
               <li className="flex gap-2">
-                <Icon name="check" size={13} className="mt-0.5 text-pass" />
-                A 30 × 40 ft plot takes about thirty seconds to enter.
+                <Icon name="check" size={13} className="mt-0.5 text-pass" />A 30 × 40 ft plot takes
+                about thirty seconds to enter.
               </li>
               <li className="flex gap-2">
                 <Icon name="check" size={13} className="mt-0.5 text-pass" />

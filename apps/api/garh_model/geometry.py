@@ -32,8 +32,8 @@ floating-point input.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 from .units import round_half_away_from_zero
 
@@ -146,7 +146,7 @@ Orientation = str
 #: ``'inside' | 'outside' | 'boundary'``
 PointInPolygon = str
 
-Triangle = Tuple[Pt, Pt, Pt]
+Triangle = tuple[Pt, Pt, Pt]
 
 
 def _is_safe_int(v: object) -> bool:
@@ -355,11 +355,11 @@ def polygon_orientation(poly: Polygon) -> Orientation:
     return "ccw" if doubled > 0 else "cw"
 
 
-def reverse_polygon(poly: Polygon) -> List[Pt]:
+def reverse_polygon(poly: Polygon) -> list[Pt]:
     return list(reversed(list(poly)))
 
 
-def ensure_ccw(poly: Polygon) -> List[Pt]:
+def ensure_ccw(poly: Polygon) -> list[Pt]:
     """Return the polygon CCW-oriented (a copy either way)."""
     return reverse_polygon(poly) if polygon_orientation(poly) == "cw" else list(poly)
 
@@ -397,7 +397,7 @@ def polygon_perimeter_mm(poly: Polygon) -> int:
     return total
 
 
-def polygon_edges(poly: Polygon) -> List[Seg]:
+def polygon_edges(poly: Polygon) -> list[Seg]:
     """Edges of a polygon as segments, in vertex order."""
     n = len(poly)
     return [Seg(poly[i], poly[(i + 1) % n]) for i in range(n)]
@@ -407,9 +407,8 @@ def point_on_segment(p: Pt, s: Seg) -> bool:
     """EXACT: does ``p`` lie on segment ``s`` (endpoints included)?"""
     if cross(s.a, s.b, p) != 0:
         return False
-    return (
-        min(s.a.x, s.b.x) <= p.x <= max(s.a.x, s.b.x)
-        and min(s.a.y, s.b.y) <= p.y <= max(s.a.y, s.b.y)
+    return min(s.a.x, s.b.x) <= p.x <= max(s.a.x, s.b.x) and min(s.a.y, s.b.y) <= p.y <= max(
+        s.a.y, s.b.y
     )
 
 
@@ -447,7 +446,7 @@ def polygon_is_simple(poly: Polygon) -> bool:
     n = len(poly)
     if n < 3:
         return False
-    seen: Set[str] = set()
+    seen: set[str] = set()
     for p in poly:
         k = pt_key(p)
         if k in seen:
@@ -481,9 +480,9 @@ def polygon_is_closed_ring(poly: Polygon) -> bool:
     return len(poly) >= 3 and polygon_doubled_area_mm2(poly) != 0 and polygon_is_simple(poly)
 
 
-def dedupe_collinear(poly: Polygon) -> List[Pt]:
+def dedupe_collinear(poly: Polygon) -> list[Pt]:
     """Remove duplicate consecutive vertices and exactly-collinear vertices."""
-    pts: List[Pt] = []
+    pts: list[Pt] = []
     for p in poly:
         if len(pts) == 0 or not pt_eq(pts[-1], p):
             pts.append(p)
@@ -491,7 +490,7 @@ def dedupe_collinear(poly: Polygon) -> List[Pt]:
         pts.pop()
     if len(pts) < 3:
         return pts
-    out: List[Pt] = []
+    out: list[Pt] = []
     n = len(pts)
     for i in range(n):
         prev = pts[(i - 1 + n) % n]
@@ -503,7 +502,7 @@ def dedupe_collinear(poly: Polygon) -> List[Pt]:
     return out if len(out) >= 3 else pts
 
 
-def remove_spurs(ring: Polygon) -> List[Pt]:
+def remove_spurs(ring: Polygon) -> list[Pt]:
     """Remove "spurs" — vertex triples (v, w, v) produced when a planar face walk
     runs out and back along a dangling wall. Repeats until stable."""
     pts = list(ring)
@@ -542,7 +541,7 @@ def polygons_congruent(a: Polygon, b: Polygon) -> bool:
     return False
 
 
-def canonical_ring(poly: Polygon) -> List[Pt]:
+def canonical_ring(poly: Polygon) -> list[Pt]:
     """CANONICAL FORM of a ring, and part of the state-hash contract.
 
     Collinear vertices removed, counter-clockwise, rotated to start at the
@@ -579,12 +578,12 @@ class SegIntersection:
     """
 
     kind: str
-    point: Optional[Pt] = None
+    point: Pt | None = None
     #: False when the crossing point had to be rounded to whole mm.
     exact: bool = False
     on_endpoint: bool = False
     #: The shared sub-segment (possibly a single point) when ``kind`` is collinear.
-    overlap: Optional[Seg] = None
+    overlap: Seg | None = None
 
 
 _NO_INTERSECTION = SegIntersection(kind="none")
@@ -673,7 +672,7 @@ def segment_intersection(s1: Seg, s2: Seg) -> SegIntersection:
     return _NO_INTERSECTION
 
 
-def collinear_overlap(s1: Seg, s2: Seg) -> Optional[Seg]:
+def collinear_overlap(s1: Seg, s2: Seg) -> Seg | None:
     """EXACT shared sub-segment of two collinear segments, or ``None``."""
     dx = s1.b.x - s1.a.x
     dy = s1.b.y - s1.a.y
@@ -762,14 +761,14 @@ def compare_angle_around(origin: Pt, a: Pt, b: Pt) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _reverse_edge_distances(distances_mm: Sequence[float]) -> List[float]:
+def _reverse_edge_distances(distances_mm: Sequence[float]) -> list[float]:
     """Reversing a ring reverses its edge order: edge ``i`` of the reversed ring
     is edge ``(n-2-i) mod n`` of the original."""
     n = len(distances_mm)
     return [distances_mm[((n - 2 - i) % n + n) % n] for i in range(n)]
 
 
-def offset_polygon(poly: Polygon, distances_mm: Sequence[float]) -> Optional[List[Pt]]:
+def offset_polygon(poly: Polygon, distances_mm: Sequence[float]) -> list[Pt] | None:
     """Offset every edge of a CCW polygon inward by its own distance.
 
     ``distances_mm[i]`` applies to edge i (``poly[i] -> poly[i+1]``). Positive =
@@ -806,7 +805,7 @@ def offset_polygon(poly: Polygon, distances_mm: Sequence[float]) -> Optional[Lis
     source = list(poly) if is_ccw else reverse_polygon(poly)
     dists = list(distances_mm) if is_ccw else _reverse_edge_distances(distances_mm)
 
-    lines: List[Tuple[float, float, float, float]] = []
+    lines: list[tuple[float, float, float, float]] = []
     for i in range(n):
         a = source[i]
         b = source[(i + 1) % n]
@@ -821,7 +820,7 @@ def offset_polygon(poly: Polygon, distances_mm: Sequence[float]) -> Optional[Lis
         ny = (dx / length) * d
         lines.append((a.x + nx, a.y + ny, b.x + nx, b.y + ny))
 
-    out: List[Pt] = []
+    out: list[Pt] = []
     for i in range(n):
         l1 = lines[(i - 1 + n) % n]
         l2 = lines[i]
@@ -845,7 +844,7 @@ def offset_polygon(poly: Polygon, distances_mm: Sequence[float]) -> Optional[Lis
     return cleaned if is_ccw else reverse_polygon(cleaned)
 
 
-def offset_polygon_uniform(poly: Polygon, distance_mm: float) -> Optional[List[Pt]]:
+def offset_polygon_uniform(poly: Polygon, distance_mm: float) -> list[Pt] | None:
     """Uniform inward offset — the common case (wall half-thickness inset)."""
     return offset_polygon(poly, [distance_mm] * len(poly))
 
@@ -855,30 +854,30 @@ def offset_polygon_uniform(poly: Polygon, distance_mm: float) -> Optional[List[P
 # ---------------------------------------------------------------------------
 
 
-def rect_polygon(min_x: int, min_y: int, max_x: int, max_y: int) -> List[Pt]:
+def rect_polygon(min_x: int, min_y: int, max_x: int, max_y: int) -> list[Pt]:
     """CCW rectangle polygon from an inclusive bbox."""
     return [pt(min_x, min_y), pt(max_x, min_y), pt(max_x, max_y), pt(min_x, max_y)]
 
 
-def bbox_polygon(b: Bbox) -> List[Pt]:
+def bbox_polygon(b: Bbox) -> list[Pt]:
     """CCW rectangle polygon from a bbox."""
     return rect_polygon(b.min_x, b.min_y, b.max_x, b.max_y)
 
 
 @dataclass
 class _CoverageGrid:
-    xs: List[int]
-    ys: List[int]
+    xs: list[int]
+    ys: list[int]
     #: ``covered[ix][iy]`` for cell xs[ix]..xs[ix+1] x ys[iy]..ys[iy+1]
-    covered: List[List[bool]]
+    covered: list[list[bool]]
 
 
-def _build_coverage_grid(rects: Sequence[Bbox]) -> Optional[_CoverageGrid]:
+def _build_coverage_grid(rects: Sequence[Bbox]) -> _CoverageGrid | None:
     valid = [r for r in rects if r.max_x > r.min_x and r.max_y > r.min_y]
     if len(valid) == 0:
         return None
-    xs_set: Set[int] = set()
-    ys_set: Set[int] = set()
+    xs_set: set[int] = set()
+    ys_set: set[int] = set()
     for r in valid:
         xs_set.add(r.min_x)
         xs_set.add(r.max_x)
@@ -886,21 +885,26 @@ def _build_coverage_grid(rects: Sequence[Bbox]) -> Optional[_CoverageGrid]:
         ys_set.add(r.max_y)
     xs = sorted(xs_set)
     ys = sorted(ys_set)
-    covered: List[List[bool]] = []
+    covered: list[list[bool]] = []
     for ix in range(len(xs) - 1):
         col = [False] * max(0, len(ys) - 1)
         for iy in range(len(ys) - 1):
             cx = xs[ix]
             cy = ys[iy]
             for r in valid:
-                if r.min_x <= cx and xs[ix + 1] <= r.max_x and r.min_y <= cy and ys[iy + 1] <= r.max_y:
+                if (
+                    r.min_x <= cx
+                    and xs[ix + 1] <= r.max_x
+                    and r.min_y <= cy
+                    and ys[iy + 1] <= r.max_y
+                ):
                     col[iy] = True
                     break
         covered.append(col)
     return _CoverageGrid(xs=xs, ys=ys, covered=covered)
 
 
-def _trace_coverage_rings(grid: _CoverageGrid) -> Tuple[List[List[Pt]], int]:
+def _trace_coverage_rings(grid: _CoverageGrid) -> tuple[list[list[Pt]], int]:
     xs, ys, covered = grid.xs, grid.ys, grid.covered
     nx = len(xs) - 1
     ny = len(ys) - 1
@@ -911,7 +915,7 @@ def _trace_coverage_rings(grid: _CoverageGrid) -> Tuple[List[List[Pt]], int]:
     # Collect boundary edges as directed segments so the covered region is on the
     # LEFT of each edge (=> CCW outer rings, CW hole rings). A plain dict keeps
     # insertion order, matching the JS Map the TypeScript mirror walks.
-    edges: Dict[str, List[Pt]] = {}
+    edges: dict[str, list[Pt]] = {}
 
     def push_edge(a: Pt, b: Pt) -> None:
         edges.setdefault(pt_key(a), []).append(b)
@@ -931,12 +935,12 @@ def _trace_coverage_rings(grid: _CoverageGrid) -> Tuple[List[List[Pt]], int]:
             if not is_covered(ix - 1, iy):
                 push_edge(pt(x0, y1), pt(x0, y0))  # left, v
 
-    rings: List[List[Pt]] = []
+    rings: list[list[Pt]] = []
     holes = 0
     while len(edges) > 0:
         first_key = next(iter(edges))
         current = pt_from_key(first_key)
-        ring: List[Pt] = [current]
+        ring: list[Pt] = [current]
         while True:
             lst = edges.get(pt_key(current))
             if lst is None or len(lst) == 0:
@@ -959,7 +963,7 @@ def _trace_coverage_rings(grid: _CoverageGrid) -> Tuple[List[List[Pt]], int]:
     return rings, holes
 
 
-def union_axis_aligned_rects(rects: Sequence[Bbox]) -> List[List[Pt]]:
+def union_axis_aligned_rects(rects: Sequence[Bbox]) -> list[list[Pt]]:
     """EXACT union of axis-aligned rectangles, returned as CCW outer rings.
 
     Build the coordinate grid from all distinct x/y values, mark cells covered by
@@ -1000,7 +1004,7 @@ def point_in_triangle(p: Pt, a: Pt, b: Pt, c: Pt) -> bool:
     return not (has_neg and has_pos)
 
 
-def triangulate(poly: Polygon) -> List[Triangle]:
+def triangulate(poly: Polygon) -> list[Triangle]:
     """Ear-clipping triangulation of a simple polygon.
 
     Deterministic (always clips the first valid ear in index order). Returns an
@@ -1013,7 +1017,7 @@ def triangulate(poly: Polygon) -> List[Triangle]:
     if n == 3:
         return [(ring[0], ring[1], ring[2])]
     idx = list(range(n))
-    out: List[Triangle] = []
+    out: list[Triangle] = []
     guard = 0
     while len(idx) > 3 and guard < n * n + 16:
         guard += 1
@@ -1047,13 +1051,15 @@ def triangulate(poly: Polygon) -> List[Triangle]:
     return out
 
 
-def _clip_half_plane(poly: Sequence[Tuple[float, float]], a: Pt, b: Pt) -> List[Tuple[float, float]]:
+def _clip_half_plane(
+    poly: Sequence[tuple[float, float]], a: Pt, b: Pt
+) -> list[tuple[float, float]]:
     """Sutherland-Hodgman: clip a convex polygon by the half-plane left of a->b."""
 
-    def side(p: Tuple[float, float]) -> float:
+    def side(p: tuple[float, float]) -> float:
         return (b.x - a.x) * (p[1] - a.y) - (b.y - a.y) * (p[0] - a.x)
 
-    out: List[Tuple[float, float]] = []
+    out: list[tuple[float, float]] = []
     n = len(poly)
     for i in range(n):
         cur = poly[i]
@@ -1068,7 +1074,7 @@ def _clip_half_plane(poly: Sequence[Tuple[float, float]], a: Pt, b: Pt) -> List[
     return out
 
 
-def _shoelace_abs(poly: Sequence[Tuple[float, float]]) -> float:
+def _shoelace_abs(poly: Sequence[tuple[float, float]]) -> float:
     n = len(poly)
     if n < 3:
         return 0.0
@@ -1097,7 +1103,7 @@ def polygon_intersection_area_mm2(a: Polygon, b: Polygon) -> int:
     tb = triangulate(b)
     total = 0.0
     for t1 in ta:
-        base: List[Tuple[float, float]] = [
+        base: list[tuple[float, float]] = [
             (float(t1[0].x), float(t1[0].y)),
             (float(t1[1].x), float(t1[1].y)),
             (float(t1[2].x), float(t1[2].y)),

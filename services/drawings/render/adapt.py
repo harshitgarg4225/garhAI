@@ -45,7 +45,8 @@ Nothing here makes a geometry decision. Every coordinate passes through unchange
 
 from __future__ import annotations
 
-from typing import Any, List, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from services.drawings.render.primitives import (
     HATCH_CROSS,
@@ -221,16 +222,14 @@ def from_projection_one(item: Any, *, scale_denominator: int) -> Primitive:
     )
 
 
-def from_projection(
-    primitives: Sequence[Any], *, scale_denominator: int
-) -> Tuple[Primitive, ...]:
+def from_projection(primitives: Sequence[Any], *, scale_denominator: int) -> tuple[Primitive, ...]:
     """Convert a whole projection primitive stream. Order is preserved.
 
     Order is preserved rather than re-sorted: the projection engine already emits in a
     deliberate draw order, and :func:`services.drawings.render.primitives.sort_by_layer`
     is a stable sort, so the renderer's layer grouping keeps that order within each layer.
     """
-    out: List[Primitive] = []
+    out: list[Primitive] = []
     for item in primitives:
         out.append(from_projection_one(item, scale_denominator=scale_denominator))
     return tuple(out)

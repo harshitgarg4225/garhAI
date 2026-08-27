@@ -1,12 +1,15 @@
-"""Render service (playbook §9): provider interface, deterministic mock, diffusers.
+"""Render service (playbook §9): provider interface, deterministic mock, diffusers,
+and the hosted stability provider.
 
 ``PROVIDER_RENDER=mock`` is the default and produces a real composited image in well
 under a second with no GPU and no model weights — that is what makes the whole product
-e2e-testable on a laptop.
+e2e-testable on a laptop. ``PROVIDER_RENDER=diffusers`` is the local-GPU path;
+``PROVIDER_RENDER=stability`` + ``STABILITY_API_KEY`` produces real AI renders through
+Stability's hosted stable-image API with no GPU at all.
 
-Importing this package does **not** import torch or diffusers. The ML path is reached
-only through :func:`services.render.provider.get_render_provider` when
-``PROVIDER_RENDER=diffusers``.
+Importing this package does **not** import torch or diffusers. The ML and hosted paths
+are reached only through :func:`services.render.provider.get_render_provider` when
+``PROVIDER_RENDER`` selects them.
 
 ``MockRenderProvider`` is re-exported **lazily** (PEP 562): the mock needs Pillow, and
 the pure-data modules (``types``, ``licenses``, ``pack``, ``prompts``) are deliberately

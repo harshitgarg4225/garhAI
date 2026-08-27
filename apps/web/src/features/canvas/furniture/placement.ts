@@ -52,12 +52,7 @@
 
 import { tryParseLengthMm, type Op, type Pt } from '@garh/model';
 
-import {
-  EMPTY_CONTEXT,
-  evaluatePlacement,
-  issueTone,
-  type PlacementContext,
-} from './collision';
+import { EMPTY_CONTEXT, evaluatePlacement, issueTone, type PlacementContext } from './collision';
 import { angleFromDrag, normaliseRotationDeg, rotateBy, snapPtMm } from './geometry';
 import {
   deleteFurnitureOp,

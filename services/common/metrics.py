@@ -129,13 +129,9 @@ class WorkerMetrics:
             self.queue_depth_dead,
         )
         metric("garh_worker_in_flight", "gauge", "Jobs running in this process.", self.in_flight)
-        metric(
-            "garh_worker_concurrency", "gauge", "Configured parallel slots.", self.concurrency
-        )
+        metric("garh_worker_concurrency", "gauge", "Configured parallel slots.", self.concurrency)
         metric("garh_worker_uptime_seconds", "gauge", "Process uptime.", self.uptime_seconds)
-        metric(
-            "garh_worker_jobs_received_total", "counter", "Jobs reserved.", self.jobs_received
-        )
+        metric("garh_worker_jobs_received_total", "counter", "Jobs reserved.", self.jobs_received)
         metric(
             "garh_worker_jobs_succeeded_total",
             "counter",

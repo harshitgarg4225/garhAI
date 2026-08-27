@@ -39,7 +39,13 @@ export const CONTEMPORARY_KIT: FacadeKitDef = {
     railing: { style: 'ms-slim', heightMm: 1050, materialId: 'ms-railing' },
   },
   colorways: [
-    { id: 'mono-wood', name: 'Monochrome + wood', base: '#F2F0EB', accent: '#7A5230', trim: '#2E2E2E' },
+    {
+      id: 'mono-wood',
+      name: 'Monochrome + wood',
+      base: '#F2F0EB',
+      accent: '#7A5230',
+      trim: '#2E2E2E',
+    },
     { id: 'warm-grey', name: 'Warm grey', base: '#DAD5CC', accent: '#8B6A45', trim: '#3C3C3C' },
   ],
   rules: {

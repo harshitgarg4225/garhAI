@@ -55,7 +55,10 @@ export function Inspector({
           {selectionTitle ?? 'Inspector'}
         </h2>
         {selectionId === undefined ? null : (
-          <code className="max-w-[9rem] truncate font-mono text-2xs text-ink-subtle" title={selectionId}>
+          <code
+            className="max-w-[9rem] truncate font-mono text-2xs text-ink-subtle"
+            title={selectionId}
+          >
             {selectionId}
           </code>
         )}

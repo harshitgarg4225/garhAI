@@ -17,10 +17,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import type {
-  KeyboardEvent as ReactKeyboardEvent,
-  PointerEvent as ReactPointerEvent,
-} from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 
 import {
   formatLength,
@@ -182,9 +179,7 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
 
   const vp = makeViewport(boundary);
   const shown: Polygon =
-    drag === null
-      ? boundary
-      : boundary.map((p, i) => (i === drag.vertexIndex ? drag.current : p));
+    drag === null ? boundary : boundary.map((p, i) => (i === drag.vertexIndex ? drag.current : p));
   const shownCheck = checkBoundary(shown);
   const areaMm2 = polygonAreaMm2(shown);
   const front = frontEdgeIndex(plot.roads);
@@ -325,14 +320,32 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
     for (let x = x0; x <= x1; x += step) {
       const s = toSvg(vp, { x, y: 0 }).x;
       gridLines.push(
-        <line key={`gx${String(x)}`} x1={s} y1={0} x2={s} y2={vp.vbH} className="stroke-line" strokeOpacity={x === 0 ? 0.7 : 0.3} strokeWidth={stroke / 3} />,
+        <line
+          key={`gx${String(x)}`}
+          x1={s}
+          y1={0}
+          x2={s}
+          y2={vp.vbH}
+          className="stroke-line"
+          strokeOpacity={x === 0 ? 0.7 : 0.3}
+          strokeWidth={stroke / 3}
+        />,
       );
     }
     const yStart = Math.floor(y1 / step) * step;
     for (let y = yStart; y <= yTop; y += step) {
       const s = toSvg(vp, { x: 0, y }).y;
       gridLines.push(
-        <line key={`gy${String(y)}`} x1={0} y1={s} x2={vp.vbW} y2={s} className="stroke-line" strokeOpacity={y === 0 ? 0.7 : 0.3} strokeWidth={stroke / 3} />,
+        <line
+          key={`gy${String(y)}`}
+          x1={0}
+          y1={s}
+          x2={vp.vbW}
+          y2={s}
+          className="stroke-line"
+          strokeOpacity={y === 0 ? 0.7 : 0.3}
+          strokeWidth={stroke / 3}
+        />,
       );
     }
   }
@@ -352,7 +365,12 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
             <Chip severity="info" size="md" icon="pin">
               Corner {selectedVertex + 1} — arrows nudge (Shift = fine), Delete removes
             </Chip>
-            <Button variant="ghost" size="sm" iconLeft="trash" onClick={() => removeCorner(selectedVertex)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              iconLeft="trash"
+              onClick={() => removeCorner(selectedVertex)}
+            >
               Remove corner
             </Button>
           </>
@@ -402,8 +420,14 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
             const b = ringAt(boundary, road.edgeIndex + 1);
             const n = outwardNormal(boundary, road.edgeIndex);
             const off = road.widthMm / 2;
-            const sa = toSvg(vp, { x: Math.round(a.x + n.x * off), y: Math.round(a.y + n.y * off) });
-            const sb = toSvg(vp, { x: Math.round(b.x + n.x * off), y: Math.round(b.y + n.y * off) });
+            const sa = toSvg(vp, {
+              x: Math.round(a.x + n.x * off),
+              y: Math.round(a.y + n.y * off),
+            });
+            const sb = toSvg(vp, {
+              x: Math.round(b.x + n.x * off),
+              y: Math.round(b.y + n.y * off),
+            });
             const mid = {
               x: (sa.x + sb.x) / 2 + n.x * (off / 2),
               y: (sa.y + sb.y) / 2 - n.y * (off / 2),
@@ -540,9 +564,29 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
                   }}
                   className="garh-focus-ring cursor-pointer opacity-40 hover:opacity-100"
                 >
-                  <circle cx={plus.x} cy={plus.y} r={handleR * 0.7} className="fill-surface stroke-line-strong" strokeWidth={stroke / 2} />
-                  <line x1={plus.x - handleR * 0.35} y1={plus.y} x2={plus.x + handleR * 0.35} y2={plus.y} className="stroke-ink" strokeWidth={stroke / 2} />
-                  <line x1={plus.x} y1={plus.y - handleR * 0.35} x2={plus.x} y2={plus.y + handleR * 0.35} className="stroke-ink" strokeWidth={stroke / 2} />
+                  <circle
+                    cx={plus.x}
+                    cy={plus.y}
+                    r={handleR * 0.7}
+                    className="fill-surface stroke-line-strong"
+                    strokeWidth={stroke / 2}
+                  />
+                  <line
+                    x1={plus.x - handleR * 0.35}
+                    y1={plus.y}
+                    x2={plus.x + handleR * 0.35}
+                    y2={plus.y}
+                    className="stroke-ink"
+                    strokeWidth={stroke / 2}
+                  />
+                  <line
+                    x1={plus.x}
+                    y1={plus.y - handleR * 0.35}
+                    x2={plus.x}
+                    y2={plus.y + handleR * 0.35}
+                    className="stroke-ink"
+                    strokeWidth={stroke / 2}
+                  />
                 </g>
               </g>
             );

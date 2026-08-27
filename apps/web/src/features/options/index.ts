@@ -55,19 +55,10 @@ export type { MiniPlanSvgProps } from './MiniPlanSvg';
 export { VastuWheel } from './VastuWheel';
 export type { VastuWheelProps } from './VastuWheel';
 
-export {
-  useOptionActions,
-  useSolveOutcome,
-  useSolverJob,
-  useTheater,
-} from './useOptions';
+export { useOptionActions, useSolveOutcome, useSolverJob, useTheater } from './useOptions';
 export type { LockableRoom, UseOptionActions, UseSolveOutcome, UseSolverJob } from './useOptions';
 
-export {
-  INITIAL_THEATER,
-  reduceTheater,
-  theaterFromJob,
-} from './theater';
+export { INITIAL_THEATER, reduceTheater, theaterFromJob } from './theater';
 export type { TheaterSilhouette, TheaterStage, TheaterState } from './theater';
 
 export {

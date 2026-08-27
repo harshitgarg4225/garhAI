@@ -47,8 +47,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 __all__ = [
     "DB_KIND_TO_DRAWING_KIND",
@@ -93,7 +94,7 @@ class PipelineError(ValueError):
 # API's validator and then failed the worker's, which validated the drawing
 # vocabulary. Both spellings are accepted on input; the DB spelling is canonical.
 # ---------------------------------------------------------------------------
-DB_KIND_TO_DRAWING_KIND: Dict[str, str] = {
+DB_KIND_TO_DRAWING_KIND: dict[str, str] = {
     "site": "site-plan",
     "floor": "floor-plan",
     "elevation": "elevation",
@@ -101,10 +102,10 @@ DB_KIND_TO_DRAWING_KIND: Dict[str, str] = {
     "schedule": "door-window-schedule",
     "area-statement": "area-statement",
 }
-DRAWING_KIND_TO_DB_KIND: Dict[str, str] = {v: k for k, v in DB_KIND_TO_DRAWING_KIND.items()}
+DRAWING_KIND_TO_DB_KIND: dict[str, str] = {v: k for k, v in DB_KIND_TO_DRAWING_KIND.items()}
 
 #: Submission order. Also the numbering order (§7 title block, "sheet numbering").
-DB_KIND_ORDER: Tuple[str, ...] = (
+DB_KIND_ORDER: tuple[str, ...] = (
     "site",
     "floor",
     "elevation",
@@ -115,17 +116,17 @@ DB_KIND_ORDER: Tuple[str, ...] = (
 
 #: Sheet numbers by kind: ``A-01`` … ``A-06``, with a letter suffix when a kind
 #: yields more than one sheet (two storeys → ``A-02A``/``A-02B``).
-_KIND_NUMBER_INDEX: Dict[str, int] = {kind: i + 1 for i, kind in enumerate(DB_KIND_ORDER)}
+_KIND_NUMBER_INDEX: dict[str, int] = {kind: i + 1 for i, kind in enumerate(DB_KIND_ORDER)}
 
 #: Formats a sheet can be published as. ``svg`` always; ``dxf`` needs ezdxf; ``pdf``
 #: needs a converter binary. Mirrors ``garh_api.routers.jobs.SHEET_FORMATS``.
-SHEET_FORMATS: Tuple[str, ...] = ("svg", "dxf", "pdf")
+SHEET_FORMATS: tuple[str, ...] = ("svg", "dxf", "pdf")
 
-ELEVATION_DIRECTIONS: Tuple[str, ...] = ("N", "E", "S", "W")
+ELEVATION_DIRECTIONS: tuple[str, ...] = ("N", "E", "S", "W")
 _DIRECTION_WORD = {"N": "North", "E": "East", "S": "South", "W": "West"}
 
 
-def canonical_sheet_kinds(raw: Optional[Iterable[str]]) -> Tuple[str, ...]:
+def canonical_sheet_kinds(raw: Iterable[str] | None) -> tuple[str, ...]:
     """Normalise a requested kind list to the DB vocabulary, in submission order.
 
     ``None`` means the full F7-A set. Unknown kinds raise, naming both spellings —
@@ -133,7 +134,7 @@ def canonical_sheet_kinds(raw: Optional[Iterable[str]]) -> Tuple[str, ...]:
     """
     if raw is None:
         return DB_KIND_ORDER
-    wanted: List[str] = []
+    wanted: list[str] = []
     for item in raw:
         key = str(item).strip()
         if key in DB_KIND_TO_DRAWING_KIND:
@@ -143,8 +144,7 @@ def canonical_sheet_kinds(raw: Optional[Iterable[str]]) -> Tuple[str, ...]:
         else:
             raise PipelineError(
                 "We don't recognise one of the requested sheets.",
-                action="Ask for the full set, or one of: %s."
-                % ", ".join(DB_KIND_ORDER),
+                action="Ask for the full set, or one of: %s." % ", ".join(DB_KIND_ORDER),
                 detail="kind=%r; accepted: %s | %s"
                 % (
                     item,
@@ -181,8 +181,8 @@ class _TransportRow:
     unit: str
     allowed: Any = None
     kind: str = "informational"
-    note: Optional[str] = None
-    rule_ids: Tuple[str, ...] = ()
+    note: str | None = None
+    rule_ids: tuple[str, ...] = ()
 
     @property
     def limit_label(self) -> str:
@@ -203,12 +203,12 @@ class TransportStatement:
     the property the API's cross-check test relies on.
     """
 
-    _rows: Tuple[_TransportRow, ...]
-    warnings: Tuple[str, ...] = ()
+    _rows: tuple[_TransportRow, ...]
+    warnings: tuple[str, ...] = ()
     #: Kept for the sheet's provenance block and the site plan's coverage/FAR table.
     raw: Mapping[str, Any] = field(default_factory=dict)
 
-    def rows(self) -> Tuple[_TransportRow, ...]:
+    def rows(self) -> tuple[_TransportRow, ...]:
         return self._rows
 
     # -- scalars the site plan's coverage/FAR note reads ------------------
@@ -223,7 +223,7 @@ class TransportStatement:
         return int(self.raw["footprintAreaMm2"])
 
     @property
-    def coverage_allowed_mm2(self) -> Optional[int]:
+    def coverage_allowed_mm2(self) -> int | None:
         value = self.raw.get("coverageAllowedMm2")
         return None if value is None else int(value)
 
@@ -232,7 +232,7 @@ class TransportStatement:
         return int(self.raw["farCountableAreaMm2"])
 
     @property
-    def far_allowed_mm2(self) -> Optional[int]:
+    def far_allowed_mm2(self) -> int | None:
         value = self.raw.get("farAllowedMm2")
         return None if value is None else int(value)
 
@@ -278,7 +278,7 @@ class TransportStatement:
         return Fraction(self.coverage_allowed_mm2, max(1, self.plot_area_mm2))
 
     @classmethod
-    def from_json(cls, payload: Mapping[str, Any]) -> "TransportStatement":
+    def from_json(cls, payload: Mapping[str, Any]) -> TransportStatement:
         rows_raw = payload.get("rows")
         if not isinstance(rows_raw, list) or not rows_raw:
             raise PipelineError(
@@ -321,16 +321,16 @@ class SheetBundle:
     """
 
     document: Mapping[str, Any]
-    areas: Optional[TransportStatement] = None
-    kinds: Tuple[str, ...] = DB_KIND_ORDER
+    areas: TransportStatement | None = None
+    kinds: tuple[str, ...] = DB_KIND_ORDER
     scale_denominator: int = 100
     paper: str = "A2"
     dim_to_jamb: bool = False
     title_block_fields: Mapping[str, Any] = field(default_factory=dict)
-    revisions: Tuple[Tuple[str, str, str], ...] = ()
+    revisions: tuple[tuple[str, str, str], ...] = ()
     number_prefix: str = "A"
     #: Provenance only — printed nowhere, logged and returned with the result.
-    design_version_id: Optional[str] = None
+    design_version_id: str | None = None
 
     @classmethod
     def from_payload(
@@ -338,12 +338,12 @@ class SheetBundle:
         payload: Mapping[str, Any],
         *,
         document: Mapping[str, Any],
-        areas: Optional[Mapping[str, Any]] = None,
-    ) -> "SheetBundle":
+        areas: Mapping[str, Any] | None = None,
+    ) -> SheetBundle:
         """Build from a ``drawings.generate_sheets`` payload. Every failure names a field."""
         scale = payload.get("scaleDenominator")
         denominator = int(scale) if isinstance(scale, int) and scale > 0 else 100
-        revisions: List[Tuple[str, str, str]] = []
+        revisions: list[tuple[str, str, str]] = []
         for row in payload.get("revisions") or ():
             if isinstance(row, Mapping):
                 revisions.append(
@@ -353,7 +353,7 @@ class SheetBundle:
                         str(row.get("note") or ""),
                     )
                 )
-            elif isinstance(row, (list, tuple)) and len(row) >= 3:
+            elif isinstance(row, list | tuple) and len(row) >= 3:
                 revisions.append((str(row[0]), str(row[1]), str(row[2])))
         return cls(
             document=document,
@@ -390,15 +390,15 @@ class GeneratedSheet:
     title: str
     scale_denominator: int
     paper: str
-    viewport: Dict[str, Any]
+    viewport: dict[str, Any]
     svg: str
-    chains: List[Dict[str, Any]]
-    element_ids: List[str]
+    chains: list[dict[str, Any]]
+    element_ids: list[str]
     primitive_count: int
-    layers_used: List[str]
+    layers_used: list[str]
     drawing: Any = None
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """The metadata the API persists as ``sheets.layout``. No SVG, no drawing.
 
         The SVG travels as a stored artifact, not through the job event stream: nine
@@ -427,25 +427,25 @@ class GeneratedSheet:
 
 @dataclass
 class SheetSetResult:
-    sheets: List[GeneratedSheet] = field(default_factory=list)
+    sheets: list[GeneratedSheet] = field(default_factory=list)
     #: Sheets that could not be drawn, with the reason. Never a silent omission.
-    skipped: List[Dict[str, str]] = field(default_factory=list)
+    skipped: list[dict[str, str]] = field(default_factory=list)
     #: Non-fatal notes for the UI (e.g. "no facade geometry on the west elevation").
-    notes: List[str] = field(default_factory=list)
-    state_hash: Optional[str] = None
+    notes: list[str] = field(default_factory=list)
+    state_hash: str | None = None
     chain_count: int = 0
     label_collisions: int = 0
 
-    def by_slug(self, slug: str) -> Optional[GeneratedSheet]:
+    def by_slug(self, slug: str) -> GeneratedSheet | None:
         for sheet in self.sheets:
             if sheet.slug == slug:
                 return sheet
         return None
 
-    def drawings(self) -> List[Any]:
+    def drawings(self) -> list[Any]:
         return [sheet.drawing for sheet in self.sheets if sheet.drawing is not None]
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "sheets": [sheet.to_json() for sheet in self.sheets],
             "skipped": list(self.skipped),
@@ -486,7 +486,7 @@ def build_sheets(bundle: SheetBundle, *, on_sheet: Any = None) -> SheetSetResult
         slug, kind, number, title, builder = entry
         try:
             drawing = builder(title_block)
-        except Exception as exc:  # noqa: BLE001 - one sheet must not kill the set
+        except Exception as exc:
             result.skipped.append(
                 {"sheetId": slug, "kind": kind, "number": number, "reason": _reason(exc)}
             )
@@ -508,8 +508,16 @@ def build_sheets(bundle: SheetBundle, *, on_sheet: Any = None) -> SheetSetResult
             drawing_kind=DB_KIND_TO_DRAWING_KIND[kind],
             number=number,
             title=title,
-            scale_denominator=int(getattr(getattr(drawing.sheet, "scale", None), "denominator", 100)),
-            paper=str(getattr(getattr(getattr(drawing.sheet, "frame", None), "paper", None), "name", bundle.paper)),
+            scale_denominator=int(
+                getattr(getattr(drawing.sheet, "scale", None), "denominator", 100)
+            ),
+            paper=str(
+                getattr(
+                    getattr(getattr(drawing.sheet, "frame", None), "paper", None),
+                    "name",
+                    bundle.paper,
+                )
+            ),
             viewport=_viewport_json(drawing.sheet),
             svg=svg,
             chains=[_chain_json(chain) for chain in drawing.chains],
@@ -543,11 +551,11 @@ def build_sheets(bundle: SheetBundle, *, on_sheet: Any = None) -> SheetSetResult
 # ---------------------------------------------------------------------------
 # Plan assembly (one closure per sheet, so a failure is scoped to one sheet)
 # ---------------------------------------------------------------------------
-def _sheet_plan(doc: Any, bundle: SheetBundle) -> List[Tuple[str, str, str, str, Any]]:
+def _sheet_plan(doc: Any, bundle: SheetBundle) -> list[tuple[str, str, str, str, Any]]:
     from services.drawings.render import reference_sheets as ref
 
     house = doc.house
-    entries: List[Tuple[str, str, str, str, Any]] = []
+    entries: list[tuple[str, str, str, str, Any]] = []
 
     def number_for(kind: str, ordinal: int, count: int) -> str:
         base = "%s-%02d" % (bundle.number_prefix, _KIND_NUMBER_INDEX[kind])
@@ -676,7 +684,9 @@ def sheet_dxf_bytes(drawings: Sequence[Any]) -> bytes:
         ) from exc
 
 
-def svg_set_to_pdf_bytes(svgs: Sequence[str], *, timeout_seconds: int = 60) -> Tuple[bytes, Dict[str, Any]]:
+def svg_set_to_pdf_bytes(
+    svgs: Sequence[str], *, timeout_seconds: int = 60
+) -> tuple[bytes, dict[str, Any]]:
     """The ``pdf-set`` export: one vector page per sheet, print-true.
 
     Needs a converter binary (rsvg-convert / chromium / inkscape) and, for more than
@@ -716,7 +726,9 @@ def sheet_glb_bytes(document: Mapping[str, Any], *, name: str = "garh-model") ->
     return write_glb_bytes(_parse_document(document), name=name)
 
 
-def sheet_png_manifest(drawings: Sequence[Any], *, preset_name: str = "review") -> Tuple[Dict[str, Any], ...]:
+def sheet_png_manifest(
+    drawings: Sequence[Any], *, preset_name: str = "review"
+) -> tuple[dict[str, Any], ...]:
     """Filenames and pixel sizes for the ``png-pack``. Sizing only — no rasterisation."""
     from services.drawings.export.png import pack_plan
 
@@ -735,7 +747,9 @@ def _parse_document(document: Mapping[str, Any]) -> Any:
             action="Save the design and generate the sheets again.",
             detail="model document is %s, expected an object" % type(document).__name__,
         )
-    payload = document.get("doc") if "doc" in document and "schemaVersion" not in document else document
+    payload = (
+        document.get("doc") if "doc" in document and "schemaVersion" not in document else document
+    )
     try:
         return ProjectDoc.from_json(payload)  # type: ignore[arg-type]
     except (KeyError, TypeError, ValueError) as exc:
@@ -746,12 +760,12 @@ def _parse_document(document: Mapping[str, Any]) -> Any:
         ) from exc
 
 
-def _state_hash(doc: Any) -> Optional[str]:
+def _state_hash(doc: Any) -> str | None:
     try:
         from garh_model.fold import state_hash
 
         return str(state_hash(doc))
-    except Exception:  # noqa: BLE001 - provenance is nice to have, never required
+    except Exception:
         return None
 
 
@@ -788,9 +802,7 @@ def _restamp(sheet: Any, *, slug: str, number: str, title: str) -> Any:
     frame = getattr(sheet, "frame", None)
     block = getattr(frame, "title_block", None)
     if frame is not None and block is not None:
-        frame = replace(
-            frame, title_block=replace(block, sheet_number=number, drawing_title=title)
-        )
+        frame = replace(frame, title_block=replace(block, sheet_number=number, drawing_title=title))
         return replace(sheet, id=slug, number=number, title=title, frame=frame)
     return replace(sheet, id=slug, number=number, title=title)
 
@@ -807,17 +819,17 @@ def _render_svg(drawing: Any) -> str:
     return svg
 
 
-def _viewport_json(sheet: Any) -> Dict[str, Any]:
+def _viewport_json(sheet: Any) -> dict[str, Any]:
     viewport = getattr(sheet, "viewport", None)
     if viewport is None:
         return {}
     try:
         return dict(viewport.to_json())
-    except Exception:  # noqa: BLE001
+    except Exception:
         return {}
 
 
-def _chain_json(chain: Any) -> Dict[str, Any]:
+def _chain_json(chain: Any) -> dict[str, Any]:
     """``DimChain.to_json()`` plus its own sum.
 
     The serialisation itself is the model's — one shape, defined once, so a chain in a
@@ -831,7 +843,7 @@ def _chain_json(chain: Any) -> Dict[str, Any]:
     return payload
 
 
-def _element_ids(drawing: Any) -> List[str]:
+def _element_ids(drawing: Any) -> list[str]:
     """Model element ids drawn on this sheet, sorted.
 
     This is what the Review Tray's re-attach picker offers: the elements actually
@@ -861,7 +873,7 @@ def _label_collisions(drawing: Any) -> int:
     from services.drawings.dimensions import LabelBox, find_label_collisions
     from services.drawings.render.primitives import Text
 
-    boxes: List[LabelBox] = []
+    boxes: list[LabelBox] = []
     for group in drawing.groups:
         for index, primitive in enumerate(group.primitives):
             if not isinstance(primitive, Text) or not primitive.text.strip():

@@ -45,7 +45,7 @@ be forgotten. `make tenancy-audit` enforces this and CI runs it on every PR.
 **5. Licences: Apache, MIT, BSD, MPL only. Never GPL or AGPL** in app code, and
 never RPLAN-derived model weights. Check the licence table before adding anything,
 and add a row to `DECISIONS.md` — that rule has no exceptions, including for dev
-dependencies. `make license-check` fails on GPL/AGPL *and* on unknown licences.
+dependencies. `make license-check` fails on GPL/AGPL _and_ on unknown licences.
 
 **6. Secrets never reach the client bundle.** Browser code reads
 `import.meta.env.VITE_*` and nothing else. `make secret-audit` enforces it.
@@ -127,7 +127,7 @@ never `print`.
 assertions. Zustand stores are the only writers; components dispatch.
 
 **Tests** — a bug fix comes with the test that would have caught it. Rules checks
-need a passing *and* a failing fixture each. Model-core changes need property tests
+need a passing _and_ a failing fixture each. Model-core changes need property tests
 (fold/replay determinism, undo/redo inverses).
 
 **Performance budgets are features, not aspirations** (§14): 16ms canvas frames,
@@ -139,11 +139,11 @@ blocker.
 
 ## Where to look
 
-| Question | File |
-|---|---|
-| Why is it done this way? | `DECISIONS.md` |
-| What does this service do? | `docs/architecture.md` |
-| What is this env var? | `docs/environment.md` |
-| How do I run/regenerate goldens? | `docs/testing.md` |
-| Is this phase done? | `docs/phases.md` |
-| Something's broken locally | `docs/local-development.md` |
+| Question                         | File                        |
+| -------------------------------- | --------------------------- |
+| Why is it done this way?         | `DECISIONS.md`              |
+| What does this service do?       | `docs/architecture.md`      |
+| What is this env var?            | `docs/environment.md`       |
+| How do I run/regenerate goldens? | `docs/testing.md`           |
+| Is this phase done?              | `docs/phases.md`            |
+| Something's broken locally       | `docs/local-development.md` |

@@ -21,12 +21,17 @@ export interface UnitsToggleProps {
   className?: string | undefined;
 }
 
-const OPTIONS: ReadonlyArray<{ value: UnitsDisplay; label: string; hint: string }> = [
-  { value: 'ft-in', label: "ft-in", hint: `Show lengths as 12'-6".` },
+const OPTIONS: readonly { value: UnitsDisplay; label: string; hint: string }[] = [
+  { value: 'ft-in', label: 'ft-in', hint: `Show lengths as 12'-6".` },
   { value: 'm', label: 'm', hint: 'Show lengths as 3.81 m.' },
 ];
 
-export function UnitsToggle({ value, onChange, disabled, className }: UnitsToggleProps): JSX.Element {
+export function UnitsToggle({
+  value,
+  onChange,
+  disabled,
+  className,
+}: UnitsToggleProps): JSX.Element {
   return (
     <Tooltip
       delayMs={400}

@@ -156,7 +156,9 @@ export function materialMatchesPick(item: MaterialItem, pick: SurfacePick): bool
   if (item.surfaceGroups.length === 0) return true;
   return item.surfaceGroups.some((area) =>
     pick.catalogPrefixes.some((prefix) =>
-      prefix.endsWith('.') ? area.startsWith(prefix) : area === prefix || area.startsWith(`${prefix}.`),
+      prefix.endsWith('.')
+        ? area.startsWith(prefix)
+        : area === prefix || area.startsWith(`${prefix}.`),
     ),
   );
 }
