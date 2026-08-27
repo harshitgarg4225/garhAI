@@ -274,6 +274,12 @@ jobs:
       APP_ENV: test
       DATABASE_URL: postgresql+psycopg://garh:garh_ci@localhost:5432/garh_test
       REDIS_URL: redis://localhost:6379/0
+      S3_ENDPOINT_URL: http://localhost:9000
+      S3_ACCESS_KEY_ID: garhminio
+      S3_SECRET_ACCESS_KEY: garhminio_local_dev
+      S3_BUCKET: garh-test
+      S3_REGION: ap-south-1
+      S3_FORCE_PATH_STYLE: "true"
       PROVIDER_LLM: mock
       PROVIDER_RENDER: mock
       PROVIDER_BILLING: mock
@@ -311,6 +317,34 @@ jobs:
         # export test exercises the real "no merge tool" refusal instead of
         # the real conversion.
         run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends librsvg2-bin qpdf
+
+      - name: Start object storage (MinIO) and create the bucket
+        # NOT a service container: the minio image needs `server /data` as a
+        # command, which the services: block cannot pass, and its readiness
+        # probe binary (mc) ships in a different image. A plain docker run with
+        # MinIO's own /minio/health/live endpoint is simpler and honest.
+        #
+        # Why real MinIO rather than a mock: the underlay upload signs SigV4 and
+        # PUTs for real (garh_api/storage.py). A mock would test our string
+        # formatting, not that the signature is one S3 accepts.
+        env:
+          AWS_ACCESS_KEY_ID: garhminio
+          AWS_SECRET_ACCESS_KEY: garhminio_local_dev
+          AWS_DEFAULT_REGION: ap-south-1
+        run: |
+          docker run -d --name garh-minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=garhminio \
+            -e MINIO_ROOT_PASSWORD=garhminio_local_dev \
+            -e MINIO_REGION_NAME=ap-south-1 \
+            minio/minio:latest server /data
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:9000/minio/health/live >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -sf http://localhost:9000/minio/health/live >/dev/null \
+            || { echo "::error::MinIO never became ready"; docker logs garh-minio; exit 1; }
+          aws --endpoint-url http://localhost:9000 s3 mb s3://garh-test || true
+          aws --endpoint-url http://localhost:9000 s3 ls
 
       - name: Generate a test JWT keypair
         # RS256 is not optional for the auth tests, and a keypair minted per run
