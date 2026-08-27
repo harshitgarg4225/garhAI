@@ -24,6 +24,7 @@ any non-dev environment missing a secret, which is exactly when that should fail
 
 from __future__ import annotations
 
+import contextlib
 import json
 import time
 from collections.abc import AsyncIterator
@@ -36,7 +37,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.datastructures import Headers, MutableHeaders
 
-from garh_api import MODEL_SCHEMA_VERSION, __version__
+from garh_api import MODEL_SCHEMA_VERSION, __version__, db
 from garh_api.auth import set_otp_mailer
 from garh_api.config import Settings, get_settings
 from garh_api.db import dispose_async_engine, session_scope
@@ -349,6 +350,83 @@ class SecurityHeadersMiddleware:
         await self.app(scope, receive, send_wrapper)
 
 
+class CommitBeforeResponseMiddleware:
+    """Make the request's DB work durable BEFORE the first response byte leaves.
+
+    FastAPI ≥0.106 runs yield-dependency teardown AFTER the response is sent, so
+    the commit in ``db.session_scope`` happens when the client may already be
+    acting on the response — a 201 for a created project followed by a 404
+    reading it one round-trip later. Every environment before CI run 13's e2e
+    smoke was too slow (or too in-process: the test client awaits the full app
+    cycle) to lose that race; the compose stack on a runner lost it reliably.
+
+    ``db.get_db_session`` registers each request session on the ASGI scope; this
+    middleware intercepts ``http.response.start`` and commits them first. The
+    teardown commit remains as a no-op fallback, and the rollback-on-exception
+    path is unchanged — an exception unwinds through the dependency before any
+    response starts, so the sessions this hook sees on an error response are
+    already closed and are skipped.
+
+    Pure ASGI like its neighbours (``BaseHTTPMiddleware`` would buffer SSE). A
+    commit failure here converts the response into a 500 problem — the client
+    must not receive a success status for work that did not land.
+    """
+
+    def __init__(self, app: Any) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        failed = False
+
+        async def commit_then_send(message: Any) -> None:
+            nonlocal failed
+            if message["type"] == "http.response.start":
+                for session in scope.get(db.SCOPE_SESSIONS_KEY, ()):
+                    if not session.is_active or not session.in_transaction():
+                        continue
+                    try:
+                        await session.commit()
+                    except Exception as exc:
+                        failed = True
+                        _log.error(
+                            "request.commit_before_response_failed",
+                            path=scope.get("path", ""),
+                            error="%s: %s" % (type(exc).__name__, exc),
+                        )
+                        with contextlib.suppress(Exception):
+                            await session.rollback()
+                if failed:
+                    body = json.dumps(
+                        problem_body(
+                            "internal",
+                            "Saving your change failed at the last moment.",
+                            "Nothing was stored. Retry the request.",
+                        )
+                    ).encode("utf-8")
+                    await send(
+                        {
+                            "type": "http.response.start",
+                            "status": 500,
+                            "headers": [
+                                (b"content-type", PROBLEM_CONTENT_TYPE.encode("latin-1")),
+                                (b"content-length", str(len(body)).encode("latin-1")),
+                            ],
+                        }
+                    )
+                    await send({"type": "http.response.body", "body": body})
+                    return
+            if failed:
+                # The app's original response messages are superseded by the 500.
+                return
+            await send(message)
+
+        await self.app(scope, receive, commit_then_send)
+
+
 class BodySizeLimitMiddleware:
     """Refuse a request body larger than ``max_request_body_bytes`` (§13).
 
@@ -549,6 +627,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # run after RequestContextMiddleware (its 413 needs the bound request id) and
     # after CORS (a rejected body still needs Access-Control-Allow-Origin, or the
     # browser reports an opaque network error instead of the 413).
+    # Outside the routers, inside everything else: the sessions it commits are
+    # created by route dependencies, and its 500-on-commit-failure body needs the
+    # bound request id.
+    app.add_middleware(CommitBeforeResponseMiddleware)
     app.add_middleware(BodySizeLimitMiddleware, max_bytes=cfg.max_request_body_bytes)
     app.add_middleware(SecurityHeadersMiddleware, production=cfg.is_production)
     app.add_middleware(RequestContextMiddleware)

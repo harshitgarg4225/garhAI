@@ -31,6 +31,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
+from starlette.requests import Request
 
 from garh_api.config import Settings, get_settings
 
@@ -142,7 +143,17 @@ async def session_scope(settings: Settings | None = None) -> AsyncIterator[Async
         await session.close()
 
 
-async def get_db_session() -> AsyncIterator[AsyncSession]:
+#: Key under which the request's sessions are registered on the ASGI scope, so
+#: ``CommitBeforeResponseMiddleware`` can commit them BEFORE the first response
+#: byte leaves. FastAPI ≥0.106 runs yield-dependency teardown AFTER the response
+#: is sent, which turned the teardown commit in :func:`session_scope` into a race
+#: the client can win: a 201 for a created project, then a 404 reading it one
+#: round-trip later. CI run 13's e2e smoke was the first environment fast enough
+#: to lose the race reproducibly.
+SCOPE_SESSIONS_KEY = "garh.request_sessions"
+
+
+async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:
     """FastAPI dependency. One session (and one transaction) per request.
 
     ::
@@ -153,8 +164,15 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
             ctx: TenantCtx = Depends(require_tenant),
         ) -> ...:
             return await ProjectRepository(session, ctx).list()
+
+    The session is registered on the request scope so the commit-before-response
+    middleware can make it durable before the client sees the response; the
+    teardown commit in :func:`session_scope` remains as the fallback (and the
+    rollback-on-exception path is untouched — an exception unwinds through here
+    before any response starts).
     """
     async with session_scope() as session:
+        request.scope.setdefault(SCOPE_SESSIONS_KEY, []).append(session)
         yield session
 
 
