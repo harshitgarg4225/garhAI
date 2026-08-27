@@ -26,6 +26,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Query, Response, status
+from pydantic import Field, StrictStr, field_validator
 
 from garh_api.compliance import (
     ComplianceUnavailable,
@@ -87,6 +88,7 @@ from garh_api.schemas.project import (
     VersionOut,
     VersionRestoreOut,
 )
+from garh_api.templates import TEMPLATES, TemplateOut, TemplatesOut, get_template, template_ids
 
 _log = get_logger(__name__)
 
@@ -125,6 +127,123 @@ async def list_projects(
     )
 
 
+@router.get("/templates", response_model=TemplatesOut, summary="Project starter templates")
+async def list_templates(ctx: TenantDep) -> TemplatesOut:
+    """The template registry, in picker order ("Blank" first).
+
+    Authed but deliberately NOT project-scoped: templates are product content, the
+    same for every firm, and carry no tenant data — which is also why the
+    cross-tenant sweep needs no ``Case`` for this route (no tenant-owned id in the
+    path). The op recipes themselves never leave the server; ``POST /projects``
+    applies them by id.
+    """
+    return TemplatesOut(templates=[TemplateOut.of(t) for t in TEMPLATES])
+
+
+class ProjectCreateIn(ProjectCreate):
+    """``POST /projects`` body + the optional starter template.
+
+    Declared here rather than in ``schemas/project.py`` so the template registry —
+    a router-layer concern — never leaks into the schema package's import graph.
+    The validator quotes the registry itself, so this can never drift from
+    :data:`garh_api.templates.TEMPLATES`.
+    """
+
+    template_id: StrictStr | None = Field(
+        default=None,
+        description="A template id from GET /templates. Omitted or 'blank' = empty project.",
+    )
+
+    @field_validator("template_id")
+    @classmethod
+    def _check_template(cls, value: str | None) -> str | None:
+        if value is not None and get_template(value) is None:
+            raise ValueError("templateId must be one of: %s." % ", ".join(template_ids()))
+        return value
+
+
+async def _apply_template(
+    session: Any,
+    ctx: Any,
+    project_id: uuid.UUID,
+    template_id: str,
+) -> None:
+    """Append a template's op recipe and mirror the plot/brief projections.
+
+    The exact path the seed's demo project takes: ops through ``dispatch_ops``
+    (``source="system"``, stable ``tpl-%02d`` client op ids in the seed's
+    idempotency style), then the same ``plots``/``briefs`` upserts ``PUT /plot`` and
+    ``PUT /brief`` perform — skipping the mirror would leave the folded document and
+    the projection tables disagreeing, the exact inconsistency golden rule 1 exists
+    to prevent. Both mirrors are derived from the FOLDED document, not from the
+    recipe, so they cannot disagree with what the ops actually produced.
+
+    Template projects are not demo projects: ``ProjectRepository.create`` defaults
+    ``demo=False`` and this route never overrides it, so the seed's stale-demo
+    detector — which only ever examines the row ``get_demo_project()`` returns
+    (``WHERE demo IS TRUE``) — can never rebuild one. Belt and braces: its other
+    precondition is client op ids starting with ``seed-``, and these are ``tpl-``.
+    """
+    template = get_template(template_id)
+    if template is None:  # pragma: no cover - ProjectCreateIn refuses unknown ids first
+        raise ApiError(
+            "Unknown template %r." % template_id,
+            status=422,
+            code="unknown_template",
+            action="Pick a template from GET /templates: %s." % ", ".join(template_ids()),
+        )
+    wire_ops = template.build()
+    if not wire_ops:
+        return
+
+    await dispatch_ops(
+        session,
+        ctx,
+        project_id,
+        [
+            OpIn(
+                type=str(op["type"]),
+                payload=dict(op["payload"]),
+                # Stable per project (seed style: `seed-%02d`), so a retried apply
+                # is an idempotent replay rather than a second boundary.
+                client_op_id="tpl-%02d" % index,
+            )
+            for index, op in enumerate(wire_ops)
+        ],
+        source="system",
+        group_id=uuid.uuid4(),
+    )
+
+    branch = await active_branch(session, ctx, project_id)
+    state = await load_project_state(session, ctx, project_id, branch)
+    plot_doc = dict(state.document.get("plot") or {})
+    boundary = list(plot_doc.get("boundary") or [])
+    if len(boundary) >= 3:
+        await PlotRepository(session, ctx).upsert(
+            project_id,
+            boundary=boundary,
+            north_deg=int(plot_doc.get("northDeg") or 0),
+            roads=list(plot_doc.get("roads") or []),
+            reg_profile=dict(plot_doc.get("regProfile") or {}),
+            source=str(plot_doc.get("source") or "seed"),
+        )
+    brief_doc = dict(state.document.get("brief") or {})
+    brief_data = dict(brief_doc.get("data") or {})
+    if brief_data:
+        await BriefRepository(session, ctx).upsert(
+            project_id,
+            data=brief_data,
+            vastu_mode=str(brief_doc.get("vastuMode") or "off"),
+            completeness=int(brief_doc.get("completeness") or 0),
+        )
+    _log.info(
+        "project.template_applied",
+        project_id=str(project_id),
+        template=template.id,
+        ops=len(wire_ops),
+    )
+
+
 @router.post(
     "/projects",
     response_model=ProjectOut,
@@ -132,11 +251,16 @@ async def list_projects(
     summary="Create a project",
 )
 async def create_project(
-    body: ProjectCreate,
+    body: ProjectCreateIn,
     session: SessionDep,
     ctx: TenantDep,
 ) -> ProjectOut:
-    """One required field, by design — Phase 0's "login → create project → fetch it"."""
+    """One required field, by design — Phase 0's "login → create project → fetch it".
+
+    ``templateId`` is the one optional extra: the project is created first, then the
+    template's op recipe is appended in the same transaction, so a rejected recipe
+    rolls the whole create back rather than leaving a half-templated shell behind.
+    """
     ctx.require_write("creating a project")
     project = await ProjectRepository(session, ctx).create(
         name=body.name,
@@ -145,7 +269,9 @@ async def create_project(
         city_pack=body.city_pack,
         architect_of_record=body.architect_of_record,
     )
-    _log.info("project.created", project_id=str(project.id))
+    if body.template_id is not None:
+        await _apply_template(session, ctx, project.id, body.template_id)
+    _log.info("project.created", project_id=str(project.id), template=body.template_id)
     return ProjectOut.of(project)
 
 

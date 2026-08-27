@@ -146,6 +146,9 @@ import {
   useFurniturePlacement,
 } from '../../features/canvas/furniture';
 import { RenderCaptureBridge, RenderLauncher } from '../../features/renders';
+// Tracing underlay (features/underlay). Two mounts below, both tagged
+// "UNDERLAY" — the layer inside the canvas, the panel in the DOM overlay.
+import { UnderlayLayer, UnderlayPanel } from '../../features/underlay';
 import { ShortcutsDialog } from '../../components';
 import { useKeyboardMap, type CommandHandlers } from '../../lib/keymap';
 import { installTestHooks } from '../../lib/testHooks';
@@ -679,6 +682,17 @@ function PlanEditor(): JSX.Element {
                 <FurnitureBrowser className="pointer-events-auto absolute bottom-3 left-3 max-h-[60%] w-72 overflow-hidden rounded-lg border border-line bg-surface shadow-lg" />
               ) : null}
 
+              {/* ── UNDERLAY: upload / opacity / lock / calibrate / move ───
+                  Sits above the scale readout in the bottom-right corner and
+                  is collapsed by default, so a project without an underlay
+                  pays one line of chrome for it. It also owns the armed
+                  capture layer the calibrate and move gestures use. */}
+              <UnderlayPanel
+                projectId={project.id}
+                core={core}
+                className="absolute bottom-12 right-3"
+              />
+
               {isEmpty ? (
                 <PlanEmpty onOpenPlot={() => navigate(`/projects/${project.id}/brief`)} />
               ) : null}
@@ -706,6 +720,13 @@ function PlanEditor(): JSX.Element {
             projection; in 3D they lie on the ground (the datum), not at the
             active storey's FFL. */}
         <Grid fine={snapMode === 'fine'} visible={is2d && layers.grid} />
+
+        {/* ── UNDERLAY: the scanned plan being traced over ─────────────────
+            Mounted before the grid so it draws underneath it (its own render
+            order is below `grid`'s, and it sits 1 mm under the storey FFL).
+            2D only, and never registered with `PickRegistry` — see the header
+            of `features/underlay/UnderlayLayer.tsx`. */}
+        {is2d ? <UnderlayLayer elevationMm={elevationMm} /> : null}
 
         {/* Phase 7 (§9): publishes the live renderer to features/renders so
             captures reuse THIS canvas — never a second one. Renders nothing. */}

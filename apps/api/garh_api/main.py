@@ -87,12 +87,14 @@ API_CONTENT_SECURITY_POLICY = (
 
 #: Route suffixes allowed to exceed ``settings.max_request_body_bytes``.
 #:
-#: One entry: Phase 2's DXF upload (``POST /projects/{id}/import/dxf``). Listing a
+#: Two entries: Phase 2's DXF upload (``POST /projects/{id}/import/dxf``) and the
+#: underlay image upload (``POST /projects/{id}/underlay/image``). Listing a
 #: path here is only half the job — the route must enforce its own byte cap, because
-#: this middleware stops caring about a path once it is listed. The imports router
-#: holds up its half: ``_read_body_capped`` streams the body against
-#: ``settings.max_dxf_upload_bytes`` and answers 413 as problem+json (§13).
-LARGE_BODY_PATH_SUFFIXES: tuple[str, ...] = ("/import/dxf",)
+#: this middleware stops caring about a path once it is listed. Both routers hold
+#: up their half with the same ``_read_body_capped`` streaming guard: DXF against
+#: ``settings.max_dxf_upload_bytes``, underlay against
+#: ``settings.max_image_upload_bytes``, each answering 413 as problem+json (§13).
+LARGE_BODY_PATH_SUFFIXES: tuple[str, ...] = ("/import/dxf", "/underlay/image")
 
 _SECURITY_HEADERS: dict[str, str] = {
     "content-security-policy": API_CONTENT_SECURITY_POLICY,
@@ -670,6 +672,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from garh_api.routers import sheets as sheets_router
 
     app.include_router(sheets_router.router, prefix=cfg.api_prefix)
+
+    # The tracing underlay (plan-image trace-over). Mounted here for the same
+    # reason as the imports router: same prefix, same error contract, no edit to
+    # routers/__init__.py. Its upload route is the second entry in
+    # LARGE_BODY_PATH_SUFFIXES above and enforces settings.max_image_upload_bytes
+    # itself. No path overlap: /projects/{id}/underlay[/image] is its own segment.
+    from garh_api.routers import underlay as underlay_router
+
+    app.include_router(underlay_router.router, prefix=cfg.api_prefix)
 
     _install_meta_route(app, cfg)
 

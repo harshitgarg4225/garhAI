@@ -128,6 +128,12 @@ export interface CreateProjectPayload {
   units: UnitsDisplay;
   /** Both integer mm. Sent only when the architect filled the plot step. */
   plot?: { widthMm: number; depthMm: number } | undefined;
+  /**
+   * A template id from `api.templates.list()`. Omitted (or `'blank'`) creates the
+   * empty project this dialog has always made; anything else has the server seed
+   * the op log from that template's recipe before the first fetch.
+   */
+  templateId?: string | undefined;
 }
 
 export interface ProjectSlice {

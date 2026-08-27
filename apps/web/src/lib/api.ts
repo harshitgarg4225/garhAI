@@ -25,6 +25,7 @@
 
 import {
   abortError,
+  AppError,
   malformedResponseError,
   networkError,
   problemToAppError,
@@ -333,6 +334,122 @@ function projectPath(projectId: string, suffix = ''): string {
 }
 
 /**
+ * Deadline for a live-cursor post. Two seconds, not the 20s default: at ~10Hz
+ * a request that has not landed in two seconds is describing a pointer position
+ * twenty moves stale, and letting it hang only ties up a connection slot.
+ */
+const CURSOR_TIMEOUT_MS = 2_000;
+
+// ---------------------------------------------------------------------------
+// Project templates (GET /templates → POST /projects {templateId})
+// ---------------------------------------------------------------------------
+// Declared here rather than in `lib/schemas.ts` deliberately: the registry card
+// is consumed by exactly one flow (the new-project dialog), and keeping its
+// schema beside its binding keeps this file's edit self-contained.
+
+const projectTemplateSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  description: z.string().default(''),
+  /** Human chip for the picker card ("30 × 40 ft"); empty for the blank template. */
+  plotSizeLabel: z.string().default(''),
+  tags: z.array(z.string()).default([]),
+});
+const projectTemplatesSchema = z.object({
+  templates: z.array(projectTemplateSchema).default([]),
+});
+
+/** One starter template card, as `GET /templates` lists them (picker order). */
+export type ProjectTemplate = z.infer<typeof projectTemplateSchema>;
+
+// ---------------------------------------------------------------------------
+// Tracing underlay (§ Rayon parity — upload a plan image and draw over it)
+// ---------------------------------------------------------------------------
+// Declared here for the same reason `projectTemplateSchema` is: exactly one
+// feature consumes it (`features/underlay`), and keeping the schema beside its
+// four bindings keeps the edit self-contained.
+//
+// The shape is `UnderlayOut` in `apps/api/garh_api/schemas/underlay.py`, and
+// the split between float and integer there is deliberate and load-bearing:
+// `mmPerPx` is a raster display scale (a float, `gt=0`), while the origin is
+// integer millimetres like every other position in the product. A patch that
+// sends `originXMm: 1200.5` is a 422 from `Mm`'s StrictInt, so every caller
+// rounds through `roundMm` before it gets here.
+
+const underlaySchema = z.object({
+  objectKey: z.string().min(1),
+  /** Presigned GET, minted per response — §13 caps it at ~10 minutes. */
+  imageUrl: z.string().min(1),
+  widthPx: z.number().int().positive(),
+  heightPx: z.number().int().positive(),
+  mmPerPx: z.number().positive(),
+  originXMm: z.number().int(),
+  originYMm: z.number().int(),
+  opacity: z.number().min(0).max(1),
+  locked: z.boolean(),
+  visible: z.boolean(),
+});
+
+/** The one underlay of a project, with a freshly signed image URL. */
+export type Underlay = z.infer<typeof underlaySchema>;
+
+/**
+ * A partial update. Every member optional, and NOTHING else may be sent —
+ * `UnderlayPatchIn` is `extra="forbid"`, so slipping `widthPx` in here (or a
+ * whole record round-tripped from a GET) is a 422, by design: the image facts
+ * come from real uploaded bytes, never from a JSON claim.
+ */
+export interface UnderlayPatch {
+  readonly mmPerPx?: number;
+  readonly originXMm?: number;
+  readonly originYMm?: number;
+  readonly opacity?: number;
+  readonly locked?: boolean;
+  readonly visible?: boolean;
+}
+
+export interface UploadUnderlayInput extends CallOptions {
+  readonly projectId: string;
+  /** The image bytes, straight from the `<input type="file">`. */
+  readonly file: Blob;
+  /**
+   * Override the declared content type. Normally left alone: the file's own
+   * `type` is sent, and the server sniffs the magic bytes anyway — the header
+   * is a claim, the bytes are the fact.
+   */
+  readonly contentType?: string;
+}
+
+/**
+ * The API's own 404 code for "this project has no underlay yet".
+ *
+ * The route gives it a code of its own precisely so the client can tell that
+ * from "no such project" without string-matching a message. For the canvas it
+ * is a normal state (render the upload affordance), which is why
+ * {@link ApiClient.underlay.get} answers `null` rather than throwing.
+ */
+export const NO_UNDERLAY_CODE = 'no_underlay';
+
+/** True for the one 404 that means "nothing uploaded yet", not "went wrong". */
+function isNoUnderlay(error: unknown): boolean {
+  return error instanceof AppError && error.status === 404 && error.code === NO_UNDERLAY_CODE;
+}
+
+/**
+ * The content type to declare for an upload.
+ *
+ * `Blob.type` is empty for a file the OS could not classify, and an empty
+ * `Content-Type` header would let the server's multipart branch see `""` and
+ * fall through to raw bytes — which is what we want anyway. Naming the octet
+ * stream explicitly says "these are bytes, sniff them" rather than leaving the
+ * header to whatever the fetch implementation invents.
+ */
+function uploadContentType(file: Blob, override?: string): string {
+  if (override !== undefined && override !== '') return override;
+  return file.type === '' ? 'application/octet-stream' : file.type;
+}
+
+/**
  * Model-core ops → the wire envelope. Every op leaves with a `clientOpId`
  * because an op without one cannot be deduplicated, and a retry after a
  * timeout would then apply the same wall twice.
@@ -493,7 +610,13 @@ export function createApiClient(client: HttpClient = http) {
       },
 
       create: (
-        input: { name: string; units?: 'ft-in' | 'm'; cityPack?: string | null },
+        input: {
+          name: string;
+          units?: 'ft-in' | 'm';
+          cityPack?: string | null;
+          /** A template id from `api.templates.list()`; omitted/'blank' = empty project. */
+          templateId?: string;
+        },
         opts: CallOptions = {},
       ): Promise<Project> =>
         client.request({
@@ -537,6 +660,17 @@ export function createApiClient(client: HttpClient = http) {
           method: 'DELETE',
           path: projectPath(projectId),
           parse: parser(deletedSchema),
+          ...opts,
+        }),
+    },
+
+    // ── Project templates (Rayon-parity starters, applied server-side) ─────
+    templates: {
+      /** The starter-template registry, picker order ("Blank" first). */
+      list: (opts: CallOptions = {}): Promise<ProjectTemplate[]> =>
+        client.request({
+          path: '/templates',
+          parse: (data: unknown) => projectTemplatesSchema.parse(data).templates,
           ...opts,
         }),
     },
@@ -641,6 +775,80 @@ export function createApiClient(client: HttpClient = http) {
         client.request({
           path: `/import-jobs/${encodeURIComponent(jobId)}`,
           parse: parser(dxfImportJobSchema),
+          ...opts,
+        }),
+    },
+
+    // ── Tracing underlay (the "scan a plan and draw over it" aid) ──────────
+    // Plain project-scoped CRUD: no job, no op log, no undo. The underlay is
+    // deliberately NOT model state — it is a view aid attached to a project,
+    // so it never enters the op sequence and never changes a state hash.
+    underlay: {
+      /**
+       * The project's underlay, or `null` when it has none.
+       *
+       * `null` rather than a throw is the whole point of the server's
+       * `no_underlay` code: "not uploaded yet" is the state every project
+       * starts in, and a canvas that treated it as an error would render a
+       * failure banner on every new project. Any OTHER 404 (a project that is
+       * not yours, or does not exist) still throws — that one IS a bail-out.
+       *
+       * The `imageUrl` on the answer is signed fresh per response, so this is
+       * also the "my texture URL expired" refresh call.
+       */
+      get: async (projectId: string, opts: CallOptions = {}): Promise<Underlay | null> => {
+        try {
+          return await client.request({
+            path: projectPath(projectId, '/underlay'),
+            parse: parser(underlaySchema),
+            ...opts,
+          });
+        } catch (err) {
+          if (isNoUnderlay(err)) return null;
+          throw err;
+        }
+      },
+
+      /**
+       * Upload (or replace) the image. Answers the full record — there is no
+       * job here, the upload IS the result and its `imageUrl` is immediately
+       * loadable.
+       *
+       * Raw bytes, not multipart: the server accepts both and sniffs the magic
+       * bytes either way, and the raw form is one fewer encoding layer between
+       * the file the architect chose and the bytes that get stored. Limits are
+       * the server's to enforce — too large → 413, not a PNG/JPEG → 415, over
+       * the edge cap → 422, each as problem+json with a next action.
+       */
+      upload: (input: UploadUnderlayInput): Promise<Underlay> =>
+        postBinary(client, {
+          path: projectPath(input.projectId, '/underlay/image'),
+          body: input.file,
+          contentType: uploadContentType(input.file, input.contentType),
+          parse: parser(underlaySchema),
+          ...(input.signal === undefined ? {} : { signal: input.signal }),
+        }),
+
+      /**
+       * Adjust calibration or view state. Only the members you pass change.
+       *
+       * Positions must already be integer millimetres (see {@link UnderlayPatch}).
+       */
+      patch: (projectId: string, patch: UnderlayPatch, opts: CallOptions = {}): Promise<Underlay> =>
+        client.request({
+          method: 'PATCH',
+          path: projectPath(projectId, '/underlay'),
+          body: patch,
+          parse: parser(underlaySchema),
+          ...opts,
+        }),
+
+      /** Remove the underlay. The stored image goes with it, best-effort. */
+      remove: (projectId: string, opts: CallOptions = {}): Promise<{ ok: boolean }> =>
+        client.request({
+          method: 'DELETE',
+          path: projectPath(projectId, '/underlay'),
+          parse: parser(ackSchema),
           ...opts,
         }),
     },
@@ -1261,6 +1469,53 @@ export function createApiClient(client: HttpClient = http) {
           path: `/comments/${encodeURIComponent(commentId)}/resolve`,
           query: { resolved },
           parse: parser(commentSchema),
+          ...opts,
+        }),
+    },
+
+    /**
+     * Live collaboration. The *stream* half is not here on purpose:
+     * `lib/collab.ts` reads SSE with `fetch` + an `Authorization` header
+     * because `EventSource` cannot set one, so it needs the transport, not the
+     * JSON client. What is here is the one plain request the feature makes.
+     */
+    collab: {
+      /**
+       * Broadcast where my pointer is. Fire-and-forget, ~10Hz while moving.
+       *
+       * Four deliberate departures from the house default, all forced by the
+       * call rate rather than by taste:
+       *
+       *  · **`parse: () => undefined`.** The route answers `204 No Content`
+       *    (`collab_cursor`), and `readJson` already turns a 204 into `null`.
+       *    There is no body to validate, so validating one would only invent a
+       *    way to fail.
+       *  · **`idempotencyKey: null`.** `CallOptions`' default stamps a fresh
+       *    key on every POST. Replay protection is meaningless for a message
+       *    that stores nothing and is superseded 100ms later, and the header is
+       *    ~50 bytes on a request whose body is ~40.
+       *  · **A short timeout.** The 20s default is a deadline for a request
+       *    someone is waiting on. Nobody waits on a cursor; a post still in
+       *    flight after two seconds has already been overtaken by the next one.
+       *  · **Identity is NOT in the body.** The server stamps `userId`/`name`
+       *    from the authenticated context and ignores any client claim, so
+       *    sending one would be a lie with no effect. See `CursorIn`.
+       *
+       * Callers must swallow rejections. A dropped cursor is a dropped cursor;
+       * it is never worth a toast, and it must never reach an error boundary.
+       */
+      cursor: (
+        projectId: string,
+        input: { x: number; y: number; storeyIndex: number | null },
+        opts: CallOptions = {},
+      ): Promise<void> =>
+        client.request({
+          method: 'POST',
+          path: projectPath(projectId, '/collab/cursor'),
+          body: input,
+          idempotencyKey: null,
+          timeoutMs: CURSOR_TIMEOUT_MS,
+          parse: () => undefined,
           ...opts,
         }),
     },

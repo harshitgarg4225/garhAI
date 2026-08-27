@@ -19,6 +19,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { formatPlotArea, parseLengthMm } from '@garh/model';
 import type { UnitsDisplay } from '@garh/model';
 import { Button, Dialog, Field, Icon, Input, LengthInput, SelectField, cn } from '@garh/ui';
+import { TemplatePicker } from './TemplatePicker';
+import type { TemplateOption } from './TemplatePicker';
 
 /** City packs shipped in the MVP (playbook §6 seeds blr / ncr / hyd). */
 export const CITY_PACK_OPTIONS = [
@@ -40,6 +42,9 @@ const QUICK_SIZES: readonly { label: string; width: string; depth: string }[] = 
   { label: '60 × 90 ft', width: "60'", depth: "90'" },
 ];
 
+/** The registry id of the empty template — mirrors `garh_api.templates.BLANK_TEMPLATE_ID`. */
+export const BLANK_TEMPLATE_ID = 'blank';
+
 export interface CreateProjectInput {
   name: string;
   clientName: string | undefined;
@@ -47,6 +52,11 @@ export interface CreateProjectInput {
   units: UnitsDisplay;
   /** Omitted when the architect skipped the plot step. */
   plot: { widthMm: number; depthMm: number } | undefined;
+  /**
+   * The chosen starter template, applied server-side as an op-log recipe.
+   * Undefined when the registry never loaded (the dialog degrades to blank).
+   */
+  templateId: string | undefined;
 }
 
 export interface CreateProjectDialogProps {
@@ -58,6 +68,12 @@ export interface CreateProjectDialogProps {
   onTryDemo?: (() => void) | undefined;
   /** Server-side failure, rendered inline rather than as a toast that vanishes. */
   error?: string | undefined;
+  /**
+   * Starter templates from `GET /templates`, picker order ("Blank" first).
+   * Undefined while loading or when the fetch failed — the dialog then behaves
+   * exactly as before templates existed, which is the honest degraded state.
+   */
+  templates?: readonly TemplateOption[] | undefined;
 }
 
 export function CreateProjectDialog({
@@ -67,6 +83,7 @@ export function CreateProjectDialog({
   creating = false,
   onTryDemo,
   error,
+  templates,
 }: CreateProjectDialogProps): JSX.Element {
   const [name, setName] = useState('');
   const [clientName, setClientName] = useState('');
@@ -75,6 +92,7 @@ export function CreateProjectDialog({
   const [widthMm, setWidthMm] = useState<number | null>(null);
   const [depthMm, setDepthMm] = useState<number | null>(null);
   const [touchedName, setTouchedName] = useState(false);
+  const [templateId, setTemplateId] = useState(BLANK_TEMPLATE_ID);
 
   // Reset when the dialog is re-opened, so a cancelled draft does not linger.
   useEffect(() => {
@@ -86,7 +104,29 @@ export function CreateProjectDialog({
     setWidthMm(null);
     setDepthMm(null);
     setTouchedName(false);
+    setTemplateId(BLANK_TEMPLATE_ID);
   }, [open]);
+
+  const selectedTemplate = (templates ?? []).find((t) => t.id === templateId);
+  /** A non-blank template carries its own plot ops, so the manual plot step hides. */
+  const templateHasPlot = selectedTemplate !== undefined && selectedTemplate.plotSizeLabel !== '';
+  /**
+   * A template whose recipe pins a city pack (its ops set the reg profile) forces
+   * the city select — two sources for "which bye-laws apply" is the exact
+   * liability CLAUDE.md's compliance rule exists to prevent.
+   */
+  const templateCity = selectedTemplate?.tags.find((tag): tag is CityPackValue =>
+    CITY_PACK_OPTIONS.some((o) => o.value === tag),
+  );
+
+  const pickTemplate = (id: string): void => {
+    setTemplateId(id);
+    const picked = (templates ?? []).find((t) => t.id === id);
+    const city = picked?.tags.find((tag): tag is CityPackValue =>
+      CITY_PACK_OPTIONS.some((o) => o.value === tag),
+    );
+    if (city !== undefined) setCityPack(city);
+  };
 
   const areaMm2 = widthMm !== null && depthMm !== null ? widthMm * depthMm : null;
   const nameError =
@@ -104,7 +144,12 @@ export function CreateProjectDialog({
       clientName: clientName.trim() === '' ? undefined : clientName.trim(),
       cityPack,
       units,
-      plot: widthMm !== null && depthMm !== null ? { widthMm, depthMm } : undefined,
+      plot:
+        !templateHasPlot && widthMm !== null && depthMm !== null ? { widthMm, depthMm } : undefined,
+      // Sent verbatim, "blank" included — the registry lists blank explicitly.
+      // Undefined only when the registry never loaded, which the server treats
+      // identically to blank.
+      templateId: templates === undefined ? undefined : templateId,
     });
   };
 
@@ -176,13 +221,35 @@ export function CreateProjectDialog({
           )}
         </Field>
 
+        {templates !== undefined && templates.length > 0 ? (
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-ink-muted">
+              Start from{' '}
+              <span className="font-normal text-ink-subtle">
+                — a template seeds the plot and brief; everything stays editable.
+              </span>
+            </p>
+            <TemplatePicker
+              templates={templates}
+              value={templateId}
+              onChange={pickTemplate}
+              disabled={creating}
+            />
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField
             label="City rules"
             value={cityPack}
             onValueChange={(v) => setCityPack(v)}
             options={CITY_PACK_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-            hint="Sets setbacks, FAR and coverage. Every value stays editable."
+            disabled={templateCity !== undefined}
+            hint={
+              templateCity === undefined
+                ? 'Sets setbacks, FAR and coverage. Every value stays editable.'
+                : 'Set by the template. You can switch city packs in the plot panel.'
+            }
           />
           <SelectField
             label="Show sizes in"
@@ -196,70 +263,80 @@ export function CreateProjectDialog({
           />
         </div>
 
-        <fieldset className="rounded-lg border border-line p-3">
-          <legend className="px-1 text-xs font-medium text-ink-muted">
-            Plot size <span className="text-ink-subtle">— optional, you can draw it later</span>
-          </legend>
+        {templateHasPlot ? (
+          <p className="flex items-start gap-1.5 rounded-lg border border-line bg-surface-muted p-2.5 text-xs text-ink-muted">
+            <Icon name="check" size={13} className="mt-px shrink-0 text-pass" />
+            <span>
+              The template sets up a {selectedTemplate?.plotSizeLabel} plot, road and brief for you
+              — adjust any of it once the project opens.
+            </span>
+          </p>
+        ) : (
+          <fieldset className="rounded-lg border border-line p-3">
+            <legend className="px-1 text-xs font-medium text-ink-muted">
+              Plot size <span className="text-ink-subtle">— optional, you can draw it later</span>
+            </legend>
 
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {QUICK_SIZES.map((size) => {
-              const w = parseLengthMm(size.width, 'ft-in');
-              const d = parseLengthMm(size.depth, 'ft-in');
-              const active = widthMm === w && depthMm === d;
-              return (
-                <button
-                  key={size.label}
-                  type="button"
-                  onClick={() => {
-                    setWidthMm(w);
-                    setDepthMm(d);
-                  }}
-                  className={cn(
-                    'garh-focus-ring rounded-full border px-2.5 py-1 text-xs transition-colors',
-                    active
-                      ? 'border-brand/40 bg-brand-soft text-brand-ink'
-                      : 'border-line text-ink-muted hover:bg-surface-muted hover:text-ink',
-                  )}
-                >
-                  {size.label}
-                </button>
-              );
-            })}
-          </div>
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {QUICK_SIZES.map((size) => {
+                const w = parseLengthMm(size.width, 'ft-in');
+                const d = parseLengthMm(size.depth, 'ft-in');
+                const active = widthMm === w && depthMm === d;
+                return (
+                  <button
+                    key={size.label}
+                    type="button"
+                    onClick={() => {
+                      setWidthMm(w);
+                      setDepthMm(d);
+                    }}
+                    className={cn(
+                      'garh-focus-ring rounded-full border px-2.5 py-1 text-xs transition-colors',
+                      active
+                        ? 'border-brand/40 bg-brand-soft text-brand-ink'
+                        : 'border-line text-ink-muted hover:bg-surface-muted hover:text-ink',
+                    )}
+                  >
+                    {size.label}
+                  </button>
+                );
+              })}
+            </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <LengthInput
-              label="Width (along the road)"
-              valueMm={widthMm}
-              onCommitMm={setWidthMm}
-              display={units}
-              bareUnit={units}
-              minMm={1000}
-              maxMm={200_000}
-            />
-            <LengthInput
-              label="Depth"
-              valueMm={depthMm}
-              onCommitMm={setDepthMm}
-              display={units}
-              bareUnit={units}
-              minMm={1000}
-              maxMm={200_000}
-            />
-          </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <LengthInput
+                label="Width (along the road)"
+                valueMm={widthMm}
+                onCommitMm={setWidthMm}
+                display={units}
+                bareUnit={units}
+                minMm={1000}
+                maxMm={200_000}
+              />
+              <LengthInput
+                label="Depth"
+                valueMm={depthMm}
+                onCommitMm={setDepthMm}
+                display={units}
+                bareUnit={units}
+                minMm={1000}
+                maxMm={200_000}
+              />
+            </div>
 
-          {areaMm2 !== null ? (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-muted garh-nums">
-              <Icon name="check" size={13} className="text-pass" />
-              {formatPlotArea(areaMm2, units)}
-            </p>
-          ) : halfPlot ? (
-            <p className="mt-2 text-xs text-ink-muted">
-              Add the other side and we will work out the area, or skip this and draw the plot
-              later.
-            </p>
-          ) : null}
-        </fieldset>
+            {areaMm2 !== null ? (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-muted garh-nums">
+                <Icon name="check" size={13} className="text-pass" />
+                {formatPlotArea(areaMm2, units)}
+              </p>
+            ) : halfPlot ? (
+              <p className="mt-2 text-xs text-ink-muted">
+                Add the other side and we will work out the area, or skip this and draw the plot
+                later.
+              </p>
+            ) : null}
+          </fieldset>
+        )}
 
         {error === undefined ? null : (
           <p

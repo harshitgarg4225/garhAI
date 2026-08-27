@@ -37,10 +37,11 @@ Two paths, chosen by size, both deterministic:
   envelope, base64. A plot-boundary DXF is typically a few KB; this keeps dev, tests
   and the common case free of any storage dependency.
 * ``> 1 MiB``: the API PUTs the object to S3/minio and passes the worker a presigned
-  GET (≤10 min, §13). There is no shared storage helper in ``garh_api`` yet, so the
-  SigV4 presigner lives here, stdlib-only (hmac/hashlib) against the existing
-  ``Settings.s3_*`` configuration — promote it to ``garh_api/storage.py`` when a
-  second uploader appears.
+  GET (≤10 min, §13). The SigV4 presigner used to live here, stdlib-only; when the
+  second uploader appeared (the underlay image route) it was promoted to
+  ``garh_api/storage.py`` exactly as this paragraph used to promise. ``_sigv4_presign``
+  stays re-exported below because renders.py, sheets.py and jobs.py had already
+  imported it from here — one signer, one audit point, no churn in three routers.
 
 The multipart body is parsed with the stdlib ``email`` parser rather than FastAPI's
 ``UploadFile``: ``File(...)`` imports ``python-multipart`` at route-registration time,
@@ -57,16 +58,12 @@ import contextlib
 import email.parser
 import email.policy
 import hashlib
-import hmac
 import json
 import os
 import re
 import uuid
-from datetime import UTC, datetime
 from typing import Any
-from urllib.parse import quote, urlparse
 
-import httpx
 from fastapi import APIRouter, Query, Request, status
 
 from garh_api import queue
@@ -87,6 +84,11 @@ from garh_api.routers import (
     require_project,
 )
 from garh_api.schemas.imports import DXF_IMPORT_JOB_KIND, DxfImportJobOut
+
+# The old private name is kept as an alias (see the module docstring): three other
+# routers import ``_sigv4_presign`` from here.
+from garh_api.storage import put_object
+from garh_api.storage import sigv4_presign as _sigv4_presign
 from garh_api.tenancy import EntityNotFoundError
 
 _log = get_logger(__name__)
@@ -102,12 +104,6 @@ DXF_IMPORTS_PER_FIRM_PER_HOUR = 20
 #: Mirrors ``services.common.envelope.BlobRef.BLOB_MAX_INLINE_BYTES``. At or under
 #: this, the file rides inline in the envelope; over it, object storage.
 INLINE_DXF_LIMIT_BYTES = 1_048_576
-
-#: Presigned PUT the API uses for its own upload — short because the PUT happens
-#: within this request. The worker-facing GET uses ``s3_signed_url_ttl_seconds``.
-PUT_URL_TTL_SECONDS = 300
-
-STORAGE_TIMEOUT_SECONDS = 30
 
 DEFAULT_FILENAME = "drawing.dxf"
 
@@ -195,7 +191,7 @@ def _looks_like_dxf(data: bytes) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Object storage (files > 1 MiB) — stdlib SigV4 against Settings.s3_*
+# Object storage (files > 1 MiB) — machinery lives in garh_api.storage now
 # ---------------------------------------------------------------------------
 
 
@@ -204,101 +200,10 @@ def dxf_object_key(firm_id: Any, job_id: str) -> str:
     return "imports/dxf/%s/%s.dxf" % (firm_id, job_id)
 
 
-def _sigv4_presign(
-    method: str,
-    key: str,
-    *,
-    ttl_seconds: int,
-    settings: Settings | None = None,
-    now: datetime | None = None,
-) -> str:
-    """AWS Signature V4 presigned URL (query auth, UNSIGNED-PAYLOAD), path-style.
-
-    Deliberately stdlib-only: boto3 would be a heavyweight dependency for the one
-    S3 operation the API performs, and minio speaks SigV4 natively.
-    """
-    cfg = settings or get_settings()
-    endpoint = urlparse(cfg.s3_endpoint_url)
-    host = endpoint.netloc
-    canonical_uri = "/%s/%s" % (cfg.s3_bucket, quote(key, safe="/-_.~"))
-    at = now or datetime.now(UTC)
-    amz_date = at.strftime("%Y%m%dT%H%M%SZ")
-    datestamp = at.strftime("%Y%m%d")
-    scope = "%s/%s/s3/aws4_request" % (datestamp, cfg.s3_region)
-
-    params = {
-        "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
-        "X-Amz-Credential": "%s/%s" % (cfg.s3_access_key_id, scope),
-        "X-Amz-Date": amz_date,
-        "X-Amz-Expires": str(int(ttl_seconds)),
-        "X-Amz-SignedHeaders": "host",
-    }
-    canonical_query = "&".join(
-        "%s=%s" % (quote(name, safe="-_.~"), quote(value, safe="-_.~"))
-        for name, value in sorted(params.items())
-    )
-    canonical_request = "\n".join(
-        [method, canonical_uri, canonical_query, "host:%s\n" % host, "host", "UNSIGNED-PAYLOAD"]
-    )
-    string_to_sign = "\n".join(
-        [
-            "AWS4-HMAC-SHA256",
-            amz_date,
-            scope,
-            hashlib.sha256(canonical_request.encode("utf-8")).hexdigest(),
-        ]
-    )
-
-    def _hmac(key_bytes: bytes, message: str) -> bytes:
-        return hmac.new(key_bytes, message.encode("utf-8"), hashlib.sha256).digest()
-
-    signing_key = _hmac(
-        _hmac(
-            _hmac(
-                _hmac(("AWS4" + cfg.s3_secret_access_key).encode("utf-8"), datestamp), cfg.s3_region
-            ),
-            "s3",
-        ),
-        "aws4_request",
-    )
-    signature = hmac.new(signing_key, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
-    return "%s://%s%s?%s&X-Amz-Signature=%s" % (
-        endpoint.scheme or "http",
-        host,
-        canonical_uri,
-        canonical_query,
-        signature,
-    )
-
-
 async def _store_dxf(key: str, data: bytes, settings: Settings) -> None:
-    """PUT the upload to object storage via a presigned URL the API mints for itself.
-
-    A storage outage is a clean 503 with Retry-After — the §13 posture is that the
-    file is either durably stored or the request failed; nothing half-happens.
-    """
-    put_url = _sigv4_presign("PUT", key, ttl_seconds=PUT_URL_TTL_SECONDS, settings=settings)
-    try:
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(float(STORAGE_TIMEOUT_SECONDS)), follow_redirects=False
-        ) as client:
-            response = await client.put(
-                put_url, content=data, headers={"content-type": "application/dxf"}
-            )
-    except httpx.HTTPError as exc:
-        _log.error("dxf_import.storage_unreachable", error="%s: %s" % (type(exc).__name__, exc))
-        raise ServiceUnavailableError(
-            "We couldn't store that file just now.",
-            dependency="object-storage",
-            retry_after_seconds=10,
-        ) from exc
-    if response.status_code >= 400:
-        _log.error("dxf_import.storage_put_failed", status_code=response.status_code)
-        raise ServiceUnavailableError(
-            "We couldn't store that file just now.",
-            dependency="object-storage",
-            retry_after_seconds=10,
-        )
+    """PUT the upload to storage. Thin wrapper so this module's call sites (and the
+    phase-2 docs that reference ``_store_dxf``) keep their name."""
+    await put_object(key, data, content_type="application/dxf", settings=settings)
 
 
 def _build_asset(

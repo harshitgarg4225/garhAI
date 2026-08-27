@@ -591,6 +591,49 @@ class Comment:
         )
 
 
+@dataclass(frozen=True)
+class Underlay:
+    """The tracing underlay for one project (see ``models.ProjectUnderlay``).
+
+    ``mm_per_px`` is the one sanctioned float — a raster display scale, never a
+    length that reaches an op payload. The origin is integer millimetres.
+    """
+
+    id: uuid.UUID
+    firm_id: uuid.UUID
+    project_id: uuid.UUID
+    object_key: str
+    width_px: int
+    height_px: int
+    mm_per_px: float
+    origin_x_mm: int
+    origin_y_mm: int
+    opacity: float
+    locked: bool
+    visible: bool
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_row(cls, row: Any) -> Underlay:
+        return cls(
+            id=row.id,
+            firm_id=row.firm_id,
+            project_id=row.project_id,
+            object_key=row.object_key,
+            width_px=row.width_px,
+            height_px=row.height_px,
+            mm_per_px=row.mm_per_px,
+            origin_x_mm=row.origin_x_mm,
+            origin_y_mm=row.origin_y_mm,
+            opacity=row.opacity,
+            locked=row.locked,
+            visible=row.visible,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
+
+
 # ---------------------------------------------------------------------------
 # Metering, audit, config
 # ---------------------------------------------------------------------------
@@ -713,5 +756,6 @@ __all__ = [
     "Sheet",
     "ShareLink",
     "SolverJob",
+    "Underlay",
     "User",
 ]

@@ -82,6 +82,11 @@ class Case:
     template: str
     #: JSON body for the methods that need one. ``None`` sends no body.
     body: dict[str, Any] | None = None
+    #: Raw bytes for routes that take a binary upload rather than JSON (the
+    #: underlay image). Mutually exclusive with ``body``; the payload must be
+    #: VALID for the route's own sniffing, so a 404 proves tenancy and not
+    #: content validation.
+    raw_body: bytes | None = None
     #: Query string appended verbatim (no leading ``?``).
     query: str = ""
     #: Headers merged over the auth header.
@@ -91,6 +96,18 @@ class Case:
     def id(self) -> str:
         return "%s %s" % (self.method, self.template)
 
+
+#: A real 1x1 PNG (signature + IHDR + IDAT + IEND), so the underlay upload's
+#: magic-byte sniff and dimension parse both succeed and the only thing left to
+#: fail is the tenancy check. Built here rather than imported so this file stays
+#: readable on its own.
+_ONE_PIXEL_PNG: bytes = (
+    b"\x89PNG\r\n\x1a\n"
+    b"\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00"
+    b"\x1f\x15\xc4\x89"
+    b"\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4"
+    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+)
 
 #: Every route that reaches a tenant-owned row. Ordered as the API surface is documented.
 #:
@@ -145,6 +162,26 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
     # SSE, but safe in this sweep: the tenancy check runs (and 404s) inside the
     # handler BEFORE the EventSourceResponse is built, so firm B never streams.
     Case("GET", "/projects/{project_id}/collab/events"),
+    # Live cursors: the body passes every bound on purpose, so the 404 proves the
+    # tenancy check and not Pydantic (and nothing is published — asserted with a
+    # channel subscription in test_collab_cursor.py, which this sweep cannot see).
+    Case(
+        "POST",
+        "/projects/{project_id}/collab/cursor",
+        body={"x": 1000, "y": 1000, "storeyIndex": 0},
+    ),
+    # -- tracing underlay (§: a plan image the architect traces over) ------
+    # The upload sends a REAL 1x1 PNG: a body the magic-byte sniff accepts, so a
+    # 404 here proves the tenancy check ran and not the image validator.
+    Case("GET", "/projects/{project_id}/underlay"),
+    Case("PATCH", "/projects/{project_id}/underlay", body={"opacity": 0.5}),
+    Case("DELETE", "/projects/{project_id}/underlay"),
+    Case(
+        "POST",
+        "/projects/{project_id}/underlay/image",
+        raw_body=_ONE_PIXEL_PNG,
+        headers={"content-type": "image/png"},
+    ),
     # -- solver -----------------------------------------------------------
     Case("POST", "/projects/{project_id}/solve", body={"optionCount": 3}),
     Case("GET", "/projects/{project_id}/solver-jobs"),
@@ -301,11 +338,14 @@ async def test_cross_tenant_access_is_404(
     hidden. A 404 reading "project 'Sharma Residence' belongs to Studio One" would be a
     403 with extra steps.
     """
+    payload: dict[str, Any] = (
+        {"content": case.raw_body} if case.raw_body is not None else {"json": case.body}
+    )
     response = await client.request(
         case.method,
         _url(api, case, estate_a),
-        json=case.body,
         headers={**firm_b.headers, **case.headers},
+        **payload,
     )
 
     assert response.status_code == 404, "%s leaked across tenants: expected 404, got %s\n%s" % (

@@ -13,6 +13,17 @@
  *     listed. The hook marks the row resolved IN PLACE rather than refetching,
  *     so the person sees "Resolved" where they clicked instead of the row
  *     vanishing under their pointer; the next open refetches and drops it.
+ *   - `POST /projects/:id/comments` accepts an `anchor` object and stores it
+ *     verbatim (`CommentIn.anchor`, `create_comment`). That is what makes
+ *     canvas-pinned comments possible with no API change at all: a pin is an
+ *     ordinary comment whose anchor happens to name a point on the plan.
+ *
+ * THE THIRD READER. Since pins landed there is one more surface reading this
+ * list — the pin layer inside the `<Canvas>`, which cannot receive props from
+ * the shell (R3F reconciles its children in a separate React root). Rather than
+ * open a second fetch for the same thread, this hook PUBLISHES its list into
+ * `pinStore`, which the canvas reads. One fetcher, three readers, and the pins
+ * cannot disagree with the panel because there is only one list.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -23,6 +34,7 @@ import { api } from '../../lib/api';
 import { AppError } from '../../lib/errors';
 import type { Comment } from '../../lib/schemas';
 import { useSessionStore } from '../../stores/session';
+import { placementAnchor, useCommentPinStore } from './pinStore';
 
 export interface CommentsState {
   /** Newest first. Resolved rows linger (marked) until the next refresh. */
@@ -82,8 +94,19 @@ export function useComments(projectId: string): CommentsState {
     setLoading(false);
     setBusy(false);
     setResolvingId(null);
+    // Drop the previous project's pins, placement mode and focus along with its
+    // thread. A pin surviving a project switch would be drawn over a completely
+    // different plan at coordinates that mean nothing there.
+    useCommentPinStore.getState().reset();
     void refresh();
   }, [projectId, refresh]);
+
+  // Publish to the canvas. An effect rather than a write inside every setter so
+  // there is ONE place the mirror is updated and it cannot fall behind a code
+  // path that forgot — optimistic insert, in-place resolve, refetch, or reset.
+  useEffect(() => {
+    useCommentPinStore.getState().setComments(comments);
+  }, [comments]);
 
   const add = useCallback(
     async (body: string): Promise<boolean> => {
@@ -91,13 +114,23 @@ export function useComments(projectId: string): CommentsState {
       if (text === '' || projectId === '') return false;
       const run = runRef.current;
       setBusy(true);
+      // Read the captured pin point ONCE, here, before the await. The machine
+      // is the only source of "is this a pinned comment", so the composer needs
+      // no second flag and cannot disagree with the canvas about it. Reading it
+      // again after the await would race an Escape pressed mid-flight.
+      const anchor = placementAnchor(useCommentPinStore.getState().placement);
       try {
         const created = await api.comments.create(projectId, {
           body: text,
+          ...(anchor === null ? {} : { anchor }),
           ...(userName === '' ? {} : { authorName: userName }),
         });
         if (runRef.current !== run) return true;
         setComments((current) => [created, ...current]);
+        // Only a comment that actually landed retires the placement. A failed
+        // post keeps the point, so "Try again" re-posts the pin where it was
+        // put rather than silently demoting it to an unanchored comment.
+        if (anchor !== null) useCommentPinStore.getState().dispatchPlacement({ type: 'submitted' });
         return true;
       } catch (err) {
         const appError = AppError.from(err);

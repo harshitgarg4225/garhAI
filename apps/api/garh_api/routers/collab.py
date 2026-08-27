@@ -22,6 +22,15 @@ parallel — so the frame shapes below are asserted key-for-key in ``tests/test_
     Redis on every change (join/leave/expiry). Whole-list replacement, so a missed
     frame self-heals on the next one.
 
+``event: cursor``
+    Data ``{"userId", "name", "x", "y", "storeyIndex"}`` — one collaborator's live
+    cursor, plot-local integer mm. Published by ``POST /projects/:id/collab/cursor``
+    below; nothing is stored, so a missed frame is simply superseded by the next
+    position ~100ms later. Deliberately carries **no** ``id:`` — the browser replays
+    the newest id of *any* event as ``Last-Event-ID`` on reconnect, and this stream
+    reads that header as an ops head (:func:`_last_seen_head`), so an id here would
+    corrupt reconnect catch-up on every cursor twitch.
+
 Architecture mirrors the job streams (``routers/jobs.py``): tenancy-check and read
 the initial state in a short ``session_scope`` — never holding a pooled connection
 for the life of the stream — then fan out from a Redis pub/sub channel
@@ -47,15 +56,18 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import Any
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Header, Request, Response, status
+from pydantic import ConfigDict, Field, StrictInt
+from pydantic.alias_generators import to_camel
 from sse_starlette.sse import EventSourceResponse
 
 from garh_api import collab, queue
 from garh_api.db import session_scope
 from garh_api.logging import get_logger
 from garh_api.repositories import OpRepository, TenantCtx, UserRepository
-from garh_api.routers import TenantDep, active_branch, require_project
+from garh_api.routers import SessionDep, TenantDep, active_branch, require_project
 from garh_api.routers.jobs import SSE_PING_SECONDS
+from garh_api.schemas import CamelModel, Mm
 
 _log = get_logger(__name__)
 
@@ -117,6 +129,125 @@ async def _display_name(session: Any, ctx: TenantCtx) -> str:
     if name:
         return name
     return user.email.split("@", 1)[0]
+
+
+# ---------------------------------------------------------------------------
+# Live cursors: POST /projects/:id/collab/cursor → `event: cursor` fan-out
+# ---------------------------------------------------------------------------
+
+#: |x| and |y| ceiling, integer mm. 10km either side of the plot origin is far beyond
+#: any plot this product will ever hold, and small enough that arithmetic on the values
+#: can never surprise a consumer.
+MAX_CURSOR_COORD_MM = 10_000_000
+
+
+class CursorIn(CamelModel):
+    """One cursor position on its way in: ``{"x", "y", "storeyIndex"}``, plot-local mm.
+
+    The one request model in the API with ``extra="ignore"`` instead of the package's
+    ``extra="forbid"`` convention, for two reasons specific to this path:
+
+    * **A client-supplied identity must be inert, not an error.** The server stamps
+      ``userId``/``name`` from the authenticated context; the contract says the client
+      never supplies them. The right answer to a body that tries (``userId``/``name``
+      keys, forged or well-meaning) is "your claim is discarded and the stamped truth
+      is published" — proven by the forged-identity test — not a 422 that makes the
+      identity guarantee rest on request validation instead of on the stamping.
+    * **A 422 here is invisible.** Cursor POSTs are fire-and-forget at ~10Hz; no
+      client surfaces their failures, so strictness would not produce a fixable error
+      message — it would produce live cursors that silently never render, the classic
+      "gate that never fires" failure. Typo protection survives where it matters: all
+      three real fields are required, so a misspelled ``storeyIndex`` still 422s as a
+      missing field rather than being silently defaulted.
+    """
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        extra="ignore",
+        str_strip_whitespace=True,
+        from_attributes=True,
+        protected_namespaces=(),
+    )
+
+    x: Mm = Field(ge=-MAX_CURSOR_COORD_MM, le=MAX_CURSOR_COORD_MM)
+    y: Mm = Field(ge=-MAX_CURSOR_COORD_MM, le=MAX_CURSOR_COORD_MM)
+    storey_index: StrictInt | None = Field(
+        ge=0, description="Which storey the cursor is on; null when not storey-bound."
+    )
+
+
+@router.post(
+    "/projects/{project_id}/collab/cursor",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Broadcast the caller's live cursor position to collaborators",
+)
+async def collab_cursor(
+    project_id: uuid.UUID,
+    body: CursorIn,
+    ctx: TenantDep,
+    session: SessionDep,
+) -> Response:
+    """Stamp identity, publish, 204. Nothing is stored, so there is nothing to return.
+
+    ``TenantDep`` and not ``WriterDep``: a cursor is presence, not a change to the
+    design, so read access is enough — a future read-only seat should still be visible
+    to the people it is watching. The tenancy check is the same ``require_project`` 404
+    every project route uses, and it runs before anything is published.
+
+    This path is DB-write-free and (on the hot path) DB-read-free beyond that ownership
+    check; the display name comes from Redis (:func:`_cursor_display_name`). It is also
+    deliberately NOT rate-limited: ~10Hz per user is the feature working as designed,
+    not abuse, so the §11 mutation budget (60 ops/s per firm) would throttle a healthy
+    six-person session into missing cursors with no error anyone sees. The existing
+    sliding-window limiter would also add a Redis round trip per call — on a route
+    whose entire cost after auth is one PUBLISH — to guard a path that is
+    authenticated, stores nothing, and answers 204: the ceiling on what an abusive
+    caller can make us do is roughly what the limiter itself would cost.
+    """
+    await require_project(session, ctx, project_id)
+    if ctx.user_id is None:  # pragma: no cover - TenantCtx guarantees human roles carry one
+        # A cursor frame without an identity is unrenderable; degrade to a no-op 204
+        # rather than inventing an uncontracted anonymous frame.
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    name = await _cursor_display_name(session, ctx, project_id)
+    await collab.publish_cursor(
+        project_id,
+        ctx.user_id,
+        name,
+        x=body.x,
+        y=body.y,
+        storey_index=body.storey_index,
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+async def _cursor_display_name(session: Any, ctx: TenantCtx, project_id: uuid.UUID) -> str:
+    """Display name for a cursor frame, cheap enough to call at 10Hz per user.
+
+    DECISION: Redis-first, database-fallback, write-through — per-request caching is
+    useless here (a request's lifetime is one publish), and an in-process dict would
+    go stale across replicas and deploys. The SSE connect already stores exactly this
+    name in the presence hash (``presence_join``, refreshed by heartbeats), so the
+    overwhelmingly common case — a user moving their mouse in a project whose stream
+    they hold open — is one HGET. Only a cursor that beats its own stream to the
+    server (connect race, presence expiry, Redis restart) pays the one
+    :func:`_display_name` query, and the result is written back through the same
+    presence entry so the next several hundred posts of that minute hit the hash
+    again.
+
+    The write-through reuses ``presence_heartbeat`` rather than a second value shape:
+    same entry, same TTL discipline, no publish (from the roster's point of view
+    nothing changed *yet*). It does make the user visible to the lazy pruner's roster
+    for a TTL even if their stream never joined — which is honest: someone moving a
+    cursor inside the project *is* present.
+    """
+    name = await collab.presence_name(project_id, ctx.user_id)
+    if name is not None:
+        return name
+    name = await _display_name(session, ctx)
+    await collab.presence_heartbeat(project_id, ctx.user_id, name)
+    return name
 
 
 def _last_seen_head(raw: str | None) -> int | None:
@@ -224,6 +355,12 @@ async def collab_frames(
             elif kind == "presence":
                 roster = await collab.presence_users(project_id)
                 yield _presence_frame(roster)
+            elif kind == "cursor":
+                # Explicit, not a default branch: unknown kinds stay dropped (a future
+                # schema must opt in here, where its frame shape is asserted by tests).
+                frame = _cursor_frame_from_message(decoded)
+                if frame is not None:
+                    yield frame
 
     except asyncio.CancelledError:  # pragma: no cover - client went away mid-yield
         raise
@@ -270,6 +407,42 @@ def _ops_frame_from_message(message: dict[str, Any]) -> dict[str, Any] | None:
     except (KeyError, TypeError, ValueError):
         return None
     return _ops_frame(notice)
+
+
+def _cursor_frame_from_message(message: dict[str, Any]) -> dict[str, Any] | None:
+    """Channel message → ``event: cursor`` frame, keeping ONLY the five contract keys.
+
+    Two deliberate absences:
+
+    * **No ``id:`` field.** EventSource replays the newest id of *any* event as
+      ``Last-Event-ID`` on reconnect, and this stream reads that header as an ops head
+      (:func:`_last_seen_head`); an id here would poison reconnect catch-up within
+      ~100ms of any cursor movement.
+    * **No own-cursor filtering.** Every subscriber gets every cursor, including the
+      author's own echo; the client drops frames carrying its own ``userId``.
+      Filtering here would cost a comparison per frame per stream and conceal nothing
+      — the author already knows where their cursor is.
+
+    Field-checked the same way :func:`_ops_frame_from_message` is: a malformed publish
+    yields no frame, never a malformed frame or a dead stream. A missing
+    ``storeyIndex`` key is malformed (the publisher always sends it); only an explicit
+    ``null`` means "not storey-bound".
+    """
+    try:
+        storey = message["storeyIndex"]
+        data: dict[str, Any] = {
+            "userId": str(message["userId"]),
+            "name": str(message["name"]),
+            "x": int(message["x"]),
+            "y": int(message["y"]),
+            "storeyIndex": int(storey) if storey is not None else None,
+        }
+    except (KeyError, TypeError, ValueError):
+        return None
+    return {
+        "event": "cursor",
+        "data": json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+    }
 
 
 def _presence_frame(roster: list[dict[str, str]]) -> dict[str, Any]:

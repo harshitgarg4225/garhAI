@@ -4,11 +4,12 @@ This is the API side of the §SSE collab contract the web client is built agains
 (``GET /projects/:id/collab/events``). The module owns three things and nothing else:
 
 1. **The channel** — ``garh:collab:<projectId>`` (pub/sub, mirroring the shape of
-   ``queue.progress_channel``). Two message kinds travel on it, discriminated by a
+   ``queue.progress_channel``). Three message kinds travel on it, discriminated by a
    ``kind`` field: ``ops`` ("the op log advanced", carrying the exact five fields the
-   SSE frame will carry) and ``presence`` (a contentless nudge — every connected
-   stream rebuilds the roster from the hash rather than trusting a possibly-stale
-   list baked into the message).
+   SSE frame will carry), ``presence`` (a contentless nudge — every connected stream
+   rebuilds the roster from the hash rather than trusting a possibly-stale list baked
+   into the message), and ``cursor`` (one user's live cursor position, carrying the
+   exact five fields of the ``event: cursor`` frame — see :func:`publish_cursor`).
 
 2. **The presence hash** — ``garh:presence:<projectId>``, field = user id, value =
    ``{"name": ..., "ts": epoch-seconds}``. Entries are written on connect and
@@ -320,6 +321,87 @@ async def presence_users(project_id: Any, *, now: int | None = None) -> list[dic
     return users
 
 
+async def presence_name(project_id: Any, user_id: Any) -> str | None:
+    """The display name already stored in this user's presence entry, if any.
+
+    This is the cursor endpoint's cheap name source: the SSE connect wrote the same
+    name into the hash (:func:`presence_join`), so on the hot path — a user moving
+    their mouse in a project whose stream they hold open — resolving the name is one
+    HGET and no Postgres round trip, which is what makes a 10Hz POST affordable.
+
+    Freshness (``ts``) is deliberately ignored: a stale-but-present entry still names
+    the right person, and expiry is the *roster's* concern, enforced where rosters are
+    built (:func:`presence_users`). Returns ``None`` for a missing entry, an unreadable
+    one, or any Redis failure — the caller falls back to the database and writes
+    through.
+    """
+    try:
+        raw = await queue.get_redis().hget(presence_key(project_id), str(user_id))
+    except Exception:
+        return None
+    if raw is None:
+        return None
+    try:
+        text = raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
+        record = json.loads(text)
+    except (ValueError, UnicodeDecodeError):
+        return None
+    if not isinstance(record, dict):
+        return None
+    name = record.get("name")
+    return name if isinstance(name, str) and name else None
+
+
+# ---------------------------------------------------------------------------
+# Live cursors
+# ---------------------------------------------------------------------------
+
+
+async def publish_cursor(
+    project_id: Any,
+    user_id: Any,
+    name: str,
+    *,
+    x: int,
+    y: int,
+    storey_index: int | None,
+) -> bool:
+    """Fan one user's cursor position out to every open stream on the project.
+
+    ``kind: "cursor"`` is the third message kind on the channel. Identity travels *in*
+    the message, stamped by the endpoint from the authenticated context — the client
+    never supplies it — so the SSE handler forwards without a lookup of its own, and
+    the frame it emits cannot drift from what was published here.
+
+    Deliberately bypasses the post-commit seam that ``ops`` notices ride: a cursor
+    writes nothing, so there is no transaction whose visibility a subscriber could
+    race. And unlike ``ops``, a lost message here costs nothing at all — the next
+    position, ~100ms away at the client's send rate, supersedes it entirely.
+    Best-effort like every publish in this module; never raises.
+    """
+    message = {
+        "kind": "cursor",
+        "userId": str(user_id),
+        "name": name,
+        "x": int(x),
+        "y": int(y),
+        "storeyIndex": int(storey_index) if storey_index is not None else None,
+    }
+    try:
+        await queue.get_redis().publish(
+            collab_channel(project_id),
+            json.dumps(message, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
+        )
+        return True
+    except Exception as exc:
+        _log.warning(
+            "collab.cursor_publish_failed",
+            project_id=str(project_id),
+            error="%s: %s" % (type(exc).__name__, exc),
+        )
+        return False
+
+
 __all__ = [
     "PRESENCE_KEY_TTL_SECONDS",
     "PRESENCE_REFRESH_SECONDS",
@@ -331,7 +413,9 @@ __all__ = [
     "presence_join",
     "presence_key",
     "presence_leave",
+    "presence_name",
     "presence_users",
+    "publish_cursor",
     "publish_ops_advanced",
     "queue_ops_advanced",
 ]

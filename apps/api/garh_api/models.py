@@ -35,6 +35,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Float,
     ForeignKey,
     Identity,
     Index,
@@ -755,6 +756,61 @@ class Comment(UuidPk, Timestamps, TenantOwned, Base):
     )
 
 
+class ProjectUnderlay(UuidPk, Timestamps, TenantOwned, Base):
+    """Tracing underlay: a plan IMAGE the architect traces over on the 2D canvas.
+
+    Deliberately a sidecar table, NOT part of the op-fold model. An underlay is a
+    tracing aid — it never affects geometry, compliance or drawings — and putting
+    it in the model core would demand byte-identical TS/Python twin changes (and
+    undo entries for an opacity tweak) for zero product value. One row per project,
+    enforced by the unique index; replacing uploads overwrite the row.
+
+    ``mm_per_px`` is a float ON PURPOSE, the one documented exception to the
+    integer-mm rule: it is a display scale factor for a raster (set by two-point
+    calibration, e.g. 25.37 mm/px), never a length that reaches an op payload or
+    compliance arithmetic. The origin, being a model-space position, stays integer
+    millimetres like everything else.
+    """
+
+    __tablename__ = "project_underlays"
+
+    firm_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), _firm_fk("project_underlays"), nullable=False
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey(
+            "projects.id", ondelete="CASCADE", name="fk_project_underlays_project_id_projects"
+        ),
+        nullable=False,
+    )
+    #: storage key of the PNG/JPEG; presigned GETs are minted per response (§13).
+    object_key: Mapped[str] = mapped_column(Text, nullable=False)
+    #: pixel dimensions, parsed server-side from the actual bytes (never trusted).
+    width_px: Mapped[int] = mapped_column(Integer, nullable=False)
+    height_px: Mapped[int] = mapped_column(Integer, nullable=False)
+    #: model millimetres per image pixel — the calibration result (see class note).
+    mm_per_px: Mapped[float] = mapped_column(Float, nullable=False, server_default=text("1.0"))
+    #: model-space position of image pixel (0,0), integer mm.
+    origin_x_mm: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    origin_y_mm: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    opacity: Mapped[float] = mapped_column(Float, nullable=False, server_default=text("0.5"))
+    locked: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    visible: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+
+    __table_args__ = (
+        UniqueConstraint("project_id", name="uq_project_underlays_project_id"),
+        CheckConstraint("width_px > 0", name="ck_project_underlays_width_px_positive"),
+        CheckConstraint("height_px > 0", name="ck_project_underlays_height_px_positive"),
+        CheckConstraint("mm_per_px > 0", name="ck_project_underlays_mm_per_px_positive"),
+        CheckConstraint("opacity >= 0 AND opacity <= 1", name="ck_project_underlays_opacity_range"),
+        CheckConstraint(
+            "length(btrim(object_key)) > 0", name="ck_project_underlays_object_key_not_blank"
+        ),
+        Index("ix_project_underlays_firm_id", "firm_id"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Metering & audit
 # ---------------------------------------------------------------------------
@@ -878,6 +934,7 @@ ALL_TABLES: tuple[str, ...] = (
     "compliance_reports",
     "share_links",
     "comments",
+    "project_underlays",
     "credit_events",
     "audit_log",
     "flags",
@@ -915,6 +972,7 @@ __all__ = [
     "PROJECT_UNITS",
     "Plot",
     "Project",
+    "ProjectUnderlay",
     "RENDER_MODES",
     "RenderJob",
     "SHEET_KINDS",

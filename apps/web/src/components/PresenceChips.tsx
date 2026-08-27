@@ -30,8 +30,17 @@ const MAX_VISIBLE = 4;
  * The fixed palette: the design system's five status soft/ink pairs plus
  * neutral. Every pair already passes the token contrast audit in both themes —
  * that is the whole reason to reuse them instead of hex values.
+ *
+ * EXPORTED because a teammate now has TWO representations on screen: a chip up
+ * here and a live cursor on the plan canvas
+ * (`features/canvas/copresence`). Those must be the same colour or the
+ * feature actively misleads — you would learn "Priya is the green one" from the
+ * top bar and then watch a blue arrow move. A second list keyed by the same
+ * index would drift the first time anyone reordered this one, so there is one
+ * list and one lookup ({@link presencePaletteClasses}) and no second palette
+ * anywhere in the product.
  */
-const PALETTE = [
+export const PRESENCE_PALETTE = [
   'bg-brand-soft text-brand-ink',
   'bg-info-soft text-info-ink',
   'bg-pass-soft text-pass-ink',
@@ -41,13 +50,30 @@ const PALETTE = [
 ] as const;
 
 /** FNV-1a over the userId — deterministic, so the colour survives a reload. */
-export function presencePaletteIndex(userId: string, size: number = PALETTE.length): number {
+export function presencePaletteIndex(
+  userId: string,
+  size: number = PRESENCE_PALETTE.length,
+): number {
   let hash = 0x811c9dc5;
   for (let i = 0; i < userId.length; i += 1) {
     hash ^= userId.charCodeAt(i);
     hash = Math.imul(hash, 0x01000193);
   }
   return Math.abs(hash) % size;
+}
+
+/**
+ * THE per-user colour: `userId` → one `bg-… text-…` pair from
+ * {@link PRESENCE_PALETTE}. Every surface that colours a person by identity —
+ * chips here, cursors and cursor labels on the canvas — calls this and nothing
+ * else.
+ *
+ * The `?? [0]` is not defensive noise: `noUncheckedIndexedAccess` types a
+ * number-indexed read as possibly-undefined, and the honest fallback for an
+ * impossible index is the first colour, not a crash on a presence chip.
+ */
+export function presencePaletteClasses(userId: string): string {
+  return PRESENCE_PALETTE[presencePaletteIndex(userId)] ?? PRESENCE_PALETTE[0];
 }
 
 /** "Asha Rao" → "AR", "Priya" → "P", "" → "?". */
@@ -87,7 +113,7 @@ export function PresenceChips({ users, className }: PresenceChipsProps): JSX.Ele
               className={cn(
                 'flex h-6 w-6 select-none items-center justify-center rounded-full',
                 'ring-2 ring-surface text-2xs font-semibold',
-                PALETTE[presencePaletteIndex(user.userId)],
+                presencePaletteClasses(user.userId),
               )}
             >
               {presenceInitials(user.name)}

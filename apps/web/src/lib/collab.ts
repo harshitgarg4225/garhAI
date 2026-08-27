@@ -1,7 +1,7 @@
 /**
  * Live-collaboration stream — the client half of the multiplayer base layer.
  *
- * `GET /projects/:id/collab/events` is an authenticated SSE feed carrying three
+ * `GET /projects/:id/collab/events` is an authenticated SSE feed carrying four
  * frame kinds:
  *
  *   `hello`     — sent once on connect: the branch HEAD and who is here now.
@@ -9,6 +9,10 @@
  *                 the frame's `id:`), the actor, and the §4 `source` so the UI
  *                 can distinguish a colleague's hand edit from a solver apply.
  *   `presence`  — the roster changed (someone opened or closed the project).
+ *   `cursor`    — one collaborator's live pointer, plot-local integer mm, at
+ *                 roughly 10Hz per moving user. Stored nowhere on either side:
+ *                 a missed frame is superseded ~100ms later, which is why this
+ *                 one is the only frame kind with no `id:` (see below).
  *
  * Everything transport-shaped is inherited from `lib/sse.ts` and for the same
  * reason documented there: `EventSource` cannot set headers, and §13 forbids a
@@ -68,11 +72,67 @@ export const collabPresenceSchema = z.object({
   users: z.array(collabUserSchema).default([]),
 });
 
+/**
+ * One `cursor` frame: where a collaborator's pointer is, plot-local integer mm.
+ *
+ * STRICTNESS, FIELD BY FIELD — the same "strict on what matters" rule the ops
+ * schema follows, applied to a frame that arrives ten times a second:
+ *
+ *   `userId`       required. Identity is the map key AND the own-echo filter;
+ *                  a cursor with no owner is both unrenderable and unfilterable.
+ *   `x` / `y`      required integers. A cursor without a position is nothing.
+ *                  Integer because the server's `Mm` type is integer mm and a
+ *                  float here would mean the contract moved under us.
+ *   `name`         defaults to `''`, exactly like `collabUserSchema` — a
+ *                  nameless chip is a cosmetic loss, not a reason to drop.
+ *   `storeyIndex`  required, nullable, and deliberately NOT defaulted. The
+ *                  publisher always sends the key (an absent one is malformed
+ *                  on the server side too), and this is the field that decides
+ *                  whether a cursor is drawn on the storey you are looking at.
+ *                  Defaulting a missing key to `null` would quietly paint a
+ *                  colleague's ground-floor pointer onto your first-floor plan
+ *                  — a wrong answer that looks like a working feature, which is
+ *                  the failure mode this codebase keeps getting bitten by.
+ *                  Dropping the frame instead makes a contract break *visible*
+ *                  (no cursors at all) rather than subtly wrong.
+ */
+export const collabCursorSchema = z.object({
+  userId: z.string().min(1),
+  name: z.string().default(''),
+  x: z.number().int(),
+  y: z.number().int(),
+  storeyIndex: z.number().int().nullable(),
+});
+export type CollabCursorFrame = z.infer<typeof collabCursorSchema>;
+
 /** A parsed frame, discriminated for the subscriber. */
 export type CollabFrame =
   | { readonly kind: 'hello'; readonly hello: CollabHello }
   | { readonly kind: 'ops'; readonly ops: CollabOpsFrame }
-  | { readonly kind: 'presence'; readonly users: readonly CollabUser[] };
+  | { readonly kind: 'presence'; readonly users: readonly CollabUser[] }
+  | { readonly kind: 'cursor'; readonly cursor: CollabCursorFrame };
+
+/**
+ * True when this cursor frame is our OWN pointer coming back to us.
+ *
+ * The server fans every cursor out to every subscriber, author included, and
+ * says so explicitly (`_cursor_frame_from_message`: "no own-cursor filtering …
+ * the client drops frames carrying its own userId"). So this predicate is the
+ * whole of that contract on our side, and it is a named exported function
+ * rather than an inline `===` for one reason: a filter that silently stops
+ * filtering is invisible — you would see a second cursor lagging your own by a
+ * network round trip and assume a colleague was mirroring you. Exported, it is
+ * negative-testable, and `collab.test.ts` proves that inverting it fails.
+ *
+ * `selfUserId === null` (signed out, or identity not resolved yet) drops
+ * nothing: a frame we cannot attribute is better rendered than discarded.
+ */
+export function isOwnCursorEcho(
+  frame: CollabCursorFrame,
+  selfUserId: string | null | undefined,
+): boolean {
+  return selfUserId !== null && selfUserId !== undefined && frame.userId === selfUserId;
+}
 
 /**
  * Parse one SSE frame into the collab vocabulary.
@@ -101,6 +161,10 @@ export function parseCollabFrame(event: string, data: string): CollabFrame | nul
     const parsed = collabPresenceSchema.safeParse(json);
     return parsed.success ? { kind: 'presence', users: parsed.data.users } : null;
   }
+  if (event === 'cursor') {
+    const parsed = collabCursorSchema.safeParse(json);
+    return parsed.success ? { kind: 'cursor', cursor: parsed.data } : null;
+  }
   return null;
 }
 
@@ -114,6 +178,20 @@ export interface CollabSubscribeOptions {
   readonly onOps: (frame: CollabOpsFrame) => void;
   /** The current roster, replacing any previous one. Includes yourself. */
   readonly onPresence: (users: readonly CollabUser[]) => void;
+  /**
+   * One collaborator's pointer moved. Never fired for your own echo — see
+   * {@link isOwnCursorEcho}. Optional, so a surface with no canvas (the brief
+   * tab, the dashboard) simply never asks for the traffic.
+   */
+  readonly onCursor?: ((frame: CollabCursorFrame) => void) | undefined;
+  /**
+   * Who "you" are, for the own-echo filter. A GETTER, not a value: the stream
+   * is opened from the project shell's mount effect and the session store may
+   * still be rehydrating an identity at that instant. Reading it per frame
+   * costs one property access and removes a race whose only symptom would be a
+   * ghost cursor shadowing your own until the next reload.
+   */
+  readonly selfUserId?: (() => string | null) | undefined;
   /** The opening frame — carries the HEAD to catch up to after a reconnect. */
   readonly onHello?: (hello: CollabHello) => void;
   /** Stream up (true after each successful connect) / down (each drop). */
@@ -227,6 +305,16 @@ export function subscribeProjectCollab(options: CollabSubscribeOptions): () => v
             } else if (parsed.kind === 'ops') {
               lastHeadIdx = Math.max(lastHeadIdx, parsed.ops.headIdx);
               options.onOps(parsed.ops);
+            } else if (parsed.kind === 'cursor') {
+              // NOTE the absent `lastHeadIdx` update, and see the module header:
+              // cursor frames deliberately carry no `id:`, because this client
+              // offers the highest id it has seen back as `Last-Event-ID` and
+              // the server reads that header as an ops head. Treating a cursor
+              // as a head would corrupt reconnect catch-up every time anyone
+              // twitched a mouse.
+              if (!isOwnCursorEcho(parsed.cursor, options.selfUserId?.() ?? null)) {
+                options.onCursor?.(parsed.cursor);
+              }
             } else {
               options.onPresence(parsed.users);
             }

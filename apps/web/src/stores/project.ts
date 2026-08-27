@@ -265,6 +265,10 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         name: payload.name,
         units: payload.units,
         cityPack: payload.cityPack,
+        // Server-side seeding: the ops land inside the create transaction, so the
+        // shell's first fetch already sees them. `exactOptionalPropertyTypes` is on,
+        // hence the spread rather than `templateId: payload.templateId`.
+        ...(payload.templateId === undefined ? {} : { templateId: payload.templateId }),
       });
 
       // The dialog collects the plot and the client name in the same step, but

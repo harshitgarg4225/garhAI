@@ -37,6 +37,8 @@ import {
   toProblem,
 } from '../components';
 import type { CreateProjectInput, ProjectStage } from '../components';
+import { api } from '../lib/api';
+import type { ProjectTemplate } from '../lib/api';
 import { useProjectStore } from '../stores/project';
 import { useSessionStore } from '../stores/session';
 import { toProjectSummary } from './_contracts';
@@ -74,10 +76,20 @@ export function DashboardPage(): JSX.Element {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | undefined>(undefined);
   const [openingDemo, setOpeningDemo] = useState(false);
+  /** Undefined until GET /templates answers; the dialog degrades to blank-only. */
+  const [templates, setTemplates] = useState<ProjectTemplate[] | undefined>(undefined);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Fetch the starter templates the first time the create dialog opens. A
+  // failure is deliberately silent: the dialog then works exactly as it did
+  // before templates existed, which beats blocking "New project" on a registry.
+  useEffect(() => {
+    if (!createOpen || templates !== undefined) return;
+    api.templates.list().then(setTemplates, () => undefined);
+  }, [createOpen, templates]);
 
   const summaries = useMemo(() => (items ?? []).map(toProjectSummary), [items]);
 
@@ -121,6 +133,7 @@ export function DashboardPage(): JSX.Element {
   const handleCreate = async (input: CreateProjectInput): Promise<void> => {
     setCreating(true);
     setCreateError(undefined);
+    const fromTemplate = input.templateId !== undefined && input.templateId !== 'blank';
     try {
       const project = await create({
         name: input.name,
@@ -128,12 +141,15 @@ export function DashboardPage(): JSX.Element {
         cityPack: input.cityPack,
         units: input.units,
         plot: input.plot,
+        templateId: input.templateId,
       });
       setCreateOpen(false);
       toast({
         severity: 'pass',
         title: `${project.name} is ready`,
-        description: 'Next: fill in the brief so we can generate plan options.',
+        description: fromTemplate
+          ? 'The template set up the plot and brief — review them, then generate options.'
+          : 'Next: fill in the brief so we can generate plan options.',
       });
       navigate(`/projects/${project.id}/brief`);
     } catch (err) {

@@ -19,6 +19,7 @@ Firm-scoped repositories — constructor is always ``(session, ctx)``::
     ComplianceReportRepository(session, ctx)
     ShareLinkRepository(session, ctx)
     CommentRepository(session, ctx)
+    UnderlayRepository(session, ctx)             # one per project (tracing underlay)
     CreditEventRepository(session, ctx)
     AuditLogRepository(session, ctx)
 
@@ -72,6 +73,7 @@ from garh_api.repositories.domain import (
     ShareLink,
     Sheet,
     SolverJob,
+    Underlay,
     User,
 )
 from garh_api.repositories.firms import FirmRepository
@@ -98,6 +100,7 @@ from garh_api.repositories.share_links import (
     hash_share_token,
 )
 from garh_api.repositories.sheets import AnnotationRepository, SheetRepository
+from garh_api.repositories.underlays import MAX_UNDERLAY_EDGE_PX, UnderlayRepository
 from garh_api.repositories.users import UserRepository, normalise_email
 
 # Re-exported from tenancy so a route handler needs one import for the whole layer.
@@ -133,6 +136,7 @@ __all__ = [
     "ShareLinkRepository",
     "SheetRepository",
     "SolverJobRepository",
+    "UnderlayRepository",
     "UserRepository",
     # repositories — non-tenant (documented exceptions)
     "AuthDirectoryRepository",
@@ -177,6 +181,7 @@ __all__ = [
     "Sheet",
     "ShareLink",
     "SolverJob",
+    "Underlay",
     "User",
     # helpers & constants
     "AUDIT_ACTIONS",
@@ -184,6 +189,7 @@ __all__ = [
     "EMPTY_BRANCH_HEAD",
     "FLAG_REGISTRY",
     "FlagRegistry",
+    "MAX_UNDERLAY_EDGE_PX",
     "SHARE_SECTIONS",
     "apply_merge_patch",
     "canonical_json",

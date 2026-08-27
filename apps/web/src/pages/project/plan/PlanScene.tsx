@@ -53,6 +53,7 @@ import {
   type PickKind,
   type PickTarget,
 } from '../../../features/canvas/core';
+import { CoPresenceLayer } from '../../../features/canvas/copresence';
 import {
   balconiesOfStorey,
   columnRingMm,
@@ -452,6 +453,16 @@ export function PlanScene({
         layer="column"
         material={materials.structureFill}
       />
+
+      {/* ── co-presence ────────────────────────────────────────────────────
+          Live collaborator cursors and canvas-pinned comments. Contributes no
+          geometry and returns null into this tree: it mounts a DOM overlay
+          beside the canvas, because a comment pin is chrome (clickable, with a
+          tooltip and a link into the comments panel) and a cursor must never be
+          a pick target at all. See `features/canvas/copresence` for the full
+          picking argument — neither layer touches the PickRegistry, and both
+          say so on purpose. */}
+      <CoPresenceLayer house={house} storeyId={storeyId} elevationMm={elevationMm} />
     </group>
   );
 }
