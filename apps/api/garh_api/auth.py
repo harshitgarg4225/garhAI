@@ -634,10 +634,21 @@ class IssuedSession:
     refresh_token: str
     refresh_expires_at: int
     principal: AuthPrincipal
+    #: The TTL the token was actually minted with, carried rather than re-derived.
+    access_ttl_seconds: int
 
     @property
     def expires_in_seconds(self) -> int:
-        return max(0, self.access_expires_at - _now())
+        """The access token's lifetime — the configured TTL, not the time left now.
+
+        This used to return ``access_expires_at - _now()``, which reads the clock a
+        second time: the token is minted at T with an expiry of T+900, and if the
+        wall clock crosses a second boundary before the response is serialised the
+        subtraction yields 899. CI's api-smoke caught exactly that, and it is the
+        client's refresh schedule that pays for it — `expires_in` is the token's
+        lifetime in OAuth terms, and the API's own schema documents it as 900.
+        """
+        return self.access_ttl_seconds
 
 
 # ---------------------------------------------------------------------------
@@ -1130,6 +1141,7 @@ class AuthService:
             refresh_token=refresh_token,
             refresh_expires_at=refresh_expires,
             principal=principal,
+            access_ttl_seconds=self._settings.access_token_ttl_seconds,
         )
 
 
