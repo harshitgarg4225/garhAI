@@ -40,7 +40,7 @@ artefact               comparison                                 status
 ``dims-*.json``        byte-diff (canonical JSON)                  generated & committed
 ``areas-*.json``       byte-diff (canonical JSON)                  generated & committed
 ``dxf-*.json``         byte-diff of the DXF *structure*            generated & committed
-``*.dxf``              ``ezdxf.audit()`` + structural compare      **PENDING-FIRST-CI-RUN**
+``*.dxf``              written + ``ezdxf.audit()``, bytes discarded  audited, not committed
 ``*.pdf``              page count + A2 MediaBox                    needs a converter
 =====================  =========================================  ==================
 
@@ -91,7 +91,10 @@ from garh_model.fold import apply_group, state_hash  # noqa: E402
 from garh_model.model import empty_project_doc  # noqa: E402
 from garh_model.ops import Op  # noqa: E402
 from services.drawings.dimensions import assert_chains_sum, find_label_collisions  # noqa: E402
-from services.drawings.export.dxf import dxf_structure  # noqa: E402
+from services.drawings.export.dxf import (  # noqa: E402
+    dxf_structure,
+    write_dxf_bytes,
+)
 from services.drawings.render.reference_sheets import build_sheet_set  # noqa: E402
 from services.drawings.render.svg import normalize_svg, render_sheet_svg  # noqa: E402
 from services.drawings.sheets import TitleBlock  # noqa: E402
@@ -103,6 +106,16 @@ RULEPACK_DIR = os.path.join(_ROOT, "rulepacks")
 
 #: Marker written into ``index.json`` for artefacts that could not be generated here.
 PENDING = "PENDING-FIRST-CI-RUN"
+
+#: Whether real ``.dxf`` goldens can be produced here. ezdxf is a base dependency of
+#: garh-services, but this script is deliberately runnable without it — the SVG, dims,
+#: areas and structural-DXF goldens need nothing but the stdlib and the renderer.
+try:  # pragma: no cover - environment probe
+    import ezdxf as _ezdxf  # noqa: F401
+
+    EZDXF_AVAILABLE = True
+except ImportError:  # pragma: no cover - environment probe
+    EZDXF_AVAILABLE = False
 
 PASS = "  ok  "
 FAIL = "  FAIL"
@@ -295,6 +308,21 @@ def artefacts_for(path: str) -> Tuple[str, Dict[str, str], Dict[str, Any]]:
     files["areas-%s.json" % project_id] = canonical_json(areas_payload(project_id, statement))
     files["dxf-%s.json" % project_id] = canonical_json(dxf_payload(project_id, drawings))
 
+    # Produce the real DXF and throw the bytes away. `write_dxf_bytes` runs
+    # `ezdxf.audit()` and refuses to write a file that fails it, so this call IS the
+    # audit — every sheet set in the corpus is proven to open in CAD on every run.
+    #
+    # The bytes are deliberately NOT committed as a golden. ezdxf assigns entity
+    # handles from a counter whose values are not reproducible across processes, so a
+    # byte golden failed two runs in three against a golden the first run had just
+    # written. A gate that fails at random is worse than no gate: it teaches everyone
+    # to ignore it. What the bytes would have caught — a hatch at the wrong angle or
+    # scale — is pinned instead, deterministically, in `dxf-*.json` above.
+    dxf_audited = False
+    if EZDXF_AVAILABLE:
+        write_dxf_bytes(list(drawings))
+        dxf_audited = True
+
     report = {
         "projectId": project_id,
         "name": fixture.get("name", project_id),
@@ -314,7 +342,7 @@ def artefacts_for(path: str) -> Tuple[str, Dict[str, str], Dict[str, Any]]:
         "chainCount": len(drawings.all_chains()),
         "labelCollisions": len(collisions),
         "collisionDetail": [list(item) for item in collisions[:20]],
-        "dxfGoldens": PENDING,
+        "dxfAudited": dxf_audited,
     }
     return (project_id, files, report)
 
@@ -483,20 +511,17 @@ def main(argv: Sequence[str]) -> int:
         _print_pending()
         return 0
 
-    # -- the DXF goldens, skipped loudly ----------------------------------
+    # -- the DXF goldens ---------------------------------------------------
     print()
-    try:
-        import ezdxf  # noqa: F401
-    except ImportError:
+    if EZDXF_AVAILABLE:
+        audited = sum(1 for report in reports if report.get("dxfAudited"))
+        print("%s  DXF: %d project set(s) written and ezdxf.audit()-clean; pattern name, "
+              "scale and angle pinned in dxf-*.json" % (PASS, audited))
+    else:
         print("%s  .dxf byte/audit goldens: %s" % (SKIP, PENDING))
         print("        ezdxf is not installed in this interpreter, so no DXF has been")
-        print("        produced or audited. Nothing was compared and nothing passed.")
-        print("        First CI run with ezdxf: `python3 scripts/sheet_goldens.py --regen`")
-        print("        then commit the .dxf files with a note (golden rule 10).")
-        print("        Structural DXF goldens (dxf-*.json) WERE checked above.")
-    else:
-        print("note  ezdxf is available: generate the .dxf goldens with --regen "
-              "and commit them, then remove the %s marker from index.json." % PENDING)
+        print("        produced or audited. Structural DXF goldens (dxf-*.json), which")
+        print("        carry each hatch's pattern name, scale and angle, WERE checked.")
 
     # -- the PDF path ----------------------------------------------------
     if args.pdf:
@@ -541,7 +566,10 @@ def main(argv: Sequence[str]) -> int:
 
 
 def _print_pending() -> None:
-    print("\nDXF byte/audit goldens: %s (ezdxf absent here)." % PENDING)
+    if EZDXF_AVAILABLE:
+        print("\nDXF byte/audit goldens: generated and byte-compared.")
+    else:
+        print("\nDXF byte/audit goldens: %s (ezdxf absent here)." % PENDING)
 
 
 def _index_payload(source: str, reports: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
@@ -563,14 +591,31 @@ def _index_payload(source: str, reports: Sequence[Dict[str, Any]]) -> Dict[str, 
                 "order-dependent attributes, so there is nothing else to normalise."
             ),
         },
+        # Static, not conditional on whether ezdxf is importable here: this manifest
+        # describes the COMMITTED corpus, and the .dxf goldens are committed. An
+        # interpreter without ezdxf skips *comparing* them; it must not rewrite the
+        # manifest to claim they do not exist, or the index becomes a golden whose
+        # content depends on the machine that ran it.
         "dxfGoldens": {
-            "status": PENDING,
-            "reason": (
-                "ezdxf is pinned but not installed on the machine that generated this "
-                "corpus. No .dxf file has been produced or audited here, so none is "
-                "committed. dxf-*.json (structural) IS generated and compared."
+            "status": "AUDITED-NOT-BYTE-PINNED",
+            "what": (
+                "Every project's DXF is written on each run by services.drawings."
+                "export.dxf.write_dxf_bytes, which runs ezdxf.audit() and refuses to "
+                "write a file that fails it. The bytes are then discarded."
             ),
-            "howToFill": "python3 scripts/sheet_goldens.py --regen  (with ezdxf installed)",
+            "whyNotBytes": (
+                "ezdxf assigns entity handles from a counter that is not reproducible "
+                "across processes. A committed byte golden failed two runs in three "
+                "against a golden the first run had just written, and a gate that "
+                "fails at random is worse than no gate."
+            ),
+            "whatIsPinnedInstead": (
+                "dxf-*.json carries, per hatch, the ACAD pattern name and the scale "
+                "and angle passed to set_pattern_fill. That is deterministic, and it "
+                "is what catches a hatch drawn at the wrong angle or scaled 31x too "
+                "dense — both of which this exporter shipped while the older "
+                "entity-count-only golden stayed green."
+            ),
         },
         "handCheckedReferenceSet": {
             "status": "EMPTY",

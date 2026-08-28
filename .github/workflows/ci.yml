@@ -483,11 +483,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # The dependency-free golden gates — rule fixtures through the real engine,
-      # the copilot eval corpus + containment through the real fold, sheet goldens,
-      # and the audits. `make bare` is the one command CLAUDE.md promises runs
-      # anywhere; CI proving it keeps that promise honest.
-      - name: "Golden gates (make bare): rule fixtures, copilot corpus, sheet goldens"
+      # the copilot eval corpus + containment through the real fold, and the audits.
+      # `make bare` is the one command CLAUDE.md promises runs anywhere; CI proving
+      # it keeps that promise honest.
+      - name: "Golden gates (make bare): rule fixtures, copilot corpus, audits"
         run: make bare
+
+      # The committed sheet corpus, which `make bare` does NOT cover and nothing in
+      # CI ran until now: 19 SVGs and 2 DXFs byte-diffed against their goldens, plus
+      # the dimension chains and area statements. The DXF halves are the ones that
+      # catch a hatch drawn at the wrong angle — the structural JSON golden beside
+      # them counts entities per layer and cannot see it.
+      - name: "Sheet goldens: 19 SVGs + 2 DXFs, byte-diffed"
+        run: make sheet-goldens
 
       - name: "Golden suites (python): plans, dims, sheets"
         working-directory: apps/api

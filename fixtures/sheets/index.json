@@ -1,8 +1,9 @@
 {
   "dxfGoldens": {
-    "howToFill": "python3 scripts/sheet_goldens.py --regen  (with ezdxf installed)",
-    "reason": "ezdxf is pinned but not installed on the machine that generated this corpus. No .dxf file has been produced or audited here, so none is committed. dxf-*.json (structural) IS generated and compared.",
-    "status": "PENDING-FIRST-CI-RUN"
+    "status": "AUDITED-NOT-BYTE-PINNED",
+    "what": "Every project's DXF is written on each run by services.drawings.export.dxf.write_dxf_bytes, which runs ezdxf.audit() and refuses to write a file that fails it. The bytes are then discarded.",
+    "whatIsPinnedInstead": "dxf-*.json carries, per hatch, the ACAD pattern name and the scale and angle passed to set_pattern_fill. That is deterministic, and it is what catches a hatch drawn at the wrong angle or scaled 31x too dense \u2014 both of which this exporter shipped while the older entity-count-only golden stayed green.",
+    "whyNotBytes": "ezdxf assigns entity handles from a counter that is not reproducible across processes. A committed byte golden failed two runs in three against a golden the first run had just written, and a gate that fails at random is worse than no gate."
   },
   "generator": "scripts/sheet_goldens.py",
   "handCheckedReferenceSet": {

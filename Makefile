@@ -25,7 +25,7 @@ PY_ALL_PATHS    := apps/api services
 
 .PHONY: help up up-build down stop restart reset logs logs-api logs-web ps \
         build migrate migrate-down seed env dev-keys install lockfile \
-        test test-py test-js golden e2e e2e-smoke \
+        test test-py test-js golden sheet-goldens e2e e2e-smoke \
         lint lint-py lint-js fmt fmt-check typecheck typecheck-py typecheck-js \
         secret-audit tenancy-audit license-check env-audit asset-audit audit verify \
         rule-fixtures solver-smoke fixture-drift copilot-eval copilot-containment \
@@ -192,7 +192,7 @@ test-py: ## pytest (apps/api, garh_model, garh_rules, then services/*)
 test-js: ## vitest (model core mirror, stores, units)
 	$(PNPM) -r --if-present test
 
-golden: ## Golden-file suites: plans, dimension chains, DXF/SVG sheets (§16)
+golden: sheet-goldens ## Golden-file suites: plans, dimension chains, DXF/SVG sheets (§16)
 	cd apps/api && pytest -q -m golden
 	@if ls services/*/tests/*.py >/dev/null 2>&1; then \
 	   pytest -q -m golden -c apps/api/pyproject.toml services; \
@@ -413,6 +413,9 @@ copilot-containment: ## Prove the §13 copilot containment boundary (stdlib only
 # = a preset in the picker no worker can render, or eight dead jobs.
 render-mirrors: ## Check the API + web render catalogue mirrors against services/render
 	@$(PY) scripts/render_mirrors.py
+
+sheet-goldens: ## Byte-diff the committed sheet corpus: 19 SVGs, 2 DXFs, dims, areas (§16)
+	@$(PY) scripts/sheet_goldens.py
 
 bare: rule-fixtures solver-smoke fixture-drift copilot-eval copilot-containment render-mirrors tenancy-audit secret-audit env-audit asset-audit ## Every gate that needs no dependencies
 	@echo ""

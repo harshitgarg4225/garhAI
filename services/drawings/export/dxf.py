@@ -154,6 +154,7 @@ def dxf_structure(drawing: SheetDrawing) -> dict:
     Keys are sorted and values are counts, so this is stable enough to be a golden.
     """
     counts: dict = {}
+    fills: list[dict] = []
     dimensions = 0
     for group in drawing.groups:
         for primitive in group.primitives:
@@ -172,6 +173,33 @@ def dxf_structure(drawing: SheetDrawing) -> dict:
                 entity = "TEXT"
             elif isinstance(primitive, Hatch):
                 entity = "HATCH"
+                # The *semantics* of the fill, not just that one exists. A count of
+                # HATCHes per layer cannot tell brick from concrete, nor a hatch drawn
+                # at 45 degrees from the same hatch drawn at 90 — and this exporter
+                # shipped both of those defects, undetected by this very golden, until
+                # someone measured a real HATCH entity. What ends up on the drawing is
+                # the ACAD pattern name plus the scale and angle passed with it, so
+                # those three are what the golden pins.
+                definition = HATCH_DEFS[primitive.pattern]
+                if is_solid(primitive.pattern):
+                    fills.append({"layer": primitive.layer, "pattern": definition.acad_name})
+                else:
+                    fills.append(
+                        {
+                            "layer": primitive.layer,
+                            "pattern": definition.acad_name,
+                            # Rounded, because these reach DXF as floats and a golden
+                            # must not turn on the last bit of a division.
+                            "patternScale": round(
+                                primitive.spacing_mm / definition.base_spacing, 6
+                            ),
+                            "patternAngle": round(
+                                primitive.angle_deg - definition.base_angle_deg, 6
+                            ),
+                            "drawnAngleDeg": primitive.angle_deg,
+                            "drawnSpacingMm": primitive.spacing_mm,
+                        }
+                    )
             else:  # pragma: no cover - Primitive is a closed union
                 raise TypeError("no DXF entity for %s" % type(primitive).__name__)
             key = "%s/%s" % (primitive.layer, entity)
@@ -183,6 +211,8 @@ def dxf_structure(drawing: SheetDrawing) -> dict:
         "layers": list(LAYER_NAMES),
         "layersUsed": list(drawing.layers_used()),
         "entities": {key: counts[key] for key in sorted(counts)},
+        #: One entry per hatch, in paint order — what `set_pattern_fill` will be told.
+        "hatches": fills,
         "dimensionSegments": dimensions,
         "chains": len(drawing.chains),
     }

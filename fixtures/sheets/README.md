@@ -1,7 +1,8 @@
 # `fixtures/sheets/` — drawing-set golden corpus
 
 **Status: populated for SVG, dimension chains, area statements and DXF *structure*.
-The `.dxf` files themselves are `PENDING-FIRST-CI-RUN` and deliberately absent.**
+The `.dxf` files themselves are deliberately not committed — they are written and
+audited on every run instead; see "The `.dxf` files" below.**
 
 Playbook §7 specifies the sheet engine and §16 the golden-file strategy. Phase 8 is
 described in SKILL.md as "the moat", and this directory is where the moat is measured.
@@ -28,9 +29,9 @@ this gate runs on a bare Python 3.9 as well as in CI.
 | `<project>-<sheet>.svg` | the rendered sheet, print-true A2 | **byte-diff** after normalisation |
 | `dims-<project>.json` | every dimension chain, with `sumMm` recorded next to `overallMm` | byte-diff |
 | `areas-<project>.json` | the area statement, integer mm² throughout | byte-diff |
-| `dxf-<project>.json` | the DXF **structure**: entity counts per layer, layers used, dimension-segment count | byte-diff |
+| `dxf-<project>.json` | the DXF **structure**: entity counts per layer, layers used, dimension-segment count, and per hatch the ACAD pattern name + scale + angle | byte-diff |
 | `index.json` | manifest: project → sheets, state hash, chain count, provenance | byte-diff |
-| `<project>-<sheet>.dxf` | the DXF export | **absent — see below** |
+| `<project>.dxf` | the DXF export | **written + `ezdxf.audit()` every run, bytes not committed — see below** |
 
 Two invariants that used to be implementations waiting for data now have data:
 `services.drawings.dimensions.assert_chains_sum` (a chain must sum to its overall
@@ -71,26 +72,32 @@ regression test and a security test. DXF carries `$TDCREATE` and a handle sequen
 comparing bytes would fail on every run and teach the team to ignore the gate. DXF is
 therefore compared **structurally**, via `dxf-*.json`.
 
-## The `.dxf` files: `PENDING-FIRST-CI-RUN`
+## The `.dxf` files: audited every run, bytes never committed
 
-`ezdxf` is pinned but **not installed** on the machine that generated this corpus, so no
-DXF has ever been produced or audited here. Committing a "golden" for a file nobody has
-seen is worse than committing none: the next person to change the DXF writer would diff
-real output against a fiction and "fix" the real one.
+`ezdxf` is now installed wherever this corpus runs, so every project's DXF **is**
+produced on every run: `scripts/sheet_goldens.py` calls
+`services.drawings.export.dxf.write_dxf_bytes`, which runs `ezdxf.audit()` and refuses
+to save a document that fails it, then discards the bytes. A DXF that fails §16's
+"opens clean" check therefore fails the gate, on every run, without a golden.
 
-So: `scripts/sheet_goldens.py` **skips the `.dxf` rows with a loud reason** rather than
-passing vacuously, and prints exactly what to do. On the first CI run with `ezdxf`
-present:
+The bytes are still not committed, and the section above turned out to be exactly
+right about why — confirmed the hard way. A byte golden was built, committed, and then
+**failed two runs in three against a golden the first run had just written**: ezdxf
+assigns entity handles from a counter that is not reproducible across processes, so the
+handles and the OBJECTS ordering move between runs. Normalising the five per-save values
+(`$TDCREATE`, the two GUIDs, two `<version> @ <timestamp>` stamps) is not enough, and
+normalising the handle sequence as well would mean rewriting most of the file — at
+which point the golden pins little more than the JSON already does. A gate that fails at
+random is worse than no gate: it teaches everyone to ignore it. So the byte golden was
+removed again.
 
-```bash
-python3 scripts/sheet_goldens.py --regen   # writes the .dxf files
-```
-
-then commit them with a note, and drop the `PENDING-FIRST-CI-RUN` marker from
-`index.json`. `services.drawings.dxf.audit()` (already real) runs inside
-`services.drawings.export.dxf.write_dxf` and refuses to save a document that fails
-`ezdxf.audit`, so a DXF that reaches this directory has passed §16's "opens clean" check
-by construction.
+What the bytes would have caught is pinned instead, deterministically, in
+`dxf-*.json`: **per hatch, the ACAD pattern name and the scale and angle passed to
+`set_pattern_fill`.** That is not decoration. Entity counts alone cannot tell brick from
+concrete, nor a hatch drawn at 45° from the same hatch drawn at 90°, and this exporter
+shipped three such defects — `earth` rendered as `cross`, hatches 31× too dense, and the
+authored angle added to the pattern's own — while the count-only golden stayed green
+through all of them. Reintroduce any one of the three today and `dxf-*.json` goes red.
 
 ## What is normalised before diffing
 
