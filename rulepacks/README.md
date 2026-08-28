@@ -354,13 +354,25 @@ result, and seed values render with a caution marker.
 
 | `confidence` | What it means | What it takes to get here |
 |---|---|---|
-| **`seed`** | Drafted by the Garh AI team from secondary summaries. **Not authoritative.** Structure is probably right; numbers are plausible defaults. | Nothing. This is where authoring starts. |
-| **`reviewed`** | An empanelled local architect checked the value and the citation against the primary bye-law document. | Reviewer holds the primary document, confirms value + clause reference, records their CoA number in `review.reviewers`. |
-| **`verified`** | Reviewed **and** confirmed against real-world outcome — a sanctioned drawing or a municipal desk that accepted it. | A cited sanctioned project or a documented municipal confirmation. |
+| **`seed`** | Drafted by the Garh AI team from secondary summaries. **Not authoritative.** Structure is probably right; numbers are plausible defaults. | Nothing. This is where authoring starts, and the only rung reachable without evidence. |
+| **`reviewed`** | An empanelled local architect checked the value and the citation against the primary bye-law document. **Authoritative** — renders without the caution marker. | A `review` record on the rule: reviewer, CoA number, date, the `sources[]` label of the primary document (marked `obtained: true`), and the clause it was read in. The reviewer must be on `review.reviewers`. |
+| **`verified`** | Reviewed **and** confirmed against real-world outcome — a sanctioned drawing or a municipal desk that accepted it. | All of the above plus `review.verification`: a sanction number or a municipal confirmation, with a date. |
 
 `review.status` is the pack-level position: `unreviewed` → `in-review` → `reviewed` → `verified`. A
 pack is only as good as its weakest rule, so `reviewed` requires **every** rule at `reviewed` or
-better.
+better — and `unreviewed` requires that **no** rule has moved, or the pack is telling the UI nobody
+has looked while it serves signed values.
+
+**There are three rungs and there is deliberately no fourth.** "The office holds the primary
+document but nobody has read it yet" is a real and useful state, and it is tracked on
+`sources[].obtained`, *not* on `confidence`. The rung is the word an architect sees beside a number
+they are about to submit, so it carries exactly one meaning: has a registered professional put their
+name on this. A rung between `seed` and `reviewed` would have to render either with the caution
+marker (indistinguishable from `seed` to the user) or without it (a value presented as authoritative
+with nobody's registration behind it).
+
+The full field contract is `$defs.reviewRecord` in `schema/rulepack.schema.json`; the workflow an
+architect actually follows is [`docs/rulepack-review.md`](../docs/rulepack-review.md).
 
 Every pack also carries a `disclaimer` string. **The UI and every export must show it verbatim**
 alongside results from that pack. Advisory, not approval; the architect of record remains responsible.
@@ -376,8 +388,11 @@ alongside results from that pack. Advisory, not approval; the architect of recor
    until it happens.
 3. **Rule by rule**, the reviewer confirms or corrects: the value, the band in `when`, the `cite`
    string, the severity, and the `fix` wording. Corrections land as edits to the pack JSON with the
-   rule's `confidence` raised to `reviewed`. Structural changes (a band that needs splitting, a rule
-   that needs retiring) go through `overrides` or a new id — **never** by repurposing an existing id.
+   rule's `confidence` raised to `reviewed` **and a `review` record attached** — a raised confidence
+   with no record is a load error, not a warning. A `corrected` outcome must carry `previousValue`,
+   because a compliance report issued before the correction pinned the old number and has to stay
+   explainable. Structural changes (a band that needs splitting, a rule that needs retiring) go
+   through `overrides` or a new id — **never** by repurposing an existing id.
 4. **Regenerate fixtures, read the diff.** Every changed value moves two fixtures. The diff is the
    review artefact: it shows exactly which boundary moved and by how much.
 5. **Sign off.** Add the reviewer to `review.reviewers` with `name`, `role`, `coaNumber`, `signedAt`.
@@ -388,8 +403,23 @@ alongside results from that pack. Advisory, not approval; the architect of recor
    decorative. A pack past its due date should surface in the UI as stale.
 
 **Never**: silently raise a `confidence`, edit a value without moving its fixtures, or let a pack ship
-with a rule that has no failing fixture. All three are caught by `verify_fixtures.py`; the point of
-saying it here is that they are also review failures, not just build failures.
+with a rule that has no failing fixture. All three are caught by the build; the point of saying it
+here is that they are also review failures, not just build failures.
+
+Two commands run the review-side gates:
+
+```
+python3 scripts/rulepack_review.py coverage   # reviewed vs seed, per pack and per city
+python3 scripts/rulepack_review.py verify     # every review record; exit 1 with findings
+```
+
+`verify` is what makes the ladder more than decoration. It refuses a promotion with no record, a
+record with no clause or no obtained source, a signature from someone off the roster, a future date,
+a correction with no superseded value, `verified` with no sanction reference, a pack status its rules
+have not earned, and an `index.json` claiming more than the packs do — that manifest is what
+`GET /rulepacks` serves, so an overclaim there reaches the architect without the engine ever seeing
+it. The same promotion-needs-a-record rule is also enforced by the schema at engine load time, so
+weakening either gate alone does not open the door.
 
 ---
 

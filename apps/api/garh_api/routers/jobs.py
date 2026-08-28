@@ -16,6 +16,13 @@ No progress is ever synthesised. §15: "never a fake bar". A job's ``progress`` 
 only when a worker publishes an event; if a worker is silent, the client sees the last
 honest value and the stream stays open.
 
+Every enqueue route here also carries a per-firm hourly ceiling, mounted as a route
+dependency so it is charged before a row is written: solver, render and one shared
+drawings budget across ``/export`` and ``/sheets/generate``. These are the four most
+expensive things a request can start, and three of them had no ceiling at all before
+F-7 — see :mod:`garh_api.ratelimit` for which fail open and which fail closed, and why
+they differ.
+
 Who writes job rows
 -------------------
 
@@ -59,7 +66,12 @@ from sse_starlette.sse import EventSourceResponse
 from garh_api import queue
 from garh_api.config import Settings, get_settings
 from garh_api.db import session_scope
-from garh_api.deps import rate_limit_solver_jobs
+from garh_api.deps import (
+    rate_limit_export_jobs,
+    rate_limit_render_jobs,
+    rate_limit_sheet_jobs,
+    rate_limit_solver_jobs,
+)
 from garh_api.logging import get_logger
 from garh_api.repositories import (
     AuditLogRepository,
@@ -415,6 +427,7 @@ async def solver_job_events(
     response_model=RenderJobOut,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Start a render",
+    dependencies=[Depends(rate_limit_render_jobs)],
 )
 async def start_render(
     project_id: uuid.UUID,
@@ -647,6 +660,7 @@ async def render_job_events(
     response_model=SheetSetOut,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Generate the municipal drawing set",
+    dependencies=[Depends(rate_limit_sheet_jobs)],
 )
 async def generate_sheets(
     project_id: uuid.UUID,
@@ -843,6 +857,7 @@ async def get_sheet_download(
     response_model=ExportJobOut,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Export the project (pdf-set | dxf | gltf | png-pack)",
+    dependencies=[Depends(rate_limit_export_jobs)],
 )
 async def start_export(
     project_id: uuid.UUID,

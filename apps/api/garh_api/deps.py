@@ -65,7 +65,10 @@ from garh_api.ratelimit import (
     RateLimitRule,
     auth_ip_rule,
     enforce_rate_limit,
+    export_jobs_per_firm_rule,
     ops_per_firm_rule,
+    render_jobs_per_firm_rule,
+    sheet_jobs_per_firm_rule,
     solver_jobs_per_firm_rule,
     verify_ip_rule,
 )
@@ -349,6 +352,12 @@ class IpRateLimit:
 #: security checklist has one list to audit.
 rate_limit_ops = FirmRateLimit(ops_per_firm_rule)
 rate_limit_solver_jobs = FirmRateLimit(solver_jobs_per_firm_rule)
+#: F-7. The render enqueue charges one slot; the client-pack route charges one PER SHOT
+#: and therefore calls ``enforce_rate_limit`` itself (a dependency cannot see the body).
+rate_limit_render_jobs = FirmRateLimit(render_jobs_per_firm_rule)
+#: Two mounts, two sentences, ONE bucket — see ``export_jobs_per_firm_rule``.
+rate_limit_export_jobs = FirmRateLimit(export_jobs_per_firm_rule)
+rate_limit_sheet_jobs = FirmRateLimit(sheet_jobs_per_firm_rule)
 rate_limit_auth_ip = IpRateLimit(auth_ip_rule)
 rate_limit_verify_ip = IpRateLimit(verify_ip_rule)
 
@@ -398,7 +407,10 @@ __all__ = [
     "get_session_store",
     "optional_tenant",
     "rate_limit_auth_ip",
+    "rate_limit_export_jobs",
     "rate_limit_ops",
+    "rate_limit_render_jobs",
+    "rate_limit_sheet_jobs",
     "rate_limit_solver_jobs",
     "rate_limit_verify_ip",
     "request_origin",

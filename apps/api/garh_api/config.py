@@ -134,6 +134,15 @@ class Settings(BaseSettings):
     queue_drawings: str = "garh:queue:drawings"
     rate_limit_ops_per_second: int = Field(default=60, ge=1)
     rate_limit_solver_jobs_per_hour: int = Field(default=10, ge=1)
+    #: F-7. Renders and the drawings worker were the two unmetered expensive paths: a
+    #: render is a GPU-equivalent job (and a third-party invoice once PROVIDER_RENDER is
+    #: not ``mock``), a sheet set is nine drawings in three formats written to object
+    #: storage. 30 renders/hour is ~4 client packs; 40 drawing-set runs an hour is far
+    #: more than a human clicking "Generate drawings" and far less than a loop.
+    rate_limit_render_jobs_per_hour: int = Field(default=30, ge=1)
+    #: ONE budget shared by ``/export`` and ``/sheets/generate`` — both queue the same
+    #: drawings worker, so splitting the bucket would let a firm double it by alternating.
+    rate_limit_export_jobs_per_hour: int = Field(default=40, ge=1)
     rate_limit_auth_per_hour: int = Field(default=20, ge=1)
     #: §13 rate limits, applied to the LLM routes (``POST /projects/:id/brief/parse``
     #: today, the copilot in Phase 6). These are the only endpoints that spend money at

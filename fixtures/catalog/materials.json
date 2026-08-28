@@ -5,6 +5,7 @@
     "category": "floor",
     "finish": "glossy",
     "colorHex": "#E8E4DC",
+    "texture": "tile",
     "priceInrPerSqm": 850,
     "surfaceGroups": [
       "floor.interior"
@@ -16,6 +17,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#DED8CE",
+    "texture": "tile",
     "priceInrPerSqm": 1150,
     "surfaceGroups": [
       "floor.interior"
@@ -27,6 +29,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#4A4A4A",
+    "texture": "speckle",
     "priceInrPerSqm": 2400,
     "surfaceGroups": [
       "floor.interior",
@@ -39,6 +42,7 @@
     "category": "floor",
     "finish": "honed",
     "colorHex": "#6E7B6B",
+    "texture": "stone",
     "priceInrPerSqm": 900,
     "surfaceGroups": [
       "floor.utility",
@@ -51,6 +55,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#F2F0EA",
+    "texture": "vein",
     "priceInrPerSqm": 4500,
     "surfaceGroups": [
       "floor.interior"
@@ -62,6 +67,7 @@
     "category": "floor",
     "finish": "textured",
     "colorHex": "#8B6A45",
+    "texture": "wood",
     "priceInrPerSqm": 1300,
     "surfaceGroups": [
       "floor.bedroom"
@@ -73,6 +79,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#9C9C97",
+    "texture": "concrete",
     "priceInrPerSqm": 450,
     "surfaceGroups": [
       "floor.utility",
@@ -85,6 +92,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#C9C4BA",
+    "texture": "tile",
     "priceInrPerSqm": 650,
     "surfaceGroups": [
       "floor.bath",
@@ -97,6 +105,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#F5F5F0",
+    "texture": "tile",
     "priceInrPerSqm": 600,
     "surfaceGroups": [
       "wall.bath",
@@ -109,6 +118,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#F7F4EF",
+    "texture": "plaster",
     "priceInrPerSqm": 220,
     "surfaceGroups": [
       "wall.interior",
@@ -121,6 +131,7 @@
     "category": "wall",
     "finish": "textured",
     "colorHex": "#E3DDD2",
+    "texture": "plaster",
     "priceInrPerSqm": 380,
     "surfaceGroups": [
       "wall.exterior"
@@ -132,6 +143,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#9C4A2F",
+    "texture": "brick",
     "priceInrPerSqm": 1400,
     "surfaceGroups": [
       "wall.exterior",
@@ -144,6 +156,7 @@
     "category": "wall",
     "finish": "board-formed",
     "colorHex": "#A8A8A3",
+    "texture": "concrete",
     "priceInrPerSqm": 1600,
     "surfaceGroups": [
       "wall.exterior",
@@ -156,6 +169,7 @@
     "category": "wall",
     "finish": "split-face",
     "colorHex": "#7A6E5D",
+    "texture": "stone",
     "priceInrPerSqm": 2200,
     "surfaceGroups": [
       "wall.exterior",
@@ -168,6 +182,7 @@
     "category": "wall",
     "finish": "wood-grain",
     "colorHex": "#7A5230",
+    "texture": "wood",
     "priceInrPerSqm": 2000,
     "surfaceGroups": [
       "wall.exterior",
@@ -180,6 +195,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#3C3C3C",
+    "texture": "metal",
     "priceInrPerSqm": 1800,
     "surfaceGroups": [
       "facade.cladding"
@@ -191,6 +207,7 @@
     "category": "glazing",
     "finish": "clear",
     "colorHex": "#CFE3E8",
+    "texture": "glass",
     "priceInrPerSqm": 1200,
     "surfaceGroups": [
       "window.glazing"
@@ -202,6 +219,7 @@
     "category": "glazing",
     "finish": "tinted",
     "colorHex": "#7E9AA3",
+    "texture": "glass",
     "priceInrPerSqm": 1600,
     "surfaceGroups": [
       "window.glazing",
@@ -214,6 +232,7 @@
     "category": "joinery",
     "finish": "matte",
     "colorHex": "#FFFFFF",
+    "texture": "metal",
     "priceInrPerSqm": 4200,
     "surfaceGroups": [
       "window.frame"
@@ -225,6 +244,7 @@
     "category": "joinery",
     "finish": "anodised",
     "colorHex": "#6B6B6B",
+    "texture": "metal",
     "priceInrPerSqm": 5200,
     "surfaceGroups": [
       "window.frame"
@@ -236,6 +256,7 @@
     "category": "joinery",
     "finish": "polished",
     "colorHex": "#6B4423",
+    "texture": "wood",
     "priceInrPerSqm": 9000,
     "surfaceGroups": [
       "door.main"
@@ -247,6 +268,7 @@
     "category": "joinery",
     "finish": "laminated",
     "colorHex": "#B08A5E",
+    "texture": "wood",
     "priceInrPerSqm": 2600,
     "surfaceGroups": [
       "door.internal"
@@ -258,6 +280,7 @@
     "category": "railing",
     "finish": "powder-coated",
     "colorHex": "#2E2E2E",
+    "texture": "metal",
     "priceInrPerSqm": 2800,
     "surfaceGroups": [
       "railing.balcony",
@@ -270,6 +293,7 @@
     "category": "railing",
     "finish": "brushed",
     "colorHex": "#B8BCC0",
+    "texture": "metal",
     "priceInrPerSqm": 4500,
     "surfaceGroups": [
       "railing.balcony",
@@ -282,6 +306,7 @@
     "category": "railing",
     "finish": "clear",
     "colorHex": "#D6E7EC",
+    "texture": "glass",
     "priceInrPerSqm": 6500,
     "surfaceGroups": [
       "railing.balcony"
@@ -293,6 +318,7 @@
     "category": "roof",
     "finish": "natural",
     "colorHex": "#B5502F",
+    "texture": "tile",
     "priceInrPerSqm": 1100,
     "surfaceGroups": [
       "roof.pitched"
@@ -304,6 +330,7 @@
     "category": "roof",
     "finish": "matte",
     "colorHex": "#8E8E8E",
+    "texture": "plaster",
     "priceInrPerSqm": 550,
     "surfaceGroups": [
       "roof.flat",
@@ -316,6 +343,7 @@
     "category": "wall",
     "finish": "sealed",
     "colorHex": "#8A5A2B",
+    "texture": "wood",
     "priceInrPerSqm": 3200,
     "surfaceGroups": [
       "facade.louvers",
@@ -328,6 +356,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#B5643C",
+    "texture": "brick",
     "priceInrPerSqm": 2600,
     "surfaceGroups": [
       "facade.screen",
@@ -340,6 +369,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#8C3B24",
+    "texture": "concrete",
     "priceInrPerSqm": 700,
     "surfaceGroups": [
       "floor.interior",
@@ -352,6 +382,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#C9A227",
+    "texture": "tile",
     "priceInrPerSqm": 1900,
     "surfaceGroups": [
       "floor.interior",
@@ -364,6 +395,7 @@
     "category": "floor",
     "finish": "glossy",
     "colorHex": "#F1EDE2",
+    "texture": "tile",
     "priceInrPerSqm": 780,
     "surfaceGroups": [
       "floor.interior"
@@ -375,6 +407,7 @@
     "category": "floor",
     "finish": "glossy",
     "colorHex": "#F4F2EE",
+    "texture": "tile",
     "priceInrPerSqm": 820,
     "surfaceGroups": [
       "floor.interior"
@@ -386,6 +419,7 @@
     "category": "floor",
     "finish": "glossy",
     "colorHex": "#E6DCC8",
+    "texture": "tile",
     "priceInrPerSqm": 900,
     "surfaceGroups": [
       "floor.interior"
@@ -397,6 +431,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#B9B9B4",
+    "texture": "tile",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "floor.interior"
@@ -408,6 +443,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#55555A",
+    "texture": "tile",
     "priceInrPerSqm": 980,
     "surfaceGroups": [
       "floor.interior"
@@ -419,6 +455,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#D9CBB2",
+    "texture": "tile",
     "priceInrPerSqm": 1100,
     "surfaceGroups": [
       "floor.interior"
@@ -430,6 +467,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#8F6437",
+    "texture": "tile",
     "priceInrPerSqm": 1250,
     "surfaceGroups": [
       "floor.interior",
@@ -442,6 +480,7 @@
     "category": "floor",
     "finish": "glossy",
     "colorHex": "#EFEAE0",
+    "texture": "tile",
     "priceInrPerSqm": 1650,
     "surfaceGroups": [
       "floor.interior"
@@ -453,6 +492,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#CBBFA8",
+    "texture": "tile",
     "priceInrPerSqm": 480,
     "surfaceGroups": [
       "floor.bath",
@@ -465,6 +505,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#A8A8A2",
+    "texture": "tile",
     "priceInrPerSqm": 680,
     "surfaceGroups": [
       "floor.bath",
@@ -477,6 +518,7 @@
     "category": "floor",
     "finish": "textured",
     "colorHex": "#8E8E86",
+    "texture": "tile",
     "priceInrPerSqm": 720,
     "surfaceGroups": [
       "floor.parking"
@@ -488,6 +530,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#1E1E20",
+    "texture": "speckle",
     "priceInrPerSqm": 3200,
     "surfaceGroups": [
       "floor.interior",
@@ -501,6 +544,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#6E6E72",
+    "texture": "speckle",
     "priceInrPerSqm": 2600,
     "surfaceGroups": [
       "floor.interior",
@@ -513,6 +557,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#7E3B34",
+    "texture": "speckle",
     "priceInrPerSqm": 2800,
     "surfaceGroups": [
       "floor.interior",
@@ -526,6 +571,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#2F4A3B",
+    "texture": "speckle",
     "priceInrPerSqm": 2700,
     "surfaceGroups": [
       "floor.interior",
@@ -538,6 +584,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#D8CDB4",
+    "texture": "speckle",
     "priceInrPerSqm": 2500,
     "surfaceGroups": [
       "floor.interior",
@@ -550,6 +597,7 @@
     "category": "floor",
     "finish": "flamed",
     "colorHex": "#77726A",
+    "texture": "speckle",
     "priceInrPerSqm": 2200,
     "surfaceGroups": [
       "floor.terrace",
@@ -563,6 +611,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#EFEFEA",
+    "texture": "vein",
     "priceInrPerSqm": 2200,
     "surfaceGroups": [
       "floor.interior",
@@ -575,6 +624,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#29584A",
+    "texture": "vein",
     "priceInrPerSqm": 2400,
     "surfaceGroups": [
       "floor.interior",
@@ -587,6 +637,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#DFB8B3",
+    "texture": "vein",
     "priceInrPerSqm": 2000,
     "surfaceGroups": [
       "floor.interior",
@@ -599,6 +650,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#E4D8C2",
+    "texture": "vein",
     "priceInrPerSqm": 2600,
     "surfaceGroups": [
       "floor.interior"
@@ -610,6 +662,7 @@
     "category": "floor",
     "finish": "natural",
     "colorHex": "#9E4A32",
+    "texture": "stone",
     "priceInrPerSqm": 1200,
     "surfaceGroups": [
       "floor.terrace",
@@ -623,6 +676,7 @@
     "category": "floor",
     "finish": "natural",
     "colorHex": "#D9B36A",
+    "texture": "stone",
     "priceInrPerSqm": 1100,
     "surfaceGroups": [
       "floor.terrace",
@@ -635,6 +689,7 @@
     "category": "floor",
     "finish": "honed",
     "colorHex": "#C8C2AE",
+    "texture": "stone",
     "priceInrPerSqm": 650,
     "surfaceGroups": [
       "floor.utility",
@@ -647,6 +702,7 @@
     "category": "floor",
     "finish": "honed",
     "colorHex": "#9BA29A",
+    "texture": "stone",
     "priceInrPerSqm": 600,
     "surfaceGroups": [
       "floor.utility",
@@ -659,6 +715,7 @@
     "category": "floor",
     "finish": "natural",
     "colorHex": "#B5623B",
+    "texture": "tile",
     "priceInrPerSqm": 850,
     "surfaceGroups": [
       "floor.interior",
@@ -672,6 +729,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#A47B4E",
+    "texture": "wood",
     "priceInrPerSqm": 2800,
     "surfaceGroups": [
       "floor.bedroom",
@@ -684,6 +742,7 @@
     "category": "floor",
     "finish": "textured",
     "colorHex": "#6B4A31",
+    "texture": "wood",
     "priceInrPerSqm": 1200,
     "surfaceGroups": [
       "floor.bedroom"
@@ -695,6 +754,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#C09B62",
+    "texture": "wood",
     "priceInrPerSqm": 1800,
     "surfaceGroups": [
       "floor.bedroom",
@@ -707,6 +767,7 @@
     "category": "floor",
     "finish": "glossy",
     "colorHex": "#B9BEC4",
+    "texture": "concrete",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "floor.utility",
@@ -719,6 +780,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#A3A19C",
+    "texture": "concrete",
     "priceInrPerSqm": 800,
     "surfaceGroups": [
       "floor.interior",
@@ -731,6 +793,7 @@
     "category": "floor",
     "finish": "wood-grain",
     "colorHex": "#86592F",
+    "texture": "wood",
     "priceInrPerSqm": 1900,
     "surfaceGroups": [
       "floor.terrace"
@@ -742,6 +805,7 @@
     "category": "floor",
     "finish": "textured",
     "colorHex": "#4C8A3F",
+    "texture": "speckle",
     "priceInrPerSqm": 700,
     "surfaceGroups": [
       "floor.terrace"
@@ -753,6 +817,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#F6F1E7",
+    "texture": "plaster",
     "priceInrPerSqm": 230,
     "surfaceGroups": [
       "wall.interior",
@@ -765,6 +830,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#DCE8D8",
+    "texture": "plaster",
     "priceInrPerSqm": 240,
     "surfaceGroups": [
       "wall.interior"
@@ -776,6 +842,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#D8E4EC",
+    "texture": "plaster",
     "priceInrPerSqm": 240,
     "surfaceGroups": [
       "wall.interior"
@@ -787,6 +854,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#D3D3CF",
+    "texture": "plaster",
     "priceInrPerSqm": 240,
     "surfaceGroups": [
       "wall.interior",
@@ -799,6 +867,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#C0603C",
+    "texture": "plaster",
     "priceInrPerSqm": 260,
     "surfaceGroups": [
       "wall.feature",
@@ -811,6 +880,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#F2EEE4",
+    "texture": "plaster",
     "priceInrPerSqm": 90,
     "surfaceGroups": [
       "wall.interior",
@@ -823,6 +893,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#E8E2D4",
+    "texture": "plaster",
     "priceInrPerSqm": 260,
     "surfaceGroups": [
       "wall.exterior"
@@ -834,6 +905,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#C9C9C4",
+    "texture": "plaster",
     "priceInrPerSqm": 260,
     "surfaceGroups": [
       "wall.exterior"
@@ -845,6 +917,7 @@
     "category": "wall",
     "finish": "textured",
     "colorHex": "#DFD8C8",
+    "texture": "plaster",
     "priceInrPerSqm": 420,
     "surfaceGroups": [
       "wall.exterior"
@@ -856,6 +929,7 @@
     "category": "wall",
     "finish": "polished",
     "colorHex": "#EDE8DC",
+    "texture": "plaster",
     "priceInrPerSqm": 900,
     "surfaceGroups": [
       "wall.interior",
@@ -868,6 +942,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#B4B0A6",
+    "texture": "plaster",
     "priceInrPerSqm": 180,
     "surfaceGroups": [
       "wall.exterior",
@@ -880,6 +955,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#F7F7F2",
+    "texture": "tile",
     "priceInrPerSqm": 550,
     "surfaceGroups": [
       "wall.kitchen"
@@ -891,6 +967,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#7FA8A0",
+    "texture": "tile",
     "priceInrPerSqm": 900,
     "surfaceGroups": [
       "wall.kitchen",
@@ -903,6 +980,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#CFE6E4",
+    "texture": "tile",
     "priceInrPerSqm": 620,
     "surfaceGroups": [
       "wall.bath"
@@ -914,6 +992,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#5E6467",
+    "texture": "tile",
     "priceInrPerSqm": 700,
     "surfaceGroups": [
       "wall.bath"
@@ -925,6 +1004,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#EFEFE9",
+    "texture": "tile",
     "priceInrPerSqm": 750,
     "surfaceGroups": [
       "wall.kitchen",
@@ -937,6 +1017,7 @@
     "category": "wall",
     "finish": "textured",
     "colorHex": "#A67443",
+    "texture": "tile",
     "priceInrPerSqm": 850,
     "surfaceGroups": [
       "wall.bath",
@@ -949,6 +1030,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#A0503A",
+    "texture": "brick",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "wall.feature",
@@ -961,6 +1043,7 @@
     "category": "wall",
     "finish": "wood-grain",
     "colorHex": "#8A6238",
+    "texture": "wood",
     "priceInrPerSqm": 1600,
     "surfaceGroups": [
       "wall.feature",
@@ -973,6 +1056,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#E9E7E0",
+    "texture": "tile",
     "priceInrPerSqm": 450,
     "surfaceGroups": [
       "wall.interior",
@@ -985,6 +1069,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#6F4B2F",
+    "texture": "tile",
     "priceInrPerSqm": 2400,
     "surfaceGroups": [
       "facade.cladding",
@@ -997,6 +1082,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#D8D3C4",
+    "texture": "concrete",
     "priceInrPerSqm": 2100,
     "surfaceGroups": [
       "facade.screen",
@@ -1009,6 +1095,7 @@
     "category": "wall",
     "finish": "powder-coated",
     "colorHex": "#3A3A3C",
+    "texture": "metal",
     "priceInrPerSqm": 2600,
     "surfaceGroups": [
       "facade.screen",
@@ -1021,6 +1108,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#37383A",
+    "texture": "stone",
     "priceInrPerSqm": 1500,
     "surfaceGroups": [
       "wall.feature",
@@ -1033,6 +1121,7 @@
     "category": "glazing",
     "finish": "frosted",
     "colorHex": "#DDE6E8",
+    "texture": "glass",
     "priceInrPerSqm": 1500,
     "surfaceGroups": [
       "window.glazing",
@@ -1045,6 +1134,7 @@
     "category": "glazing",
     "finish": "coated",
     "colorHex": "#6C8A94",
+    "texture": "glass",
     "priceInrPerSqm": 2000,
     "surfaceGroups": [
       "facade.glazing",
@@ -1057,6 +1147,7 @@
     "category": "joinery",
     "finish": "matte",
     "colorHex": "#A98F6C",
+    "texture": "wood",
     "priceInrPerSqm": 2200,
     "surfaceGroups": [
       "door.internal"
@@ -1068,6 +1159,7 @@
     "category": "joinery",
     "finish": "anodised",
     "colorHex": "#77797C",
+    "texture": "metal",
     "priceInrPerSqm": 5600,
     "surfaceGroups": [
       "door.internal",
@@ -1080,6 +1172,7 @@
     "category": "railing",
     "finish": "powder-coated",
     "colorHex": "#4A4A4C",
+    "texture": "metal",
     "priceInrPerSqm": 3600,
     "surfaceGroups": [
       "railing.balcony",
@@ -1092,6 +1185,7 @@
     "category": "railing",
     "finish": "polished",
     "colorHex": "#7A4F28",
+    "texture": "wood",
     "priceInrPerSqm": 2400,
     "surfaceGroups": [
       "railing.stair"
@@ -1103,6 +1197,7 @@
     "category": "roof",
     "finish": "matte",
     "colorHex": "#8A3A2A",
+    "texture": "metal",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "roof.pitched"
@@ -1114,6 +1209,7 @@
     "category": "roof",
     "finish": "matte",
     "colorHex": "#F2F4F4",
+    "texture": "plaster",
     "priceInrPerSqm": 300,
     "surfaceGroups": [
       "roof.flat"
@@ -1125,6 +1221,7 @@
     "category": "roof",
     "finish": "glossy",
     "colorHex": "#E8E4DA",
+    "texture": "tile",
     "priceInrPerSqm": 750,
     "surfaceGroups": [
       "roof.flat",
@@ -1137,6 +1234,7 @@
     "category": "floor",
     "finish": "glossy",
     "colorHex": "#EFEAE0",
+    "texture": "tile",
     "priceInrPerSqm": 780,
     "surfaceGroups": [
       "floor.interior",
@@ -1150,6 +1248,7 @@
     "category": "floor",
     "finish": "glossy",
     "colorHex": "#E3D8C6",
+    "texture": "tile",
     "priceInrPerSqm": 800,
     "surfaceGroups": [
       "floor.interior",
@@ -1163,6 +1262,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#C9CACB",
+    "texture": "tile",
     "priceInrPerSqm": 820,
     "surfaceGroups": [
       "floor.interior",
@@ -1176,6 +1276,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#4A4E52",
+    "texture": "tile",
     "priceInrPerSqm": 860,
     "surfaceGroups": [
       "floor.interior",
@@ -1189,6 +1290,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#F1F1EE",
+    "texture": "tile",
     "priceInrPerSqm": 1150,
     "surfaceGroups": [
       "floor.interior",
@@ -1202,6 +1304,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#EDEDE8",
+    "texture": "tile",
     "priceInrPerSqm": 1280,
     "surfaceGroups": [
       "floor.interior",
@@ -1215,6 +1318,7 @@
     "category": "floor",
     "finish": "wood-grain",
     "colorHex": "#B58A5C",
+    "texture": "tile",
     "priceInrPerSqm": 1050,
     "surfaceGroups": [
       "floor.interior",
@@ -1228,6 +1332,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#B7B5B0",
+    "texture": "tile",
     "priceInrPerSqm": 980,
     "surfaceGroups": [
       "floor.interior",
@@ -1241,6 +1346,7 @@
     "category": "floor",
     "finish": "glossy",
     "colorHex": "#F4F4F2",
+    "texture": "tile",
     "priceInrPerSqm": 420,
     "surfaceGroups": [
       "floor.bath",
@@ -1253,6 +1359,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#C4C6C7",
+    "texture": "tile",
     "priceInrPerSqm": 440,
     "surfaceGroups": [
       "floor.bath",
@@ -1265,6 +1372,7 @@
     "category": "floor",
     "finish": "textured",
     "colorHex": "#BFB9AE",
+    "texture": "tile",
     "priceInrPerSqm": 480,
     "surfaceGroups": [
       "floor.bath",
@@ -1277,6 +1385,7 @@
     "category": "floor",
     "finish": "matte",
     "colorHex": "#DED2BE",
+    "texture": "tile",
     "priceInrPerSqm": 520,
     "surfaceGroups": [
       "floor.bath",
@@ -1289,6 +1398,7 @@
     "category": "floor",
     "finish": "honed",
     "colorHex": "#5B6B66",
+    "texture": "stone",
     "priceInrPerSqm": 520,
     "surfaceGroups": [
       "floor.interior",
@@ -1304,6 +1414,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#54655F",
+    "texture": "stone",
     "priceInrPerSqm": 620,
     "surfaceGroups": [
       "floor.interior",
@@ -1319,6 +1430,7 @@
     "category": "floor",
     "finish": "honed",
     "colorHex": "#7A6A52",
+    "texture": "stone",
     "priceInrPerSqm": 540,
     "surfaceGroups": [
       "floor.interior",
@@ -1334,6 +1446,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#1A1A1C",
+    "texture": "speckle",
     "priceInrPerSqm": 2400,
     "surfaceGroups": [
       "floor.interior",
@@ -1348,6 +1461,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#141416",
+    "texture": "speckle",
     "priceInrPerSqm": 1900,
     "surfaceGroups": [
       "floor.interior",
@@ -1362,6 +1476,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#5A3A32",
+    "texture": "speckle",
     "priceInrPerSqm": 1650,
     "surfaceGroups": [
       "floor.interior",
@@ -1376,6 +1491,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#D8D2C6",
+    "texture": "speckle",
     "priceInrPerSqm": 1750,
     "surfaceGroups": [
       "floor.interior",
@@ -1390,6 +1506,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#F0EDE4",
+    "texture": "vein",
     "priceInrPerSqm": 2800,
     "surfaceGroups": [
       "floor.interior",
@@ -1404,6 +1521,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#EDEAE1",
+    "texture": "vein",
     "priceInrPerSqm": 2200,
     "surfaceGroups": [
       "floor.interior",
@@ -1418,6 +1536,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#F3F2EE",
+    "texture": "vein",
     "priceInrPerSqm": 6500,
     "surfaceGroups": [
       "floor.interior",
@@ -1432,6 +1551,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#4A5F4A",
+    "texture": "vein",
     "priceInrPerSqm": 1900,
     "surfaceGroups": [
       "floor.interior",
@@ -1446,6 +1566,7 @@
     "category": "floor",
     "finish": "honed",
     "colorHex": "#6B5540",
+    "texture": "vein",
     "priceInrPerSqm": 3200,
     "surfaceGroups": [
       "floor.interior",
@@ -1460,6 +1581,7 @@
     "category": "floor",
     "finish": "sealed",
     "colorHex": "#A8A6A1",
+    "texture": "concrete",
     "priceInrPerSqm": 320,
     "surfaceGroups": [
       "floor.interior",
@@ -1475,6 +1597,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#8C4634",
+    "texture": "concrete",
     "priceInrPerSqm": 380,
     "surfaceGroups": [
       "floor.interior",
@@ -1490,6 +1613,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#3A3A3A",
+    "texture": "concrete",
     "priceInrPerSqm": 390,
     "surfaceGroups": [
       "floor.interior",
@@ -1505,6 +1629,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#B08A3E",
+    "texture": "concrete",
     "priceInrPerSqm": 380,
     "surfaceGroups": [
       "floor.interior",
@@ -1520,6 +1645,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#E8E6DF",
+    "texture": "speckle",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "floor.interior",
@@ -1533,6 +1659,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#B4B4B0",
+    "texture": "speckle",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "floor.interior",
@@ -1546,6 +1673,7 @@
     "category": "floor",
     "finish": "polished",
     "colorHex": "#4F5052",
+    "texture": "speckle",
     "priceInrPerSqm": 1050,
     "surfaceGroups": [
       "floor.interior",
@@ -1559,6 +1687,7 @@
     "category": "floor",
     "finish": "laminated",
     "colorHex": "#C09A6B",
+    "texture": "wood",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "floor.interior",
@@ -1571,6 +1700,7 @@
     "category": "floor",
     "finish": "laminated",
     "colorHex": "#6E4A2E",
+    "texture": "wood",
     "priceInrPerSqm": 1050,
     "surfaceGroups": [
       "floor.interior",
@@ -1583,6 +1713,7 @@
     "category": "floor",
     "finish": "natural",
     "colorHex": "#9A6B41",
+    "texture": "wood",
     "priceInrPerSqm": 2600,
     "surfaceGroups": [
       "floor.interior",
@@ -1595,6 +1726,7 @@
     "category": "floor",
     "finish": "sealed",
     "colorHex": "#8F6238",
+    "texture": "wood",
     "priceInrPerSqm": 4500,
     "surfaceGroups": [
       "floor.interior",
@@ -1607,6 +1739,7 @@
     "category": "floor",
     "finish": "textured",
     "colorHex": "#9E9E9C",
+    "texture": "tile",
     "priceInrPerSqm": 420,
     "surfaceGroups": [
       "floor.parking",
@@ -1619,6 +1752,7 @@
     "category": "floor",
     "finish": "textured",
     "colorHex": "#9C5A44",
+    "texture": "tile",
     "priceInrPerSqm": 440,
     "surfaceGroups": [
       "floor.parking",
@@ -1631,6 +1765,7 @@
     "category": "floor",
     "finish": "textured",
     "colorHex": "#8E8B84",
+    "texture": "tile",
     "priceInrPerSqm": 560,
     "surfaceGroups": [
       "floor.parking",
@@ -1643,6 +1778,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#F6F5F1",
+    "texture": "plaster",
     "priceInrPerSqm": 90,
     "surfaceGroups": [
       "wall.interior",
@@ -1655,6 +1791,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#F1E9DA",
+    "texture": "plaster",
     "priceInrPerSqm": 95,
     "surfaceGroups": [
       "wall.interior",
@@ -1667,6 +1804,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#E6D9C3",
+    "texture": "plaster",
     "priceInrPerSqm": 95,
     "surfaceGroups": [
       "wall.interior",
@@ -1679,6 +1817,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#B9C4B1",
+    "texture": "plaster",
     "priceInrPerSqm": 105,
     "surfaceGroups": [
       "wall.interior",
@@ -1691,6 +1830,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#C4785A",
+    "texture": "plaster",
     "priceInrPerSqm": 105,
     "surfaceGroups": [
       "wall.interior",
@@ -1703,6 +1843,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#3E4C6B",
+    "texture": "plaster",
     "priceInrPerSqm": 110,
     "surfaceGroups": [
       "wall.interior",
@@ -1715,6 +1856,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#4A4B4D",
+    "texture": "plaster",
     "priceInrPerSqm": 110,
     "surfaceGroups": [
       "wall.interior",
@@ -1727,6 +1869,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#F7F6F2",
+    "texture": "plaster",
     "priceInrPerSqm": 130,
     "surfaceGroups": [
       "wall.interior",
@@ -1739,6 +1882,7 @@
     "category": "wall",
     "finish": "textured",
     "colorHex": "#F2F1EC",
+    "texture": "plaster",
     "priceInrPerSqm": 140,
     "surfaceGroups": [
       "wall.exterior"
@@ -1750,6 +1894,7 @@
     "category": "wall",
     "finish": "textured",
     "colorHex": "#DFCFB2",
+    "texture": "plaster",
     "priceInrPerSqm": 145,
     "surfaceGroups": [
       "wall.exterior"
@@ -1761,6 +1906,7 @@
     "category": "wall",
     "finish": "textured",
     "colorHex": "#A9AAA8",
+    "texture": "plaster",
     "priceInrPerSqm": 145,
     "surfaceGroups": [
       "wall.exterior"
@@ -1772,6 +1918,7 @@
     "category": "wall",
     "finish": "textured",
     "colorHex": "#C08F45",
+    "texture": "plaster",
     "priceInrPerSqm": 150,
     "surfaceGroups": [
       "wall.exterior"
@@ -1783,6 +1930,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#9C5137",
+    "texture": "brick",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "wall.exterior",
@@ -1796,6 +1944,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#8A4A33",
+    "texture": "brick",
     "priceInrPerSqm": 1450,
     "surfaceGroups": [
       "wall.exterior",
@@ -1809,6 +1958,7 @@
     "category": "wall",
     "finish": "coated",
     "colorHex": "#D7CDC2",
+    "texture": "brick",
     "priceInrPerSqm": 1100,
     "surfaceGroups": [
       "wall.exterior",
@@ -1822,6 +1972,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#D8B87A",
+    "texture": "stone",
     "priceInrPerSqm": 1250,
     "surfaceGroups": [
       "wall.exterior",
@@ -1835,6 +1986,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#D9C6A5",
+    "texture": "stone",
     "priceInrPerSqm": 1150,
     "surfaceGroups": [
       "wall.exterior",
@@ -1848,6 +2000,7 @@
     "category": "wall",
     "finish": "split-face",
     "colorHex": "#3B3B3D",
+    "texture": "stone",
     "priceInrPerSqm": 1350,
     "surfaceGroups": [
       "wall.exterior",
@@ -1861,6 +2014,7 @@
     "category": "wall",
     "finish": "honed",
     "colorHex": "#3E4244",
+    "texture": "stone",
     "priceInrPerSqm": 850,
     "surfaceGroups": [
       "wall.exterior",
@@ -1874,6 +2028,7 @@
     "category": "wall",
     "finish": "sealed",
     "colorHex": "#B0AEA9",
+    "texture": "concrete",
     "priceInrPerSqm": 780,
     "surfaceGroups": [
       "wall.exterior",
@@ -1888,6 +2043,7 @@
     "category": "wall",
     "finish": "board-formed",
     "colorHex": "#A8A6A0",
+    "texture": "concrete",
     "priceInrPerSqm": 1250,
     "surfaceGroups": [
       "wall.exterior",
@@ -1902,6 +2058,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#F5F5F3",
+    "texture": "tile",
     "priceInrPerSqm": 620,
     "surfaceGroups": [
       "wall.bath",
@@ -1914,6 +2071,7 @@
     "category": "wall",
     "finish": "matte",
     "colorHex": "#C6C7C8",
+    "texture": "tile",
     "priceInrPerSqm": 680,
     "surfaceGroups": [
       "wall.bath",
@@ -1926,6 +2084,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#E0D5C2",
+    "texture": "tile",
     "priceInrPerSqm": 680,
     "surfaceGroups": [
       "wall.bath",
@@ -1938,6 +2097,7 @@
     "category": "wall",
     "finish": "glossy",
     "colorHex": "#C9D6D3",
+    "texture": "tile",
     "priceInrPerSqm": 820,
     "surfaceGroups": [
       "wall.bath",
@@ -1950,6 +2110,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#93643C",
+    "texture": "wood",
     "priceInrPerSqm": 2200,
     "surfaceGroups": [
       "wall.feature",
@@ -1962,6 +2123,7 @@
     "category": "wall",
     "finish": "natural",
     "colorHex": "#5E4029",
+    "texture": "wood",
     "priceInrPerSqm": 2600,
     "surfaceGroups": [
       "wall.feature",
@@ -1974,6 +2136,7 @@
     "category": "wall",
     "finish": "coated",
     "colorHex": "#B9A184",
+    "texture": "wood",
     "priceInrPerSqm": 1800,
     "surfaceGroups": [
       "wall.feature",
@@ -1986,6 +2149,7 @@
     "category": "glazing",
     "finish": "clear",
     "colorHex": "#D6E4E8",
+    "texture": "glass",
     "priceInrPerSqm": 480,
     "surfaceGroups": [
       "window.glazing",
@@ -1998,6 +2162,7 @@
     "category": "glazing",
     "finish": "tinted",
     "colorHex": "#8FA5A8",
+    "texture": "glass",
     "priceInrPerSqm": 620,
     "surfaceGroups": [
       "window.glazing",
@@ -2010,6 +2175,7 @@
     "category": "glazing",
     "finish": "frosted",
     "colorHex": "#DCE3E3",
+    "texture": "glass",
     "priceInrPerSqm": 680,
     "surfaceGroups": [
       "window.glazing",
@@ -2022,6 +2188,7 @@
     "category": "glazing",
     "finish": "clear",
     "colorHex": "#CFE0E5",
+    "texture": "glass",
     "priceInrPerSqm": 2200,
     "surfaceGroups": [
       "window.glazing",
@@ -2034,6 +2201,7 @@
     "category": "glazing",
     "finish": "clear",
     "colorHex": "#D2E2E6",
+    "texture": "glass",
     "priceInrPerSqm": 1450,
     "surfaceGroups": [
       "window.glazing",
@@ -2046,6 +2214,7 @@
     "category": "joinery",
     "finish": "coated",
     "colorHex": "#F0F0EE",
+    "texture": "metal",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "window.frame"
@@ -2057,6 +2226,7 @@
     "category": "joinery",
     "finish": "anodised",
     "colorHex": "#9EA1A3",
+    "texture": "metal",
     "priceInrPerSqm": 1250,
     "surfaceGroups": [
       "window.frame"
@@ -2068,6 +2238,7 @@
     "category": "joinery",
     "finish": "powder-coated",
     "colorHex": "#4A4C4E",
+    "texture": "metal",
     "priceInrPerSqm": 1350,
     "surfaceGroups": [
       "window.frame"
@@ -2079,6 +2250,7 @@
     "category": "joinery",
     "finish": "sealed",
     "colorHex": "#8E6039",
+    "texture": "metal",
     "priceInrPerSqm": 3200,
     "surfaceGroups": [
       "window.frame"
@@ -2090,6 +2262,7 @@
     "category": "joinery",
     "finish": "laminated",
     "colorHex": "#EFEEEA",
+    "texture": "wood",
     "priceInrPerSqm": 1450,
     "surfaceGroups": [
       "door.internal"
@@ -2101,6 +2274,7 @@
     "category": "joinery",
     "finish": "laminated",
     "colorHex": "#6B4830",
+    "texture": "wood",
     "priceInrPerSqm": 1550,
     "surfaceGroups": [
       "door.internal"
@@ -2112,6 +2286,7 @@
     "category": "joinery",
     "finish": "natural",
     "colorHex": "#8E6039",
+    "texture": "wood",
     "priceInrPerSqm": 2600,
     "surfaceGroups": [
       "door.internal"
@@ -2123,6 +2298,7 @@
     "category": "railing",
     "finish": "coated",
     "colorHex": "#3D3F41",
+    "texture": "metal",
     "priceInrPerSqm": 1400,
     "surfaceGroups": [
       "railing.balcony",
@@ -2135,6 +2311,7 @@
     "category": "railing",
     "finish": "brushed",
     "colorHex": "#A9ACAE",
+    "texture": "metal",
     "priceInrPerSqm": 3200,
     "surfaceGroups": [
       "railing.balcony",
@@ -2147,6 +2324,7 @@
     "category": "railing",
     "finish": "clear",
     "colorHex": "#CBDCE0",
+    "texture": "metal",
     "priceInrPerSqm": 4500,
     "surfaceGroups": [
       "railing.balcony",
@@ -2159,6 +2337,7 @@
     "category": "railing",
     "finish": "coated",
     "colorHex": "#2E2F31",
+    "texture": "metal",
     "priceInrPerSqm": 2200,
     "surfaceGroups": [
       "railing.balcony",
@@ -2171,6 +2350,7 @@
     "category": "roof",
     "finish": "natural",
     "colorHex": "#A4593C",
+    "texture": "tile",
     "priceInrPerSqm": 850,
     "surfaceGroups": [
       "roof.pitched",
@@ -2183,6 +2363,7 @@
     "category": "roof",
     "finish": "natural",
     "colorHex": "#9E5238",
+    "texture": "tile",
     "priceInrPerSqm": 950,
     "surfaceGroups": [
       "roof.pitched",
@@ -2195,6 +2376,7 @@
     "category": "roof",
     "finish": "coated",
     "colorHex": "#7E8285",
+    "texture": "tile",
     "priceInrPerSqm": 1650,
     "surfaceGroups": [
       "roof.pitched",
@@ -2207,6 +2389,7 @@
     "category": "roof",
     "finish": "textured",
     "colorHex": "#E4E4DF",
+    "texture": "tile",
     "priceInrPerSqm": 420,
     "surfaceGroups": [
       "roof.pitched",
@@ -2219,6 +2402,7 @@
     "category": "roof",
     "finish": "textured",
     "colorHex": "#A9705A",
+    "texture": "tile",
     "priceInrPerSqm": 380,
     "surfaceGroups": [
       "roof.pitched",

@@ -18,21 +18,31 @@ rule                         identity            limit       window
 ===========================  ==================  ==========  ============
 ``ops.per_firm``             firm                60          1 s
 ``solver_jobs.per_firm``     firm                10          1 h
+``render_jobs.per_firm``     firm                30          1 h
+``export_jobs.per_firm``     firm                40          1 h
+``llm.per_firm``             firm                60          1 h
 ``auth.per_ip``              client IP           20          1 h
 ``auth.otp_per_email``       email (hashed)      5           1 h
 ``auth.otp_resend``          email (hashed)      1           60 s
 ``auth.verify_per_ip``       client IP           30          1 h
 ===========================  ==================  ==========  ============
 
-The three configurable numbers come from ``Settings`` so an operator can raise them
-without a deploy; the derived ones are constants here.
+The configurable numbers come from ``Settings`` so an operator can raise them without a
+deploy; the derived ones are constants here.
 
 **Failure policy is per rule, and it is a real decision.** If Redis is unreachable:
 
-* ``fail_closed=False`` (product limits): admit, log a warning, set ``degraded``. A
-  Redis blip must not stop architects from editing walls.
-* ``fail_closed=True`` (auth limits): refuse with 503. An unmetered auth endpoint is an
-  open brute-force target, and sign-in is already down if Redis is down.
+* ``fail_closed=False``: admit, log a warning, set ``degraded``. A Redis blip must not
+  stop architects from editing walls (``ops``), and for the queue-backed jobs
+  (``solver``, ``export``) the enqueue that follows needs the *same* Redis — a limiter
+  outage cannot admit work the queue will accept, so refusing here would only swap an
+  honest "the job queue is unreachable" for a vaguer one.
+* ``fail_closed=True``: refuse with 503. Two families qualify. Auth (an unmetered
+  sign-in endpoint is an open brute-force target, and sign-in is already down if Redis
+  is down), and **anything that spends money at a third party per job** — ``llm`` and,
+  since F-7, ``render``. There the queue-shares-Redis argument is not enough: the check
+  and the push are separate round trips against a server that can be slow rather than
+  dead, and an uncounted call to a metered API is worse than a job the architect retries.
 
 **Usage.** Service code calls :func:`enforce_rate_limit` directly. HTTP routes use the
 ``IpRateLimit`` / ``FirmRateLimit`` dependencies in :mod:`garh_api.deps` (they live
@@ -299,6 +309,94 @@ def llm_per_firm_rule(
     )
 
 
+def render_jobs_per_firm_rule(settings: Settings | None = None) -> RateLimitRule:
+    """F-7: per-firm hourly cap on the render enqueue routes.
+
+    ``POST /projects/:id/renders`` and ``POST /projects/:id/renders/client-pack``, the
+    latter charging one slot per shot — a pack is eight renders and must cost eight, or
+    the cheapest way past this limit is to ask for packs.
+
+    Fails **closed**, on the same reasoning as :func:`llm_per_firm_rule` and not on the
+    reasoning that covers the other job limits. With ``PROVIDER_RENDER=stability`` every
+    admitted job is a metered third-party call, so the resource this protects is an
+    invoice, not our own capacity. "The worker cannot pop from a dead Redis anyway" does
+    not cover it: the limiter check and the queue push are separate round trips, and a
+    Redis that is slow rather than dead can time out the first (2 s socket timeout) while
+    serving the second — which is exactly the window in which an unmetered render route
+    bills the company. A refused render costs the architect one retry.
+    """
+    cfg = settings or get_settings()
+    return RateLimitRule(
+        name="render_jobs.per_firm",
+        limit=cfg.rate_limit_render_jobs_per_hour,
+        window_seconds=3600,
+        scope="firm",
+        fail_closed=True,
+        message="Your firm has used this hour's renders.",
+        action="Review the renders you have, or start another next hour.",
+    )
+
+
+#: Per-feature 429 copy for :func:`export_jobs_per_firm_rule`. Same shape and same
+#: reasoning as :data:`LLM_LIMIT_COPY`: the *bucket* is shared because both routes feed
+#: one drawings worker, but an architect who just clicked "Generate drawings" must not be
+#: told they are out of "exports".
+EXPORT_LIMIT_COPY: Final[dict[str, tuple[str, str]]] = {
+    "export": (
+        "Your firm has used this hour's exports.",
+        "Download an export you already have, or try again next hour.",
+    ),
+    "sheets": (
+        "Your firm has used this hour's drawing-set generations.",
+        "Open the set you already generated, or try again next hour.",
+    ),
+}
+
+
+def export_jobs_per_firm_rule(
+    settings: Settings | None = None, *, feature: str = "export"
+) -> RateLimitRule:
+    """F-7: per-firm hourly cap on the two routes that queue the drawings worker.
+
+    ``POST /projects/:id/export`` and ``POST /projects/:id/sheets/generate``. A sheet-set
+    run renders nine municipal sheets in three formats and a pdf-set export vectorises
+    ten pages through headless Chromium, then writes every artefact to object storage —
+    the most expensive work in the product that is not a solve, and until F-7 the only
+    expensive work with no ceiling at all.
+
+    ``feature`` selects the 429 wording only; ``name`` is shared on purpose, exactly as
+    :func:`llm_per_firm_rule` shares one spend budget across its two routes. Both routes
+    consume one drawings worker and one storage bill, so a firm must not double its
+    budget by alternating between them.
+
+    Fails **open**. Unlike the render rule there is no third-party meter behind it: the
+    cost is our own CPU and our own bucket. And the openness is close to inert — both
+    routes push to the same Redis immediately afterwards (``queue.put_export_job`` then
+    ``_enqueue_or_rollback``), so a limiter that cannot reach Redis is followed within
+    milliseconds by an enqueue that cannot either, and the request 503s with the message
+    that actually names the problem.
+    """
+    cfg = settings or get_settings()
+    message, action = EXPORT_LIMIT_COPY.get(feature, EXPORT_LIMIT_COPY["export"])
+    return RateLimitRule(
+        name="export_jobs.per_firm",
+        limit=cfg.rate_limit_export_jobs_per_hour,
+        window_seconds=3600,
+        scope="firm",
+        message=message,
+        action=action,
+    )
+
+
+def sheet_jobs_per_firm_rule(settings: Settings | None = None) -> RateLimitRule:
+    """The sheets face of :func:`export_jobs_per_firm_rule` — same bucket, own copy.
+
+    A named factory rather than a ``partial`` so ``deps.FirmRateLimit`` can mount it
+    like any other rule and so it appears in :data:`RULE_FACTORIES` by name.
+    """
+    return export_jobs_per_firm_rule(settings, feature="sheets")
+
+
 def auth_ip_rule(settings: Settings | None = None) -> RateLimitRule:
     """§13: per-IP limit on the OTP-issuing routes. Fails closed."""
     cfg = settings or get_settings()
@@ -369,6 +467,9 @@ def verify_ip_rule(settings: Settings | None = None) -> RateLimitRule:
 RULE_FACTORIES: tuple[Callable[..., RateLimitRule], ...] = (
     ops_per_firm_rule,
     solver_jobs_per_firm_rule,
+    render_jobs_per_firm_rule,
+    export_jobs_per_firm_rule,
+    sheet_jobs_per_firm_rule,
     llm_per_firm_rule,
     auth_ip_rule,
     otp_per_email_rule,
@@ -572,6 +673,7 @@ def rate_limited(
 
 
 __all__ = [
+    "EXPORT_LIMIT_COPY",
     "KEY_PREFIX",
     "LLM_LIMIT_COPY",
     "OTP_PER_EMAIL_PER_HOUR",
@@ -584,6 +686,7 @@ __all__ = [
     "check_rate_limit",
     "close_redis",
     "enforce_rate_limit",
+    "export_jobs_per_firm_rule",
     "get_redis",
     "llm_per_firm_rule",
     "ops_per_firm_rule",
@@ -592,7 +695,9 @@ __all__ = [
     "peek_rate_limit",
     "rate_limited",
     "redis_healthcheck",
+    "render_jobs_per_firm_rule",
     "reset_rate_limit",
+    "sheet_jobs_per_firm_rule",
     "solver_jobs_per_firm_rule",
     "verify_ip_rule",
 ]

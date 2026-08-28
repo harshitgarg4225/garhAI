@@ -22,6 +22,12 @@ script reads the file, keeps every existing row byte-identical, and appends only
 that are not already present. Running it twice changes nothing the second time, which
 is what makes it safe to run in CI as a check rather than only as a generator.
 
+The one exception is ``materials.json``'s ``texture``, which is *derived* rather than
+authored — :func:`backfill_textures` recomputes it for every row on every run. That is
+still idempotent (:func:`texture_for` is pure) and it still never touches an authored
+field, an id or the row order; it is kept out of :func:`build_materials` so the
+append-only guarantee that test suite asserts stays exactly as strong as it reads.
+
     python3 scripts/expand_catalog.py            # report what would be added
     python3 scripts/expand_catalog.py --write    # add it
 """
@@ -1095,13 +1101,13 @@ MATERIALS = os.path.join(_ROOT, "fixtures", "catalog", "materials.json")
 class MaterialFamily:
     """One material in a series of finishes, shades or sizes.
 
-    ``texture`` names the procedural recipe this material *will* be rendered with
-    once the generator lands (build item A-1): an Indian palette is mostly stone,
-    tile, plaster and timber, all better described by a generator — grain
-    direction, grout width, speckle density — than by a photograph we would have to
-    licence, host and ship. It is carried on the family and deliberately NOT written
-    into the catalogue row yet, because nothing reads it: a field no consumer looks
-    at is dead data, and this catalogue's own validator says so about surfaceGroups.
+    ``texture`` names the procedural recipe the material is rendered with: an Indian
+    palette is mostly stone, tile, plaster and timber, all better described by a
+    generator — grain direction, grout width, speckle density — than by a photograph we
+    would have to licence, host and ship. It used to be carried on the family and
+    deliberately withheld from the catalogue row, because nothing read it and a field no
+    consumer looks at is dead data. ``services/render/textures.py`` reads it now, so it
+    is written out (see :func:`texture_for`).
     """
 
     def __init__(
@@ -1131,6 +1137,7 @@ class MaterialFamily:
                     "category": self.category,
                     "finish": finish,
                     "colorHex": color,
+                    "texture": self.texture,
                     "priceInrPerSqm": int(price),
                     "surfaceGroups": list(self.surface_groups),
                 }
@@ -1474,6 +1481,164 @@ def material_families() -> list[MaterialFamily]:  # noqa: PLR0915
 
 
 # ---------------------------------------------------------------------------
+# Texture recipes
+#
+# The 95 materials that predate the families were authored with a colour and nothing
+# else, so their recipe has to be derived. It is derived from the id rather than from
+# ``finish``, because ``finish`` describes the surface treatment ("matte", "natural")
+# and says nothing about what the thing is made of — "natural" covers exposed brick,
+# Jaisalmer stone and a teak veneer, which want three different generators.
+#
+# Matching is on the id's **hyphen-delimited tokens**, not on substrings: a substring
+# rule for "ips" would fire on any future id containing those three letters, and that is
+# precisely the kind of near-miss that ends up shipping the wrong material silently.
+# ---------------------------------------------------------------------------
+
+#: Must stay in step with ``services.render.textures.RECIPES``. Not imported from there:
+#: this script has to run on a bare interpreter with no Pillow (``make bare``). The two
+#: lists are gated against each other by services/render/tests/test_textures.py.
+TEXTURE_RECIPES = (
+    "tile",
+    "stone",
+    "speckle",
+    "vein",
+    "concrete",
+    "wood",
+    "plaster",
+    "brick",
+    "glass",
+    "metal",
+)
+
+#: (token, recipe) in priority order — the first token present in the id wins. Order is
+#: load-bearing where a material carries two material words: "brick-wall-tile" is brick,
+#: "wpc-deck-tile" is a timber composite, "cement-plaster-natural" is plaster not
+#: concrete, and a wood-look vitrified plank is still a ceramic tile.
+TEXTURE_TOKENS = (
+    ("glass", "glass"),
+    ("marble", "vein"),
+    ("granite", "speckle"),
+    ("terrazzo", "speckle"),
+    ("brick", "brick"),
+    ("vitrified", "tile"),
+    ("wpc", "wood"),
+    ("mosaic", "tile"),
+    ("hpl", "tile"),
+    ("pvc", "tile"),
+    ("tile", "tile"),
+    ("plaster", "plaster"),
+    ("emulsion", "plaster"),
+    ("distemper", "plaster"),
+    ("paint", "plaster"),
+    ("membrane", "plaster"),
+    ("epoxy", "concrete"),
+    ("oxide", "concrete"),
+    ("concrete", "concrete"),
+    ("cement", "concrete"),
+    ("ips", "concrete"),
+    ("grc", "concrete"),
+    ("coat", "plaster"),
+    ("acp", "metal"),
+    ("upvc", "metal"),
+    ("aluminium", "metal"),
+    ("steel", "metal"),
+    ("metal", "metal"),
+    ("ms", "metal"),
+    ("ss", "metal"),
+    ("teak", "wood"),
+    ("walnut", "wood"),
+    ("oak", "wood"),
+    ("bamboo", "wood"),
+    ("laminate", "wood"),
+    ("wood", "wood"),
+    ("wooden", "wood"),
+    ("louvers", "wood"),
+    ("door", "wood"),
+    ("slate", "stone"),
+    ("sandstone", "stone"),
+    ("stone", "stone"),
+    ("terracotta", "brick"),
+    ("grass", "speckle"),
+)
+
+#: Last resort, by catalogue category. A category with no entry raises rather than
+#: defaulting: a material with no recipe renders as flat plastic, which is the state
+#: this whole build item exists to end.
+TEXTURE_BY_CATEGORY = {
+    "floor": "tile",
+    "wall": "plaster",
+    "glazing": "glass",
+    "joinery": "wood",
+    "railing": "metal",
+    "roof": "tile",
+}
+
+
+def _family_textures() -> dict[str, str]:
+    """id -> recipe for every row the material families generate."""
+    return {row["id"]: family.texture for family in material_families() for row in family.rows()}
+
+
+def texture_for(row: dict[str, Any], family_textures: dict[str, str] | None = None) -> str:
+    """The procedural recipe this material should be painted with.
+
+    Pure in the row: same id and category in, same recipe out, which is what lets
+    :func:`backfill_textures` run every time without the file drifting.
+    """
+    known = _family_textures() if family_textures is None else family_textures
+    declared = known.get(row["id"])
+    if declared:
+        return declared
+    tokens = set(str(row["id"]).split("-"))
+    for token, recipe in TEXTURE_TOKENS:
+        if token in tokens:
+            return recipe
+    category = row.get("category")
+    if category not in TEXTURE_BY_CATEGORY:
+        raise SystemExit(
+            "No texture recipe for %r (category %r). Add a token to TEXTURE_TOKENS or a "
+            "category to TEXTURE_BY_CATEGORY — a material with no recipe renders flat."
+            % (row.get("id"), category)
+        )
+    return TEXTURE_BY_CATEGORY[category]
+
+
+def backfill_textures(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
+    """``(rows, changed)`` with every row carrying its ``texture``.
+
+    Deliberately NOT folded into :func:`build_materials`. That function is append-only
+    at the row level and ``apps/api/tests/test_catalog_expansion.py`` asserts it stays
+    that way; this one is a separate, named pass over a **derived** field. It rewrites
+    ``texture`` and nothing else — every authored key keeps its value, and row order and
+    ids are untouched — so the guarantee that matters (the hand-authored judgement in
+    those 95 rows is never regenerated) still holds. Running it twice changes nothing,
+    because :func:`texture_for` is pure.
+    """
+    family_textures = _family_textures()
+    out: list[dict[str, Any]] = []
+    changed = 0
+    for row in rows:
+        recipe = texture_for(row, family_textures)
+        if row.get("texture") == recipe:
+            out.append(row)
+            continue
+        changed += 1
+        # Rebuilt rather than mutated in place so the key lands next to colorHex — the
+        # two together are what the renderer reads — instead of trailing after
+        # surfaceGroups on the older rows and before it on the newer ones.
+        updated: dict[str, Any] = {}
+        for key, value in row.items():
+            if key != "texture":
+                updated[key] = value
+            if key == "colorHex":
+                updated["texture"] = recipe
+        if "texture" not in updated:  # a row with no colorHex; keep the field last
+            updated["texture"] = recipe
+        out.append(updated)
+    return out, changed
+
+
+# ---------------------------------------------------------------------------
 # Merge
 # ---------------------------------------------------------------------------
 def build(existing: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -1503,15 +1668,18 @@ def build_materials(
     return existing + added, added
 
 
-def _merge_file(path: str, builder: Any, label: str, *, write: bool) -> int:
+def _merge_file(path: str, builder: Any, label: str, *, write: bool, enrich: Any = None) -> int:
     with open(path, encoding="utf-8") as handle:
         existing = json.load(handle)
     merged, added = builder(existing)
+    changed = 0
+    if enrich is not None:
+        merged, changed = enrich(merged)
     print(
-        "%-10s existing: %-4d generated: %-4d total: %d"
-        % (label, len(existing), len(added), len(merged))
+        "%-10s existing: %-4d generated: %-4d enriched: %-4d total: %d"
+        % (label, len(existing), len(added), changed, len(merged))
     )
-    if not added:
+    if not added and not changed:
         return 0
     if not write:
         for row in added[:4]:
@@ -1532,7 +1700,7 @@ def main() -> int:
     args = parser.parse_args()
 
     _merge_file(CATALOG, build, "furniture", write=args.write)
-    _merge_file(MATERIALS, build_materials, "materials", write=args.write)
+    _merge_file(MATERIALS, build_materials, "materials", write=args.write, enrich=backfill_textures)
     if not args.write:
         print("\nRe-run with --write to add them.")
     return 0

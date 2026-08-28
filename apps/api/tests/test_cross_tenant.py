@@ -143,6 +143,9 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
         body={"text": "3 bedrooms, one pooja room", "apply": False},
     ),
     Case("GET", "/projects/{project_id}/compliance"),
+    # G-5. Firm B must not learn another studio's plot size, buildable envelope or
+    # quoted fee — the last of which is a commercial position, not just tenant data.
+    Case("GET", "/projects/{project_id}/estimate"),
     # -- versions ---------------------------------------------------------
     Case("GET", "/projects/{project_id}/versions"),
     Case("POST", "/projects/{project_id}/versions", body={"name": "Firm B checkpoint"}),

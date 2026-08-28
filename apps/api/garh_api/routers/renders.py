@@ -43,6 +43,7 @@ from pydantic import Field, StrictInt, StrictStr, field_validator
 from garh_api import queue
 from garh_api.config import Settings, get_settings
 from garh_api.logging import get_logger
+from garh_api.ratelimit import enforce_rate_limit, render_jobs_per_firm_rule
 from garh_api.repositories import (
     AuditLogRepository,
     CreditEventRepository,
@@ -405,6 +406,10 @@ async def start_client_pack(
     The §9 per-firm concurrency gate is checked ONCE for the whole pack — a pack is one
     user intention, and rejecting its fifth member while accepting four would leave a
     half-pack nobody asked for. Members queue up and run as worker capacity frees.
+
+    The F-7 hourly render budget is charged differently, and the asymmetry is deliberate:
+    concurrency is about how many can run at once (a pack is one intention), the hourly
+    budget is about how much a firm may spend (a pack is eight renders' worth of it).
     """
     ctx.require_write("starting renders")
     await require_project(session, ctx, project_id)
@@ -436,6 +441,16 @@ async def start_client_pack(
             % (active, settings.render_concurrency_per_firm),
             extra={"active": active, "limit": settings.render_concurrency_per_firm},
         )
+
+    # F-7: the hourly render budget, charged ONE SLOT PER SHOT. A dependency cannot do
+    # this — it never sees the body — and a flat charge of 1 would make the pack route
+    # the cheap way round the per-render limit: eight renders for the price of one.
+    # Deliberately after the 422s and the concurrency 409 (a request we refuse should
+    # not also cost budget) and before ``guard.begin()`` (a raise between begin() and
+    # the try/except below would strand the reserved idempotency key).
+    await enforce_rate_limit(
+        render_jobs_per_firm_rule(settings), "firm:%s" % ctx.firm_id, cost=len(body.shots)
+    )
 
     guard = IdempotencyGuard(scope="render-pack", key=idempotency_key, firm_id=ctx.firm_id)
     replayed = await guard.begin()

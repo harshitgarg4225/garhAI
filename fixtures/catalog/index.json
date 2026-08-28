@@ -28,7 +28,8 @@
         "id",
         "name",
         "category",
-        "surfaceGroups"
+        "surfaceGroups",
+        "texture"
       ]
     },
     {

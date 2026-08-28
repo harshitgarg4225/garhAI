@@ -87,15 +87,15 @@
         },
         "reviewers": {
           "type": "array",
-          "description": "Empanelled local architects who signed off. Empty for seed packs.",
+          "description": "Empanelled local architects who signed off. Empty for seed packs. `coaNumber` and `signedAt` are REQUIRED on every entry: an unregistered, undated name is a credit line, not a sign-off, and this array is the roster every rule-level review record must be drawn from.",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["name", "role"],
+            "required": ["name", "role", "coaNumber", "signedAt"],
             "properties": {
-              "name": { "type": "string" },
-              "role": { "type": "string" },
-              "coaNumber": { "type": "string", "description": "Council of Architecture registration number." },
+              "name": { "type": "string", "minLength": 3, "maxLength": 120 },
+              "role": { "type": "string", "minLength": 3, "maxLength": 120 },
+              "coaNumber": { "$ref": "#/$defs/coaNumber" },
               "signedAt": { "type": "string", "format": "date" }
             }
           }
@@ -348,7 +348,79 @@
     "confidence": {
       "type": "string",
       "enum": ["seed", "reviewed", "verified"],
-      "description": "seed = drafted by the Garh team from secondary sources, NOT authoritative. reviewed = an empanelled local architect checked it against the primary document. verified = reviewed AND confirmed against a sanctioned drawing or municipal desk. The UI shows this next to every result; seed values render with a caution marker."
+      "description": "The three-rung ladder. seed = drafted by the Garh team from secondary sources, NOT authoritative, and the only rung reachable without evidence. reviewed = a named architect on the pack's `review.reviewers` roster, holding a Council of Architecture registration, read the value and its clause in the primary document and signed; requires a `review` record on the rule. verified = reviewed AND confirmed against a real-world outcome (a sanctioned drawing or a documented municipal confirmation); requires `review.verification` as well. The rung is what the architect sees next to a number, so it means exactly one thing: has a named professional put their registration behind it. `reviewed` and above are AUTHORITATIVE and render without the caution marker -- see docs/rulepack-review.md."
+    },
+    "coaNumber": {
+      "type": "string",
+      "pattern": "^CA/([0-9]{2}|[0-9]{4})/[0-9]{3,6}$",
+      "description": "Council of Architecture registration, as printed on the certificate: CA/<year of registration>/<serial>. Both year forms are real and both must be accepted -- registrations issued before the 2000s are printed two-digit (CA/97/21473), later ones four (CA/2011/52341). Checked for shape only: the CoA publishes no machine-readable roll, so empanelment (a human holding the certificate) is the real check and this pattern exists only to stop a placeholder like \"pending\" passing as a credential. A pattern that rejected a genuine senior architect's number would get this gate switched off, which is worse than not having it."
+    },
+    "reviewRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer", "coaNumber", "reviewedAt", "source", "clause", "outcome"],
+      "description": "Evidence that one rule's value was read out of a primary document by a named, registered architect. This is the object that promotes a rule off `seed`, so every field in it is load-bearing: without the source and clause there is nothing to re-check the number against, and 'reviewed' would mean only that somebody said so. `source` MUST match the `label` of an entry in the pack's `sources` array that is marked `obtained: true` -- a clause cannot be read from a document the pack itself says nobody has.",
+      "properties": {
+        "reviewer": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120,
+          "description": "Must match a `name` in the pack's `review.reviewers`."
+        },
+        "coaNumber": { "$ref": "#/$defs/coaNumber" },
+        "reviewedAt": {
+          "type": "string",
+          "format": "date",
+          "description": "The date this value was checked, not the date the pack shipped."
+        },
+        "source": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 200,
+          "description": "Verbatim `sources[].label` of the primary document that was open on the desk."
+        },
+        "clause": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Where in that document: clause, table and row. Precise enough that the next reviewer can turn to the same page -- 'Table 6, row 121-240 m2', not 'setbacks'."
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["confirmed", "corrected"],
+          "description": "confirmed = the seeded number was already right. corrected = the reviewer changed it, and `previousValue` records what it used to say."
+        },
+        "previousValue": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Required when `outcome` is `corrected`. The superseded number as it stood, so a compliance report issued before the correction can still be explained."
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "reference", "date"],
+          "description": "Required for confidence `verified`. Reviewing a clause proves what the bye-law says; this proves what the municipal desk actually accepts, which is not always the same document.",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["sanctioned-drawing", "municipal-confirmation"],
+              "description": "sanctioned-drawing = a real project sanctioned under this value. municipal-confirmation = a written or minuted confirmation from the sanctioning authority."
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 4,
+              "maxLength": 200,
+              "description": "Sanction/file number, or the reference of the confirmation. Traceable by a third party."
+            },
+            "date": { "type": "string", "format": "date" }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Anything the next reviewer needs: an amendment in circulation, a clause that reads two ways, a local practice that differs from the text."
+        }
+      }
     },
     "severity": {
       "type": "string",
@@ -611,6 +683,23 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["id", "severity", "title", "message", "check", "cite", "fix", "confidence"],
+      "allOf": [
+        {
+          "$comment": "The honesty gate, at load time. A rule cannot climb off `seed` by editing one word: the engine refuses to load a pack whose rule claims a reviewed-or-better confidence with no evidence attached. Everything downstream -- the compliance chip, the citation panel, the submission annexure -- reads `confidence` and nothing else, so this is the only place the claim can be tied to the proof.",
+          "if": { "required": ["confidence"], "properties": { "confidence": { "enum": ["reviewed", "verified"] } } },
+          "then": { "required": ["review"] }
+        },
+        {
+          "$comment": "`verified` is a claim about the municipal desk, not about the text, and needs its own artefact.",
+          "if": { "required": ["confidence"], "properties": { "confidence": { "const": "verified" } } },
+          "then": { "required": ["review"], "properties": { "review": { "required": ["verification"] } } }
+        },
+        {
+          "$comment": "A correction that does not say what it corrected leaves every older compliance report unexplainable.",
+          "if": { "required": ["review"], "properties": { "review": { "required": ["outcome"], "properties": { "outcome": { "const": "corrected" } } } } },
+          "then": { "properties": { "review": { "required": ["previousValue"] } } }
+        }
+      ],
       "properties": {
         "id": { "$ref": "#/$defs/ruleId" },
         "severity": { "$ref": "#/$defs/severity" },
@@ -628,6 +717,7 @@
         "fix": { "type": "string", "minLength": 3, "description": "What the architect should do, in one sentence." },
         "autofix": { "$ref": "#/$defs/autofix" },
         "confidence": { "$ref": "#/$defs/confidence" },
+        "review": { "$ref": "#/$defs/reviewRecord" },
         "weight": {
           "type": "integer",
           "minimum": 0,

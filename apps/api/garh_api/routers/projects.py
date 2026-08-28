@@ -34,6 +34,7 @@ from garh_api.compliance import (
     evaluate_document,
 )
 from garh_api.config import get_settings
+from garh_api.estimator import build_estimate
 from garh_api.logging import get_logger
 from garh_api.ratelimit import enforce_rate_limit, llm_per_firm_rule
 from garh_api.repositories import (
@@ -70,6 +71,7 @@ from garh_api.routers.ops import (
     wrap_snapshot,
 )
 from garh_api.schemas import CursorPage, DeletedOut
+from garh_api.schemas.estimate import EstimateOut
 from garh_api.schemas.ops import OpIn
 from garh_api.schemas.project import (
     BriefAssumption,
@@ -715,6 +717,59 @@ async def freeze_compliance_report(
         pack_versions=pack_versions,
         design_version_id=design_version_id,
     )
+
+
+# ---------------------------------------------------------------------------
+# Fee and area estimate (G-5)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/projects/{project_id}/estimate",
+    response_model=EstimateOut,
+    summary="Buildable envelope, indicative construction cost and professional fee",
+)
+async def get_estimate(project_id: uuid.UUID, session: SessionDep, ctx: TenantDep) -> EstimateOut:
+    """What can be built here, what it will cost, and what to charge for it.
+
+    The first question a client asks and the last one this product could answer. Every
+    regulatory number comes from the same ``evaluate_document`` call the compliance tab
+    makes — see :mod:`garh_api.estimator` for why that is a correctness requirement and
+    not a preference — and the money comes from tables authored there, marked
+    ``confidence: "seed"`` and shipped with the disclaimer that says so.
+
+    A GET, and nothing is stored: an estimate is a pure function of the plot, the brief
+    and the loaded packs, all three of which move. A saved quote would go stale silently.
+
+    ``TenantDep`` and not ``ShareViewer``: the professional fee is the architect's
+    commercial position. A client on a share link must never be able to read it.
+    """
+    project = await require_project(session, ctx, project_id)
+    branch = await active_branch(session, ctx, project_id)
+    state = await load_project_state(session, ctx, project_id, branch)
+
+    # Asked before the plot is drawn — which is exactly when an architect wants this —
+    # the honest answer names the missing input rather than estimating zero.
+    blocked = cannot_evaluate_reason(state.document)
+    if blocked is not None:
+        raise ApiError(
+            blocked,
+            status=409,
+            code="no_plot_boundary",
+            action="Draw the plot boundary on the Plot tab, then ask for an estimate.",
+        )
+    try:
+        estimate = build_estimate(state.document, city_pack=project.city_pack)
+    except ComplianceUnavailable as exc:
+        _log.warning("estimate.unavailable", project_id=str(project_id), error=str(exc))
+        raise ApiError(
+            "We couldn't work out the regulatory limits for this plot.",
+            status=503,
+            code="compliance_unavailable",
+            action="Try again in a moment.",
+        ) from exc
+
+    return EstimateOut.model_validate({"projectId": str(project_id), **estimate.to_json()})
 
 
 # ---------------------------------------------------------------------------
