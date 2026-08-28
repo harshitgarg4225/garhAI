@@ -26,6 +26,7 @@ import { ToastProvider, useToast } from '@garh/ui';
 import type { ToastInput as UiToastInput } from '@garh/ui';
 
 import { ErrorBoundary } from './components';
+import { CommandLayer } from './features/command';
 import { useAppShortcuts } from './lib/shortcuts';
 import { router } from './routes';
 import { useSessionStore } from './stores/session';
@@ -170,6 +171,12 @@ export function App(): JSX.Element {
       <ToastProvider>
         <AppBoot />
         <StoreToastBridge />
+        {/* The command palette (⌘K) and the shortcut cheatsheet (⌘/). Mounted at
+            the root rather than per-page because a command palette that only
+            exists on one screen is not a command palette; it registers the
+            default set, arms both keys, and portals its overlays onto <body>.
+            Commands from anywhere else join via `useRegisterCommands`. */}
+        <CommandLayer />
         <RouterProvider router={router} />
       </ToastProvider>
     </ErrorBoundary>
