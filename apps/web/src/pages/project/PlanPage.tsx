@@ -156,8 +156,8 @@ import {
   useLayerScope,
   usePlanLayerView,
 } from '../../features/layers';
-import { MeasurePanel } from '../../features/measure';
-import { StoreyPanel } from '../../features/storeys';
+import { MeasureLayer, MeasurePanel } from '../../features/measure';
+import { StoreyGhostLayer, StoreyPanel } from '../../features/storeys';
 import { UnderlayLayer, UnderlayPanel } from '../../features/underlay';
 import { ViewsPanel } from '../../features/views';
 import { ShortcutsDialog } from '../../components';
@@ -793,6 +793,22 @@ function PlanEditor(): JSX.Element {
             2D only, and never registered with `PickRegistry` — see the header
             of `features/underlay/UnderlayLayer.tsx`. */}
         {is2d ? <UnderlayLayer elevationMm={elevationMm} /> : null}
+
+        {/* Measure readings and the storey-below ghost draw INSIDE the canvas,
+            not in the DOM overlay — they are scene geometry in model space, and
+            an HTML overlay would not pan, zoom or occlude with the drawing.
+            Both are 2D-only: the ghost is a plan convention, and a measurement
+            taken in plan does not mean the same thing in a perspective view. */}
+        {is2d ? (
+          <StoreyGhostLayer
+            house={house}
+            activeStoreyId={activeStoreyId}
+            elevationMm={elevationMm}
+          />
+        ) : null}
+        {is2d ? (
+          <MeasureLayer storeyId={activeStoreyId} elevationMm={elevationMm} display={units} />
+        ) : null}
 
         {/* Phase 7 (§9): publishes the live renderer to features/renders so
             captures reuse THIS canvas — never a second one. Renders nothing. */}
