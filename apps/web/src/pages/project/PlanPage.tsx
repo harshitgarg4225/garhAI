@@ -148,11 +148,23 @@ import {
 import { RenderCaptureBridge, RenderLauncher } from '../../features/renders';
 // Tracing underlay (features/underlay). Two mounts below, both tagged
 // "UNDERLAY" — the layer inside the canvas, the panel in the DOM overlay.
+import { AssetBrowser } from '../../features/assets';
+import { HatchBindingPanel } from '../../features/hatchpicker';
+import {
+  LayerPanel,
+  useLayerPickGate,
+  useLayerScope,
+  usePlanLayerView,
+} from '../../features/layers';
+import { MeasurePanel } from '../../features/measure';
+import { StoreyPanel } from '../../features/storeys';
 import { UnderlayLayer, UnderlayPanel } from '../../features/underlay';
+import { ViewsPanel } from '../../features/views';
 import { ShortcutsDialog } from '../../components';
 import { useKeyboardMap, type CommandHandlers } from '../../lib/keymap';
 import { installTestHooks } from '../../lib/testHooks';
 import { useModelStore } from '../../stores/model';
+import { useSessionStore } from '../../stores/session';
 import { useSelectionStore } from '../../stores/selection';
 import {
   selectActiveStoreyId,
@@ -203,6 +215,20 @@ function PlanEditor(): JSX.Element {
   const house = useModelStore((s) => s.doc.house);
   const plotBoundary = useModelStore((s) => s.doc.plot.boundary);
   const modelReady = useModelStore((s) => s.status === 'ready');
+
+  // ── layers ───────────────────────────────────────────────────────────────
+  // Three calls, and all three are load-bearing. A layer panel is trivial to
+  // fake — nine switches, nine booleans, a green test that a boolean flipped,
+  // and a control that changes nothing on the drawing. `usePlanLayerView`
+  // returns a house with the hidden layers' elements REMOVED, and that filtered
+  // house is what `PlanScene` draws below, so a hidden layer is hidden because
+  // the geometry is not there rather than because something set opacity to 0.
+  // The lock half is `useLayerPickGate`, called once `core` exists below: it
+  // does the same job for lock, through the one PickRegistry rather than by
+  // special-casing each tool.
+  const layerUserId = useSessionStore((sel) => sel.user?.id ?? null);
+  useLayerScope(layerUserId, project.id);
+  const layerView = usePlanLayerView(house);
 
   // ── the tab ↔ view-mode contract (Phase 5, see the header) ──────────────
   // The URL is followed BEFORE the first paint (a useState initialiser runs
@@ -261,6 +287,10 @@ function PlanEditor(): JSX.Element {
   const hoverId = useSelectionStore((s) => s.hoverId);
 
   const [core, setCore] = useState<CanvasCore | null>(null);
+
+  // The lock half of the layer manager. Here rather than beside the other two
+  // layer calls because it needs `core`, which is state declared on this line.
+  useLayerPickGate(core, house);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   // `useNav3d` needs the element as STATE (a ref never re-renders the hook);
@@ -693,6 +723,42 @@ function PlanEditor(): JSX.Element {
                 className="absolute bottom-12 right-3"
               />
 
+              {/* ── THE PANEL DOCK ─────────────────────────────────────────
+                  Six features arrived as directories that nothing imported:
+                  the layer manager, the measure tools, named views, storey
+                  navigation, the hatch picker and the asset browser. Every one
+                  was tested and every one was unreachable — bug pattern 4 at
+                  the scale of a whole wave, because each was built in its own
+                  tree and nobody owned the seam.
+
+                  One dock rather than six more free-floating cards. The corners
+                  are already spoken for (placement HUD above, underlay below,
+                  scale readout bottom-right) and six scattered `absolute`
+                  panels would bury the drawing they are meant to serve. The
+                  rail scrolls, so one panel growing cannot push another off
+                  screen. 3D gets the same dock once its own chrome is folded
+                  in; today it keeps the storey bar and facade panel it has. */}
+              <div className="pointer-events-auto absolute bottom-24 right-3 top-14 flex w-80 flex-col gap-2 overflow-y-auto">
+                <LayerPanel />
+                <MeasurePanel />
+                <ViewsPanel projectId={project.id} core={core} />
+                <StoreyPanel />
+                <HatchBindingPanel />
+                <AssetBrowser
+                  unitsDisplay={units}
+                  onUse={(record) => {
+                    // The browser knows an id; the placement controller wants
+                    // the catalogue item. `index` is the map the catalogue hook
+                    // already maintains, so this is a lookup rather than a
+                    // second fetch. A material row arms nothing yet — that is
+                    // the hatch binding panel's job, above.
+                    if (record.kind !== 'furniture') return;
+                    const item = furniture.catalogue.index.get(record.id);
+                    if (item !== undefined) furniture.arm(item);
+                  }}
+                />
+              </div>
+
               {isEmpty ? (
                 <PlanEmpty onOpenPlot={() => navigate(`/projects/${project.id}/brief`)} />
               ) : null}
@@ -763,7 +829,11 @@ function PlanEditor(): JSX.Element {
           <>
             {/* The room wash is part of the DRAWING, so it is not tied to the
                 room-tag toggle — that toggle is about the text. */}
-            <PlanScene house={house} storeyId={activeStoreyId} elevationMm={elevationMm} />
+            <PlanScene
+              house={layerView.house}
+              storeyId={activeStoreyId}
+              elevationMm={elevationMm}
+            />
 
             {/* `axes` and `sceneUnitsPerMm` are the two values the furniture
                 module's integrator note asks to be checked against the real
