@@ -3,9 +3,9 @@
 <title>A-01 Site Plan</title>
 <rect x="0" y="0" width="594" height="420" fill="#ffffff" stroke="none"/>
 <defs>
-<pattern id="h-diagonal-500-45-100" width="5.000" height="5.000" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
-<line x1="0" y1="0" x2="0" y2="5.000" stroke="#3a3a3a" stroke-width="0.080"/>
-</pattern>
+<clipPath id="hc-df47477cbbb3fd23" clip-rule="evenodd">
+<path d="M 156.205 229.110 L 218.505 229.110 L 218.505 186.810 L 156.205 186.810 Z"/>
+</clipPath>
 </defs>
 <g id="g-frame">
 <g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
@@ -84,7 +84,9 @@
 </g>
 </g>
 <g class="layer" data-layer="A-AREA" stroke="#3a3a3a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-<path d="M 156.205 229.110 L 218.505 229.110 L 218.505 186.810 L 156.205 186.810 Z" fill="url(#h-diagonal-500-45-100)" fill-rule="evenodd" stroke="none"/>
+<g clip-path="url(#hc-df47477cbbb3fd23)">
+<path d="M 188.025 260.930 L 240.325 208.630 M 184.485 257.390 L 236.785 205.090 M 180.955 253.860 L 233.255 201.560 M 177.415 250.320 L 229.715 198.020 M 173.885 246.790 L 226.185 194.490 M 170.345 243.250 L 222.645 190.950 M 166.815 239.720 L 219.115 187.420 M 163.275 236.180 L 215.575 183.880 M 159.745 232.650 L 212.045 180.350 M 156.205 229.110 L 208.505 176.810 M 152.665 225.570 L 204.965 173.270 M 149.135 222.040 L 201.435 169.740 M 145.595 218.500 L 197.895 166.200 M 142.065 214.970 L 194.365 162.670 M 138.525 211.430 L 190.825 159.130 M 134.995 207.900 L 187.295 155.600" stroke="#3a3a3a" stroke-width="0.080" fill="none"/>
+</g>
 <g font-family="Helvetica, Arial, sans-serif" fill="#3a3a3a" stroke="none">
 <text x="157.355" y="239.960" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">PLOT AREA: 111.48 m²</text>
 <text x="157.355" y="246.960" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">GROUND COVERAGE: 26.35 m² (no coverage rule applied)</text>

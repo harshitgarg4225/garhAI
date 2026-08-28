@@ -39,6 +39,7 @@ from dataclasses import dataclass, field
 
 from services.drawings.dimensions import DimChain
 from services.drawings.layers import LAYER_NAMES, LAYERS_BY_NAME, layer_for
+from services.drawings.render.hatch_patterns import HATCH_DEFS
 
 #: A point in **model millimetres**.
 Pt2 = tuple[int, int]
@@ -82,12 +83,26 @@ DASH_PATTERNS_PAPER_UM: Mapping[LineStyle, tuple[int, ...]] = {
     STYLE_CENTRE: (8_000, 1_500, 1_500, 1_500),
 }
 
-#: Hatch patterns §7 needs: solid fill for cut walls, 45° for concrete/section fill.
+#: Hatch patterns. The four §7 started with — solid fill for cut walls, 45° for
+#: concrete/section fill — plus the material patterns a municipal section needs to
+#: tell brick from stone from earth. Every one is a standard ACAD pattern; the
+#: geometry lives in :mod:`.hatch_patterns`, which both SVG and DXF draw from.
 HatchPattern = str
 HATCH_SOLID: HatchPattern = "solid"
 HATCH_DIAGONAL: HatchPattern = "diagonal"
 HATCH_CROSS: HatchPattern = "cross"
 HATCH_EARTH: HatchPattern = "earth"
+HATCH_BRICK: HatchPattern = "brick"
+HATCH_CONCRETE: HatchPattern = "concrete"
+HATCH_INSULATION: HatchPattern = "insulation"
+HATCH_PLASTER: HatchPattern = "plaster"
+HATCH_STONE: HatchPattern = "stone"
+HATCH_STEEL: HatchPattern = "steel"
+HATCH_GLASS: HatchPattern = "glass"
+HATCH_SAND: HatchPattern = "sand"
+HATCH_TIMBER: HatchPattern = "timber"
+HATCH_TILE: HatchPattern = "tile"
+HATCH_GRASS: HatchPattern = "grass"
 
 #: Text anchoring. ``start``/``middle``/``end`` along the text direction.
 TextAnchor = str
@@ -264,7 +279,9 @@ class Hatch:
         _check_layer(self.layer)
         if len(self.outline) < 3:
             raise ValueError("a hatch outline needs at least 3 vertices")
-        if self.pattern not in (HATCH_SOLID, HATCH_DIAGONAL, HATCH_CROSS, HATCH_EARTH):
+        if self.pattern not in HATCH_DEFS:
+            # One registry, so a pattern a sheet can name is a pattern both writers
+            # can draw. A typo fails here rather than silently exporting a blank fill.
             raise ValueError("unknown hatch pattern %r" % self.pattern)
         if self.spacing_mm <= 0:
             raise ValueError("hatch spacing must be positive, got %d" % self.spacing_mm)
@@ -613,10 +630,21 @@ __all__ = [
     "DIM_OFFSET_PAPER_UM",
     "DIM_TEXT_GAP_PAPER_UM",
     "DIM_TICK_PAPER_UM",
+    "HATCH_BRICK",
+    "HATCH_CONCRETE",
     "HATCH_CROSS",
     "HATCH_DIAGONAL",
     "HATCH_EARTH",
+    "HATCH_GLASS",
+    "HATCH_GRASS",
+    "HATCH_INSULATION",
+    "HATCH_PLASTER",
+    "HATCH_SAND",
     "HATCH_SOLID",
+    "HATCH_STEEL",
+    "HATCH_STONE",
+    "HATCH_TILE",
+    "HATCH_TIMBER",
     "PRIMITIVE_KINDS",
     "STYLE_CENTRE",
     "STYLE_DASHED",

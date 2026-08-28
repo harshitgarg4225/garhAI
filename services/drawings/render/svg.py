@@ -33,14 +33,13 @@ every dimension label.
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Sequence
 
 from services.drawings.layers import LAYER_NAMES, LAYERS_BY_NAME
+from services.drawings.render.hatch_patterns import hatch_families, is_solid
 from services.drawings.render.primitives import (
     DASH_PATTERNS_PAPER_UM,
-    HATCH_CROSS,
-    HATCH_EARTH,
-    HATCH_SOLID,
     Arc,
     Circle,
     Dim,
@@ -231,56 +230,50 @@ def _emit_text(out: list[str], placement: Placement, prim: Text) -> None:
     out.append("<text %s>%s</text>" % (" ".join(attributes), escape_text(prim.text)))
 
 
-def _hatch_pattern_id(prim: Hatch, placement: Placement) -> str:
-    """A pattern id derived only from the hatch's own parameters.
+def _hatch_clip_id(prim: Hatch, placement: Placement) -> str:
+    """A clip id derived only from the region being clipped.
 
-    Content-derived, never a counter: two identical hatches must reuse one ``<pattern>``
-    and the id must not depend on how many hatches were emitted before it, or inserting
-    a wall at the top of a plan renames every pattern below it and the whole golden
-    diffs.
+    Content-derived, never a counter: two hatches over the same outline share one
+    ``<clipPath>``, and the id must not depend on how many hatches were emitted
+    before it — otherwise inserting a wall at the top of a plan renames every clip
+    below it and the whole golden diffs.
     """
-    return "h-%s-%d-%d-%d" % (
-        prim.pattern,
-        prim.spacing_mm,
-        prim.angle_deg % 360,
-        placement.scale_denominator,
-    )
+    payload = (prim.outline, prim.holes, placement.origin_paper_um, placement.scale_denominator)
+    digest = hashlib.sha256(repr(payload).encode("utf-8")).hexdigest()[:16]
+    return safe_id("hc-%s" % digest)
+
+
+def _hatch_bbox_mm(prim: Hatch) -> tuple[int, int, int, int]:
+    xs = [vertex[0] for vertex in prim.outline]
+    ys = [vertex[1] for vertex in prim.outline]
+    return (min(xs), min(ys), max(xs), max(ys))
 
 
 def _emit_hatch_defs(out: list[str], groups: Sequence[DrawingGroup]) -> None:
-    """Emit one ``<pattern>`` per distinct hatch, sorted by id for stable bytes."""
-    seen = {}
+    """Emit one ``<clipPath>`` per distinct hatched region, sorted for stable bytes.
+
+    Hatch lines are generated across the region's bounding box and clipped to its
+    real outline here, rather than tiled. A tile can only repeat a pattern whose
+    period divides the tile, which is false for most real patterns — and the tile
+    this replaced was so approximate that ``earth`` and ``cross`` came out as the
+    same two lines. Clipping draws each pattern's actual definition instead.
+    """
+    seen: dict[str, tuple[Hatch, Placement]] = {}
     for group in groups:
         for primitive in group.primitives:
-            if isinstance(primitive, Hatch) and primitive.pattern != HATCH_SOLID:
-                seen[_hatch_pattern_id(primitive, group.placement)] = (
-                    primitive,
-                    group.placement,
-                )
+            if isinstance(primitive, Hatch) and not is_solid(primitive.pattern):
+                seen[_hatch_clip_id(primitive, group.placement)] = (primitive, group.placement)
     if not seen:
         return
     out.append("<defs>")
-    for pattern_id in sorted(seen):
-        primitive, placement = seen[pattern_id]
-        step = max(1, placement.length_to_paper_um(primitive.spacing_mm))
-        size = _mm(step)
-        stroke = _stroke_hex(primitive.layer)
-        width = _mm(max(MIN_STROKE_PAPER_UM, 60))
-        out.append(
-            '<pattern id="%s" width="%s" height="%s" patternUnits="userSpaceOnUse" '
-            'patternTransform="rotate(%d)">'
-            % (pattern_id, size, size, -(primitive.angle_deg % 360))
-        )
-        out.append(
-            '<line x1="0" y1="0" x2="0" y2="%s" stroke="%s" stroke-width="%s"/>'
-            % (size, stroke, width)
-        )
-        if primitive.pattern in (HATCH_CROSS, HATCH_EARTH):
-            out.append(
-                '<line x1="0" y1="0" x2="%s" y2="0" stroke="%s" stroke-width="%s"/>'
-                % (size, stroke, width)
-            )
-        out.append("</pattern>")
+    for clip_id in sorted(seen):
+        primitive, placement = seen[clip_id]
+        path = _ring_path(placement, primitive.outline)
+        for hole in primitive.holes:
+            path += " " + _ring_path(placement, hole)
+        out.append('<clipPath id="%s" clip-rule="evenodd">' % clip_id)
+        out.append('<path d="%s"/>' % path)
+        out.append("</clipPath>")
     out.append("</defs>")
 
 
@@ -294,15 +287,54 @@ def _ring_path(placement: Placement, ring: Sequence[Pt2]) -> str:
 
 
 def _emit_hatch(out: list[str], placement: Placement, prim: Hatch) -> None:
-    path = _ring_path(placement, prim.outline)
-    for hole in prim.holes:
-        path += " " + _ring_path(placement, hole)
-    if prim.pattern == HATCH_SOLID:
-        fill = _stroke_hex(prim.layer)
-    else:
-        fill = "url(#%s)" % _hatch_pattern_id(prim, placement)
-    # fill-rule evenodd so `holes` actually punch through (stair wells, shafts).
-    out.append('<path d="%s" fill="%s" fill-rule="evenodd" stroke="none"/>' % (path, fill))
+    """A solid fill, or the pattern's own lines clipped to the region."""
+    if is_solid(prim.pattern):
+        path = _ring_path(placement, prim.outline)
+        for hole in prim.holes:
+            path += " " + _ring_path(placement, hole)
+        # fill-rule evenodd so `holes` actually punch through (stair wells, shafts).
+        out.append(
+            '<path d="%s" fill="%s" fill-rule="evenodd" stroke="none"/>'
+            % (path, _stroke_hex(prim.layer))
+        )
+        return
+
+    families = hatch_families(
+        prim.pattern,
+        spacing=prim.spacing_mm,
+        angle_deg=prim.angle_deg,
+        bbox=_hatch_bbox_mm(prim),
+    )
+    if not families:
+        return
+    stroke = _stroke_hex(prim.layer)
+    width = _mm(max(MIN_STROKE_PAPER_UM, 60))
+    out.append('<g clip-path="url(#%s)">' % _hatch_clip_id(prim, placement))
+    for family in families:
+        parts = []
+        for start_mm, end_mm in family.segments:
+            x0, y0 = _pt(placement, start_mm)
+            x1, y1 = _pt(placement, end_mm)
+            parts.append("M %s %s L %s %s" % (x0, y0, x1, y1))
+        attrs = 'd="%s" stroke="%s" stroke-width="%s" fill="none"' % (
+            " ".join(parts),
+            stroke,
+            width,
+        )
+        if family.dashes:
+            attrs += ' stroke-dasharray="%s"' % " ".join(
+                _mm(placement.length_to_paper_um(length)) for length in family.dashes
+            )
+            if family.dash_offset:
+                attrs += ' stroke-dashoffset="%s"' % _mm(
+                    placement.length_to_paper_um(family.dash_offset)
+                )
+            if family.dotted:
+                # A zero-length ACAD dash is a dot; a round cap is what makes the
+                # short dash standing in for it read as one.
+                attrs += ' stroke-linecap="round"'
+        out.append("<path %s/>" % attrs)
+    out.append("</g>")
 
 
 def _emit_dim(out: list[str], placement: Placement, prim: Dim) -> None:

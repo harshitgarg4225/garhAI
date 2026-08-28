@@ -3,9 +3,9 @@
 <title>A-02A Ground Floor Plan</title>
 <rect x="0" y="0" width="594" height="420" fill="#ffffff" stroke="none"/>
 <defs>
-<pattern id="h-diagonal-150-45-100" width="1.500" height="1.500" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
-<line x1="0" y1="0" x2="0" y2="1.500" stroke="#555555" stroke-width="0.080"/>
-</pattern>
+<clipPath id="hc-5bb211de89306a2a" clip-rule="evenodd">
+<path d="M 209.430 230.000 L 209.430 190.000 L 210.570 190.000 L 210.570 230.000 Z"/>
+</clipPath>
 </defs>
 <g id="g-frame">
 <g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
@@ -74,7 +74,9 @@
 <polygon points="178.850,204.000 178.850,190.000 181.150,190.000 181.150,204.000" fill="none"/>
 </g>
 <g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-<path d="M 209.430 230.000 L 209.430 190.000 L 210.570 190.000 L 210.570 230.000 Z" fill="url(#h-diagonal-150-45-100)" fill-rule="evenodd" stroke="none"/>
+<g clip-path="url(#hc-5bb211de89306a2a)">
+<path d="M 210.620 231.190 L 231.190 210.620 M 209.560 230.130 L 230.130 209.560 M 208.500 229.070 L 229.070 208.500 M 207.440 228.010 L 228.010 207.440 M 206.380 226.950 L 226.950 206.380 M 205.320 225.890 L 225.890 205.320 M 204.260 224.830 L 224.830 204.260 M 203.200 223.770 L 223.770 203.200 M 202.140 222.710 L 222.710 202.140 M 201.080 221.650 L 221.650 201.080 M 200.020 220.590 L 220.590 200.020 M 198.960 219.530 L 219.530 198.960 M 197.900 218.470 L 218.470 197.900 M 196.840 217.410 L 217.410 196.840 M 195.780 216.350 L 216.350 195.780 M 194.720 215.280 L 215.290 194.710 M 193.650 214.220 L 214.220 193.650 M 192.590 213.160 L 213.160 192.590 M 191.530 212.100 L 212.100 191.530 M 190.470 211.040 L 211.040 190.470 M 189.410 209.980 L 209.980 189.410" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
 <polygon points="209.430,230.000 209.430,190.000 210.570,190.000 210.570,230.000" fill="none"/>
 </g>
 <g class="layer" data-layer="A-DOOR" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">

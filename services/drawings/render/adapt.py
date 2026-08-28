@@ -48,10 +48,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from services.drawings.render.hatch_patterns import HATCH_DEFS
 from services.drawings.render.primitives import (
-    HATCH_CROSS,
-    HATCH_DIAGONAL,
-    HATCH_EARTH,
     HATCH_SOLID,
     STYLE_DASHED,
     STYLE_SOLID,
@@ -83,16 +81,14 @@ class AdaptError(TypeError):
 #: DXF pattern name -> the renderer's semantic pattern. The projection stream names
 #: patterns the way AutoCAD does (it is heading for a DXF); the renderers name them by
 #: what they mean (they also draw SVG, which has no ANSI31).
+#:
+#: Derived from :data:`~services.drawings.render.hatch_patterns.HATCH_DEFS`, not
+#: restated: a hand-kept copy is how a pattern comes to exist for one writer and not
+#: the other, which is the failure this whole table set was consolidated to end. Both
+#: spellings map, so a caller may pass either the ACAD name or the renderer's own.
 PATTERN_TO_HATCH = {
-    "SOLID": HATCH_SOLID,
-    "ANSI31": HATCH_DIAGONAL,
-    "ANSI37": HATCH_CROSS,
-    "EARTH": HATCH_EARTH,
-    # Lower-case forms in case a caller passes the renderer's own names through.
-    HATCH_SOLID: HATCH_SOLID,
-    HATCH_DIAGONAL: HATCH_DIAGONAL,
-    HATCH_CROSS: HATCH_CROSS,
-    HATCH_EARTH: HATCH_EARTH,
+    **{definition.acad_name: key for key, definition in HATCH_DEFS.items()},
+    **{key: key for key in HATCH_DEFS},
 }
 
 #: ``h_align`` -> ``anchor``. "center" (US) and "middle" (SVG) mean the same thing.

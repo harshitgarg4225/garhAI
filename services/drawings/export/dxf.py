@@ -42,11 +42,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from services.drawings.layers import LAYER_NAMES
+from services.drawings.render.hatch_patterns import HATCH_DEFS, is_solid
 from services.drawings.render.primitives import (
-    HATCH_CROSS,
-    HATCH_DIAGONAL,
-    HATCH_EARTH,
-    HATCH_SOLID,
     Arc,
     Circle,
     Dim,
@@ -79,15 +76,14 @@ EZDXF_INSTALL_HINT = (
     "pure Python, no compiled extensions)."
 )
 
-#: §7 hatch patterns mapped to the ANSI/ISO names ezdxf ships. ``SOLID`` is a real
-#: DXF solid fill; the others are standard pattern names AutoCAD recognises, so a
-#: reviewer's hatch dialog shows a name they know rather than an unresolved custom one.
-DXF_HATCH_PATTERNS = {
-    HATCH_SOLID: "SOLID",
-    HATCH_DIAGONAL: "ANSI31",
-    HATCH_CROSS: "ANSI37",
-    HATCH_EARTH: "EARTH",
-}
+#: §7 hatch patterns mapped to the ANSI/ISO names AutoCAD ships. ``SOLID`` is a real
+#: DXF solid fill; the others are standard pattern names, so a reviewer's hatch dialog
+#: shows a name they know rather than an unresolved custom one.
+#:
+#: Derived from :data:`~services.drawings.render.hatch_patterns.HATCH_DEFS` rather
+#: than restated here. When this was a second hand-written table it drifted from the
+#: SVG writer in three ways at once — see that module's docstring.
+DXF_HATCH_PATTERNS = {key: definition.acad_name for key, definition in HATCH_DEFS.items()}
 
 #: Text style created in the document for §7 text. ``STANDARD`` exists in every DXF;
 #: naming ours keeps the height/width factor ours to set.
@@ -279,15 +275,24 @@ def _add_text(msp: Any, prim: Text, *, scale_denominator: int) -> None:
 
 
 def _add_hatch(msp: Any, prim: Hatch) -> None:
-    pattern = DXF_HATCH_PATTERNS[prim.pattern]
+    """Write one hatch, scaled and rotated to match what SVG and PDF drew.
+
+    ``set_pattern_fill`` takes a multiplier on the pattern's *own* spacing and an
+    angle *added* to the pattern's own angle — neither is the value the author
+    wrote. Passing ``spacing_mm`` and ``angle_deg`` straight through (as this did)
+    drew ANSI31 at 4.76 mm instead of 150, and turned the default 45° hatch into a
+    90° one. Both are removed here by dividing out the definition's own spacing and
+    subtracting its own angle, so the authored numbers survive into CAD.
+    """
+    definition = HATCH_DEFS[prim.pattern]
     hatch = msp.add_hatch(dxfattribs={"layer": prim.layer})
-    if prim.pattern == HATCH_SOLID:
+    if is_solid(prim.pattern):
         hatch.set_solid_fill()
     else:
         hatch.set_pattern_fill(
-            pattern,
-            scale=float(prim.spacing_mm) / 100.0,
-            angle=float(prim.angle_deg),
+            definition.acad_name,
+            scale=float(prim.spacing_mm) / definition.base_spacing,
+            angle=float(prim.angle_deg) - definition.base_angle_deg,
         )
     hatch.paths.add_polyline_path([_model_point(vertex) for vertex in prim.outline], is_closed=True)
     for hole in prim.holes:

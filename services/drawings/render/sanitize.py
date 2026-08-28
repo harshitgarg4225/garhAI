@@ -80,7 +80,10 @@ ALLOWED_ELEMENTS: tuple[str, ...] = (
     "svg",
     "title",
     "defs",
-    "pattern",
+    # Emitted as SVG's camelCase `clipPath`; element names are compared lowercased.
+    # A hatch is its pattern's real lines clipped to the region, so every hatched
+    # area needs one. It cannot reference anything outside the document.
+    "clippath",
     "g",
     "line",
     "polyline",
@@ -95,6 +98,8 @@ ALLOWED_ELEMENTS: tuple[str, ...] = (
 #: no href of any kind, no style (which can carry ``url()``), no event handler.
 ALLOWED_ATTRIBUTES: tuple[str, ...] = (
     "class",
+    "clip-path",
+    "clip-rule",
     "cx",
     "cy",
     "d",
@@ -107,12 +112,11 @@ ALLOWED_ATTRIBUTES: tuple[str, ...] = (
     "font-weight",
     "height",
     "id",
-    "patternTransform",
-    "patternUnits",
     "points",
     "r",
     "stroke",
     "stroke-dasharray",
+    "stroke-dashoffset",
     "stroke-linecap",
     "stroke-linejoin",
     "stroke-width",
