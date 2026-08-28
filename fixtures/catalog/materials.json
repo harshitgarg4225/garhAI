@@ -1130,5 +1130,1099 @@
       "roof.flat",
       "floor.terrace"
     ]
+  },
+  {
+    "id": "vitrified-ivory-600",
+    "name": "Vitrified tile 600 ivory",
+    "category": "floor",
+    "finish": "glossy",
+    "colorHex": "#EFEAE0",
+    "priceInrPerSqm": 780,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "vitrified-beige-600",
+    "name": "Vitrified tile 600 beige",
+    "category": "floor",
+    "finish": "glossy",
+    "colorHex": "#E3D8C6",
+    "priceInrPerSqm": 800,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "vitrified-grey-600",
+    "name": "Vitrified tile 600 grey",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#C9CACB",
+    "priceInrPerSqm": 820,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "vitrified-charcoal-600",
+    "name": "Vitrified tile 600 charcoal",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#4A4E52",
+    "priceInrPerSqm": 860,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "vitrified-carrara-800",
+    "name": "Vitrified tile 800 carrara",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#F1F1EE",
+    "priceInrPerSqm": 1150,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "vitrified-statuario-800",
+    "name": "Vitrified tile 800 statuario",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#EDEDE8",
+    "priceInrPerSqm": 1280,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "vitrified-wood-1200",
+    "name": "Vitrified tile 1200 wood-look",
+    "category": "floor",
+    "finish": "wood-grain",
+    "colorHex": "#B58A5C",
+    "priceInrPerSqm": 1050,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "vitrified-concrete-800",
+    "name": "Vitrified tile 800 concrete-look",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#B7B5B0",
+    "priceInrPerSqm": 980,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "ceramic-white-300",
+    "name": "Ceramic tile 300 white",
+    "category": "floor",
+    "finish": "glossy",
+    "colorHex": "#F4F4F2",
+    "priceInrPerSqm": 420,
+    "surfaceGroups": [
+      "floor.bath",
+      "floor.utility"
+    ]
+  },
+  {
+    "id": "ceramic-grey-300",
+    "name": "Ceramic tile 300 grey",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#C4C6C7",
+    "priceInrPerSqm": 440,
+    "surfaceGroups": [
+      "floor.bath",
+      "floor.utility"
+    ]
+  },
+  {
+    "id": "ceramic-anti-skid-300",
+    "name": "Ceramic tile 300 anti-skid",
+    "category": "floor",
+    "finish": "textured",
+    "colorHex": "#BFB9AE",
+    "priceInrPerSqm": 480,
+    "surfaceGroups": [
+      "floor.bath",
+      "floor.utility"
+    ]
+  },
+  {
+    "id": "ceramic-beige-450",
+    "name": "Ceramic tile 450 beige",
+    "category": "floor",
+    "finish": "matte",
+    "colorHex": "#DED2BE",
+    "priceInrPerSqm": 520,
+    "surfaceGroups": [
+      "floor.bath",
+      "floor.utility"
+    ]
+  },
+  {
+    "id": "kota-blue-honed",
+    "name": "Kota stone blue, honed",
+    "category": "floor",
+    "finish": "honed",
+    "colorHex": "#5B6B66",
+    "priceInrPerSqm": 520,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair",
+      "floor.utility",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "kota-blue-polished",
+    "name": "Kota stone blue, polished",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#54655F",
+    "priceInrPerSqm": 620,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair",
+      "floor.utility",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "kota-brown-honed",
+    "name": "Kota stone brown, honed",
+    "category": "floor",
+    "finish": "honed",
+    "colorHex": "#7A6A52",
+    "priceInrPerSqm": 540,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair",
+      "floor.utility",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "granite-black-galaxy",
+    "name": "Granite Black Galaxy",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#1A1A1C",
+    "priceInrPerSqm": 2400,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair",
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "granite-absolute-black",
+    "name": "Granite Absolute Black",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#141416",
+    "priceInrPerSqm": 1900,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair",
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "granite-tan-brown",
+    "name": "Granite Tan Brown",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#5A3A32",
+    "priceInrPerSqm": 1650,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair",
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "granite-kashmir-white",
+    "name": "Granite Kashmir White",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#D8D2C6",
+    "priceInrPerSqm": 1750,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair",
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "marble-makrana",
+    "name": "Marble Makrana",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#F0EDE4",
+    "priceInrPerSqm": 2800,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.pooja",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "marble-ambaji",
+    "name": "Marble Ambaji",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#EDEAE1",
+    "priceInrPerSqm": 2200,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.pooja",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "marble-italian-statuario",
+    "name": "Marble Italian Statuario",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#F3F2EE",
+    "priceInrPerSqm": 6500,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.pooja",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "marble-green-udaipur",
+    "name": "Marble Udaipur green",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#4A5F4A",
+    "priceInrPerSqm": 1900,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.pooja",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "marble-rainforest-brown",
+    "name": "Marble Rainforest brown",
+    "category": "floor",
+    "finish": "honed",
+    "colorHex": "#6B5540",
+    "priceInrPerSqm": 3200,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.pooja",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "ips-grey",
+    "name": "IPS finish grey",
+    "category": "floor",
+    "finish": "sealed",
+    "colorHex": "#A8A6A1",
+    "priceInrPerSqm": 320,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.utility",
+      "floor.terrace",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "ips-red-oxide",
+    "name": "IPS finish red oxide",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#8C4634",
+    "priceInrPerSqm": 380,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.utility",
+      "floor.terrace",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "ips-black-oxide",
+    "name": "IPS finish black oxide",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#3A3A3A",
+    "priceInrPerSqm": 390,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.utility",
+      "floor.terrace",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "ips-yellow-oxide",
+    "name": "IPS finish yellow oxide",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#B08A3E",
+    "priceInrPerSqm": 380,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.utility",
+      "floor.terrace",
+      "floor.parking"
+    ]
+  },
+  {
+    "id": "terrazzo-white",
+    "name": "Terrazzo white",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#E8E6DF",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "terrazzo-grey",
+    "name": "Terrazzo grey",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#B4B4B0",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "terrazzo-charcoal",
+    "name": "Terrazzo charcoal",
+    "category": "floor",
+    "finish": "polished",
+    "colorHex": "#4F5052",
+    "priceInrPerSqm": 1050,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom",
+      "floor.stair"
+    ]
+  },
+  {
+    "id": "wood-floor-laminate-oak",
+    "name": "Wooden flooring laminate, oak",
+    "category": "floor",
+    "finish": "laminated",
+    "colorHex": "#C09A6B",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom"
+    ]
+  },
+  {
+    "id": "wood-floor-laminate-walnut",
+    "name": "Wooden flooring laminate, walnut",
+    "category": "floor",
+    "finish": "laminated",
+    "colorHex": "#6E4A2E",
+    "priceInrPerSqm": 1050,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom"
+    ]
+  },
+  {
+    "id": "wood-floor-engineered-teak",
+    "name": "Wooden flooring engineered, teak",
+    "category": "floor",
+    "finish": "natural",
+    "colorHex": "#9A6B41",
+    "priceInrPerSqm": 2600,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom"
+    ]
+  },
+  {
+    "id": "wood-floor-solid-teak",
+    "name": "Wooden flooring solid, teak",
+    "category": "floor",
+    "finish": "sealed",
+    "colorHex": "#8F6238",
+    "priceInrPerSqm": 4500,
+    "surfaceGroups": [
+      "floor.interior",
+      "floor.bedroom"
+    ]
+  },
+  {
+    "id": "paver-grey-60",
+    "name": "Paver block 60 mm grey",
+    "category": "floor",
+    "finish": "textured",
+    "colorHex": "#9E9E9C",
+    "priceInrPerSqm": 420,
+    "surfaceGroups": [
+      "floor.parking",
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "paver-red-60",
+    "name": "Paver block 60 mm red",
+    "category": "floor",
+    "finish": "textured",
+    "colorHex": "#9C5A44",
+    "priceInrPerSqm": 440,
+    "surfaceGroups": [
+      "floor.parking",
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "paver-cobble-80",
+    "name": "Paver block 80 mm cobble",
+    "category": "floor",
+    "finish": "textured",
+    "colorHex": "#8E8B84",
+    "priceInrPerSqm": 560,
+    "surfaceGroups": [
+      "floor.parking",
+      "floor.terrace"
+    ]
+  },
+  {
+    "id": "paint-interior-white",
+    "name": "Interior emulsion white",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#F6F5F1",
+    "priceInrPerSqm": 90,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "paint-interior-ivory",
+    "name": "Interior emulsion ivory",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#F1E9DA",
+    "priceInrPerSqm": 95,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "paint-interior-almond",
+    "name": "Interior emulsion almond",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#E6D9C3",
+    "priceInrPerSqm": 95,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "paint-interior-sage",
+    "name": "Interior emulsion sage",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#B9C4B1",
+    "priceInrPerSqm": 105,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "paint-interior-terracotta",
+    "name": "Interior emulsion terracotta",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#C4785A",
+    "priceInrPerSqm": 105,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "paint-interior-indigo",
+    "name": "Interior emulsion indigo",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#3E4C6B",
+    "priceInrPerSqm": 110,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "paint-interior-charcoal",
+    "name": "Interior emulsion charcoal",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#4A4B4D",
+    "priceInrPerSqm": 110,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "paint-interior-silk-white",
+    "name": "Interior emulsion white, silk",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#F7F6F2",
+    "priceInrPerSqm": 130,
+    "surfaceGroups": [
+      "wall.interior",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "paint-exterior-white",
+    "name": "Exterior emulsion white",
+    "category": "wall",
+    "finish": "textured",
+    "colorHex": "#F2F1EC",
+    "priceInrPerSqm": 140,
+    "surfaceGroups": [
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "paint-exterior-sand",
+    "name": "Exterior emulsion sand",
+    "category": "wall",
+    "finish": "textured",
+    "colorHex": "#DFCFB2",
+    "priceInrPerSqm": 145,
+    "surfaceGroups": [
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "paint-exterior-grey",
+    "name": "Exterior emulsion grey",
+    "category": "wall",
+    "finish": "textured",
+    "colorHex": "#A9AAA8",
+    "priceInrPerSqm": 145,
+    "surfaceGroups": [
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "paint-exterior-ochre",
+    "name": "Exterior emulsion ochre",
+    "category": "wall",
+    "finish": "textured",
+    "colorHex": "#C08F45",
+    "priceInrPerSqm": 150,
+    "surfaceGroups": [
+      "wall.exterior"
+    ]
+  },
+  {
+    "id": "brick-exposed-red",
+    "name": "Exposed brick red",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#9C5137",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "brick-exposed-wirecut",
+    "name": "Exposed brick wirecut",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#8A4A33",
+    "priceInrPerSqm": 1450,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "brick-exposed-white-washed",
+    "name": "Exposed brick whitewashed",
+    "category": "wall",
+    "finish": "coated",
+    "colorHex": "#D7CDC2",
+    "priceInrPerSqm": 1100,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "stone-cladding-jaisalmer",
+    "name": "Stone cladding Jaisalmer",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#D8B87A",
+    "priceInrPerSqm": 1250,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "stone-cladding-dholpur-beige",
+    "name": "Stone cladding Dholpur beige",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#D9C6A5",
+    "priceInrPerSqm": 1150,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "stone-cladding-slate-black",
+    "name": "Stone cladding black slate",
+    "category": "wall",
+    "finish": "split-face",
+    "colorHex": "#3B3B3D",
+    "priceInrPerSqm": 1350,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "stone-cladding-cudappah",
+    "name": "Stone cladding Cudappah",
+    "category": "wall",
+    "finish": "honed",
+    "colorHex": "#3E4244",
+    "priceInrPerSqm": 850,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding",
+      "wall.feature"
+    ]
+  },
+  {
+    "id": "concrete-wall-smooth",
+    "name": "Exposed concrete smooth",
+    "category": "wall",
+    "finish": "sealed",
+    "colorHex": "#B0AEA9",
+    "priceInrPerSqm": 780,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding",
+      "wall.feature",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "concrete-wall-board-formed",
+    "name": "Exposed concrete board-formed",
+    "category": "wall",
+    "finish": "board-formed",
+    "colorHex": "#A8A6A0",
+    "priceInrPerSqm": 1250,
+    "surfaceGroups": [
+      "wall.exterior",
+      "facade.cladding",
+      "wall.feature",
+      "ceiling.interior"
+    ]
+  },
+  {
+    "id": "wall-tile-white-subway",
+    "name": "Wall tile white subway",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#F5F5F3",
+    "priceInrPerSqm": 620,
+    "surfaceGroups": [
+      "wall.bath",
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "wall-tile-grey-300x600",
+    "name": "Wall tile grey 300 × 600",
+    "category": "wall",
+    "finish": "matte",
+    "colorHex": "#C6C7C8",
+    "priceInrPerSqm": 680,
+    "surfaceGroups": [
+      "wall.bath",
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "wall-tile-beige-300x600",
+    "name": "Wall tile beige 300 × 600",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#E0D5C2",
+    "priceInrPerSqm": 680,
+    "surfaceGroups": [
+      "wall.bath",
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "wall-tile-patterned-300",
+    "name": "Wall tile patterned 300",
+    "category": "wall",
+    "finish": "glossy",
+    "colorHex": "#C9D6D3",
+    "priceInrPerSqm": 820,
+    "surfaceGroups": [
+      "wall.bath",
+      "wall.kitchen"
+    ]
+  },
+  {
+    "id": "wood-panel-teak-veneer",
+    "name": "Wood panelling teak veneer",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#93643C",
+    "priceInrPerSqm": 2200,
+    "surfaceGroups": [
+      "wall.feature",
+      "wall.interior"
+    ]
+  },
+  {
+    "id": "wood-panel-walnut-veneer",
+    "name": "Wood panelling walnut veneer",
+    "category": "wall",
+    "finish": "natural",
+    "colorHex": "#5E4029",
+    "priceInrPerSqm": 2600,
+    "surfaceGroups": [
+      "wall.feature",
+      "wall.interior"
+    ]
+  },
+  {
+    "id": "wood-panel-fluted-mdf",
+    "name": "Wood panelling fluted MDF",
+    "category": "wall",
+    "finish": "coated",
+    "colorHex": "#B9A184",
+    "priceInrPerSqm": 1800,
+    "surfaceGroups": [
+      "wall.feature",
+      "wall.interior"
+    ]
+  },
+  {
+    "id": "glazing-float-clear-6",
+    "name": "Float glass clear 6 mm",
+    "category": "glazing",
+    "finish": "clear",
+    "colorHex": "#D6E4E8",
+    "priceInrPerSqm": 480,
+    "surfaceGroups": [
+      "window.glazing",
+      "facade.glazing"
+    ]
+  },
+  {
+    "id": "glazing-float-tinted-6",
+    "name": "Float glass tinted 6 mm",
+    "category": "glazing",
+    "finish": "tinted",
+    "colorHex": "#8FA5A8",
+    "priceInrPerSqm": 620,
+    "surfaceGroups": [
+      "window.glazing",
+      "facade.glazing"
+    ]
+  },
+  {
+    "id": "glazing-float-frosted-6",
+    "name": "Float glass frosted 6 mm",
+    "category": "glazing",
+    "finish": "frosted",
+    "colorHex": "#DCE3E3",
+    "priceInrPerSqm": 680,
+    "surfaceGroups": [
+      "window.glazing",
+      "facade.glazing"
+    ]
+  },
+  {
+    "id": "glazing-float-dgu-24",
+    "name": "Float glass DGU 24 mm",
+    "category": "glazing",
+    "finish": "clear",
+    "colorHex": "#CFE0E5",
+    "priceInrPerSqm": 2200,
+    "surfaceGroups": [
+      "window.glazing",
+      "facade.glazing"
+    ]
+  },
+  {
+    "id": "glazing-float-toughened-10",
+    "name": "Float glass toughened 10 mm",
+    "category": "glazing",
+    "finish": "clear",
+    "colorHex": "#D2E2E6",
+    "priceInrPerSqm": 1450,
+    "surfaceGroups": [
+      "window.glazing",
+      "facade.glazing"
+    ]
+  },
+  {
+    "id": "frame-upvc-white",
+    "name": "Window frame uPVC, white",
+    "category": "joinery",
+    "finish": "coated",
+    "colorHex": "#F0F0EE",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "window.frame"
+    ]
+  },
+  {
+    "id": "frame-aluminium-anodised",
+    "name": "Window frame aluminium, anodised",
+    "category": "joinery",
+    "finish": "anodised",
+    "colorHex": "#9EA1A3",
+    "priceInrPerSqm": 1250,
+    "surfaceGroups": [
+      "window.frame"
+    ]
+  },
+  {
+    "id": "frame-aluminium-powder",
+    "name": "Window frame aluminium, powder-coated",
+    "category": "joinery",
+    "finish": "powder-coated",
+    "colorHex": "#4A4C4E",
+    "priceInrPerSqm": 1350,
+    "surfaceGroups": [
+      "window.frame"
+    ]
+  },
+  {
+    "id": "frame-teak",
+    "name": "Window frame teak",
+    "category": "joinery",
+    "finish": "sealed",
+    "colorHex": "#8E6039",
+    "priceInrPerSqm": 3200,
+    "surfaceGroups": [
+      "window.frame"
+    ]
+  },
+  {
+    "id": "door-flush-laminate-white",
+    "name": "Flush door laminate, white",
+    "category": "joinery",
+    "finish": "laminated",
+    "colorHex": "#EFEEEA",
+    "priceInrPerSqm": 1450,
+    "surfaceGroups": [
+      "door.internal"
+    ]
+  },
+  {
+    "id": "door-flush-laminate-walnut",
+    "name": "Flush door laminate, walnut",
+    "category": "joinery",
+    "finish": "laminated",
+    "colorHex": "#6B4830",
+    "priceInrPerSqm": 1550,
+    "surfaceGroups": [
+      "door.internal"
+    ]
+  },
+  {
+    "id": "door-flush-veneer-teak",
+    "name": "Flush door veneer, teak",
+    "category": "joinery",
+    "finish": "natural",
+    "colorHex": "#8E6039",
+    "priceInrPerSqm": 2600,
+    "surfaceGroups": [
+      "door.internal"
+    ]
+  },
+  {
+    "id": "railing-ms-painted",
+    "name": "Railing MS, painted",
+    "category": "railing",
+    "finish": "coated",
+    "colorHex": "#3D3F41",
+    "priceInrPerSqm": 1400,
+    "surfaceGroups": [
+      "railing.balcony",
+      "railing.stair"
+    ]
+  },
+  {
+    "id": "railing-ss-brushed",
+    "name": "Railing SS, brushed",
+    "category": "railing",
+    "finish": "brushed",
+    "colorHex": "#A9ACAE",
+    "priceInrPerSqm": 3200,
+    "surfaceGroups": [
+      "railing.balcony",
+      "railing.stair"
+    ]
+  },
+  {
+    "id": "railing-glass-ss",
+    "name": "Railing glass with SS",
+    "category": "railing",
+    "finish": "clear",
+    "colorHex": "#CBDCE0",
+    "priceInrPerSqm": 4500,
+    "surfaceGroups": [
+      "railing.balcony",
+      "railing.stair"
+    ]
+  },
+  {
+    "id": "railing-wrought-iron",
+    "name": "Railing wrought iron",
+    "category": "railing",
+    "finish": "coated",
+    "colorHex": "#2E2F31",
+    "priceInrPerSqm": 2200,
+    "surfaceGroups": [
+      "railing.balcony",
+      "railing.stair"
+    ]
+  },
+  {
+    "id": "roof-mangalore-tile",
+    "name": "Roofing Mangalore tile",
+    "category": "roof",
+    "finish": "natural",
+    "colorHex": "#A4593C",
+    "priceInrPerSqm": 850,
+    "surfaceGroups": [
+      "roof.pitched",
+      "roof.flat"
+    ]
+  },
+  {
+    "id": "roof-clay-tile",
+    "name": "Roofing clay tile",
+    "category": "roof",
+    "finish": "natural",
+    "colorHex": "#9E5238",
+    "priceInrPerSqm": 950,
+    "surfaceGroups": [
+      "roof.pitched",
+      "roof.flat"
+    ]
+  },
+  {
+    "id": "roof-metal-standing-seam",
+    "name": "Roofing metal standing seam",
+    "category": "roof",
+    "finish": "coated",
+    "colorHex": "#7E8285",
+    "priceInrPerSqm": 1650,
+    "surfaceGroups": [
+      "roof.pitched",
+      "roof.flat"
+    ]
+  },
+  {
+    "id": "roof-china-mosaic",
+    "name": "Roofing china mosaic",
+    "category": "roof",
+    "finish": "textured",
+    "colorHex": "#E4E4DF",
+    "priceInrPerSqm": 420,
+    "surfaceGroups": [
+      "roof.pitched",
+      "roof.flat"
+    ]
+  },
+  {
+    "id": "roof-brick-bat-coba",
+    "name": "Roofing brick bat coba",
+    "category": "roof",
+    "finish": "textured",
+    "colorHex": "#A9705A",
+    "priceInrPerSqm": 380,
+    "surfaceGroups": [
+      "roof.pitched",
+      "roof.flat"
+    ]
   }
 ]

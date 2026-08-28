@@ -1,12 +1,12 @@
 {
-  "$comment": "Manifest for fixtures/catalog. Written by hand; counts are asserted by apps/api/tests/test_catalog_fixtures.py, so a file edited without updating this manifest fails CI.",
+  "$comment": "Manifest for fixtures/catalog. Written by hand; counts are asserted by apps/api/tests/test_catalog_fixtures.py, so a file edited without updating this manifest fails CI. furniture.json and materials.json are part hand-authored and part expanded from the parametric families in scripts/expand_catalog.py, which is append-only and idempotent — it never rewrites a row that already exists.",
   "schemaVersion": 1,
   "units": "integer millimetres; money in whole rupees",
   "files": [
     {
       "name": "furniture.json",
       "shape": "array of CatalogItemOut (garh_api/routers/catalog.py)",
-      "count": 229,
+      "count": 469,
       "minimum": 30,
       "requiredKeys": [
         "id",
@@ -22,18 +22,38 @@
     {
       "name": "materials.json",
       "shape": "array of MaterialOut",
-      "count": 97,
+      "count": 184,
       "minimum": 20,
-      "requiredKeys": ["id", "name", "category", "surfaceGroups"]
+      "requiredKeys": [
+        "id",
+        "name",
+        "category",
+        "surfaceGroups"
+      ]
     },
     {
       "name": "facade-kits.json",
       "shape": "array of FacadeKitOut",
       "count": 2,
       "minimum": 2,
-      "requiredKeys": ["id", "name", "description", "components", "colorways", "rules"]
+      "requiredKeys": [
+        "id",
+        "name",
+        "description",
+        "components",
+        "colorways",
+        "rules"
+      ]
     }
   ],
-  "roomTypesWithoutFurniture": ["duct", "shaft", "unassigned", "void"],
-  "facadeKitIds": ["contemporary", "modern-minimal"]
+  "roomTypesWithoutFurniture": [
+    "duct",
+    "shaft",
+    "unassigned",
+    "void"
+  ],
+  "facadeKitIds": [
+    "contemporary",
+    "modern-minimal"
+  ]
 }
