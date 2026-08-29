@@ -40,16 +40,21 @@ export type {
   SheetContentResponse as SheetContent,
   SheetSetResponse as SheetSet,
   SheetSetSummaryResponse as SheetSetSummary,
+  ProjectSubmissionResponse as ProjectSubmission,
+  SubmissionReadinessResponse as SubmissionReadiness,
+  SubmissionTemplateResponse as SubmissionTemplate,
   TitleBlockValue as TitleBlock,
 } from '../../lib/schemas';
 
 import type {
   DownloadLink,
   DrawingPreferencesResponse,
+  ProjectSubmissionResponse,
   ReviewTrayResponse,
   SheetContentResponse,
   SheetSetResponse,
   SheetSetSummaryResponse,
+  SubmissionReadinessResponse,
 } from '../../lib/schemas';
 
 // ---------------------------------------------------------------------------
@@ -237,4 +242,40 @@ export function elementLabel(elementId: string): string {
   const suffix = elementId.slice(underscore + 1);
   const pretty = kind.charAt(0).toUpperCase() + kind.slice(1);
   return `${pretty} · ${suffix.slice(-6)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Submission templates (D-4)
+// ---------------------------------------------------------------------------
+
+/** This project's authority and its statutory identifiers, plus the city's options. */
+export function fetchProjectSubmission(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<ProjectSubmissionResponse> {
+  return api.sheets.submission(projectId, signal ? { signal } : {});
+}
+
+/**
+ * Save the authority and its identifiers.
+ *
+ * Replaces rather than merges, deliberately — switching a project from BBMP to BDA
+ * must not carry a khata number across onto a set going to a different desk.
+ */
+export function saveProjectSubmission(
+  projectId: string,
+  input: { authority: string | null; fields: Record<string, string> },
+): Promise<ProjectSubmissionResponse> {
+  return api.sheets.saveSubmission(projectId, input);
+}
+
+/** What still stands between this set and the counter. */
+export function fetchSubmissionReadiness(
+  projectId: string,
+  options: { authority?: string | null; signal?: AbortSignal } = {},
+): Promise<SubmissionReadinessResponse> {
+  return api.sheets.submissionReadiness(projectId, {
+    ...(options.authority ? { authority: options.authority } : {}),
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
 }

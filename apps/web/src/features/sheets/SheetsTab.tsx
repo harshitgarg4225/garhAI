@@ -44,6 +44,7 @@ import {
 import { ReviewTray } from './ReviewTray';
 import { SheetThumbnail } from './SheetThumbnail';
 import { SheetViewer } from './SheetViewer';
+import { SubmissionPanel } from './SubmissionPanel';
 import { TitleBlockEditor } from './TitleBlockEditor';
 
 export function SheetsTab(): JSX.Element {
@@ -238,6 +239,10 @@ export function SheetsTab(): JSX.Element {
       </header>
 
       {showTitleBlock ? <TitleBlockEditor className="mt-4" /> : null}
+
+      {/* D-4. Sits above the set rather than below it: what a municipal desk wants is
+          something to settle BEFORE generating, not a verdict after. */}
+      <SubmissionPanel projectId={project.id} className="mt-4" />
 
       {/* ── set-level truth ────────────────────────────────────────────── */}
       {summary && summary.sheetCount > 0 ? (

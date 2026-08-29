@@ -69,7 +69,10 @@ import {
   sessionSchema,
   sheetContentSchema,
   sheetSetSchema,
+  projectSubmissionSchema,
   sheetSummarySchema,
+  submissionReadinessSchema,
+  submissionTemplateListSchema,
   shareLinkSchema,
   versionRestoreSchema,
   versionSchema,
@@ -108,7 +111,10 @@ import {
   type SheetAnnotationResponse,
   type SheetContentResponse,
   type SheetSetResponse,
+  type ProjectSubmissionResponse,
   type SheetSetSummaryResponse,
+  type SubmissionReadinessResponse,
+  type SubmissionTemplateListResponse,
   type Version,
   type VersionRestore,
 } from './schemas';
@@ -1308,6 +1314,62 @@ export function createApiClient(client: HttpClient = http) {
         client.request({
           path: projectPath(projectId, `/sheets/${encodeURIComponent(sheetId)}/annotations`),
           parse: parser(z.array(annotationSchema)),
+          ...(options.signal === undefined ? {} : { signal: options.signal }),
+        }),
+
+      /**
+       * What each sanctioning authority wants of a set (D-4).
+       *
+       * Returns a LIST, never one template: Bengaluru has two authorities under one
+       * rule pack, and a caller that took the first would show half the city the wrong
+       * checklist.
+       */
+      submissionTemplates: (
+        options: CallOptions & { cityPack?: string | null } = {},
+      ): Promise<SubmissionTemplateListResponse> =>
+        client.request({
+          path: '/submission-templates',
+          query: { cityPack: options.cityPack ?? undefined },
+          parse: parser(submissionTemplateListSchema),
+          ...(options.signal === undefined ? {} : { signal: options.signal }),
+        }),
+
+      /** This project's authority and its statutory identifiers. */
+      submission: (
+        projectId: string,
+        options: CallOptions = {},
+      ): Promise<ProjectSubmissionResponse> =>
+        client.request({
+          path: projectPath(projectId, '/submission'),
+          parse: parser(projectSubmissionSchema),
+          ...(options.signal === undefined ? {} : { signal: options.signal }),
+        }),
+
+      saveSubmission: (
+        projectId: string,
+        input: { authority: string | null; fields: Record<string, string> },
+        options: CallOptions = {},
+      ): Promise<ProjectSubmissionResponse> =>
+        client.request({
+          method: 'PUT',
+          path: projectPath(projectId, '/submission'),
+          body: input,
+          parse: parser(projectSubmissionSchema),
+          ...options,
+        }),
+
+      /** What still stands between this set and the municipal counter. */
+      submissionReadiness: (
+        projectId: string,
+        options: CallOptions & { authority?: string | null; version?: string | null } = {},
+      ): Promise<SubmissionReadinessResponse> =>
+        client.request({
+          path: projectPath(projectId, '/sheets/submission-readiness'),
+          query: {
+            authority: options.authority ?? undefined,
+            version: options.version ?? undefined,
+          },
+          parse: parser(submissionReadinessSchema),
           ...(options.signal === undefined ? {} : { signal: options.signal }),
         }),
 

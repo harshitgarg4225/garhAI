@@ -998,6 +998,92 @@ export const sheetSummarySchema = z.object({
 });
 export type SheetSetSummaryResponse = z.infer<typeof sheetSummarySchema>;
 
+// ---------------------------------------------------------------------------
+// Submission templates (D-4)
+// ---------------------------------------------------------------------------
+
+/**
+ * One authority's expectations of a drawing set.
+ *
+ * `confidence` and `review` are not decoration and must never be dropped on the way to
+ * a screen: not one of these templates has been checked against a published municipal
+ * checklist, and a UI that showed "BBMP ✓" without saying so would be selling an
+ * assurance this product cannot give.
+ */
+export const submissionTemplateSchema = z.object({
+  authority: z.string(),
+  cityPack: z.string(),
+  title: z.string(),
+  shortTitle: z.string(),
+  citation: z.string(),
+  confidence: z.string(),
+  review: z.string(),
+  verify: z.string().default(''),
+  paper: z.string(),
+  scaleDenominator: z.number().int(),
+  sheets: z
+    .array(
+      z.object({
+        kind: z.string(),
+        required: z.boolean().default(true),
+        note: z.string().default(''),
+      }),
+    )
+    .default([]),
+  statutoryFields: z
+    .array(
+      z.object({
+        key: z.string(),
+        label: z.string(),
+        required: z.boolean().default(true),
+        note: z.string().default(''),
+      }),
+    )
+    .default([]),
+  declarations: z.array(z.string()).default([]),
+});
+export type SubmissionTemplateResponse = z.infer<typeof submissionTemplateSchema>;
+
+/** `GET /submission-templates`. */
+export const submissionTemplateListSchema = z.object({
+  templates: z.array(submissionTemplateSchema).default([]),
+});
+export type SubmissionTemplateListResponse = z.infer<typeof submissionTemplateListSchema>;
+
+/** `GET|PUT /projects/:id/submission` — the authority and its statutory identifiers. */
+export const projectSubmissionSchema = z.object({
+  authority: z.string().nullable().default(null),
+  fields: z.record(z.string()).default({}),
+  /** Every authority for this project's rule pack. Bengaluru returns two. */
+  available: z.array(submissionTemplateSchema).default([]),
+});
+export type ProjectSubmissionResponse = z.infer<typeof projectSubmissionSchema>;
+
+/**
+ * `GET /projects/:id/sheets/submission-readiness`.
+ *
+ * `ready` means the set contains what the template asks for. It never means the set
+ * will be sanctioned — which is why `confidence` and `review` ride along with it.
+ */
+export const submissionReadinessSchema = z.object({
+  projectId: id,
+  authority: z.string().nullable().default(null),
+  title: z.string().default(''),
+  ready: z.boolean().default(false),
+  shortfalls: z
+    .array(z.object({ kind: z.string(), what: z.string(), detail: z.string() }))
+    .default([]),
+  advisories: z.array(z.string()).default([]),
+  satisfied: z.number().int().default(0),
+  total: z.number().int().default(0),
+  confidence: z.string().default('seed'),
+  review: z.string().default('unreviewed'),
+  verify: z.string().default(''),
+  /** Non-empty when no authority is chosen and the city offers more than one. */
+  chooseFrom: z.array(z.string()).default([]),
+});
+export type SubmissionReadinessResponse = z.infer<typeof submissionReadinessSchema>;
+
 /** `GET /projects/:id/sheets/:sid/content` — the viewer's SVG, already sanitised. */
 export const sheetContentSchema = z.object({
   sheetId: id,
