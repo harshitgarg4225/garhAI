@@ -11,9 +11,12 @@
  * So a paste is not `selection.paste`; it is a group of `wall.add`,
  * `opening.add`, `stair.add`, `column.set`, `furniture.set`, `balcony.set` and
  * `room.assign` — nine op types, all already in §4, all already folded and
- * golden-tested on both sides. A mirror in place is the same list expressed
- * with `wall.move`, `opening.flip`, `stair.edit` and the `move`/`transform`/
- * `edit` actions of the combined ops.
+ * golden-tested on both sides. A mirror IN PLACE is the same list again: the
+ * walls are deleted and re-added at their reflected coordinates, keeping their
+ * original ids, because the fold has no `wall.move` and no `opening.flip` to
+ * reach for. (An earlier draft of this comment claimed it used exactly those two
+ * ops. It never did — neither is emitted by either twin, and `wall.move` is the
+ * op §850 below explains a mirror cannot use.)
  *
  * What IS new, and is therefore what the cross-language fixture pins, is this
  * module: two planners that must emit the SAME op list, key for key, for the
@@ -465,6 +468,23 @@ export interface MirrorRequest extends TransformRequestBase {
 
 /** Total instances an array may produce, original included. */
 export const MAX_ARRAY_INSTANCES = 400;
+
+/**
+ * Total ELEMENTS an array may emit — copies times the size of the selection.
+ *
+ * The instance cap alone bounds the wrong thing. `buildPlan` folds every emitted
+ * op serially on a fork, and each `wall.add` re-runs room detection over a house
+ * that is growing as it goes, so the cost is superlinear in the number of
+ * ELEMENTS and barely sees the instance count. Measured on the four-wall demo
+ * plan: 32 ops 0.14 s, 96 ops 1.48 s, 192 ops 8.41 s, 396 ops 59.6 s. A 20x20
+ * array of a four-wall selection is comfortably INSIDE the instance cap and is
+ * about 1,600 folds — a frozen tab, refused by nothing.
+ *
+ * 120 holds the worst case near two seconds while still allowing the arrays
+ * people actually draw: a single column 10x10, a parking bay repeated down a
+ * row, a four-wall module arrayed 5x6.
+ */
+export const MAX_ARRAY_ELEMENTS = 120;
 
 export interface TransformPlan {
   /** Dispatch as ONE group: `applyGroup(doc, plan.ops, plan.groupId)`. */
@@ -990,7 +1010,17 @@ function roomHasTarget(room: Room): boolean {
  * back. Keying on "is this id new?" would have been right for the copy and
  * silently wrong for the mirror.
  */
-function roomMetadataOps(
+/**
+ * Exported for its own test, and for no other caller.
+ *
+ * The blank-room guard inside cannot be reached through the public API — a paste
+ * whose copy lands on an existing room needs walls at the same coordinates, and
+ * the fold rejects those as WALL_DUPLICATE first — so the guard is defensive and
+ * has to be tested at the level where it CAN fail. The Python twin's test imports
+ * `_room_metadata_ops` for exactly the same reason; keeping both twins testable
+ * the same way is worth one exported internal.
+ */
+export function roomMetadataOps(
   before: HouseModel,
   after: HouseModel,
   sourceStoreyId: string,
@@ -1264,6 +1294,20 @@ export function planArray(doc: ProjectDoc, req: ArrayRequest): TransformPlanResu
   if (req.countX * req.countY === 1) {
     return refuse('count-out-of-range', 'An array of one is the original — raise a count above 1.');
   }
+
+  // The cap that actually bounds the work. See MAX_ARRAY_ELEMENTS: the instance
+  // count says almost nothing about how long this will take, because what costs is
+  // the number of elements folded, and one instance of a four-wall module is four
+  // of them.
+  const emitted = (req.countX * req.countY - 1) * totalSelected(selectionCounts(sel));
+  if (emitted > MAX_ARRAY_ELEMENTS) {
+    return refuse(
+      'count-out-of-range',
+      `That array would add ${String(emitted)} elements and at most ${String(
+        MAX_ARRAY_ELEMENTS,
+      )} are allowed — array a smaller selection, or fewer copies of this one.`,
+    );
+  }
   // Same reasoning as the zero-offset guard in `planPaste`, and it bites harder
   // here: a 12-count array with zero spacing puts twelve columns on one point.
   if ((req.countX > 1 && req.spacingXMm === 0) || (req.countY > 1 && req.spacingYMm === 0)) {
@@ -1334,6 +1378,40 @@ export function planMirror(doc: ProjectDoc, req: MirrorRequest): TransformPlanRe
   }
 
   const m = reflectionMap(req.axis, twiceAt);
+
+  // A mirror that maps the selection onto ITSELF stacks the copy exactly on the
+  // original — the same defect `planPaste` guards, arriving by a different route.
+  // `isIdentityMap` cannot see it: a reflection is never the identity, yet a
+  // selection symmetric about the axis is carried onto its own point set.
+  //
+  // This is not an exotic case, it is the DEFAULT one. With `atMm` absent the
+  // axis is put through the selection's own centre, so any symmetric selection —
+  // the usual two columns, a wall pair, a mirrored bathroom block — reflects onto
+  // itself. The fold rejects a duplicate wall (WALL_DUPLICATE) but nothing forbids
+  // two columns at one point, so without this the structural count and the
+  // schedule silently double.
+  //
+  // Compared as a multiset over the whole selection, deliberately. A selection
+  // that is only PARTLY symmetric (one column on the axis, one off it) is allowed
+  // through and its on-axis member does stack — refusing the entire mirror because
+  // one element sits on the axis would be the worse failure, and the architect can
+  // see that one.
+  if (keepOriginal && target.storeyId === sel.storeyId) {
+    const points = selectionPoints(sel);
+    if (points.length > 0) {
+      const key = (q: Pt): string => `${q.x},${q.y}`;
+      const here = points.map(key).sort();
+      const there = points.map((q) => key(mapPt(m, q))).sort();
+      if (here.every((value, index) => value === there[index])) {
+        return refuse(
+          'zero-offset',
+          'This selection is symmetric about that axis, so the mirrored copy would land ' +
+            'exactly on the original — move the axis, or mirror onto another storey.',
+        );
+      }
+    }
+  }
+
   const axisLabel = req.axis === 'vertical' ? 'vertically' : 'horizontally';
 
   if (!keepOriginal) {

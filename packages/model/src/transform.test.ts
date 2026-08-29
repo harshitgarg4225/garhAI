@@ -43,7 +43,9 @@ import {
   planArray,
   planMirror,
   planPaste,
+  MAX_ARRAY_ELEMENTS,
   reflectionMap,
+  roomMetadataOps,
   translationMap,
 } from './transform';
 import type {
@@ -766,7 +768,7 @@ describe('folded behaviour', () => {
     expect(types).toEqual(['kitchen', 'kitchen', 'living', 'living']);
   });
 
-  it('never renames a room that already has a name', () => {
+  it("leaves the target storey's named rooms alone", () => {
     // The carry-over only touches rooms that come out of the fold BLANK. Give
     // the target storey a named room first and prove the paste leaves it alone.
     const doc = makeTwoRoomPlan();
@@ -1082,5 +1084,131 @@ describe('golden transforms (fixtures/model/golden-transforms.json)', () => {
       expect(mirrored.payload.swing).toBe('out-left');
       expect(mirrored.payload.offsetMm).toBe(1500);
     }
+  });
+});
+
+// ===========================================================================
+// Mirroring a symmetric selection onto itself — the Python twin's
+// test_mirroring_a_symmetric_selection_about_its_own_centre_is_refused
+// ===========================================================================
+describe('mirror onto itself', () => {
+  it('refuses a symmetric selection mirrored about its own centre', () => {
+    // The default axis runs through the selection's centre, which is the trap. A
+    // reflection is never the identity map, so `isIdentityMap` cannot see this —
+    // but a symmetric selection is carried onto its own point set, and with
+    // `keepOriginal` the copy lands exactly on the original. The fold rejects a
+    // duplicate wall; nothing at all forbids two columns at one point.
+    const doc = makeTwoRoomPlanWithOpenings();
+    for (const axis of ['vertical', 'horizontal'] as const) {
+      const result = planMirror(doc, { elementIds: WALLS, groupId: GROUP, axis });
+      expect(result.ok).toBe(false);
+      if (result.ok) continue;
+      expect(result.refusal.reason).toBe('zero-offset');
+    }
+  });
+
+  it('still allows the same selection mirrored off-centre', () => {
+    // The negative control: the guard must refuse the stacking case and ONLY the
+    // stacking case. One that refused every mirror would pass the test above
+    // while making the feature useless.
+    const result = planMirror(makeTwoRoomPlanWithOpenings(), {
+      elementIds: WALLS,
+      groupId: GROUP,
+      axis: 'vertical',
+      atMm: 99_000,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.plan.ops.length).toBeGreaterThan(0);
+  });
+
+  it('leaves mirror-in-place alone, symmetric or not', () => {
+    // `keepOriginal: false` MOVES the originals — there is no copy to stack, so a
+    // symmetric selection must still flip. Guarding it would break the Vastu
+    // "flip the plan" gesture.
+    const result = planMirror(makeTwoRoomPlanWithOpenings(), {
+      elementIds: WALLS,
+      groupId: GROUP,
+      axis: 'vertical',
+      keepOriginal: false,
+    });
+    expect(result.ok).toBe(true);
+  });
+});
+
+// The Python twin's test_the_carry_over_refuses_to_overwrite_a_room_that_already_has_a_name.
+describe('room metadata carry-over', () => {
+  it('refuses to overwrite a room that already has a name', () => {
+    // Tested against the internal, because the collision the guard exists for
+    // cannot be built through the public API: a paste whose copy lands on an
+    // existing room needs walls at the same coordinates, and the fold rejects
+    // those as WALL_DUPLICATE first. The guard is defensive; this is the level at
+    // which it can actually go red, and it does.
+    const ground = fixedId('storey', 'GF2');
+    const first = fixedId('storey', 'FF2');
+    const square = [
+      { x: 0, y: 0 },
+      { x: 4000, y: 0 },
+      { x: 4000, y: 4000 },
+      { x: 0, y: 4000 },
+    ] as const;
+
+    const room = (id: string, storeyId: string, name: string, type: string) =>
+      ({
+        id,
+        storeyId,
+        type,
+        name,
+        polygon: square,
+        areaMm2: 4000 * 4000,
+        tags: [],
+        locked: false,
+        targetAreaMm2: null,
+        mustFace: null,
+      }) as never;
+
+    const source = room(fixedId('room', 'SRC2'), ground, 'Living', 'living');
+    // Same polygon on the target storey, and ALREADY NAMED by the architect.
+    const target = room(fixedId('room', 'TGT2'), first, 'Pooja', 'pooja');
+
+    const base = makeTwoRoomPlan().house;
+    const before = { ...base, rooms: [source] } as never;
+    const after = { ...base, rooms: [source, target] } as never;
+
+    const result = roomMetadataOps(before, after, ground, first, [IDENTITY_MAP]);
+    expect(result.carried).toBe(0);
+    expect(result.ops).toEqual([]);
+  });
+});
+
+// The Python twin's test_the_array_cap_bounds_the_WORK_not_the_instance_count.
+describe('array work cap', () => {
+  it('bounds the work, not the instance count', () => {
+    // MAX_ARRAY_INSTANCES alone let a frozen tab straight through: `buildPlan`
+    // folds every emitted op serially on a fork and each `wall.add` re-runs room
+    // detection over a growing house, so the cost tracks ELEMENTS. A 20x20 array
+    // of a four-wall selection is ~1,600 folds and sat comfortably inside the
+    // 400-instance cap — measured at 59.6 s for 396 ops.
+    const doc = makeTwoRoomPlanWithOpenings();
+    const array = (count: number) =>
+      planArray(doc, {
+        elementIds: WALLS,
+        groupId: GROUP,
+        countX: count,
+        countY: count,
+        spacingXMm: 12_000,
+        spacingYMm: 12_000,
+      });
+
+    expect(array(3).ok).toBe(true);
+
+    const big = array(20);
+    expect(big.ok).toBe(false);
+    if (big.ok) return;
+    expect(big.refusal.reason).toBe('count-out-of-range');
+    expect(big.refusal.message).toContain('elements');
+    // The point of the fix: the instance cap alone would NOT have caught it.
+    expect(20 * 20).toBeLessThanOrEqual(MAX_ARRAY_INSTANCES);
+    expect(MAX_ARRAY_ELEMENTS).toBeLessThan(20 * 20);
   });
 });

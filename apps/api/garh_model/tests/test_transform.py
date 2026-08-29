@@ -16,6 +16,7 @@ file red.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from typing import Any
 
 import pytest
@@ -29,7 +30,7 @@ from garh_model.fold import (
     state_hash,
 )
 from garh_model.geometry import Pt
-from garh_model.model import ProjectDoc, empty_project_doc
+from garh_model.model import HouseModel, ProjectDoc, Room, empty_project_doc
 from garh_model.ops import Op, op
 from garh_model.testing import (
     FIXTURE_IDS,
@@ -47,6 +48,7 @@ from garh_model.transform import (
     SelectionCounts,
     TransformPlan,
     TransformPlanResult,
+    _room_metadata_ops,
     describe_selection,
     is_reflection,
     map_direction,
@@ -782,7 +784,7 @@ def test_room_names_travel_onto_the_copies() -> None:
     assert sorted(r.type for r in after.house.rooms) == ["kitchen", "kitchen", "living", "living"]
 
 
-def test_never_renames_a_room_that_already_has_a_name() -> None:
+def test_a_paste_leaves_the_target_storeys_named_rooms_alone() -> None:
     # The carry-over only touches rooms that come out of the fold BLANK. Give the
     # target storey named rooms first and prove the paste leaves them alone.
     doc = make_two_room_plan()
@@ -793,12 +795,21 @@ def test_never_renames_a_room_that_already_has_a_name() -> None:
         ],
         doc,
     )
+    # EXACT names, not "non-empty" and not a count of rooms called Living. Both of
+    # those assertions stayed TRUE with the blank-room guard deleted — the
+    # carry-over overwrote a named room with a different name and every assertion
+    # here still passed. A test that cannot fail is worse than no test, and this
+    # one could not.
+    original = {room.id: room.name for room in named.house.rooms}
     plan = expect_plan(_paste_plan(named))
     after = apply_group(named, plan.ops, plan.group_id).model
-    assert len([r for r in after.house.rooms if r.name == "Living"]) == 2
-    for room_id in (named.house.rooms[0].id, named.house.rooms[1].id):
+
+    for room_id, name in original.items():
         room = next(r for r in after.house.rooms if r.id == room_id)
-        assert room.name != ""
+        assert room.name == name, "paste renamed %s from %r to %r" % (room_id, name, room.name)
+
+    # ...and the carry-over still did its job on the rooms that WERE blank.
+    assert len([r for r in after.house.rooms if r.name == "Living"]) == 2
 
 
 def test_a_plan_is_idempotent_for_a_group_id_and_differs_for_another() -> None:
@@ -1002,3 +1013,136 @@ def test_the_corpus_rests_on_the_door_it_says_it_rests_on(
     )
     assert mirrored["payload"]["swing"] == "out-left"
     assert mirrored["payload"]["offsetMm"] == 1500
+
+
+# ===========================================================================
+# Mirroring a symmetric selection onto itself
+# ===========================================================================
+def test_mirroring_a_symmetric_selection_about_its_own_centre_is_refused() -> None:
+    """The default axis runs through the selection's centre, which is the trap.
+
+    A reflection is never the identity map, so ``is_identity_map`` cannot see this
+    — but a selection symmetric about the axis is carried onto its own point set,
+    and with ``keep_original`` the copy lands exactly on the original. The fold
+    rejects a duplicate wall, and nothing at all forbids two columns at one point,
+    so before this guard the structural count and the schedule silently doubled.
+    """
+    doc = make_two_room_plan_with_openings()
+    ids = [w.id for w in doc.house.walls]
+
+    for axis in ("vertical", "horizontal"):
+        result = plan_mirror(doc, MirrorRequest(element_ids=ids, axis=axis, group_id="g"))
+        assert not result.ok, "%s mirror about the selection centre must refuse" % axis
+        assert result.refusal is not None
+        assert result.refusal.reason == "zero-offset"
+
+
+def test_an_off_centre_mirror_of_the_same_selection_is_still_allowed() -> None:
+    """The negative control for the guard above: it must refuse the stacking case
+    and ONLY the stacking case. A guard that refused every mirror would pass the
+    test above while making the feature useless."""
+    doc = make_two_room_plan_with_openings()
+    ids = [w.id for w in doc.house.walls]
+
+    result = plan_mirror(
+        doc, MirrorRequest(element_ids=ids, axis="vertical", at_mm=99_000, group_id="g")
+    )
+    assert result.ok, result.refusal
+    assert result.plan is not None
+    assert result.plan.ops, "an off-centre mirror must still produce ops"
+
+
+def test_mirroring_in_place_is_unaffected_by_the_stacking_guard() -> None:
+    """`keep_original=False` MOVES the originals — there is no copy to stack, so a
+    symmetric selection must still flip. Guarding it would break the Vastu 'flip
+    the plan' gesture the docstring calls out."""
+    doc = make_two_room_plan_with_openings()
+    ids = [w.id for w in doc.house.walls]
+
+    result = plan_mirror(
+        doc,
+        MirrorRequest(element_ids=ids, axis="vertical", keep_original=False, group_id="g"),
+    )
+    assert result.ok, result.refusal
+
+
+def test_the_carry_over_refuses_to_overwrite_a_room_that_already_has_a_name() -> None:
+    """The blank-room guard in ``_room_metadata_ops``, tested where it can fail.
+
+    The guard was previously "covered" by a paste test that stayed GREEN with the
+    guard deleted, which is bug class 3 — and no amount of strengthening that test
+    fixes it, because the collision the guard exists for cannot be built through
+    the public API: a paste whose copy lands on an existing room would need walls
+    at the same coordinates, and the fold rejects those as WALL_DUPLICATE first.
+
+    So the guard is DEFENSIVE, and it is tested at the level where it is reachable
+    — the function's own contract. Hand it an ``after`` in which the target storey
+    already holds a named room whose signature matches a mapped source room, and
+    it must emit no ``room.assign`` for that room. Delete the guard and this goes
+    red, which is the whole point.
+    """
+    ground, first = fixed_id("storey", "GF2"), fixed_id("storey", "FF2")
+    square = (Pt(0, 0), Pt(4000, 0), Pt(4000, 4000), Pt(0, 4000))
+
+    def room(room_id: str, storey: str, name: str, room_type: str) -> Room:
+        return Room(
+            id=room_id,
+            storey_id=storey,
+            type=room_type,
+            name=name,
+            polygon=square,
+            area_mm2=4000 * 4000,
+            tags=(),
+            locked=False,
+            target_area_mm2=None,
+            must_face=None,
+        )
+
+    source = room(fixed_id("room", "SRC2"), ground, "Living", "living")
+    # Same polygon on the target storey, and ALREADY NAMED by the architect.
+    target = room(fixed_id("room", "TGT2"), first, "Pooja", "pooja")
+
+    before = HouseModel.from_json({**make_two_room_plan().house.to_json(), "rooms": []})
+    before = replace(before, rooms=(source,))
+    after = replace(before, rooms=(source, target))
+
+    ops, carried = _room_metadata_ops(before, after, ground, first, [IDENTITY_MAP])
+    assert carried == 0, "a named room must not be counted as carried"
+    assert ops == [], "the carry-over must not rename %r" % target.name
+
+
+def test_the_array_cap_bounds_the_WORK_not_the_instance_count() -> None:
+    """MAX_ARRAY_INSTANCES alone let a frozen tab straight through.
+
+    ``_build_plan`` folds every emitted op serially on a fork and each
+    ``wall.add`` re-runs room detection over a growing house, so the cost tracks
+    ELEMENTS, not instances. A 20x20 array of a four-wall selection is 1,600 folds
+    and was comfortably inside the 400-instance cap — measured at 59.6 s for 396
+    ops on this very fixture.
+    """
+    doc = make_two_room_plan_with_openings()
+    ids = [w.id for w in doc.house.walls]
+
+    def array(count: int) -> TransformPlanResult:
+        return plan_array(
+            doc,
+            ArrayRequest(
+                element_ids=ids,
+                group_id=GROUP,
+                count_x=count,
+                count_y=count,
+                spacing_x_mm=12_000,
+                spacing_y_mm=12_000,
+            ),
+        )
+
+    assert array(3).ok, "a 3x3 of this selection is 56 elements and must be allowed"
+
+    big = array(20)
+    assert not big.ok, "a 20x20 is ~2,800 elements and must be refused"
+    assert big.refusal is not None
+    assert big.refusal.reason == "count-out-of-range"
+    assert "elements" in big.refusal.message, "the refusal must name what it bounded"
+    # And the point of the whole fix: the instance cap alone would NOT have caught
+    # it. 20*20 = 400 is exactly at MAX_ARRAY_INSTANCES, not over it.
+    assert MAX_ARRAY_INSTANCES >= 20 * 20

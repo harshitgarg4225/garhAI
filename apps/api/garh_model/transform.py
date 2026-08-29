@@ -11,9 +11,11 @@ is a new fold branch that has to be written twice and can diverge once. So a
 paste is not ``selection.paste``; it is a group of ``wall.add``, ``opening.add``,
 ``stair.add``, ``column.set``, ``furniture.set``, ``balcony.set`` and
 ``room.assign`` — nine op types, all already in section 4, all already folded and
-golden-tested on both sides. A mirror in place is the same list expressed with
-``wall.move``, ``opening.flip``, ``stair.edit`` and the ``move`` / ``transform``
-/ ``edit`` actions of the combined ops.
+golden-tested on both sides. A mirror IN PLACE is the same list again: the walls
+are deleted and re-added at their reflected coordinates, keeping their original
+ids, because the fold has no ``wall.move`` and no ``opening.flip`` to reach for.
+(An earlier draft of this comment claimed it used exactly those two ops. It never
+did — neither is emitted by either twin, and neither exists.)
 
 What IS new — and is therefore what the cross-language fixture pins — is this
 module: two planners that must emit the SAME op list, key for key, for the same
@@ -149,6 +151,7 @@ __all__ = [
     "PasteRequest",
     "ArrayRequest",
     "MirrorRequest",
+    "MAX_ARRAY_ELEMENTS",
     "MAX_ARRAY_INSTANCES",
     "TransformPlan",
     "TransformRefusal",
@@ -446,6 +449,21 @@ TransformKind = Literal["paste", "array", "mirror"]
 
 #: Total instances an array may produce, original included.
 MAX_ARRAY_INSTANCES = 400
+
+#: Total ELEMENTS an array may emit — copies times the size of the selection.
+#:
+#: The instance cap alone bounds the wrong thing. ``_build_plan`` folds every
+#: emitted op serially on a fork, and each ``wall.add`` re-runs room detection
+#: over a house that is growing as it goes, so the cost is superlinear in the
+#: number of ELEMENTS and barely sees the instance count. Measured on the
+#: four-wall demo plan: 32 ops 0.14 s, 96 ops 1.48 s, 192 ops 8.41 s, 396 ops
+#: 59.6 s. A 20x20 array of a four-wall selection is comfortably INSIDE the
+#: instance cap and is about 1,600 folds — a frozen tab, refused by nothing.
+#:
+#: 120 holds the worst case near two seconds while still allowing the arrays
+#: people actually draw: a single column 10x10, a parking bay repeated down a
+#: row, a four-wall module arrayed 5x6.
+MAX_ARRAY_ELEMENTS = 120
 
 
 @dataclass(frozen=True)
@@ -1297,6 +1315,18 @@ def plan_array(doc: ProjectDoc, req: ArrayRequest) -> TransformPlanResult:
         return _refuse(
             "count-out-of-range", "An array of one is the original — raise a count above 1."
         )
+
+    # The cap that actually bounds the work. See MAX_ARRAY_ELEMENTS: the instance
+    # count says almost nothing about how long this will take, because what costs
+    # is the number of elements folded, and one instance of a four-wall module is
+    # four of them.
+    emitted = (req.count_x * req.count_y - 1) * total_selected(_selection_counts(sel))
+    if emitted > MAX_ARRAY_ELEMENTS:
+        return _refuse(
+            "count-out-of-range",
+            f"That array would add {emitted} elements and at most {MAX_ARRAY_ELEMENTS} are "
+            "allowed — array a smaller selection, or fewer copies of this one.",
+        )
     # Same reasoning as the zero-offset guard in :func:`plan_paste`, and it bites
     # harder here: a 12-count array with zero spacing puts twelve columns on one
     # point.
@@ -1374,6 +1404,35 @@ def plan_mirror(doc: ProjectDoc, req: MirrorRequest) -> TransformPlanResult:
         twice_at = 2 * req.at_mm
 
     m = reflection_map(req.axis, twice_at)
+
+    # A mirror that maps the selection onto ITSELF stacks the copy exactly on the
+    # original — the same defect `plan_paste` guards, arriving by a different
+    # route. `is_identity_map` cannot see it: a reflection is never the identity,
+    # yet a selection symmetric about the axis is carried onto its own point set.
+    #
+    # This is not an exotic case, it is the DEFAULT one. With `at_mm=None` the
+    # axis is put through the selection's own centre, so any symmetric selection
+    # — the usual two columns, a wall pair, a mirrored bathroom block — reflects
+    # onto itself. The fold rejects a duplicate wall (WALL_DUPLICATE) but nothing
+    # forbids two columns at one point, so without this the structural count and
+    # the schedule silently double.
+    #
+    # Compared as a multiset over the whole selection, deliberately. A selection
+    # that is only PARTLY symmetric (one column on the axis, one off it) is
+    # allowed through and its on-axis member does stack — refusing the entire
+    # mirror because one element sits on the axis would be the worse failure, and
+    # the architect can see that one.
+    if req.keep_original and target.storey_id == sel.storey_id:
+        points = _selection_points(sel)
+        here = sorted((q.x, q.y) for q in points)
+        there = sorted((r.x, r.y) for r in (map_pt(m, q) for q in points))
+        if points and here == there:
+            return _refuse(
+                "zero-offset",
+                "This selection is symmetric about that axis, so the mirrored copy would land "
+                "exactly on the original — move the axis, or mirror onto another storey.",
+            )
+
     axis_label = "vertically" if req.axis == "vertical" else "horizontally"
     label = f"Mirrored {describe_selection(_selection_counts(sel))} {axis_label}"
 
