@@ -87,6 +87,9 @@ from garh_api.schemas.project import (
     ProjectDetailOut,
     ProjectOut,
     ProjectUpdate,
+    VersionAreaSideOut,
+    VersionChangeOut,
+    VersionCompareOut,
     VersionCreate,
     VersionOut,
     VersionRestoreOut,
@@ -937,6 +940,122 @@ async def restore_version(
         head_idx=head_idx,
         ops_copied=copied,
         state_hash=unwrapped.state_hash,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/versions/compare",
+    response_model=VersionCompareOut,
+    summary="What changed between two versions",
+)
+async def compare_versions(
+    project_id: uuid.UUID,
+    session: SessionDep,
+    ctx: TenantDep,
+    a: uuid.UUID = Query(description="The earlier version, or the one being compared FROM"),
+    b: uuid.UUID = Query(description="The later version, or the one being compared TO"),
+) -> VersionCompareOut:
+    """Compare two saved versions of a design (C-8).
+
+    The op log has always supported branching and nothing surfaced it. An architect
+    holding two options wants one answer — *what is actually different* — and wants it in
+    elements, not in ops: "this wall moved, that room grew, FAR went from 1.42 to 1.58"
+    rather than a list of 87 log entries.
+
+    Two honesty rules are built into the shape of the answer:
+
+    * it reports which kinds it COMPARED and which it did not, because "no change" and
+      "no change in the things I looked at" are different claims, and a screen that
+      cannot tell them apart will show the wrong one;
+    * a change it cannot place on a plan — a moved furniture item, whose footprint lives
+      in the catalogue rather than the model — is carried in ``unplaced`` and counted,
+      never quietly dropped.
+    """
+    from garh_api.routers.sheets import _area_statement_for_version, _load_version_document
+    from garh_api.tenancy import EntityNotFoundError
+
+    # Tenancy first, always — whose project this is gets resolved BEFORE asking whether
+    # the diff module is installed. The other order answers another firm 503 where §13
+    # requires 404, and the ordering is the defect, not the status code.
+    await require_project(session, ctx, project_id)
+    ctx.require_scope("projects")
+    repo = DesignVersionRepository(session, ctx)
+    left = await repo.require(a)
+    right = await repo.require(b)
+    for version in (left, right):
+        if version.project_id != project_id:
+            raise EntityNotFoundError("design_version", version.id)
+
+    # ``services/drawings`` lives at the repo root: on PYTHONPATH in the API image and in
+    # CI, but a deployment that mounts only ``apps/api`` must not 500 here. Same lazy
+    # import with one honest error that the copilot route uses.
+    try:
+        from services.drawings.revisions import COMPARE_KINDS, EXCLUDED_KINDS, diff_models
+    except ImportError as exc:
+        raise ApiError(
+            "Version compare is not installed on this server.",
+            status=503,
+            code="service_unavailable",
+            action="Try again later, or ask your administrator.",
+            extra={"importError": str(exc)},
+        ) from exc
+
+    before = await _load_version_document(session, ctx, project_id, a)
+    after = await _load_version_document(session, ctx, project_id, b)
+    diff = diff_models(before, after, kinds=COMPARE_KINDS)
+
+    areas_a, _ = await _area_statement_for_version(session, ctx, project_id, a, before)
+    areas_b, _ = await _area_statement_for_version(session, ctx, project_id, b, after)
+
+    _log.info(
+        "versions.compared",
+        project_id=str(project_id),
+        a=str(a),
+        b=str(b),
+        changed=len(diff.elements),
+        unplaced=len(diff.unplaced),
+    )
+    return VersionCompareOut(
+        project_id=project_id,
+        a=VersionOut.of(left),
+        b=VersionOut.of(right),
+        summary=diff.summary(),
+        counts=diff.counts(),
+        storey_ids=list(diff.storey_ids),
+        changes=[
+            VersionChangeOut(
+                element_id=element.element_id,
+                kind=element.kind,
+                change=element.change,
+                storey_id=element.storey_id,
+                box=list(element.box),
+                fields=list(element.fields),
+                derived=element.derived,
+            )
+            for element in diff.elements
+        ],
+        unplaced=[
+            VersionChangeOut(element_id=element_id, kind=kind, change=change)
+            for element_id, kind, change in diff.unplaced
+        ],
+        compared_kinds=list(COMPARE_KINDS),
+        excluded_kinds=dict(EXCLUDED_KINDS),
+        areas_a=_area_side(areas_a),
+        areas_b=_area_side(areas_b),
+    )
+
+
+def _area_side(areas: dict[str, Any] | None) -> VersionAreaSideOut | None:
+    """The three numbers an architect compares. ``None`` when this version has no
+    compliance evaluation to draw them from — absent, not zero."""
+    if not areas:
+        return None
+    far = areas.get("farAchieved")
+    coverage = areas.get("coverageAchieved")
+    return VersionAreaSideOut(
+        built_up_mm2=int(areas.get("totalBuiltUpAreaMm2") or 0),
+        far_achieved=float(far) if isinstance(far, int | float) else None,
+        coverage_achieved=float(coverage) if isinstance(coverage, int | float) else None,
     )
 
 

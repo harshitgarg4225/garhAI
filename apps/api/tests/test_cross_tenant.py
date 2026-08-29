@@ -296,6 +296,15 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
         body={"authority": "bbmp", "fields": {"khataNumber": "A-1234/56"}},
     ),
     Case("GET", "/projects/{project_id}/sheets/submission-readiness"),
+    # -- C-8 version compare ------------------------------------------------
+    # The version ids are firm A's own. A version id is not a capability: belonging to
+    # the caller's firm is not enough, it must belong to THIS project, or one project's
+    # compare reads another's design.
+    Case(
+        "GET",
+        "/projects/{project_id}/versions/compare",
+        query="a=00000000-0000-4000-8000-000000000001&b=00000000-0000-4000-8000-000000000002",
+    ),
 )
 
 

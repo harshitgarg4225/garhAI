@@ -37,6 +37,7 @@ from services.drawings.revisions.cloud import (
     revision_tag,
 )
 from services.drawings.revisions.diff import (
+    COMPARE_KINDS,
     COMPARED_KINDS,
     EXCLUDED_KINDS,
     Box,
@@ -64,6 +65,7 @@ __all__ = [
     "CLOUD_MARGIN_PAPER_MM",
     "CLUSTER_GAP_PAPER_MM",
     "COMPARED_KINDS",
+    "COMPARE_KINDS",
     "DATE_PATTERN",
     "EXCLUDED_KINDS",
     "REGISTER_TITLE",

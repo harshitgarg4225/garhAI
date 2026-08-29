@@ -54,6 +54,7 @@ from typing import Any
 
 __all__ = [
     "COMPARED_KINDS",
+    "COMPARE_KINDS",
     "EXCLUDED_KINDS",
     "Box",
     "ChangedElement",
@@ -102,6 +103,10 @@ _COMPARED_FIELDS: Mapping[str, tuple[str, ...]] = {
         "tag",
     ),
     "room": ("type", "name", "polygon", "storey_id"),
+    # C-8 only. A furniture instance IS its catalogue id, its point and its rotation —
+    # the footprint lives in the catalogue, so those four fields are the whole of what
+    # can change about one here.
+    "furniture": ("catalog_id", "pt", "rotation_deg", "storey_id"),
     "stair": (
         "kind",
         "origin",
@@ -239,6 +244,9 @@ _JSON_KEYS: Mapping[str, str] = {
     "stair": "stairs",
     "column": "columns",
     "balcony": "balconies",
+    # Read only when a caller asks for COMPARE_KINDS (C-8); the revision-cloud default
+    # never reaches for it.
+    "furniture": "furniture",
 }
 
 
@@ -445,21 +453,40 @@ def _box_for(element: _Element, walls: Mapping[str, _Element]) -> tuple[Box | No
         return (_stair_box(element), str(element.get("storey_id")))
     if kind == "column":
         return (_column_box(element), str(element.get("storey_id")))
+    if kind == "furniture":
+        # Deliberately unboxed. A furniture INSTANCE carries a point and a rotation; its
+        # footprint lives in the catalogue, and this module has no business reading it.
+        # Drawing a nominal square instead would put a shape on a compare overlay that
+        # is not the shape of the thing — so a moved sofa is reported and counted as
+        # changed-but-unplaced, which is true, rather than clouded at the wrong size.
+        return (None, str(element.get("storey_id")))
     raise KeyError("no box rule for element kind %r" % kind)
 
 
 # ---------------------------------------------------------------------------
 # The diff
 # ---------------------------------------------------------------------------
-def diff_models(before: Any, after: Any) -> ModelDiff:
+#: The wider set a VERSION COMPARE asks for (C-8). Comparing two design options is a
+#: different question from clouding a submission sheet: an architect choosing between
+#: Option A and Option B cares that the furniture layout differs, and a compare that
+#: answered "no change" for two visibly different plans would be worse than none.
+#: Slabs stay out for the same reason as ever — derived, and the size of the floor.
+COMPARE_KINDS: tuple[str, ...] = (*COMPARED_KINDS, "furniture")
+
+
+def diff_models(before: Any, after: Any, *, kinds: Sequence[str] = COMPARED_KINDS) -> ModelDiff:
     """Every element that differs between two model states, with its plan box.
 
     ``before`` and ``after`` are folded ``ProjectDoc``/``HouseModel`` objects or their
     JSON — the two forms are read through one accessor, so a JSON-vs-object comparison
     is meaningful rather than a diff of every field.
 
+    ``kinds`` defaults to :data:`COMPARED_KINDS` — the revision-cloud set — so the sheet
+    pipeline's behaviour is unchanged by the existence of the wider :data:`COMPARE_KINDS`.
+    Passing a different set is an explicit decision at the call site, never a default.
+
     The result is ordered: by storey (as the *after* state lists them, ground first), then
-    by :data:`COMPARED_KINDS`, then by element id. Determinism matters here for the same
+    by ``kinds``, then by element id. Determinism matters here for the same
     reason it matters in a golden — a sheet whose clouds move between two runs of the same
     input is a sheet nobody can review.
     """
@@ -470,7 +497,7 @@ def diff_models(before: Any, after: Any) -> ModelDiff:
 
     changes: list[ChangedElement] = []
     unplaced: list[tuple[str, str, str]] = []
-    for kind in COMPARED_KINDS:
+    for kind in kinds:
         old = {e.id: e for e in _elements(before_house, kind)}
         new = {e.id: e for e in _elements(after_house, kind)}
         for element_id in sorted(set(old) | set(new)):

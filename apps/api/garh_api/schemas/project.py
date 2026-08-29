@@ -309,6 +309,57 @@ class VersionCreate(CamelModel):
     name: StrictStr = Field(min_length=1, max_length=_MAX_NAME_LENGTH)
 
 
+class VersionChangeOut(ResponseModel):
+    """One element that differs between two versions, and where it sits on the plan."""
+
+    element_id: StrictStr
+    kind: StrictStr
+    #: added | modified | removed
+    change: StrictStr
+    storey_id: StrictStr = ""
+    #: ``[minX, minY, maxX, maxY]`` in model mm, or empty when it cannot be placed.
+    box: list[StrictInt] = Field(default_factory=list)
+    #: For ``modified``: the field names that differ.
+    fields: list[StrictStr] = Field(default_factory=list)
+    #: True when the change is a CONSEQUENCE of another element's change — a room
+    #: polygon rewritten because the partition beside it moved. Shown quietly.
+    derived: StrictBool = False
+
+
+class VersionAreaSideOut(ResponseModel):
+    """The compliance numbers for one side of a compare."""
+
+    built_up_mm2: StrictInt = 0
+    far_achieved: float | None = None
+    coverage_achieved: float | None = None
+
+
+class VersionCompareOut(ResponseModel):
+    """What changed between two versions of a design (C-8).
+
+    Geometric. ``summary`` and ``counts`` describe elements, and ``comparedKinds`` says
+    exactly which kinds were looked at — a compare that reported "no change" without
+    saying what it did not compare would be read as "identical", which is a different
+    claim entirely.
+    """
+
+    project_id: uuid.UUID
+    a: VersionOut
+    b: VersionOut
+    summary: StrictStr = ""
+    counts: dict[str, StrictInt] = Field(default_factory=dict)
+    storey_ids: list[StrictStr] = Field(default_factory=list)
+    changes: list[VersionChangeOut] = Field(default_factory=list)
+    #: Changed, but not placeable on a plan — a moved sofa (its footprint lives in the
+    #: catalogue, not the model), an opening whose host wall is gone from both sides.
+    #: Counted, never dropped.
+    unplaced: list[VersionChangeOut] = Field(default_factory=list)
+    compared_kinds: list[StrictStr] = Field(default_factory=list)
+    excluded_kinds: dict[str, StrictStr] = Field(default_factory=dict)
+    areas_a: VersionAreaSideOut | None = None
+    areas_b: VersionAreaSideOut | None = None
+
+
 class VersionOut(ResponseModel):
     id: uuid.UUID
     project_id: uuid.UUID

@@ -236,6 +236,50 @@ export const versionSchema = z.object({
 });
 export type Version = z.infer<typeof versionSchema>;
 
+/**
+ * `GET /projects/:id/versions/compare` (C-8).
+ *
+ * `comparedKinds` and `excludedKinds` are not trivia. "No change" and "no change in the
+ * things I looked at" are different claims, and a screen that cannot tell them apart
+ * will render the wrong one over two plans that genuinely differ.
+ */
+export const versionChangeSchema = z.object({
+  elementId: z.string(),
+  kind: z.string(),
+  change: z.string(),
+  storeyId: z.string().default(''),
+  /** `[minX, minY, maxX, maxY]` in model mm; empty when it cannot be placed. */
+  box: z.array(z.number().int()).default([]),
+  fields: z.array(z.string()).default([]),
+  /** A consequence of another element's change — a room polygon following a wall. */
+  derived: z.boolean().default(false),
+});
+export type VersionChange = z.infer<typeof versionChangeSchema>;
+
+export const versionAreaSideSchema = z.object({
+  builtUpMm2: z.number().int().default(0),
+  farAchieved: z.number().nullable().default(null),
+  coverageAchieved: z.number().nullable().default(null),
+});
+export type VersionAreaSide = z.infer<typeof versionAreaSideSchema>;
+
+export const versionCompareSchema = z.object({
+  projectId: id,
+  a: versionSchema,
+  b: versionSchema,
+  summary: z.string().default(''),
+  counts: z.record(z.number().int()).default({}),
+  storeyIds: z.array(z.string()).default([]),
+  changes: z.array(versionChangeSchema).default([]),
+  /** Changed but not drawable — counted, never dropped. */
+  unplaced: z.array(versionChangeSchema).default([]),
+  comparedKinds: z.array(z.string()).default([]),
+  excludedKinds: z.record(z.string()).default({}),
+  areasA: versionAreaSideSchema.nullable().default(null),
+  areasB: versionAreaSideSchema.nullable().default(null),
+});
+export type VersionCompareResponse = z.infer<typeof versionCompareSchema>;
+
 export const versionRestoreSchema = z.object({
   version: versionSchema,
   versionBranch: id,

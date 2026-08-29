@@ -156,6 +156,7 @@ import {
   useLayerScope,
   usePlanLayerView,
 } from '../../features/layers';
+import { CompareOverlay, ComparePanel } from '../../features/compare';
 import { ConstraintBar } from '../../features/constraints';
 import { MeasureLayer, MeasurePanel } from '../../features/measure';
 import { StoreyGhostLayer, StoreyPanel } from '../../features/storeys';
@@ -743,6 +744,7 @@ function PlanEditor(): JSX.Element {
                 {/* C-3. Renders nothing unless a wall is selected — six greyed buttons
                     on every screen is six things to read past all day. */}
                 <ConstraintBar />
+                <ComparePanel projectId={project.id} />
                 <LayerPanel />
                 <MeasurePanel />
                 <ViewsPanel projectId={project.id} core={core} />
@@ -813,6 +815,11 @@ function PlanEditor(): JSX.Element {
         {is2d ? (
           <MeasureLayer storeyId={activeStoreyId} elevationMm={elevationMm} display={units} />
         ) : null}
+        {/* C-8. The change boxes from a version compare. Never pick-registered: they sit
+            on top of the very elements they describe, so a click aimed at a changed wall
+            has to reach the wall. 2D only — flat rectangles at floor level read as
+            geometry in a perspective view. */}
+        {is2d ? <CompareOverlay storeyId={activeStoreyId} elevationMm={elevationMm} /> : null}
 
         {/* Phase 7 (§9): publishes the live renderer to features/renders so
             captures reuse THIS canvas — never a second one. Renders nothing. */}

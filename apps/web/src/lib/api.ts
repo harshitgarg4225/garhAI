@@ -75,6 +75,7 @@ import {
   submissionTemplateListSchema,
   shareLinkSchema,
   versionRestoreSchema,
+  versionCompareSchema,
   versionSchema,
   type Brief,
   type BriefParse,
@@ -116,6 +117,7 @@ import {
   type SubmissionReadinessResponse,
   type SubmissionTemplateListResponse,
   type Version,
+  type VersionCompareResponse,
   type VersionRestore,
 } from './schemas';
 
@@ -935,6 +937,25 @@ export function createApiClient(client: HttpClient = http) {
           body: input,
           parse: parser(versionSchema),
           ...opts,
+        }),
+
+      /**
+       * What changed between two versions (C-8).
+       *
+       * Both ids are required. Defaulting the missing side to "latest" would be a
+       * compare whose meaning changes every time someone else edits the project.
+       */
+      compare: (
+        projectId: string,
+        a: string,
+        b: string,
+        options: CallOptions = {},
+      ): Promise<VersionCompareResponse> =>
+        client.request({
+          path: projectPath(projectId, '/versions/compare'),
+          query: { a, b },
+          parse: parser(versionCompareSchema),
+          ...(options.signal === undefined ? {} : { signal: options.signal }),
         }),
 
       /**
