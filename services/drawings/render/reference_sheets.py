@@ -99,6 +99,7 @@ from services.drawings.render.primitives import (
     Pt2,
     SheetDrawing,
     Text,
+    div_round,
 )
 from services.drawings.render.tables import (
     area_statement_group,
@@ -2187,4 +2188,198 @@ def setting_out_sheet(
         ),
         chains=chains,
         meta={"kind": "setting-out", "storeyId": storey_id},
+    )
+
+
+# ---------------------------------------------------------------------------
+# D-7 — the structural grid (working drawing W-02)
+# ---------------------------------------------------------------------------
+#: How far the grid line runs past the outermost column before its bubble.
+GRID_OVERRUN_MM = 1_500
+
+#: Radius of a grid bubble, model mm. Sized so the letter inside stays legible at 1:100.
+GRID_BUBBLE_MM = 450
+
+#: Columns within this distance of each other in one axis are on the same grid line.
+#: 75 mm because a 230 mm column nudged half a brick during layout is still meant to be
+#: on its grid, and a tolerance of zero would give every such column a grid of its own —
+#: which is a grid nobody can build from.
+GRID_TOLERANCE_MM = 75
+
+
+def _grid_positions(values: Sequence[int], tolerance: int = GRID_TOLERANCE_MM) -> list[int]:
+    """Cluster ordinates into grid lines, returning one representative each.
+
+    The representative is the cluster's ROUNDED MEAN rather than its first member: a
+    grid taken from whichever column happened to be drawn first inherits that column's
+    setting-out error, and the engineer then dimensions everything from it.
+    """
+    if not values:
+        return []
+    ordered = sorted(values)
+    clusters: list[list[int]] = [[ordered[0]]]
+    for value in ordered[1:]:
+        if value - clusters[-1][-1] <= tolerance:
+            clusters[-1].append(value)
+        else:
+            clusters.append([value])
+    # `div_round`, not a float mean: every coordinate in this repository is an
+    # integer millimetre, and half-away-from-zero is the rounding contract.
+    return [div_round(sum(c), len(c)) for c in clusters]
+
+
+def structural_grid_primitives(house: Any, storey_id: str) -> tuple[list[Primitive], list[dict]]:
+    """Grid lines, bubbles and the column marks they organise.
+
+    Returns ``(primitives, schedule_rows)``. The schedule is returned rather than drawn
+    so the caller can put it in a table using the shared table machinery — one column
+    size appearing twice in a schedule and once on the plan is the kind of disagreement
+    a contractor prices twice.
+    """
+    columns = [c for c in getattr(house, "columns", ()) if c.storey_id == storey_id]
+    if not columns:
+        return [], []
+
+    xs = _grid_positions([c.pt.x for c in columns])
+    ys = _grid_positions([c.pt.y for c in columns])
+    x_lo, x_hi = min(c.pt.x for c in columns), max(c.pt.x for c in columns)
+    y_lo, y_hi = min(c.pt.y for c in columns), max(c.pt.y for c in columns)
+
+    out: list[Primitive] = []
+
+    def bubble(at: Pt2, label: str) -> None:
+        out.append(Circle(at, GRID_BUBBLE_MM, A_DIM))
+        out.append(
+            Text(
+                at=at,
+                text=label,
+                layer=A_TEXT,
+                height_paper_um=2_500,
+                anchor="middle",
+                baseline="middle",
+            )
+        )
+
+    # Vertical grid lines are LETTERED left to right, horizontals NUMBERED bottom to
+    # top. That is the drafting convention, and getting it the other way round makes
+    # every "column at B/3" on a structural drawing point somewhere else.
+    for index, x in enumerate(xs):
+        out.append(
+            Line(
+                (x, y_lo - GRID_OVERRUN_MM),
+                (x, y_hi + GRID_OVERRUN_MM),
+                A_DIM,
+                style=STYLE_CENTRE,
+            )
+        )
+        bubble((x, y_hi + GRID_OVERRUN_MM + GRID_BUBBLE_MM), chr(ord("A") + index))
+
+    for index, y in enumerate(ys):
+        out.append(
+            Line(
+                (x_lo - GRID_OVERRUN_MM, y),
+                (x_hi + GRID_OVERRUN_MM, y),
+                A_DIM,
+                style=STYLE_CENTRE,
+            )
+        )
+        bubble((x_lo - GRID_OVERRUN_MM - GRID_BUBBLE_MM, y), str(index + 1))
+
+    # The columns themselves, drawn at their real size — a structural plan that shows
+    # columns as dots hides the one number the engineer is checking.
+    schedule: list[dict] = []
+    for column in sorted(columns, key=lambda c: (c.pt.y, c.pt.x)):
+        half_w = column.size_mm.x_mm // 2
+        half_d = column.size_mm.y_mm // 2
+        cx, cy = column.pt.x, column.pt.y
+        out.append(
+            Polyline(
+                vertices=(
+                    (cx - half_w, cy - half_d),
+                    (cx + half_w, cy - half_d),
+                    (cx + half_w, cy + half_d),
+                    (cx - half_w, cy + half_d),
+                ),
+                layer=A_WALL,
+                closed=True,
+                element_id=column.id,
+            )
+        )
+        ref = "%s/%s" % (
+            chr(ord("A") + min(range(len(xs)), key=lambda i: abs(xs[i] - cx))),
+            min(range(len(ys)), key=lambda i: abs(ys[i] - cy)) + 1,
+        )
+        schedule.append(
+            {
+                "ref": ref,
+                "size": "%d x %d" % (column.size_mm.x_mm, column.size_mm.y_mm),
+                "x": cx,
+                "y": cy,
+            }
+        )
+
+    return out, schedule
+
+
+def structural_grid_sheet(
+    doc: Any,
+    storey_id: str,
+    *,
+    number: str,
+    title_block: TitleBlock,
+    revisions: Sequence[tuple[str, str, str]] = (),
+    register: RevisionHistory | None = None,
+) -> SheetDrawing:
+    """One storey's structural grid (D-7).
+
+    Refuses a storey with no columns rather than issuing an empty sheet. That is the
+    common case, not an edge case: most Indian residential work is load-bearing
+    masonry, and a "structural grid" for a house with no frame is a drawing that
+    implies an engineer was involved when none was.
+    """
+    house = doc.house
+    storey = next((s for s in house.storeys if s.id == storey_id), None)
+    if storey is None:
+        raise ValueError("no storey %r, so it has no structural grid" % storey_id)
+    frame = default_frame()
+    rect = content_rect(frame)
+    primitives, _schedule = structural_grid_primitives(house, storey_id)
+    if not primitives:
+        raise ValueError(
+            "storey %r has no columns, so it has no structural grid — a load-bearing "
+            "plan is set out from its walls (see the setting-out plan)" % storey_id
+        )
+
+    group = DrawingGroup(id="grid", placement=Placement(100), primitives=primitives)
+    extent = group.extent_model_mm()
+    assert extent is not None
+    pad = 1_200
+    padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
+    denominator = choose_scale(padded, rect, preferred=DEFAULT_SCALE.denominator)
+    scale = Scale(denominator)
+    placement = fit_placement(padded, rect, denominator)
+
+    sheet = _sheet(
+        sheet_id="sheet-grid-%s" % storey_id,
+        kind="structural-grid",
+        number=number,
+        title="Structural Grid - %s" % storey.name,
+        viewport=Viewport(storey_id=storey_id),
+        scale=scale,
+        title_block=title_block,
+    )
+    return SheetDrawing(
+        sheet=sheet,
+        groups=(
+            frame_group(sheet.frame, revisions=_strip_rows(revisions, register)),
+            DrawingGroup(
+                id="grid",
+                placement=placement,
+                primitives=primitives,
+                label="STRUCTURAL GRID - %s - %s" % (storey.name.upper(), scale.label),
+                label_at=((extent[0] + extent[2]) // 2, padded[1] + 500),
+            ),
+        ),
+        chains=(),
+        meta={"kind": "structural-grid", "storeyId": storey_id},
     )

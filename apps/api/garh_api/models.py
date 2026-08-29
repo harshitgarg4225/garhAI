@@ -105,6 +105,8 @@ SHEET_KINDS: tuple[str, ...] = (
     # than in the A-series, but it is still a sheet row, so it belongs in this
     # vocabulary and in ck_sheets_kind. See migration 0005.
     "setting-out",
+    # D-7, the structural grid: also a working drawing (W-02). See migration 0006.
+    "structural-grid",
 )
 
 #: annotations.anchor_kind — what ``anchor_element_id`` points at (playbook §7).

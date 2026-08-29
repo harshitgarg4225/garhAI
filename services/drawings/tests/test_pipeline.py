@@ -138,9 +138,10 @@ def test_the_two_kind_vocabularies_are_a_bijection():
     from services.drawings.sheets import SHEET_KINDS as DRAWING_KINDS
 
     assert tuple(sorted(DRAWING_KIND_TO_DB_KIND)) == tuple(sorted(DRAWING_KINDS))
-    # Seven: the six §7 submission kinds plus the setting-out working drawing
-    # (D-2), which is opt-in and numbered in its own W-series.
-    assert len(DB_KIND_TO_DRAWING_KIND) == len(DRAWING_KIND_TO_DB_KIND) == 7
+    # Eight: the six §7 submission kinds plus two working drawings — the
+    # setting-out plan (D-2) and the structural grid (D-7) — which are opt-in
+    # and numbered in their own W-series.
+    assert len(DB_KIND_TO_DRAWING_KIND) == len(DRAWING_KIND_TO_DB_KIND) == 8
     # The DB half needs SQLAlchemy to import garh_api.models. Absent here (Python 3.9,
     # no worker deps), so the check is skipped LOUDLY rather than silently passing:
     # in CI both halves import and the assertion runs.

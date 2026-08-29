@@ -100,6 +100,7 @@ DB_KIND_TO_DRAWING_KIND: dict[str, str] = {
     # D-2. Sits right after the floor plans in submission order because it is read
     # against them: same storey, same scale, centrelines instead of poché.
     "setting-out": "setting-out",
+    "structural-grid": "structural-grid",
     "elevation": "elevation",
     "section": "section",
     "schedule": "door-window-schedule",
@@ -125,6 +126,7 @@ DB_KIND_ORDER: tuple[str, ...] = (
     # and would also have been wrong, because the municipal set and the GFC set are
     # two different deliverables that an architect issues separately.
     "setting-out",
+    "structural-grid",
 )
 
 #: Working-drawing kinds, numbered W-01… rather than A-01…. A submission set and a
@@ -133,7 +135,7 @@ DB_KIND_ORDER: tuple[str, ...] = (
 WORKING_KINDS: frozenset[str] = frozenset(
     DRAWING_KIND_TO_DB_KIND[kind] for kind in _WORKING_SHEET_KINDS
 )
-_WORKING_NUMBER_INDEX: dict[str, int] = {"setting-out": 1}
+_WORKING_NUMBER_INDEX: dict[str, int] = {"setting-out": 1, "structural-grid": 2}
 
 #: Sheet numbers by kind: ``A-01`` … ``A-06``, with a letter suffix when a kind
 #: yields more than one sheet (two storeys → ``A-02A``/``A-02B``).
@@ -721,6 +723,33 @@ def _sheet_plan(
                     "Setting Out - %s" % storey.name,
                     (
                         lambda tb, sid=storey.id, num=number: ref.setting_out_sheet(
+                            doc,
+                            sid,
+                            number=num,
+                            title_block=tb,
+                            revisions=bundle.revisions,
+                            register=bundle.register,
+                        )
+                    ),
+                )
+            )
+
+    if "structural-grid" in bundle.kinds:
+        # Only storeys that actually have columns. `_sheet_plan` builds closures, and a
+        # closure that raises is reported as a skipped sheet with a reason — but a
+        # load-bearing house has no columns on ANY storey, and reporting six skipped
+        # sheets for a design decision is noise, not information.
+        framed = [s for s in house.storeys if any(c.storey_id == s.id for c in house.columns)]
+        for ordinal, storey in enumerate(framed):
+            number = number_for("structural-grid", ordinal, len(framed))
+            entries.append(
+                (
+                    "structural-grid-%s" % storey.id,
+                    "structural-grid",
+                    number,
+                    "Structural Grid - %s" % storey.name,
+                    (
+                        lambda tb, sid=storey.id, num=number: ref.structural_grid_sheet(
                             doc,
                             sid,
                             number=num,

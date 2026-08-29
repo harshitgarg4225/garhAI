@@ -21,7 +21,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-#: The six municipal sheets of the MVP cut line (spec F8).
+#: Every sheet kind the engine can draw: the six municipal sheets of the MVP cut
+#: line (spec F8) plus the working drawings issued to site. Which is which is
+#: SUBMISSION_SHEET_KINDS / WORKING_SHEET_KINDS below — never a count.
 SheetKind = Literal[
     "site-plan",
     "floor-plan",
@@ -30,6 +32,7 @@ SheetKind = Literal[
     "section",
     "door-window-schedule",
     "area-statement",
+    "structural-grid",
 ]
 
 SHEET_KINDS: tuple[SheetKind, ...] = (
@@ -40,13 +43,14 @@ SHEET_KINDS: tuple[SheetKind, ...] = (
     "section",
     "door-window-schedule",
     "area-statement",
+    "structural-grid",
 )
 
 #: Working drawings: issued to SITE, during construction, and numbered in their own
 #: W-series. They are sheet kinds like any other — same frame, same layers, same
 #: exporters — but they are not part of the municipal submission, so anything that
 #: means "the set an architect files" must use :data:`SUBMISSION_SHEET_KINDS`.
-WORKING_SHEET_KINDS: tuple[SheetKind, ...] = ("setting-out",)
+WORKING_SHEET_KINDS: tuple[SheetKind, ...] = ("setting-out", "structural-grid")
 
 #: The §7 submission set. Derived, never restated: a new kind added above lands in
 #: exactly one of these two tuples and cannot end up in neither or both.
