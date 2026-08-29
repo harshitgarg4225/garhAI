@@ -23,6 +23,7 @@ export * from './ids';
 export * from './geometry';
 export * from './model';
 export * from './ops';
+export * from './constraints';
 export * from './validate';
 export * from './rooms';
 export * from './fold';

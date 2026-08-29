@@ -156,6 +156,7 @@ import {
   useLayerScope,
   usePlanLayerView,
 } from '../../features/layers';
+import { ConstraintBar } from '../../features/constraints';
 import { MeasureLayer, MeasurePanel } from '../../features/measure';
 import { StoreyGhostLayer, StoreyPanel } from '../../features/storeys';
 import { UnderlayLayer, UnderlayPanel } from '../../features/underlay';
@@ -739,6 +740,9 @@ function PlanEditor(): JSX.Element {
                   screen. 3D gets the same dock once its own chrome is folded
                   in; today it keeps the storey bar and facade panel it has. */}
               <div className="pointer-events-auto absolute bottom-24 right-3 top-14 flex w-80 flex-col gap-2 overflow-y-auto">
+                {/* C-3. Renders nothing unless a wall is selected — six greyed buttons
+                    on every screen is six things to read past all day. */}
+                <ConstraintBar />
                 <LayerPanel />
                 <MeasurePanel />
                 <ViewsPanel projectId={project.id} core={core} />

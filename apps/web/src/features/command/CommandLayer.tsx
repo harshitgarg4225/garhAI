@@ -35,6 +35,7 @@ import { selectKeyboardEnabled, useUiStore } from '../../stores/ui';
 import { Cheatsheet } from './Cheatsheet';
 import { CommandPalette } from './CommandPalette';
 import { defaultCommands } from './defaultCommands';
+import { constraintCommands } from '../constraints/commands';
 import { useCommandKeys, useRegisterCommands } from './hooks';
 import { commandRegistry, type CommandRegistry } from './registry';
 import { useCommandUiStore } from './store';
@@ -75,7 +76,10 @@ export function CommandLayer({
   // Stable identity: `useRegisterCommands` has this in its dependency list, and
   // a fresh array per render would tear the whole registry down and rebuild it
   // on every state change in the app.
-  const commands = useMemo(() => defaultCommands(), []);
+  // The constraints (C-3) join here rather than in `defaultCommands`, because that
+  // table is an exhaustive mirror of `lib/keymap.ts`'s CommandId union and these carry
+  // no key. Concatenated inside the same memo so the registry is still rebuilt once.
+  const commands = useMemo(() => [...defaultCommands(), ...constraintCommands], []);
   useRegisterCommands(commands, active);
 
   useCommandKeys({
