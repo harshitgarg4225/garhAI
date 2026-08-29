@@ -6,9 +6,14 @@ path, because §13's prompt-injection containment depends on it — *LLM output 
 becomes validated ops, never executed text*.
 
 The provider interface is deliberately narrower than the Messages API. A caller cannot
-ask for free text, cannot pass tools, and cannot stream. If a future feature needs one
-of those, add a second method rather than widening this one — the narrowness is what
-makes "mock and real behave identically" checkable.
+ask for free text and cannot pass tools. If a future feature needs one of those, add a
+second method rather than widening this one — the narrowness is what makes "mock and
+real behave identically" checkable.
+
+Streaming took exactly that route: :mod:`services.llm.streaming` adds a second
+protocol (``stream_json``) and leaves :class:`~services.llm.provider.LlmProvider`
+untouched, so a provider that cannot stream needs no changes and the streamed prose
+stays structurally separate from the object the schema gate runs on.
 """
 
 from __future__ import annotations
@@ -18,9 +23,14 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 #: Named units of LLM work. Fixture files and per-task tuning are keyed by these.
-TaskName = Literal["brief.parse", "copilot.ops", "rationale.write"]
+TaskName = Literal["brief.parse", "copilot.ops", "rationale.write", "compliance.explain"]
 
-TASK_NAMES: tuple[TaskName, ...] = ("brief.parse", "copilot.ops", "rationale.write")
+TASK_NAMES: tuple[TaskName, ...] = (
+    "brief.parse",
+    "copilot.ops",
+    "rationale.write",
+    "compliance.explain",
+)
 
 #: Reasoning depth hint. Mapped to the provider's own control (Anthropic: effort).
 Effort = Literal["low", "medium", "high"]

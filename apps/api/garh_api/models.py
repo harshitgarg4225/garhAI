@@ -240,6 +240,61 @@ class User(UuidPk, Timestamps, TenantOwned, Base):
     )
 
 
+class UserTwoFactor(UuidPk, Timestamps, TenantOwned, Base):
+    """One user's TOTP enrolment (F-4). At most one row per user.
+
+    Postgres and not Redis, deliberately. ``garh_api.auth`` keeps refresh families and
+    logout-all generations in Redis and documents the consequence: a flush loses them.
+    For a *second factor* that consequence is unacceptable in both directions — a lost
+    row either silently downgrades every account to one factor (the "gate that never
+    fires" bug class) or locks everyone out. A durable row makes the question
+    answerable.
+
+    ``confirmed_at is NULL`` means enrolment was started but never proved: the secret
+    exists so the user can scan it, and :mod:`garh_api.twofactor` treats the account as
+    single-factor until a live code arrives. ``last_counter`` is the replay guard — a
+    TOTP code stays valid for its whole 30-second step, so a code observed over the
+    user's shoulder (or in a proxy log) must not be spendable twice.
+
+    ``recovery_hashes`` holds ``sha256`` of each *unused* recovery code and nothing
+    else; a spent code is removed from the list rather than flagged, so "how many are
+    left" is ``len()`` and there is no second field to drift. 80 bits of entropy per
+    code is what makes an unsalted digest safe here (see
+    :func:`garh_api.twofactor.generate_recovery_codes`).
+    """
+
+    __tablename__ = "user_two_factor"
+
+    firm_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), _firm_fk("user_two_factor"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE", name="fk_user_two_factor_user_id_users"),
+        nullable=False,
+    )
+    #: base32, no padding — what an authenticator app scans.
+    secret: Mapped[str] = mapped_column(Text, nullable=False)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    #: Highest TOTP step already spent. ``-1`` means "nothing spent yet".
+    last_counter: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("-1"))
+    #: ``["<sha256 hex>", ...]`` for the codes still unused.
+    recovery_hashes: Mapped[list[Any]] = mapped_column(
+        JSONB, nullable=False, server_default=JSON_ARR
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_user_two_factor_user_id"),
+        CheckConstraint("length(btrim(secret)) > 0", name="ck_user_two_factor_secret_not_blank"),
+        CheckConstraint("last_counter >= -1", name="ck_user_two_factor_last_counter_range"),
+        CheckConstraint(
+            "jsonb_typeof(recovery_hashes) = 'array'",
+            name="ck_user_two_factor_recovery_hashes_array",
+        ),
+        Index("ix_user_two_factor_firm_id", "firm_id"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Project + inputs
 # ---------------------------------------------------------------------------
@@ -922,6 +977,7 @@ class OtpCode(UuidPk, Timestamps, Base):
 ALL_TABLES: tuple[str, ...] = (
     "firms",
     "users",
+    "user_two_factor",
     "projects",
     "plots",
     "briefs",
@@ -984,6 +1040,7 @@ __all__ = [
     "Timestamps",
     "USER_ROLES",
     "User",
+    "UserTwoFactor",
     "UuidPk",
     "VASTU_MODES",
 ]

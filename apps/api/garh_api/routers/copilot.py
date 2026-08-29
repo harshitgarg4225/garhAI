@@ -28,6 +28,7 @@ from typing import Any
 
 from fastapi import APIRouter
 
+from garh_api.billing.quotas import require_quota
 from garh_api.config import get_settings
 from garh_api.logging import get_logger
 from garh_api.ratelimit import enforce_rate_limit, llm_per_firm_rule
@@ -92,9 +93,14 @@ def _pipeline() -> Any:
     response_model=CopilotProposeOut,
     summary="Propose validated ops for a natural-language editing command",
     responses={
+        402: {"description": "The plan's LLM allowance for this billing period is spent."},
         429: {"description": "The per-firm LLM budget for this hour is used up."},
         503: {"description": "The model engine or LLM pipeline is unavailable."},
     },
+    # 402 before a token is spent. The hourly rule below is a burst ceiling; this is the
+    # plan's monthly allowance, counted over the same ``credit_events`` rows this
+    # handler writes.
+    dependencies=[require_quota("llm")],
 )
 async def propose(
     project_id: uuid.UUID,

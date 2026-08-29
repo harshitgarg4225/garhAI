@@ -530,7 +530,17 @@ def api_router() -> APIRouter:
     Submodules are imported here, not at module scope: they import *this* module for
     their dependencies, and a top-level import would be a cycle.
     """
-    from garh_api.routers import catalog, collab, copilot, jobs, ops, projects, renders, share
+    from garh_api.routers import (
+        billing,
+        catalog,
+        collab,
+        copilot,
+        jobs,
+        ops,
+        projects,
+        renders,
+        share,
+    )
 
     router = APIRouter()
     router.include_router(projects.router)
@@ -545,6 +555,9 @@ def api_router() -> APIRouter:
     #: no overlap with jobs.router's /renders POST/GET.
     router.include_router(renders.router)
     router.include_router(catalog.router)
+    #: G-1..G-4: plans, quotas, GST invoices, payments and seats. Every route is
+    #: ``TenantDep``/``AdminDep``; none is reachable by a share viewer.
+    router.include_router(billing.router)
     router.include_router(share.router)
     #: The public viewer surface — separate router, read-only, no write deps (§13).
     router.include_router(share.public_router)

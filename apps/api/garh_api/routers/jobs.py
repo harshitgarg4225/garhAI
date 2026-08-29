@@ -64,6 +64,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
 from garh_api import queue
+from garh_api.billing.quotas import require_quota
 from garh_api.config import Settings, get_settings
 from garh_api.db import session_scope
 from garh_api.deps import (
@@ -246,7 +247,11 @@ async def _enqueue_or_rollback(envelope: queue.JobEnvelope) -> int:
     response_model=SolverJobOut,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Generate layout options (CP-SAT worker job)",
-    dependencies=[Depends(rate_limit_solver_jobs)],
+    # Two ceilings, and they answer different questions. The rate limit is "not this
+    # fast" (429); the quota is "not on this plan" (402). A solve is metered into
+    # ``credit_events`` at the bottom of this handler, so the gate and the meter read
+    # the same rows.
+    dependencies=[Depends(rate_limit_solver_jobs), require_quota("solver")],
 )
 async def start_solve(
     project_id: uuid.UUID,
@@ -427,7 +432,9 @@ async def solver_job_events(
     response_model=RenderJobOut,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Start a render",
-    dependencies=[Depends(rate_limit_render_jobs)],
+    #: 402 before the job is queued when the plan's render allowance is spent — the
+    #: same ``credit_events`` rows this handler writes are what the gate counts.
+    dependencies=[Depends(rate_limit_render_jobs), require_quota("render")],
 )
 async def start_render(
     project_id: uuid.UUID,

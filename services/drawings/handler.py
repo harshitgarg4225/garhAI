@@ -34,6 +34,12 @@ The envelope contract (the API's enqueue helper must match exactly)
 ``assets["areas"]``                ``AreaStatement.to_json()``. Optional; without
                                    it the area-statement sheet is skipped with a
                                    note rather than invented.
+``assets["previousModel"]``        the folded ``ProjectDoc`` JSON of the state the
+                                   PREVIOUS revision was issued at. Optional; with
+                                   it (and a valid revision register in the payload)
+                                   the floor plans carry revision clouds around what
+                                   changed. Without it the set draws exactly as
+                                   before — no clouds, no cost.
 ``payload``                        designVersionId · kinds · scaleDenominator ·
                                    sheetSize · dimToJamb · titleBlock ·
                                    revisions · numberPrefix · formats
@@ -104,6 +110,9 @@ MAX_DXF_BYTES = 20 * 1024 * 1024
 ASSET_DXF = "dxf"
 ASSET_MODEL = "model"
 ASSET_AREAS = "areas"
+#: The previous issue's folded document, for revision clouds (D-1). Optional: a first
+#: issue has no previous state, and a set that has never been revised must still draw.
+ASSET_PREVIOUS_MODEL = "previousModel"
 OUTPUT_SHEETS = "sheets"
 OUTPUT_EXPORT = "export"
 
@@ -285,6 +294,16 @@ class DrawingsJobHandler(BaseJobHandler):
             areas_raw = await ctx.blobs.fetch(areas_ref, what="area statement")
             areas = TransportStatement.from_json(_decode_json(areas_raw, what="area statement"))
 
+        # The previous issue, for revision clouds. Fetched only when the API sent it, so
+        # a first issue costs no extra round trip.
+        previous: Mapping[str, Any] | None = None
+        previous_ref = ctx.envelope.assets.get(ASSET_PREVIOUS_MODEL)
+        if previous_ref is not None:
+            previous = _decode_json(
+                await ctx.blobs.fetch(previous_ref, what="previous design"),
+                what="previous design",
+            )
+
         payload = dict(ctx.payload)
         payload["kinds"] = list(kinds)
         try:
@@ -293,9 +312,9 @@ class DrawingsJobHandler(BaseJobHandler):
             raise InvalidJobError(
                 exc.message, action=exc.action or None, detail=exc.detail
             ) from exc
-        # `from_payload` does not decode the statement (it is an asset, not a payload
-        # field), so it is attached here — one replace, one place.
-        return dataclasses.replace(bundle, areas=areas)
+        # `from_payload` does not decode the statement or the previous design (they are
+        # assets, not payload fields), so they are attached here — one replace, one place.
+        return dataclasses.replace(bundle, areas=areas, previous_document=previous)
 
     async def _publish(
         self, ctx: JobContext, result: SheetSetResult, formats: Sequence[str]
@@ -769,6 +788,7 @@ __all__ = [
     "ASSET_AREAS",
     "ASSET_DXF",
     "ASSET_MODEL",
+    "ASSET_PREVIOUS_MODEL",
     "DEFAULT_SHEET_FORMATS",
     "EXPORT_KINDS",
     "EXPORT_TIMEOUT_SECONDS",

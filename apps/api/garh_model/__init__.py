@@ -12,6 +12,7 @@ ops          the 32-op taxonomy (section 4) + OP_CATALOG (copilot prompt source)
 validate     the fold invariants, with machine-readable rejection codes
 rooms        planar-subdivision room detection with id preservation
 fold         fold/replay/groups/undo + canonical_json + state_hash
+transform    copy/paste/array/mirror as plans over the ops above
 ===========  ==================================================================
 
 CROSS-LANGUAGE CONTRACT
@@ -147,6 +148,29 @@ from .ops import (
 )
 from .rooms import DEFAULT_JACCARD_THRESHOLD, detect_rooms, match_rooms, room_candidates
 from .sha256 import sha256_utf8
+from .transform import (
+    IDENTITY_MAP,
+    MAX_ARRAY_INSTANCES,
+    ArrayRequest,
+    MirrorRequest,
+    PasteRequest,
+    PlaneMap,
+    SelectionCounts,
+    TransformPlan,
+    TransformPlanResult,
+    TransformRefusal,
+    describe_selection,
+    is_reflection,
+    map_pt,
+    map_rotation_deg,
+    map_stair_placement,
+    map_swing,
+    plan_array,
+    plan_mirror,
+    plan_paste,
+    reflection_map,
+    translation_map,
+)
 from .units import (
     UnitParseError,
     format_area,
@@ -316,4 +340,26 @@ __all__ = [
     "assert_schema_version",
     # sha256
     "sha256_utf8",
+    # transform — copy / paste / array / mirror, as plans over the ops above
+    "PlaneMap",
+    "IDENTITY_MAP",
+    "translation_map",
+    "reflection_map",
+    "is_reflection",
+    "map_pt",
+    "map_swing",
+    "map_rotation_deg",
+    "map_stair_placement",
+    "PasteRequest",
+    "ArrayRequest",
+    "MirrorRequest",
+    "MAX_ARRAY_INSTANCES",
+    "SelectionCounts",
+    "TransformPlan",
+    "TransformRefusal",
+    "TransformPlanResult",
+    "describe_selection",
+    "plan_paste",
+    "plan_array",
+    "plan_mirror",
 ]

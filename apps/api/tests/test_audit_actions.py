@@ -44,10 +44,14 @@ PENDING_ACTIONS = {
     # Golden rule 5: "Architects can override anything; overrides are logged." The
     # override control is part of the compliance strip.
     "compliance.overridden": "Phase 2 (rules engine) / Phase 4 (compliance chips UI)",
-    # UserRepository.set_role / .remove exist and are tested; no team-management route
-    # is mounted, because member management is not on the MVP route surface (§11).
+    # UserRepository.set_role exists and is tested; no team-management route is
+    # mounted, because member management is not on the MVP route surface (§11).
+    #
+    # ``user.removed`` used to sit here beside it. It no longer does: F-6's DPDP
+    # erasure route (``POST /privacy/erasure``) removes the seat and emits the row,
+    # so the entry would now be the stale "not implemented yet" note this dict's own
+    # docstring warns about.
     "user.role_changed": "Phase 9 (team management surface)",
-    "user.removed": "Phase 9 (team management surface)",
     # FirmRepository.merge_settings / .replace_settings exist; no firm-settings route.
     "firm.settings_changed": "Phase 9 (firm settings surface)",
 }

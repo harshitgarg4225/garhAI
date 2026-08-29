@@ -10,6 +10,7 @@
  *   validate  the fold invariants, with machine-readable rejection codes
  *   rooms     planar-subdivision room detection with id preservation
  *   fold      fold/replay/groups/undo + canonicalJson + stateHash
+ *   transform copy/paste/array/mirror as plans over the ops above
  *
  * The Python mirror lives at `apps/api/garh_model/` and MUST agree with this
  * package. The contract files are in `packages/model/schema/`:
@@ -26,6 +27,7 @@ export * from './validate';
 export * from './rooms';
 export * from './fold';
 export * from './sha256';
+export * from './transform';
 
 /**
  * Deterministic fixtures (fixed ids, the two-room demo plan). Test support that

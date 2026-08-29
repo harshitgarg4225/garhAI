@@ -328,6 +328,14 @@ class SheetBundle:
     dim_to_jamb: bool = False
     title_block_fields: Mapping[str, Any] = field(default_factory=dict)
     revisions: tuple[tuple[str, str, str], ...] = ()
+    #: The validated register (D-1), when the payload's revision rows carry a real
+    #: DD-MM-YYYY date and an author. ``None`` when they do not: the compact title-block
+    #: strip still prints from ``revisions``, because a typo in a note must not fail a
+    #: sheet job — it just cannot drive a register or a cloud.
+    register: Any | None = None
+    #: The folded ``ProjectDoc`` JSON of the state the *previous* revision was issued at.
+    #: When present, the floor plans carry revision clouds around what changed since.
+    previous_document: Mapping[str, Any] | None = None
     number_prefix: str = "A"
     #: Provenance only — printed nowhere, logged and returned with the result.
     design_version_id: str | None = None
@@ -356,6 +364,7 @@ class SheetBundle:
             elif isinstance(row, list | tuple) and len(row) >= 3:
                 revisions.append((str(row[0]), str(row[1]), str(row[2])))
         return cls(
+            register=_register_from(payload.get("revisions") or ()),
             document=document,
             areas=TransportStatement.from_json(areas) if areas else None,
             kinds=canonical_sheet_kinds(payload.get("kinds")),
@@ -369,6 +378,31 @@ class SheetBundle:
                 str(payload["designVersionId"]) if payload.get("designVersionId") else None
             ),
         )
+
+
+def _register_from(rows: Any) -> Any | None:
+    """Build a :class:`~services.drawings.revisions.RevisionHistory`, or ``None``.
+
+    Deliberately forgiving in one direction only. The revision rows the API sends today
+    are three free-text columns; a register needs a real date and an author, and refuses a
+    reused number or a backwards date. When the rows do not meet that bar this returns
+    ``None`` and the set falls back to the compact title-block strip — a job must not fail
+    because someone typed ``5-3-26``. When they do, the set gets the register table and
+    (given a previous document) the clouds.
+
+    What it never does is *invent* the missing parts: an undated revision does not get
+    today's date, because a sheet that prints a date nobody chose is a lie on a signed
+    drawing.
+    """
+    from services.drawings.revisions import RevisionHistory
+
+    if not rows:
+        return None
+    try:
+        history = RevisionHistory(rows)
+    except (ValueError, TypeError, KeyError):
+        return None
+    return history or None
 
 
 # ---------------------------------------------------------------------------
@@ -478,7 +512,7 @@ def build_sheets(bundle: SheetBundle, *, on_sheet: Any = None) -> SheetSetResult
     house = doc.house
     title_block = _title_block(bundle)
 
-    plan = _sheet_plan(doc, bundle)
+    plan = _sheet_plan(doc, bundle, diff=_revision_diff(bundle))
     result = SheetSetResult(state_hash=_state_hash(doc))
     total = len(plan)
 
@@ -551,7 +585,25 @@ def build_sheets(bundle: SheetBundle, *, on_sheet: Any = None) -> SheetSetResult
 # ---------------------------------------------------------------------------
 # Plan assembly (one closure per sheet, so a failure is scoped to one sheet)
 # ---------------------------------------------------------------------------
-def _sheet_plan(doc: Any, bundle: SheetBundle) -> list[tuple[str, str, str, str, Any]]:
+def _revision_diff(bundle: SheetBundle) -> Any | None:
+    """The geometric diff against the previous issue, or ``None``.
+
+    Both halves are required and neither is guessed: without a register there is no
+    revision number to tag a cloud with, and without the previous document there is
+    nothing to compare against. A diff that found no change also returns ``None`` — an
+    issue that moved nothing gets a register row and no clouds, which is the truth.
+    """
+    if bundle.register is None or bundle.previous_document is None:
+        return None
+    from services.drawings.revisions import diff_models
+
+    diff = diff_models(bundle.previous_document, bundle.document)
+    return diff if diff else None
+
+
+def _sheet_plan(
+    doc: Any, bundle: SheetBundle, *, diff: Any | None = None
+) -> list[tuple[str, str, str, str, Any]]:
     from services.drawings.render import reference_sheets as ref
 
     house = doc.house
@@ -574,6 +626,7 @@ def _sheet_plan(doc: Any, bundle: SheetBundle) -> list[tuple[str, str, str, str,
                     title_block=tb,
                     statement=bundle.areas,
                     revisions=bundle.revisions,
+                    register=bundle.register,
                 ),
             )
         )
@@ -596,6 +649,8 @@ def _sheet_plan(doc: Any, bundle: SheetBundle) -> list[tuple[str, str, str, str,
                             title_block=tb,
                             dim_to_jamb=bundle.dim_to_jamb,
                             revisions=bundle.revisions,
+                            register=bundle.register,
+                            diff=diff,
                         )
                     ),
                 )
@@ -612,7 +667,12 @@ def _sheet_plan(doc: Any, bundle: SheetBundle) -> list[tuple[str, str, str, str,
                     "%s Elevation" % _DIRECTION_WORD[direction],
                     (
                         lambda tb, d=direction, num=number: ref.elevation_sheet(
-                            doc, d, number=num, title_block=tb, revisions=bundle.revisions
+                            doc,
+                            d,
+                            number=num,
+                            title_block=tb,
+                            revisions=bundle.revisions,
+                            register=bundle.register,
                         )
                     ),
                 )
@@ -627,7 +687,11 @@ def _sheet_plan(doc: Any, bundle: SheetBundle) -> list[tuple[str, str, str, str,
                 number,
                 "Section A-A",
                 lambda tb, num=number: ref.section_sheet(
-                    doc, number=num, title_block=tb, revisions=bundle.revisions
+                    doc,
+                    number=num,
+                    title_block=tb,
+                    revisions=bundle.revisions,
+                    register=bundle.register,
                 ),
             )
         )
@@ -641,7 +705,11 @@ def _sheet_plan(doc: Any, bundle: SheetBundle) -> list[tuple[str, str, str, str,
                 number,
                 "Door & Window Schedule",
                 lambda tb, num=number: ref.schedule_sheet(
-                    doc, number=num, title_block=tb, revisions=bundle.revisions
+                    doc,
+                    number=num,
+                    title_block=tb,
+                    revisions=bundle.revisions,
+                    register=bundle.register,
                 ),
             )
         )
@@ -655,7 +723,12 @@ def _sheet_plan(doc: Any, bundle: SheetBundle) -> list[tuple[str, str, str, str,
                 number,
                 "Area Statement",
                 lambda tb, num=number: ref.area_statement_sheet(
-                    doc, bundle.areas, number=num, title_block=tb, revisions=bundle.revisions
+                    doc,
+                    bundle.areas,
+                    number=num,
+                    title_block=tb,
+                    revisions=bundle.revisions,
+                    register=bundle.register,
                 ),
             )
         )

@@ -50,6 +50,7 @@ from services.drawings.schedules.display import (
     ratio_cell,
     storey_row_label,
 )
+from services.drawings.schedules.municipal import MunicipalAreaForm, municipal_form
 from services.drawings.schedules.openings import StoreyRef, normalise_storeys
 from services.drawings.schedules.sheet_primitives import AreaStatementRow
 from services.drawings.schedules.table import Column, Table, TableStyle
@@ -358,6 +359,32 @@ class AreaStatementSheet:
         )
 
     # -- tables ------------------------------------------------------------
+    def municipal_form(self) -> MunicipalAreaForm:
+        """The numbered sanction proforma (D-6) — what sheet A-06 prints.
+
+        :meth:`table` below is the flat listing this module has always produced: it is
+        what the JSON, the ASCII golden and the API serialise, and it reads as one item
+        per line. A municipal counter does not read that shape — it reads a *numbered*
+        statement with the permissible column ahead of the proposed one, sectioned and
+        sub-numbered so a query sheet can cite "item 6.2". That layout lives in
+        :mod:`services.drawings.schedules.municipal` and is what the sheet renderer draws.
+
+        The two are layouts, never two sets of numbers: both format the same
+        ``statement.rows()``, and ``test_area_statement.py`` asserts cell-for-cell that
+        every figure in one appears in the other.
+        """
+        return municipal_form(self.statement, carpet_lines=self.storeys)
+
+    def municipal_table(
+        self,
+        *,
+        title: str = "AREA STATEMENT",
+        style: TableStyle | None = None,
+        origin_mm: tuple[int, int] = (0, 0),
+    ) -> Table:
+        """The proforma as a table: SL. NO. · DESCRIPTION · PERMISSIBLE · PROPOSED · REMARKS."""
+        return self.municipal_form().table(title=title, style=style, origin_mm=origin_mm)
+
     def table(
         self,
         *,
@@ -365,7 +392,10 @@ class AreaStatementSheet:
         style: TableStyle | None = None,
         origin_mm: tuple[int, int] = (0, 0),
     ) -> Table:
-        """The municipal statement: description · provided · permissible/required."""
+        """The flat listing: description · provided · permissible/required · remarks.
+
+        See :meth:`municipal_form` for the sanction proforma the sheet prints.
+        """
         columns = (
             Column("item", "DESCRIPTION", "left"),
             Column("value", "PROVIDED", "right"),

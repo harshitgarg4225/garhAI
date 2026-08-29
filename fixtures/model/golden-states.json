@@ -1416,6 +1416,897 @@
         }
       ],
       "expectedStateHash": "66dddd58519423c710888b970bd8dbd4d538d0456c7f92fd61667861c2487205"
+    },
+    {
+      "name": "transform-paste-floor-up",
+      "description": "The op log a PASTE dispatches: five walls and their two openings copied onto a new first floor with a zero delta. No new op type — wall.add and opening.add, with ids derived from the gesture's group id so the log is reproducible. Applied as one group, this is one undo.",
+      "unitsDisplay": "ft-in",
+      "ops": [
+        {
+          "type": "plot.set_boundary",
+          "payload": {
+            "polygon": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 9144,
+                "y": 0
+              },
+              {
+                "x": 9144,
+                "y": 12192
+              },
+              {
+                "x": 0,
+                "y": 12192
+              }
+            ],
+            "source": "seed"
+          }
+        },
+        {
+          "type": "plot.set_north",
+          "payload": {
+            "deg": 0
+          }
+        },
+        {
+          "type": "plot.set_road",
+          "payload": {
+            "edgeIndex": 0,
+            "widthMm": 9000,
+            "name": "9m Road"
+          }
+        },
+        {
+          "type": "storey.add",
+          "payload": {
+            "id": "storey_01J000000000000000000000GF",
+            "index": 0,
+            "name": "Ground Floor",
+            "heightMm": 3000
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WS",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 0,
+              "y": 0
+            },
+            "b": {
+              "x": 6000,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WE",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 6000,
+              "y": 0
+            },
+            "b": {
+              "x": 6000,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WN",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 6000,
+              "y": 4000
+            },
+            "b": {
+              "x": 0,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WW",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 0,
+              "y": 4000
+            },
+            "b": {
+              "x": 0,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J00000000000000000000WSP",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 3000,
+              "y": 0
+            },
+            "b": {
+              "x": 3000,
+              "y": 4000
+            },
+            "thicknessMm": 115,
+            "kind": "internal"
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_01J000000000000000000000D1",
+            "wallId": "wall_01J000000000000000000000WS",
+            "kind": "door",
+            "widthMm": 900,
+            "heightMm": 2100,
+            "sillMm": 0,
+            "offsetMm": 1500,
+            "swing": "in-left"
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_01J000000000000000000000W1",
+            "wallId": "wall_01J000000000000000000000WW",
+            "kind": "window",
+            "widthMm": 1200,
+            "heightMm": 1200,
+            "sillMm": 900,
+            "offsetMm": 2000,
+            "swing": "in-left"
+          }
+        },
+        {
+          "type": "storey.add",
+          "payload": {
+            "id": "storey_01J000000000000000000000FF",
+            "index": 1,
+            "name": "First Floor",
+            "heightMm": 3000
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_21WZNGX71X5XHYFZ384152FHH5",
+            "storeyId": "storey_01J000000000000000000000FF",
+            "a": {
+              "x": 6000,
+              "y": 0
+            },
+            "b": {
+              "x": 6000,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_16GQBJS43BB2QV4SDEX9JN5E39",
+            "storeyId": "storey_01J000000000000000000000FF",
+            "a": {
+              "x": 6000,
+              "y": 4000
+            },
+            "b": {
+              "x": 0,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_6HAXKZN3W79TD41NBKYPGQAF5G",
+            "storeyId": "storey_01J000000000000000000000FF",
+            "a": {
+              "x": 0,
+              "y": 0
+            },
+            "b": {
+              "x": 6000,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_3B63W6HYDGQQW2FQJVQDY14A3K",
+            "storeyId": "storey_01J000000000000000000000FF",
+            "a": {
+              "x": 0,
+              "y": 4000
+            },
+            "b": {
+              "x": 0,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_1GRD9JMW46V5FQMSJJEMF0NDXS",
+            "storeyId": "storey_01J000000000000000000000FF",
+            "a": {
+              "x": 3000,
+              "y": 0
+            },
+            "b": {
+              "x": 3000,
+              "y": 4000
+            },
+            "thicknessMm": 115,
+            "kind": "internal",
+            "loadBearing": false
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_373BTG52S889ETJCFJ6JG8A5Q4",
+            "wallId": "wall_6HAXKZN3W79TD41NBKYPGQAF5G",
+            "kind": "door",
+            "widthMm": 900,
+            "heightMm": 2100,
+            "sillMm": 0,
+            "offsetMm": 1500,
+            "swing": "in-left",
+            "tag": null
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_6ENKZ0CN39WVKN4BMG2TAS3N3K",
+            "wallId": "wall_3B63W6HYDGQQW2FQJVQDY14A3K",
+            "kind": "window",
+            "widthMm": 1200,
+            "heightMm": 1200,
+            "sillMm": 900,
+            "offsetMm": 2000,
+            "swing": "in-left",
+            "tag": null
+          }
+        }
+      ],
+      "expectedStateHash": "64f5de5aef206e26aea0c8f806f97003b177bd3ee3579ba199c1200bf37d90de"
+    },
+    {
+      "name": "transform-mirror-copy",
+      "description": "The op log a MIRROR (keep original) dispatches: the same five walls reflected about x = 9000 onto clear ground. Every 'in-*' swing becomes 'out-*' with the hinge token unchanged and offsetMm untouched — a reflection is an isometry along the wall and orientation-reversing across it.",
+      "unitsDisplay": "ft-in",
+      "ops": [
+        {
+          "type": "plot.set_boundary",
+          "payload": {
+            "polygon": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 9144,
+                "y": 0
+              },
+              {
+                "x": 9144,
+                "y": 12192
+              },
+              {
+                "x": 0,
+                "y": 12192
+              }
+            ],
+            "source": "seed"
+          }
+        },
+        {
+          "type": "plot.set_north",
+          "payload": {
+            "deg": 0
+          }
+        },
+        {
+          "type": "plot.set_road",
+          "payload": {
+            "edgeIndex": 0,
+            "widthMm": 9000,
+            "name": "9m Road"
+          }
+        },
+        {
+          "type": "storey.add",
+          "payload": {
+            "id": "storey_01J000000000000000000000GF",
+            "index": 0,
+            "name": "Ground Floor",
+            "heightMm": 3000
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WS",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 0,
+              "y": 0
+            },
+            "b": {
+              "x": 6000,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WE",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 6000,
+              "y": 0
+            },
+            "b": {
+              "x": 6000,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WN",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 6000,
+              "y": 4000
+            },
+            "b": {
+              "x": 0,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WW",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 0,
+              "y": 4000
+            },
+            "b": {
+              "x": 0,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J00000000000000000000WSP",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 3000,
+              "y": 0
+            },
+            "b": {
+              "x": 3000,
+              "y": 4000
+            },
+            "thicknessMm": 115,
+            "kind": "internal"
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_01J000000000000000000000D1",
+            "wallId": "wall_01J000000000000000000000WS",
+            "kind": "door",
+            "widthMm": 900,
+            "heightMm": 2100,
+            "sillMm": 0,
+            "offsetMm": 1500,
+            "swing": "in-left"
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_01J000000000000000000000W1",
+            "wallId": "wall_01J000000000000000000000WW",
+            "kind": "window",
+            "widthMm": 1200,
+            "heightMm": 1200,
+            "sillMm": 900,
+            "offsetMm": 2000,
+            "swing": "in-left"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_3HS4A6X8AP9V22QZ05QMW8XSHF",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 12000,
+              "y": 0
+            },
+            "b": {
+              "x": 12000,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_14V58548PPXHMJGYV77Y6TN1WC",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 12000,
+              "y": 4000
+            },
+            "b": {
+              "x": 18000,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_5YVJ769FKXPMQSQ4T7HYTBZSNQ",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 18000,
+              "y": 0
+            },
+            "b": {
+              "x": 12000,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_04AQNQ9BT7Q072QH14RGFRVZ9N",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 18000,
+              "y": 4000
+            },
+            "b": {
+              "x": 18000,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_6EJE8XY8TG6XPQZX0ZZQ018SZE",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 15000,
+              "y": 0
+            },
+            "b": {
+              "x": 15000,
+              "y": 4000
+            },
+            "thicknessMm": 115,
+            "kind": "internal",
+            "loadBearing": false
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_33ZSJK9695RK6MWPKTFWMYXD59",
+            "wallId": "wall_5YVJ769FKXPMQSQ4T7HYTBZSNQ",
+            "kind": "door",
+            "widthMm": 900,
+            "heightMm": 2100,
+            "sillMm": 0,
+            "offsetMm": 1500,
+            "swing": "out-left",
+            "tag": null
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_31H9N9EHV3PZHD07MY1JAQRGMQ",
+            "wallId": "wall_04AQNQ9BT7Q072QH14RGFRVZ9N",
+            "kind": "window",
+            "widthMm": 1200,
+            "heightMm": 1200,
+            "sillMm": 900,
+            "offsetMm": 2000,
+            "swing": "out-left",
+            "tag": null
+          }
+        }
+      ],
+      "expectedStateHash": "51162302b2ba8410e1a0dae8ca8eb2362df758ba90306b97630a0d9f7a81c264"
+    },
+    {
+      "name": "transform-mirror-in-place",
+      "description": "The op log a MIRROR with 'keep original' OFF dispatches — flipping the plan. It deletes every selected wall before re-adding any of them, at the ORIGINAL ids, because south and north swap positions and wall.move would trip WALL_DUPLICATE whichever went first. The openings the delete cascade took come back with the hand flipped.",
+      "unitsDisplay": "ft-in",
+      "ops": [
+        {
+          "type": "plot.set_boundary",
+          "payload": {
+            "polygon": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 9144,
+                "y": 0
+              },
+              {
+                "x": 9144,
+                "y": 12192
+              },
+              {
+                "x": 0,
+                "y": 12192
+              }
+            ],
+            "source": "seed"
+          }
+        },
+        {
+          "type": "plot.set_north",
+          "payload": {
+            "deg": 0
+          }
+        },
+        {
+          "type": "plot.set_road",
+          "payload": {
+            "edgeIndex": 0,
+            "widthMm": 9000,
+            "name": "9m Road"
+          }
+        },
+        {
+          "type": "storey.add",
+          "payload": {
+            "id": "storey_01J000000000000000000000GF",
+            "index": 0,
+            "name": "Ground Floor",
+            "heightMm": 3000
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WS",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 0,
+              "y": 0
+            },
+            "b": {
+              "x": 6000,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WE",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 6000,
+              "y": 0
+            },
+            "b": {
+              "x": 6000,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WN",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 6000,
+              "y": 4000
+            },
+            "b": {
+              "x": 0,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WW",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 0,
+              "y": 4000
+            },
+            "b": {
+              "x": 0,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J00000000000000000000WSP",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 3000,
+              "y": 0
+            },
+            "b": {
+              "x": 3000,
+              "y": 4000
+            },
+            "thicknessMm": 115,
+            "kind": "internal"
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_01J000000000000000000000D1",
+            "wallId": "wall_01J000000000000000000000WS",
+            "kind": "door",
+            "widthMm": 900,
+            "heightMm": 2100,
+            "sillMm": 0,
+            "offsetMm": 1500,
+            "swing": "in-left"
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_01J000000000000000000000W1",
+            "wallId": "wall_01J000000000000000000000WW",
+            "kind": "window",
+            "widthMm": 1200,
+            "heightMm": 1200,
+            "sillMm": 900,
+            "offsetMm": 2000,
+            "swing": "in-left"
+          }
+        },
+        {
+          "type": "wall.delete",
+          "payload": {
+            "wallId": "wall_01J000000000000000000000WE"
+          }
+        },
+        {
+          "type": "wall.delete",
+          "payload": {
+            "wallId": "wall_01J000000000000000000000WN"
+          }
+        },
+        {
+          "type": "wall.delete",
+          "payload": {
+            "wallId": "wall_01J000000000000000000000WS"
+          }
+        },
+        {
+          "type": "wall.delete",
+          "payload": {
+            "wallId": "wall_01J000000000000000000000WW"
+          }
+        },
+        {
+          "type": "wall.delete",
+          "payload": {
+            "wallId": "wall_01J00000000000000000000WSP"
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WE",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 6000,
+              "y": 4000
+            },
+            "b": {
+              "x": 6000,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WN",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 6000,
+              "y": 0
+            },
+            "b": {
+              "x": 0,
+              "y": 0
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WS",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 0,
+              "y": 4000
+            },
+            "b": {
+              "x": 6000,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J000000000000000000000WW",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 0,
+              "y": 0
+            },
+            "b": {
+              "x": 0,
+              "y": 4000
+            },
+            "thicknessMm": 230,
+            "kind": "external",
+            "loadBearing": true
+          }
+        },
+        {
+          "type": "wall.add",
+          "payload": {
+            "id": "wall_01J00000000000000000000WSP",
+            "storeyId": "storey_01J000000000000000000000GF",
+            "a": {
+              "x": 3000,
+              "y": 4000
+            },
+            "b": {
+              "x": 3000,
+              "y": 0
+            },
+            "thicknessMm": 115,
+            "kind": "internal",
+            "loadBearing": false
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_01J000000000000000000000D1",
+            "wallId": "wall_01J000000000000000000000WS",
+            "kind": "door",
+            "widthMm": 900,
+            "heightMm": 2100,
+            "sillMm": 0,
+            "offsetMm": 1500,
+            "swing": "out-left",
+            "tag": null
+          }
+        },
+        {
+          "type": "opening.add",
+          "payload": {
+            "id": "opening_01J000000000000000000000W1",
+            "wallId": "wall_01J000000000000000000000WW",
+            "kind": "window",
+            "widthMm": 1200,
+            "heightMm": 1200,
+            "sillMm": 900,
+            "offsetMm": 2000,
+            "swing": "out-left",
+            "tag": null
+          }
+        }
+      ],
+      "expectedStateHash": "2bbf0f1da37247629562e0ff4b95ef181d3e59ab518b158117603ee53ab63ae5"
     }
   ]
 }

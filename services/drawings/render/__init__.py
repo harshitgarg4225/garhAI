@@ -69,6 +69,7 @@ from services.drawings.render.sanitize import SvgSanitizeError, assert_sanitary,
 from services.drawings.render.svg import normalize_svg, render_group_svg, render_sheet_svg
 from services.drawings.render.tables import (
     area_statement_group,
+    area_statement_height_mm,
     area_statement_table,
     schedule_group,
     schedule_table,
@@ -92,6 +93,7 @@ __all__ = [
     "SvgSanitizeError",
     "Text",
     "area_statement_group",
+    "area_statement_height_mm",
     "area_statement_table",
     "assert_sanitary",
     "choose_scale",

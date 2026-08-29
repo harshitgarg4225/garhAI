@@ -11,6 +11,8 @@ on a bare interpreter with no ezdxf, no OR-Tools and no GPU:
                           per-storey counts, the tag map the plan reads
 :mod:`area_statement`     the municipal statement, **rendered from**
                           ``garh_rules.areas`` — no FAR/coverage/setback maths here
+:mod:`municipal`          that statement in the sanction proforma's own numbered
+                          five-column layout (D-6) — formatting only, no arithmetic
 :mod:`display`            the Indian formatting boundary (m² · sq ft · gaj)
 :mod:`table`              integer paper-mm table layout → primitives / text / SVG
 :mod:`sheet_primitives`   resolves the shared ``ScheduleRow``/``AreaStatementRow``
@@ -62,6 +64,13 @@ from services.drawings.schedules.door_window import (
     opening_tags,
     tagged_openings,
 )
+from services.drawings.schedules.municipal import (
+    CERTIFICATION_NOTES,
+    MUNICIPAL_COLUMNS,
+    FormRow,
+    MunicipalAreaForm,
+    municipal_form,
+)
 from services.drawings.schedules.openings import (
     OPENING_KIND_ORDER,
     UNKNOWN_STOREY,
@@ -82,7 +91,9 @@ from services.drawings.schedules.table import (
 
 __all__ = [
     "CARPET_EXCLUDED_ROOM_TYPES",
+    "CERTIFICATION_NOTES",
     "KIND_LABELS",
+    "MUNICIPAL_COLUMNS",
     "OPENING_KIND_ORDER",
     "TAG_PREFIXES",
     "UNKNOWN_STOREY",
@@ -91,7 +102,9 @@ __all__ = [
     "CarpetRow",
     "Column",
     "DoorWindowSchedule",
+    "FormRow",
     "LineItem",
+    "MunicipalAreaForm",
     "ScheduleGroup",
     "ScheduleOpening",
     "ScheduleRow",
@@ -108,6 +121,7 @@ __all__ = [
     "count_cell",
     "group_key_of",
     "mm_cell",
+    "municipal_form",
     "normalise_openings",
     "normalise_storeys",
     "opening_tags",

@@ -25,6 +25,7 @@ rule                         identity            limit       window
 ``auth.otp_per_email``       email (hashed)      5           1 h
 ``auth.otp_resend``          email (hashed)      1           60 s
 ``auth.verify_per_ip``       client IP           30          1 h
+``2fa_attempt``              user                5           10 min
 ===========================  ==================  ==========  ============
 
 The configurable numbers come from ``Settings`` so an operator can raise them without a
@@ -462,8 +463,46 @@ def verify_ip_rule(settings: Settings | None = None) -> RateLimitRule:
     )
 
 
+#: Attempts allowed against a *second factor* before the account is held, and the
+#: window they are counted over. Six digits is 10^6, which falls in minutes at HTTP
+#: speed, so this is the number that decides whether TOTP is worth having.
+TWO_FACTOR_MAX_ATTEMPTS: Final = 5
+TWO_FACTOR_ATTEMPT_WINDOW_SECONDS: Final = 600
+
+
+def two_factor_attempt_rule(settings: Settings | None = None) -> RateLimitRule:
+    """5 second-factor attempts per 10 minutes per user, fail-closed.
+
+    Fail-closed is the whole point: if Redis cannot tell us how many guesses have been
+    made we must refuse rather than admit. A 503 here is a worse day for a legitimate
+    user than a 200; it is a much better day than an attacker walking in.
+
+    It lives *here* rather than beside the rest of the second-factor policy in
+    :mod:`garh_api.twofactor` for one reason, and it is the reason bug pattern 4 exists:
+    :data:`RULE_FACTORIES` is the registry the security checklist audits, and a rule
+    defined in another module is a rule somebody has to remember to register. Defining
+    it next to the tuple makes "registered" structural rather than remembered.
+    :mod:`garh_api.twofactor` re-exports it, so every existing import still resolves.
+    """
+    del settings  # the numbers are policy, not configuration
+    return RateLimitRule(
+        name="2fa_attempt",
+        limit=TWO_FACTOR_MAX_ATTEMPTS,
+        window_seconds=TWO_FACTOR_ATTEMPT_WINDOW_SECONDS,
+        scope="user",
+        fail_closed=True,
+        message="Too many two-factor attempts. Wait a few minutes and try again.",
+        action="Wait 10 minutes, then use a recovery code if the app still won't work.",
+    )
+
+
 #: Every rule factory the API ships, for the security-checklist test that asserts the
 #: playbook's numbers are actually wired up.
+#:
+#: ``tests/test_job_rate_limits.py::test_every_shipped_rule_is_registered`` walks the
+#: whole ``garh_api`` package for factories that return a :class:`RateLimitRule` and
+#: fails if one is missing from this tuple, so a new limit cannot go quietly
+#: unaudited — which is exactly what happened to ``2fa_attempt``.
 RULE_FACTORIES: tuple[Callable[..., RateLimitRule], ...] = (
     ops_per_firm_rule,
     solver_jobs_per_firm_rule,
@@ -475,6 +514,7 @@ RULE_FACTORIES: tuple[Callable[..., RateLimitRule], ...] = (
     otp_per_email_rule,
     otp_resend_rule,
     verify_ip_rule,
+    two_factor_attempt_rule,
 )
 
 
@@ -679,6 +719,8 @@ __all__ = [
     "OTP_PER_EMAIL_PER_HOUR",
     "OTP_RESEND_COOLDOWN_SECONDS",
     "RULE_FACTORIES",
+    "TWO_FACTOR_ATTEMPT_WINDOW_SECONDS",
+    "TWO_FACTOR_MAX_ATTEMPTS",
     "VERIFY_PER_IP_PER_HOUR",
     "RateLimitDecision",
     "RateLimitRule",
@@ -699,5 +741,6 @@ __all__ = [
     "reset_rate_limit",
     "sheet_jobs_per_firm_rule",
     "solver_jobs_per_firm_rule",
+    "two_factor_attempt_rule",
     "verify_ip_rule",
 ]

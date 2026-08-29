@@ -66,6 +66,15 @@ MAX_COPILOT_OPS = 40
 #: §10: "solver facts → 60-word paragraph".
 RATIONALE_WORD_LIMIT = 60
 
+#: B-9: an explanation is a chip expansion, not an essay. Long enough for "what the
+#: rule wants / what this design does / why it matters", short enough to read at a
+#: glance beside the failing chip.
+EXPLANATION_WORD_LIMIT = 90
+
+#: Fix suggestions per finding. Three real options beat eight hedged ones, and the
+#: panel shows them as a short list.
+MAX_EXPLANATION_FIXES = 3
+
 
 def _string(**extra: Any) -> dict[str, Any]:
     return {"type": "string", **extra}
@@ -262,18 +271,64 @@ RATIONALE_SCHEMA: dict[str, Any] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Compliance explainer (B-9) — one finding → why it failed + how to fix it
+# ---------------------------------------------------------------------------
+#: There is no citation field and no geometry field here, and both omissions are the
+#: point. The rule id and clause are stamped onto the answer by
+#: :mod:`services.llm.explainer` straight from the rules-engine row, so a model cannot
+#: mis-cite even if it tries; and with no place to put a coordinate, "LLMs never emit
+#: geometry" is enforced by the shape rather than by the prompt asking nicely.
+COMPLIANCE_EXPLAIN_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["factsUsed", "explanation", "fixes"],
+    "properties": {
+        "factsUsed": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 12,
+            "items": _string(minLength=1, maxLength=400),
+            "description": (
+                "Step 1 of list-then-write: copy VERBATIM the supplied facts you used. "
+                "An entry that was not supplied is a fabrication, caught before the "
+                "prose reaches an architect."
+            ),
+        },
+        "explanation": _string(
+            minLength=1,
+            maxLength=900,
+            description="At most %d words. Only numbers that appear in the finding."
+            % EXPLANATION_WORD_LIMIT,
+        ),
+        "fixes": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": MAX_EXPLANATION_FIXES,
+            "items": _string(minLength=1, maxLength=240),
+            "description": "Concrete things the architect can do, cheapest first. "
+            "Described as design moves, never as coordinates.",
+        },
+    },
+}
+
+
 SCHEMAS_BY_TASK: dict[str, dict[str, Any]] = {
     "brief.parse": BRIEF_PARSE_SCHEMA,
     "copilot.ops": COPILOT_SCHEMA,
     "rationale.write": RATIONALE_SCHEMA,
+    "compliance.explain": COMPLIANCE_EXPLAIN_SCHEMA,
 }
 
 
 __all__ = [
     "ASSUMPTION_SCHEMA",
     "BRIEF_PARSE_SCHEMA",
+    "COMPLIANCE_EXPLAIN_SCHEMA",
     "COPILOT_SCHEMA",
+    "EXPLANATION_WORD_LIMIT",
     "MAX_COPILOT_OPS",
+    "MAX_EXPLANATION_FIXES",
     "RATIONALE_SCHEMA",
     "RATIONALE_WORD_LIMIT",
     "ROOM_REQUEST_SCHEMA",

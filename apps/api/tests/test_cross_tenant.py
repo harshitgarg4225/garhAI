@@ -33,8 +33,10 @@ either.
 
 from __future__ import annotations
 
+import time
 import uuid
 from dataclasses import dataclass, field
+from datetime import UTC
 from typing import Any
 
 import pytest
@@ -57,6 +59,21 @@ TENANT_SCOPED_PARAMS: frozenset[str] = frozenset(
         "share_link_id",
         "comment_id",
         "annotation_id",
+        # G-1/G-4. An invoice and a seat are tenant-owned rows reached by their own id,
+        # with no project in the path to carry the ownership check — so the id IS the
+        # scoping and these are exactly the routes this guard exists for. They were
+        # absent from this set, which meant `_tenant_scoped_routes` skipped the three
+        # billing routes carrying them and the guard read as coverage while being
+        # structurally unable to fire on them.
+        "invoice_id",
+        "seat_id",
+        # F-3. A refresh family is keyed by USER, not by firm, so the cross-tenant
+        # answer comes from a key that does not exist rather than from a WHERE clause.
+        # It is listed here anyway: the guarantee a caller cares about is identical
+        # ("another tenant's id reads as missing"), and leaving it out would mean the
+        # only route that can end another person's session were covered by diligence
+        # instead of by default.
+        "family_id",
     }
 )
 
@@ -212,6 +229,13 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
         "/projects/{project_id}/downloads/audit",
         query="exportJobId={export_job_id}",
     ),
+    # -- signed-in devices (F-3) ------------------------------------------
+    # Firm B holds a valid token and a real, live family id belonging to firm A's
+    # admin. Session records are hash-tagged by user id, so B's lookup misses and the
+    # answer is the same 404 an invented id would get. The positive half — that the
+    # family really is alive and revocable by ITS OWN user — is asserted in
+    # test_sessions.py, so this case cannot pass by revoking nothing.
+    Case("DELETE", "/auth/sessions/{family_id}"),
     # -- share links and comments -----------------------------------------
     Case("GET", "/projects/{project_id}/share"),
     Case("POST", "/projects/{project_id}/share", body={"canComment": True}),
@@ -248,6 +272,14 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
     ),
     Case("GET", "/projects/{project_id}/render-packs/{pack_id}"),
     Case("POST", "/projects/{project_id}/render-packs/{pack_id}/archive"),
+    # -- billing (G-1, G-3, G-4) ------------------------------------------
+    # Firm B holds a valid ADMIN token for its own firm, so the role check passes and
+    # what is left is the tenancy check on a real invoice and a real seat of firm A's.
+    # The checkout case is the sharpest: it is a write that would open a gateway order
+    # against somebody else's invoice.
+    Case("GET", "/billing/invoices/{invoice_id}"),
+    Case("POST", "/billing/invoices/{invoice_id}/checkout"),
+    Case("DELETE", "/billing/seats/{seat_id}"),
     # -- sheets, the §7 municipal set -------------------------------------
     Case("GET", "/projects/{project_id}/sheets/summary"),
     Case("GET", "/projects/{project_id}/sheets/review-tray"),
@@ -262,14 +294,86 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
 
 
 @pytest.fixture
-async def estate_a(session: Any, firm_a: Any, project_a: Any, clean_redis: Any) -> dict[str, str]:
+def billing_schema(database: Any) -> Any:
+    """The five billing tables, present and empty.
+
+    They live on their own ``MetaData`` (``garh_api.billing.models``: a tax invoice must
+    outlive the firm it describes, so these tables carry no FK to ``firms``), which means
+    ``ALL_TABLES`` does not list them and neither ``conftest.database`` nor
+    ``conftest.clean_db`` touches them. The billing routes in ``TENANT_SCOPED_CASES``
+    need a real invoice and a real seat of firm A's, so this fixture creates the schema
+    if the migration has not been applied and truncates it per test.
+    """
+    from garh_api.billing.models import BILLING_METADATA, BILLING_TABLES
+    from sqlalchemy import text as sql_text
+
+    BILLING_METADATA.create_all(database)
+    with database.begin() as connection:
+        connection.execute(
+            sql_text(
+                "TRUNCATE TABLE %s RESTART IDENTITY CASCADE"
+                % ", ".join('"%s"' % name for name in BILLING_TABLES)
+            )
+        )
+    return database
+
+
+async def _billing_estate(session: Any, firm_a: Any) -> dict[str, str]:
+    """One real invoice and one real seat owned by firm A.
+
+    The invoice is written through the product's own repository with the fields
+    ``billing.invoices`` would put on it, rather than driven through ``POST
+    /billing/invoices`` — that route needs the deployment's GST registration in the
+    environment, and this fixture is about tenancy, not about GST configuration.
+    """
+    from datetime import date, datetime, timedelta
+
+    from garh_api.billing.repositories import InvoiceRepository, SeatRepository
+
+    period_start = datetime.now(UTC).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    invoice = await InvoiceRepository(session, firm_a.ctx()).create(
+        invoice_number="GA-XT-%s" % uuid.uuid4().hex[:6].upper(),
+        status="issued",
+        issued_on=date.today(),
+        period_start=period_start,
+        period_end=period_start + timedelta(days=30),
+        supplier_legal_name="Garh Technologies Private Limited",
+        supplier_gstin="29AABCG1234H1ZV",
+        supplier_state_code="29",
+        supplier_address="4th Cross, Indiranagar, Bengaluru 560038",
+        customer_legal_name="Studio One LLP",
+        customer_gstin=None,
+        customer_address="12 MG Road, Bengaluru, 560001",
+        place_of_supply_code="29",
+        interstate=False,
+        currency="INR",
+        taxable_inr=4_999,
+        cgst_inr=450,
+        sgst_inr=450,
+        igst_inr=0,
+        total_inr=5_899,
+        rate_percent_x100=1800,
+        lines=[{"description": "Studio plan", "hsnSac": "997331", "amountInr": 4_999}],
+    )
+    seat = await SeatRepository(session, firm_a.ctx()).assign(
+        user_id=firm_a.user_id, seat_type="editor", assigned_by=firm_a.user_id
+    )
+    return {"invoice_id": str(invoice.id), "seat_id": str(seat.id)}
+
+
+@pytest.fixture
+async def estate_a(
+    session: Any, firm_a: Any, project_a: Any, clean_redis: Any, billing_schema: Any
+) -> dict[str, str]:
     """Real, committed rows owned by firm A, as a template-substitution map.
 
     Everything is created through the product's own repositories, so nothing here is a
     shape the application could not produce.
     """
     from garh_api import queue
+    from garh_api.auth import SessionStore
     from garh_api.repositories import SheetRepository
+    from garh_api.security import new_token_family
 
     from tests import factories
 
@@ -281,6 +385,21 @@ async def estate_a(session: Any, firm_a: Any, project_a: Any, clean_redis: Any) 
     sheet = await SheetRepository(session, firm_a.ctx()).create(
         project_a.id, kind="floor", number="A-101"
     )
+    await session.commit()
+
+    # A REAL, live refresh family for firm A's admin — the F-3 case above needs an id
+    # that would succeed for its owner, or its 404 would prove nothing.
+    family = new_token_family()
+    await SessionStore().start_family(
+        user_id=firm_a.user_id,
+        firm_id=firm_a.firm_id,
+        family=family,
+        started_at=int(time.time()),
+        ip="203.0.113.10",
+        user_agent="Mozilla/5.0 (Macintosh) Chrome/126.0",
+    )
+
+    billing_ids = await _billing_estate(session, firm_a)
     await session.commit()
 
     export_job_id = "exp_%s" % uuid.uuid4().hex[:16]
@@ -297,7 +416,9 @@ async def estate_a(session: Any, firm_a: Any, project_a: Any, clean_redis: Any) 
     )
 
     return {
+        **billing_ids,
         "project_id": str(project_a.id),
+        "family_id": family,
         "version_id": str(version.id),
         "job_id": str(solver_job.id),
         "render_job_id": str(render_job.id),

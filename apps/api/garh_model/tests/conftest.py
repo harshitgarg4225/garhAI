@@ -62,3 +62,16 @@ def golden_states() -> list[dict[str, Any]]:
     """Rows of ``fixtures/model/golden-states.json`` (the cross-language sync check)."""
     data = load_fixture("model", "golden-states.json")
     return list(data["cases"])
+
+
+@pytest.fixture(scope="session")
+def golden_transforms() -> list[dict[str, Any]]:
+    """Rows of ``fixtures/model/golden-transforms.json``.
+
+    The copy / paste / array / mirror planners emit only ops both folds already
+    agree on, so ``golden-states.json`` cannot catch the two PLANNERS diverging.
+    This is the file that can: it pins the op list, the plan summary and the
+    resulting state hash for each request, and both languages assert every row.
+    """
+    data = load_fixture("model", "golden-transforms.json")
+    return list(data["cases"])

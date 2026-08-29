@@ -25,6 +25,12 @@ claim            tokens      meaning
 ``iat``/``nbf``  both        issued-at / not-before
 ===============  ==========  =================================================
 
+A third, short-lived type exists: :data:`TOKEN_TYPE_TWO_FACTOR`, minted by
+:func:`create_two_factor_challenge`. It says "this person proved the first factor" and
+nothing else — it is not a credential, cannot be sent as a bearer token (different
+audience, so PyJWT rejects it before our code runs) and is worthless without a live
+TOTP or recovery code. See :mod:`garh_api.twofactor`.
+
 Deliberately **not** in the token: email, name, phone. Tokens end up in logs, proxies
 and browser storage; §13 keeps PII out of them. ``GET /auth/me`` returns the profile.
 
@@ -66,9 +72,22 @@ JWT_ALGORITHM: Final = "RS256"
 
 TOKEN_TYPE_ACCESS: Final = "access"
 TOKEN_TYPE_REFRESH: Final = "refresh"
+#: "First factor passed, second one outstanding" — see :mod:`garh_api.twofactor`.
+TOKEN_TYPE_TWO_FACTOR: Final = "2fa"
 
 AUDIENCE_ACCESS: Final = "garh-api"
 AUDIENCE_REFRESH: Final = "garh-api/refresh"
+AUDIENCE_TWO_FACTOR: Final = "garh-api/2fa"
+
+#: Audience per token type. A dict rather than a conditional because there are now
+#: three types: the old ``refresh if x else access`` would have silently handed the
+#: 2FA challenge the *access* audience, making it usable as a bearer token — which is
+#: precisely the thing separate audiences exist to prevent.
+_AUDIENCE_BY_TYPE: Final[dict[str, str]] = {
+    TOKEN_TYPE_ACCESS: AUDIENCE_ACCESS,
+    TOKEN_TYPE_REFRESH: AUDIENCE_REFRESH,
+    TOKEN_TYPE_TWO_FACTOR: AUDIENCE_TWO_FACTOR,
+}
 
 #: Tolerated clock drift between the API and whatever signed/issued a token.
 CLOCK_SKEW_LEEWAY_SECONDS: Final = 10
@@ -354,6 +373,39 @@ def create_refresh_token(
     )
 
 
+def create_two_factor_challenge(
+    *,
+    user_id: uuid.UUID,
+    firm_id: uuid.UUID,
+    role: str,
+    ttl_seconds: int,
+    token_id: str | None = None,
+    settings: Settings | None = None,
+) -> tuple[str, int]:
+    """Mint the short-lived "first factor passed" ticket. Returns ``(token, exp)``.
+
+    It carries no ``gen`` semantics of its own (``gen=0``) because it grants nothing:
+    the only route that accepts it exchanges it for a real session *after* a second
+    factor verifies, and that route mints the session from scratch. Its audience is
+    :data:`AUDIENCE_TWO_FACTOR`, so presenting it as ``Authorization: Bearer`` fails
+    inside PyJWT before any of our code sees it.
+    """
+    cfg = settings or get_settings()
+    if ttl_seconds < 1:
+        raise ValueError("a two-factor challenge needs a positive TTL")
+    return _encode(
+        settings=cfg,
+        token_type=TOKEN_TYPE_TWO_FACTOR,
+        audience=AUDIENCE_TWO_FACTOR,
+        user_id=user_id,
+        firm_id=firm_id,
+        role=role,
+        generation=0,
+        token_id=token_id or new_token_id(),
+        ttl_seconds=ttl_seconds,
+    )
+
+
 def new_token_family() -> str:
     """Identifier for one login session's chain of rotated refresh tokens."""
     return uuid.uuid4().hex
@@ -378,7 +430,7 @@ def decode_token(
     """
     cfg = settings or get_settings()
     keys = get_jwt_keys(cfg)
-    audience = AUDIENCE_REFRESH if expected_type == TOKEN_TYPE_REFRESH else AUDIENCE_ACCESS
+    audience = _AUDIENCE_BY_TYPE.get(expected_type, AUDIENCE_ACCESS)
     if not token or not token.strip():
         raise TokenInvalidError()
 
@@ -526,18 +578,21 @@ def read_refresh_cookie(request: Any) -> str:
 __all__ = [
     "AUDIENCE_ACCESS",
     "AUDIENCE_REFRESH",
+    "AUDIENCE_TWO_FACTOR",
     "BEARER_SCHEME",
     "CLOCK_SKEW_LEEWAY_SECONDS",
     "JWT_ALGORITHM",
     "REFRESH_COOKIE_NAME",
     "TOKEN_TYPE_ACCESS",
     "TOKEN_TYPE_REFRESH",
+    "TOKEN_TYPE_TWO_FACTOR",
     "JwtKeys",
     "TokenClaims",
     "clear_refresh_cookie",
     "constant_time_compare",
     "create_access_token",
     "create_refresh_token",
+    "create_two_factor_challenge",
     "decode_token",
     "email_domain",
     "generate_opaque_token",

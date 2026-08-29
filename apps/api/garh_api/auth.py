@@ -47,7 +47,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -62,6 +62,8 @@ from garh_api.errors import (
     RefreshTokenReuseError,
     RefreshTokenRevokedError,
     ServiceUnavailableError,
+    TokenExpiredError,
+    TokenInvalidError,
     TokenRevokedError,
 )
 from garh_api.logging import get_logger
@@ -91,10 +93,12 @@ from garh_api.repositories.otp import (
     OtpCodeRepository,
     generate_otp_code,
 )
+from garh_api.repositories.two_factor import TwoFactorRepository
 from garh_api.repositories.users import normalise_email
 from garh_api.security import (
     TOKEN_TYPE_ACCESS,
     TOKEN_TYPE_REFRESH,
+    TOKEN_TYPE_TWO_FACTOR,
     TokenClaims,
     create_access_token,
     create_refresh_token,
@@ -105,6 +109,16 @@ from garh_api.security import (
     pseudonymise,
 )
 from garh_api.tenancy import TenantCtx
+from garh_api.twofactor import (
+    ACTION_TWO_FACTOR_CHALLENGED,
+    ACTION_TWO_FACTOR_FAILED,
+    ACTION_TWO_FACTOR_RECOVERY_USED,
+    CHALLENGE_TTL_SECONDS,
+    TwoFactorInvalidError,
+    TwoFactorRequiredError,
+    TwoFactorService,
+    TwoFactorStateError,
+)
 
 _log = get_logger(__name__)
 
@@ -118,8 +132,14 @@ _log = get_logger(__name__)
 # ``AUDIT_ACTIONS`` where a security review greps, and imported above. There is one
 # definition of each string; do not re-add a local copy.
 
-#: Every audit action the auth layer emits (the security-checklist test asserts §13's
-#: "audit_log on auth events" is actually wired).
+#: Every action from the ``AUDIT_ACTIONS`` **registry** that the auth layer emits (the
+#: security-checklist test asserts §13's "audit_log on auth events" is actually wired,
+#: in both directions — an action listed here and missing from the registry fails it).
+#:
+#: The second factor (F-4) emits six more, declared in
+#: :data:`garh_api.twofactor.TWO_FACTOR_AUDIT_ACTIONS` because that agent does not own
+#: the registry module. Promoting them into ``AUDIT_ACTIONS`` and appending them here
+#: is one line each; until then this tuple is not the whole auth trail and says so.
 AUTH_AUDIT_ACTIONS: tuple[str, ...] = (
     ACTION_AUTH_OTP_REQUESTED,
     ACTION_AUTH_OTP_VERIFIED,
@@ -309,6 +329,10 @@ if not state then return {0, 'unknown'} end
 if state == 'active' then
   redis.call('HSET', KEYS[1], 'state', 'rotated', 'rotated_at', ARGV[1], 'successor', ARGV[2])
   redis.call('EXPIRE', KEYS[1], ARGV[3])
+  -- "Last used" for the F-3 device list. Written here rather than in `register`
+  -- because this branch has already proved the family exists and is active: a bare
+  -- HSET on a missing key CREATES it, with no TTL, forever (see _REVOKE_FAMILY_LUA).
+  redis.call('HSET', KEYS[2], 'last_used_at', ARGV[1])
   return {1, 'ok'}
 end
 
@@ -383,6 +407,30 @@ def _now() -> int:
     return int(datetime.now(UTC).timestamp())
 
 
+def _as_int(raw: Any, *, default: int = 0) -> int:
+    """Redis hash field → int. A hand-edited or truncated field must not 500."""
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return default
+
+
+@dataclass(frozen=True)
+class LiveSession:
+    """One signed-in device, as :meth:`SessionStore.list_families` reports it (F-3).
+
+    This is the refresh *family* — the chain of rotated tokens one sign-in produces —
+    which is what "a device" actually means here: one browser profile on one machine
+    has exactly one, and it survives every silent 15-minute refresh.
+    """
+
+    family: str
+    started_at: int
+    last_used_at: int
+    ip: str = ""
+    user_agent: str = ""
+
+
 class SessionStore:
     """Refresh-token families and logout-all generations, in Redis.
 
@@ -429,7 +477,16 @@ class SessionStore:
         firm_id: uuid.UUID,
         family: str,
         started_at: int,
+        ip: str = "",
+        user_agent: str = "",
     ) -> None:
+        """Open a new session. ``ip``/``user_agent`` are what the F-3 device list shows.
+
+        Recorded once, at sign-in, and never rewritten: "signed in from Chrome on
+        Windows, from this address" is a property of the *login*, and letting a later
+        rotation overwrite it would let a stolen refresh token quietly relabel the
+        session it stole as the user's own laptop.
+        """
         ttl = self._settings.refresh_token_ttl_seconds + _RECORD_GRACE_SECONDS
         try:
             pipe = self._redis.pipeline(transaction=True)
@@ -440,6 +497,9 @@ class SessionStore:
                     "user_id": str(user_id),
                     "firm_id": str(firm_id),
                     "started_at": str(started_at),
+                    "last_used_at": str(started_at),
+                    "ip": ip or "",
+                    "user_agent": user_agent or "",
                 },
             )
             pipe.expire(family_key(user_id, family), ttl)
@@ -526,6 +586,64 @@ class SessionStore:
                 "We couldn't sign you out just now.", dependency="redis"
             ) from exc
         return bool(int(revoked))
+
+    async def list_families(self, user_id: uuid.UUID) -> list[LiveSession]:
+        """Every live session this user has, newest use first (F-3).
+
+        Reads only — but it fails **closed** like every other family operation. A
+        device list that silently comes back empty because Redis blinked would tell a
+        user "nothing else is signed in", which is exactly the wrong answer to give
+        someone checking whether they have been compromised.
+
+        Families whose record has expired are dropped from the index on the way past:
+        the set is the only structure with no natural per-member TTL, so without this
+        it grows for the life of the user.
+        """
+        try:
+            # ``cast``: redis-py types its async commands ``Awaitable[T] | T`` because
+            # the sync and async clients share one signature, and mypy cannot tell
+            # which arm this client returns. At runtime it is always the awaitable.
+            families = sorted(
+                await cast("Awaitable[set[str]]", self._redis.smembers(user_families_key(user_id)))
+            )
+            if not families:
+                return []
+            pipe = self._redis.pipeline(transaction=False)
+            for family in families:
+                pipe.hgetall(family_key(user_id, family))
+            records = await pipe.execute()
+        except (RedisError, OSError, TimeoutError) as exc:
+            raise ServiceUnavailableError(
+                "We couldn't list your signed-in devices just now.", dependency="redis"
+            ) from exc
+
+        live: list[LiveSession] = []
+        stale: list[str] = []
+        for family, record in zip(families, records, strict=True):
+            if not record:
+                stale.append(str(family))
+                continue
+            if record.get("state") != FAMILY_STATE_ACTIVE:
+                continue
+            started = _as_int(record.get("started_at"))
+            live.append(
+                LiveSession(
+                    family=str(family),
+                    started_at=started,
+                    last_used_at=_as_int(record.get("last_used_at"), default=started),
+                    ip=str(record.get("ip") or ""),
+                    user_agent=str(record.get("user_agent") or ""),
+                )
+            )
+
+        if stale:
+            try:
+                await cast("Awaitable[int]", self._redis.srem(user_families_key(user_id), *stale))
+            except (RedisError, OSError, TimeoutError):  # pragma: no cover - best effort
+                _log.warning("auth.family_index_tidy_failed", user_id=str(user_id))
+
+        live.sort(key=lambda item: (item.last_used_at, item.started_at), reverse=True)
+        return live
 
     async def revoke_all_families(self, user_id: uuid.UUID) -> int:
         _, _, revoke_all = _scripts(self._redis)
@@ -874,6 +992,29 @@ class AuthService:
             await self._persist_failure_record("otp_verified_account_gone")
             raise AccountUnknownError()
 
+        # F-4. The first factor is proved; if a second one is enrolled, no session is
+        # issued here — the caller gets a short-lived challenge and must come back
+        # through `complete_two_factor`. This is the control that makes the instance
+        # safe while `dev_echo_otp_enabled` is handing sign-in codes back in the
+        # response body: knowing the code stops being enough.
+        if await self.two_factor(principal).is_enabled(principal.user_id):
+            challenge = self.two_factor(principal).challenge_for(
+                user_id=principal.user_id,
+                firm_id=principal.firm_id,
+                role=principal.role,
+            )
+            await self._audit(principal).record(
+                ACTION_TWO_FACTOR_CHALLENGED,
+                entity="user",
+                entity_id=principal.user_id,
+                meta=self._origin_meta(),
+            )
+            # Same reasoning as the branch above: `self._otp.verify` has already marked
+            # this challenge consumed, and unwinding that would hand a single-use code
+            # back for a replay against an account we have just told to prove more.
+            await self._persist_failure_record("otp_verified_awaiting_second_factor")
+            raise TwoFactorRequiredError(challenge, expires_in_seconds=CHALLENGE_TTL_SECONDS)
+
         session = await self._issue_session(principal)
         await self._audit(principal).record(
             ACTION_AUTH_OTP_VERIFIED,
@@ -886,6 +1027,90 @@ class AuthService:
             user_id=str(principal.user_id),
             firm_id=str(principal.firm_id),
             user_role=principal.role,
+        )
+        return session
+
+    # -- second factor -------------------------------------------------
+    def two_factor(self, principal: AuthPrincipal) -> TwoFactorService:
+        """The 2FA service, scoped to one principal's firm.
+
+        A method rather than a constructor argument because a single ``AuthService``
+        handles pre-auth requests where no principal exists yet, and a repository built
+        without a :class:`~garh_api.tenancy.TenantCtx` is the one thing the tenancy
+        layer refuses to construct.
+        """
+        ctx = TenantCtx(
+            firm_id=principal.firm_id,
+            user_id=principal.user_id,
+            role=principal.role,
+        )
+        return TwoFactorService(TwoFactorRepository(self._session, ctx), settings=self._settings)
+
+    async def complete_two_factor(self, raw_challenge: str, code: str) -> IssuedSession:
+        """Exchange a challenge plus a live second factor for a session.
+
+        The challenge is only a receipt for "the first factor passed"; the session is
+        minted from scratch here, against a **freshly re-read principal**, so a role
+        change or a removed seat between the two round trips takes effect immediately
+        rather than being frozen into the challenge.
+        """
+        try:
+            claims = decode_token(
+                raw_challenge,
+                expected_type=TOKEN_TYPE_TWO_FACTOR,
+                settings=self._settings,
+            )
+        except (TokenExpiredError, TokenInvalidError) as exc:
+            # Deliberately distinguishable from a wrong code: the client cannot recover
+            # from a stale challenge by trying again, it has to restart sign-in, and
+            # telling it so leaks nothing about the account.
+            raise TwoFactorInvalidError(
+                "That sign-in attempt expired.",
+                action="Request a new sign-in code and start again.",
+            ) from exc
+
+        principal = await self._directory.get_principal(claims.user_id)
+        if principal is None:
+            raise AccountUnknownError()
+
+        service = self.two_factor(principal)
+        try:
+            result = await service.verify_second_factor(principal.user_id, code)
+        except (TwoFactorInvalidError, TwoFactorStateError):
+            await self._audit(principal).record(
+                ACTION_TWO_FACTOR_FAILED,
+                entity="user",
+                entity_id=principal.user_id,
+                meta=self._origin_meta(),
+            )
+            # The spent TOTP counter and the attempt row are security bookkeeping on a
+            # path that ends in `raise`; without this commit they are rolled back and
+            # the replay guard never persists.
+            await self._persist_failure_record("two_factor_failed")
+            raise
+
+        session = await self._issue_session(principal)
+        await self._audit(principal).record(
+            ACTION_AUTH_OTP_VERIFIED,
+            entity="user",
+            entity_id=principal.user_id,
+            meta=self._origin_meta(
+                secondFactor="recovery_code" if result.used_recovery_code else "totp"
+            ),
+        )
+        if result.used_recovery_code:
+            await self._audit(principal).record(
+                ACTION_TWO_FACTOR_RECOVERY_USED,
+                entity="user",
+                entity_id=principal.user_id,
+                meta=self._origin_meta(remaining=result.recovery_codes_remaining),
+            )
+        _log.info(
+            "auth.signed_in",
+            user_id=str(principal.user_id),
+            firm_id=str(principal.firm_id),
+            user_role=principal.role,
+            second_factor="recovery_code" if result.used_recovery_code else "totp",
         )
         return session
 
@@ -1107,6 +1332,10 @@ class AuthService:
                 firm_id=principal.firm_id,
                 family=token_family,
                 started_at=started,
+                # Stamped once, at sign-in — see `start_family` for why a rotation
+                # must not be allowed to relabel it.
+                ip=self._origin.ip,
+                user_agent=self._origin.short_user_agent() or "",
             )
 
         refresh_token, refresh_expires = create_refresh_token(
@@ -1175,6 +1404,7 @@ __all__ = [
     "ROTATE_UNKNOWN",
     "AuthService",
     "IssuedSession",
+    "LiveSession",
     "OtpIssueResult",
     "OtpMailer",
     "RequestOrigin",

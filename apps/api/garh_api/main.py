@@ -682,6 +682,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(underlay_router.router, prefix=cfg.api_prefix)
 
+    # Account security (F-3 signed-in devices, F-4 two-factor) and governance
+    # (F-5 the readable audit trail, F-6 DPDP export/erasure). Mounted here for the
+    # same reason as the imports router: same prefix, same error contract, no edit to
+    # routers/__init__.py.
+    #
+    # Route-order note: `sessions_router` shares the `/auth` prefix with
+    # `auth_router` above, which is registered first. No path collides — that router
+    # owns /auth/{signup,otp,verify,refresh,logout,logout-all,me} and this one owns
+    # /auth/{sessions,2fa}/** — and neither has a path parameter in the first segment
+    # after /auth, so nothing can shadow anything.
+    from garh_api.routers import privacy as privacy_router
+    from garh_api.routers import sessions as sessions_router
+
+    app.include_router(sessions_router.router, prefix=cfg.api_prefix)
+    app.include_router(privacy_router.audit_router, prefix=cfg.api_prefix)
+    app.include_router(privacy_router.router, prefix=cfg.api_prefix)
+
     _install_meta_route(app, cfg)
 
     _log.info(

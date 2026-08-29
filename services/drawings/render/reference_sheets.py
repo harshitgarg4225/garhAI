@@ -100,7 +100,17 @@ from services.drawings.render.primitives import (
     SheetDrawing,
     Text,
 )
-from services.drawings.render.tables import area_statement_group, schedule_group
+from services.drawings.render.tables import (
+    area_statement_group,
+    area_statement_height_mm,
+    schedule_group,
+)
+from services.drawings.revisions import (
+    ModelDiff,
+    RevisionHistory,
+    revision_marks,
+    revision_register_group,
+)
 from services.drawings.sheets import (
     DEFAULT_SCALE,
     Scale,
@@ -187,6 +197,58 @@ def _orthogonal_only(walls: Sequence[Any]) -> list[Any]:
 
 def _openings_of_wall(house: Any, wall_id: str) -> list[Any]:
     return sorted((o for o in house.openings if o.wall_id == wall_id), key=lambda o: o.offset_mm)
+
+
+def _strip_rows(
+    revisions: Sequence[tuple[str, str, str]],
+    register: RevisionHistory | None,
+) -> tuple[tuple[str, str, str], ...]:
+    """What the title block's compact REV/DATE/DESCRIPTION strip prints.
+
+    ``revisions`` is the raw three-column form the API has always sent and is passed
+    through untouched — it is display text, and validating it here would fail a sheet job
+    over a typo in a note. ``register`` is the validated
+    :class:`~services.drawings.revisions.RevisionHistory`; when one is supplied and the
+    raw form is empty, the strip is derived from it, so the strip on every sheet and the
+    register on A-06 cannot disagree about which issues exist.
+    """
+    if revisions:
+        return tuple((str(a), str(b), str(c)) for a, b, c in revisions)
+    return register.title_block_rows() if register else ()
+
+
+def _cloud_primitives(
+    diff: ModelDiff | None,
+    storey_id: str,
+    *,
+    revision_number: str,
+    scale_denominator: int,
+) -> tuple[Primitive, ...]:
+    """Revision clouds for one storey, or nothing at all.
+
+    Nothing at all is the common case and has to stay free: a set with no previous issue
+    has no diff, and a storey that did not change has no regions.
+    """
+    if diff is None or not revision_number:
+        return ()
+    return revision_marks(
+        diff,
+        storey_id,
+        revision_number=revision_number,
+        scale_denominator=scale_denominator,
+    )
+
+
+def _extent_of(primitives: Sequence[Primitive]) -> tuple[int, int, int, int] | None:
+    xs: list[int] = []
+    ys: list[int] = []
+    for primitive in primitives:
+        for x, y in primitive.points():
+            xs.append(x)
+            ys.append(y)
+    if not xs:
+        return None
+    return (min(xs), min(ys), max(xs), max(ys))
 
 
 def building_extent(house: Any, storey_id: str) -> tuple[int, int, int, int] | None:
@@ -1453,7 +1515,17 @@ def floor_plan_sheet(
     title_block: TitleBlock,
     dim_to_jamb: bool = DEFAULT_DIM_TO_JAMB,
     revisions: Sequence[tuple[str, str, str]] = (),
+    register: RevisionHistory | None = None,
+    diff: ModelDiff | None = None,
 ) -> SheetDrawing:
+    """One storey's plan, with revision clouds when a diff against the previous issue
+    is supplied.
+
+    ``diff`` is a :class:`~services.drawings.revisions.ModelDiff` between the state the
+    previous revision was issued at and this one. Its clouds are drawn in the plan's own
+    model space, in the same group, so they scale and place with the building rather than
+    floating over it.
+    """
     house = doc.house
     storey = next(s for s in house.storeys if s.id == storey_id)
     frame = default_frame()
@@ -1467,7 +1539,6 @@ def floor_plan_sheet(
     pad = LEVEL_1_OFFSET_MM + 1_200
     padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
     denominator = choose_scale(padded, rect, preferred=DEFAULT_SCALE.denominator)
-    scale = Scale(denominator)
     section_line = choose_section_line(doc)
     primitives, chains = plan_primitives(
         doc,
@@ -1476,6 +1547,30 @@ def floor_plan_sheet(
         dim_to_jamb=dim_to_jamb,
         section_line=section_line,
     )
+    revision_number = (register.latest.number if register and register.latest else "") or (
+        title_block.revision if diff is not None else ""
+    )
+    clouds = _cloud_primitives(
+        diff, storey_id, revision_number=revision_number, scale_denominator=denominator
+    )
+    if clouds:
+        # A cloud sits outside the geometry it points at, and its delta tag sits outside
+        # the cloud, so the padded extent computed for the dimension chains can be too
+        # small for it. Grow the box to contain them and re-choose the scale ONCE — a
+        # loop would be chasing its own tail, since the clouds are sized from the scale.
+        # The clouds keep the size they were built at; at worst they print one scale step
+        # small, which is a cosmetic difference and not a clipped annotation.
+        cloud_extent = _extent_of(clouds)
+        assert cloud_extent is not None
+        padded = (
+            min(padded[0], cloud_extent[0]),
+            min(padded[1], cloud_extent[1]),
+            max(padded[2], cloud_extent[2]),
+            max(padded[3], cloud_extent[3]),
+        )
+        denominator = choose_scale(padded, rect, preferred=denominator)
+        primitives = (*primitives, *clouds)
+    scale = Scale(denominator)
     placement = fit_placement(padded, rect, denominator)
     sheet = _sheet(
         sheet_id="sheet-plan-%s" % storey.name.lower().replace(" ", "-"),
@@ -1490,7 +1585,7 @@ def floor_plan_sheet(
     return SheetDrawing(
         sheet=sheet,
         groups=(
-            frame_group(sheet.frame, revisions=revisions),
+            frame_group(sheet.frame, revisions=_strip_rows(revisions, register)),
             DrawingGroup(
                 id="plan-%s" % storey_id,
                 placement=placement,
@@ -1511,6 +1606,7 @@ def elevation_sheet(
     number: str,
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
+    register: RevisionHistory | None = None,
 ) -> SheetDrawing:
     frame = default_frame()
     rect = content_rect(frame)
@@ -1545,7 +1641,7 @@ def elevation_sheet(
     return SheetDrawing(
         sheet=sheet,
         groups=(
-            frame_group(sheet.frame, revisions=revisions),
+            frame_group(sheet.frame, revisions=_strip_rows(revisions, register)),
             DrawingGroup(
                 id="elev-%s" % direction,
                 placement=placement,
@@ -1565,6 +1661,7 @@ def section_sheet(
     number: str,
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
+    register: RevisionHistory | None = None,
 ) -> SheetDrawing:
     frame = default_frame()
     rect = content_rect(frame)
@@ -1592,7 +1689,7 @@ def section_sheet(
     return SheetDrawing(
         sheet=sheet,
         groups=(
-            frame_group(sheet.frame, revisions=revisions),
+            frame_group(sheet.frame, revisions=_strip_rows(revisions, register)),
             DrawingGroup(
                 id="section",
                 placement=placement,
@@ -1613,6 +1710,7 @@ def site_plan_sheet(
     title_block: TitleBlock,
     statement: Any = None,
     revisions: Sequence[tuple[str, str, str]] = (),
+    register: RevisionHistory | None = None,
 ) -> SheetDrawing:
     frame = default_frame()
     rect = content_rect(frame)
@@ -1642,7 +1740,7 @@ def site_plan_sheet(
     return SheetDrawing(
         sheet=sheet,
         groups=(
-            frame_group(sheet.frame, revisions=revisions),
+            frame_group(sheet.frame, revisions=_strip_rows(revisions, register)),
             DrawingGroup(
                 id="site",
                 placement=placement,
@@ -1662,6 +1760,7 @@ def schedule_sheet(
     number: str,
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
+    register: RevisionHistory | None = None,
 ) -> SheetDrawing:
     house = doc.house
     rows = build_schedule_rows(house)
@@ -1678,7 +1777,7 @@ def schedule_sheet(
     return SheetDrawing(
         sheet=sheet,
         groups=(
-            frame_group(sheet.frame, revisions=revisions),
+            frame_group(sheet.frame, revisions=_strip_rows(revisions, register)),
             schedule_group(rows, storey_labels=storey_labels, origin_mm=(25, 25)),
         ),
         meta={"kind": "door-window-schedule", "rows": str(len(rows))},
@@ -1692,7 +1791,16 @@ def area_statement_sheet(
     number: str,
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
+    register: RevisionHistory | None = None,
+    carpet_lines: Sequence[Any] = (),
 ) -> SheetDrawing:
+    """The area statement in the municipal proforma, with the revision register beneath it.
+
+    The register goes here rather than on the site plan because this is the set's
+    information sheet: it has the white space, and it is where a reviewer already looks
+    for the numbers. Every *other* sheet still carries the compact REV/DATE/DESCRIPTION
+    strip in its title block, fed from the same history — see :func:`_strip_rows`.
+    """
     sheet = _sheet(
         sheet_id="sheet-areas",
         kind="area-statement",
@@ -1702,12 +1810,16 @@ def area_statement_sheet(
         scale=DEFAULT_SCALE,
         title_block=title_block,
     )
+    groups = [
+        frame_group(sheet.frame, revisions=_strip_rows(revisions, register)),
+        area_statement_group(statement, origin_mm=(25, 25), carpet_lines=carpet_lines),
+    ]
+    if register:
+        below = 25 + area_statement_height_mm(statement, carpet_lines=carpet_lines) + 12
+        groups.append(revision_register_group(register, origin_mm=(25, below)))
     return SheetDrawing(
         sheet=sheet,
-        groups=(
-            frame_group(sheet.frame, revisions=revisions),
-            area_statement_group(statement, origin_mm=(25, 25)),
-        ),
+        groups=tuple(groups),
         meta={"kind": "area-statement"},
     )
 
@@ -1734,6 +1846,9 @@ def build_sheet_set(
     statement: Any = None,
     dim_to_jamb: bool = DEFAULT_DIM_TO_JAMB,
     revisions: Sequence[tuple[str, str, str]] = (),
+    register: RevisionHistory | None = None,
+    diff: ModelDiff | None = None,
+    carpet_lines: Sequence[Any] = (),
 ) -> SheetSet:
     """All F7-A sheets for a model: site, one plan per storey, four elevations, section, tables.
 
@@ -1746,12 +1861,22 @@ def build_sheet_set(
     ``statement`` must be the :class:`garh_rules.areas.AreaStatement` from the project's
     compliance evaluation. It is a required input rather than something computed here, by
     design: this module must not be *able* to produce a second version of those numbers.
+
+    ``register`` is the validated revision history (D-1). When it is present every sheet's
+    title block carries the issue strip and A-06 carries the full register; when ``diff``
+    is present too, the floor plans carry clouds around what the latest issue changed.
+    Both are optional and both default to nothing, so a first issue costs no geometry.
     """
     block = title_block or TitleBlock()
     drawings: list[SheetDrawing] = []
     drawings.append(
         site_plan_sheet(
-            doc, number="A-01", title_block=block, statement=statement, revisions=revisions
+            doc,
+            number="A-01",
+            title_block=block,
+            statement=statement,
+            revisions=revisions,
+            register=register,
         )
     )
     for index, storey in enumerate(doc.house.storeys):
@@ -1765,6 +1890,8 @@ def build_sheet_set(
                 title_block=block,
                 dim_to_jamb=dim_to_jamb,
                 revisions=revisions,
+                register=register,
+                diff=diff,
             )
         )
     for index, direction in enumerate(("N", "E", "S", "W")):
@@ -1775,14 +1902,27 @@ def build_sheet_set(
                 number="A-03%s" % chr(ord("A") + index),
                 title_block=block,
                 revisions=revisions,
+                register=register,
             )
         )
-    drawings.append(section_sheet(doc, number="A-04", title_block=block, revisions=revisions))
-    drawings.append(schedule_sheet(doc, number="A-05", title_block=block, revisions=revisions))
+    drawings.append(
+        section_sheet(doc, number="A-04", title_block=block, revisions=revisions, register=register)
+    )
+    drawings.append(
+        schedule_sheet(
+            doc, number="A-05", title_block=block, revisions=revisions, register=register
+        )
+    )
     if statement is not None:
         drawings.append(
             area_statement_sheet(
-                doc, statement, number="A-06", title_block=block, revisions=revisions
+                doc,
+                statement,
+                number="A-06",
+                title_block=block,
+                revisions=revisions,
+                register=register,
+                carpet_lines=carpet_lines,
             )
         )
     return SheetSet(drawings)

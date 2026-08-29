@@ -69,6 +69,30 @@ VIOLATION_SUMMARY_FIELDS: tuple[str, ...] = (
     "cite",
     "fixHint",
 )
+#: Compliance-finding fields the B-9 explainer may forward. Every one is either
+#: pack-authored (``cite``, ``fixHint``, the ``message`` template) or engine-computed
+#: (``actual``, ``limit``, ``unit``) — none is typed by a human.
+#: NOTE: no ``title``. The pack's rule title would in fact be safe, but
+#: :func:`looks_like_pii_key` classifies "title" as suspect and this gate is
+#: deliberately blunt; ``message`` already carries the substance, so the field is
+#: dropped rather than the gate widened. Widening it once is how it stops working.
+#: NOTE: no ``elements`` / ``instances`` either. Instance labels come from
+#: ``garh_rules.formatting``, which reads a room's user-typed name.
+EXPLAINER_FINDING_FIELDS: tuple[str, ...] = (
+    "ruleId",
+    "packId",
+    "status",
+    "severity",
+    "checkType",
+    "actual",
+    "limit",
+    "unit",
+    "message",
+    "cite",
+    "citeShort",
+    "fixHint",
+    "confidence",
+)
 
 #: Free-text fields that are user-authored and therefore never forwarded verbatim.
 _PII_SUSPECT_KEYS = (
@@ -116,6 +140,25 @@ def strip_pii(text: str) -> str:
     masked = _INDIAN_PHONE.sub("[phone]", masked)
     masked = _LONG_DIGITS.sub("[number]", masked)
     return masked
+
+
+def find_pii(text: str) -> tuple[str, ...]:
+    """Every span :func:`strip_pii` would mask. Empty ⇒ nothing obvious is left.
+
+    The inverse of :func:`strip_pii`, so a builder that has *already* redacted can
+    assert that it worked instead of trusting that it remembered to. That distinction
+    is the whole point: the leak this repo shipped was not a missing regex, it was a
+    field nobody routed through one. A second, independent sweep over the assembled
+    text fires when a *new* field is added and forgotten.
+
+    Never point this at an element id. A ULID is Crockford base32 and can legitimately
+    carry nine consecutive digits, which ``_LONG_DIGITS`` would report as a number.
+    Ids are gated on shape instead — see ``services.llm.conversation.ID_PATTERN``.
+    """
+    found: list[str] = []
+    for pattern in (_EMAIL, _INDIAN_PHONE, _LONG_DIGITS):
+        found.extend(match.group(0) for match in pattern.finditer(text))
+    return tuple(found)
 
 
 def looks_like_pii_key(key: str) -> bool:
@@ -199,6 +242,7 @@ _SUMMARY_ALLOWLISTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("OPENING_SUMMARY_FIELDS", OPENING_SUMMARY_FIELDS),
     ("plot (summarise_model)", PLOT_SUMMARY_FIELDS),
     ("violations (summarise_violations)", VIOLATION_SUMMARY_FIELDS),
+    ("EXPLAINER_FINDING_FIELDS", EXPLAINER_FINDING_FIELDS),
 )
 
 
@@ -227,6 +271,7 @@ check_allowlists_are_pii_free()
 
 
 __all__ = [
+    "EXPLAINER_FINDING_FIELDS",
     "FENCE_CLOSE",
     "FENCE_OPEN",
     "OPENING_SUMMARY_FIELDS",
@@ -237,6 +282,7 @@ __all__ = [
     "WALL_SUMMARY_FIELDS",
     "check_allowlists_are_pii_free",
     "fence",
+    "find_pii",
     "looks_like_pii_key",
     "pick",
     "strip_pii",

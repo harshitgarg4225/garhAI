@@ -340,40 +340,46 @@ def area_statement_table(
     *,
     origin_mm: tuple[int, int] = (25, 25),
     title: str = "AREA STATEMENT",
+    carpet_lines: Sequence[Any] = (),
 ) -> tuple[Primitive, ...]:
-    """Render a :class:`garh_rules.areas.AreaStatement`. Formats only — never computes.
+    """Render a :class:`garh_rules.areas.AreaStatement` in the sanction proforma (D-6).
 
-    The ``note`` column carries the statement's own achieved-vs-allowed ratio note (for
-    FAR and coverage) and the rule ids behind a requirement, so the sheet cites the
-    bye-law it was checked against — golden rule 4, assumptions and citations visible.
+    Formats only — never computes. The rows come from
+    :func:`services.drawings.schedules.municipal.municipal_form`, which reads
+    ``statement.rows()`` and the statement's own ratio properties and does no arithmetic
+    of its own; this function turns those rows into ruled-table primitives and nothing
+    else.
+
+    **The column order is the point.** A municipal scrutiny proforma is read
+    ``SL. NO. | DESCRIPTION | PERMISSIBLE / REQUIRED | PROPOSED / PROVIDED | REMARKS`` —
+    the bye-law first, then what the drawing does. This sheet used to print a flat list
+    with the proposal ahead of the limit and no serial numbers, which is a set that comes
+    back from the counter before anyone checks a figure, and which no query sheet can
+    cite ("clarify item 6.2" needs an item 6.2).
+
+    ``carpet_lines`` are optional
+    :class:`~services.drawings.schedules.area_statement.StoreyLine` records; carpet area
+    is not a regulatory figure and gets its own labelled section when it is supplied.
 
     Warnings on the statement (e.g. "per-storey built-up areas do not sum to the total")
     are printed under the table rather than swallowed. A statement whose rows do not add
     up is a rejected drawing; the sheet says so out loud instead of letting a reviewer
     find it.
     """
-    # 400 mm of the 594 mm A2 width: wide enough that a dual-unit area never wraps,
-    # narrow enough to clear the title-block column on the right.
+    from services.drawings.schedules.municipal import municipal_form
+
+    form = municipal_form(statement, carpet_lines=carpet_lines)
+    # 400 mm of the 594 mm A2 width — the same total the flat table used, redistributed
+    # to give the serial column its own gutter. Wide enough that a dual-unit area never
+    # wraps, narrow enough to clear the title-block column on the right.
     columns = [
-        Column("DESCRIPTION", 95),
-        Column("PROVIDED / ACHIEVED", 92, "right"),
-        Column("PERMISSIBLE / REQUIRED", 92, "right"),
-        Column("NOTE / AUTHORITY", 121),
+        Column("SL. NO.", 18),
+        Column("DESCRIPTION", 92),
+        Column("PERMISSIBLE / REQUIRED", 85, "right"),
+        Column("PROPOSED / PROVIDED", 85, "right"),
+        Column("REMARKS", 120),
     ]
-    body: list[list[str]] = []
-    emphasise: list[int] = []
-    for row in statement.rows():
-        note_parts: list[str] = []
-        if row.note:
-            note_parts.append(str(row.note))
-        if row.rule_ids:
-            note_parts.append(", ".join(row.rule_ids))
-        limit_label = row.limit_label
-        if limit_label and row.allowed is not None:
-            note_parts.insert(0, limit_label)
-        body.append([row.label, _format_value(row), _format_allowed(row), " · ".join(note_parts)])
-        if row.key in ("built_up_total", "far", "coverage"):
-            emphasise.append(len(body) - 1)
+    body = [list(row.cells()) for row in form.rows]
 
     out: list[Primitive] = list(
         table_primitives(
@@ -383,12 +389,12 @@ def area_statement_table(
             row_height_mm=AREA_ROW_HEIGHT_MM,
             title=title,
             value_layer=A_AREA,
-            emphasise_rows=emphasise,
+            emphasise_rows=form.emphasis_indices(),
         )
     )
 
-    warnings = tuple(getattr(statement, "warnings", ()) or ())
-    if warnings:
+    notes = form.notes()
+    if notes:
         x0, y0 = origin_mm
         y = y0 + 9 + _HEADER_HEIGHT_MM + AREA_ROW_HEIGHT_MM * len(body) + 6
         out.append(
@@ -401,11 +407,11 @@ def area_statement_table(
                 bold=True,
             )
         )
-        for index, warning in enumerate(warnings):
+        for index, note in enumerate(notes):
             out.append(
                 Text(
                     at=(x0, y + 5 + index * 4),
-                    text="- %s" % warning,
+                    text="- %s" % note,
                     layer=A_TEXT,
                     height_paper_um=TEXT_HEIGHT_LABEL_PAPER_UM,
                     baseline="hanging",
@@ -414,14 +420,39 @@ def area_statement_table(
     return tuple(out)
 
 
+def area_statement_height_mm(
+    statement: Any,
+    *,
+    carpet_lines: Sequence[Any] = (),
+) -> int:
+    """Paper-mm height of the block :func:`area_statement_table` draws, notes included.
+
+    Exists so a caller can put something *under* the statement — the revision register on
+    sheet A-06 — without guessing. The arithmetic mirrors that function's own layout line
+    for line; the pair is held together by
+    ``test_area_statement.py::test_the_stated_height_covers_every_primitive``, which
+    measures the primitives rather than trusting this sum.
+    """
+    from services.drawings.schedules.municipal import municipal_form
+
+    form = municipal_form(statement, carpet_lines=carpet_lines)
+    height = 9 + _HEADER_HEIGHT_MM + AREA_ROW_HEIGHT_MM * len(form.rows)
+    notes = form.notes()
+    if notes:
+        # `+ 6` to the NOTES heading, `+ 5` to the first note, then 4 mm per line.
+        height += 6 + 5 + 4 * len(notes)
+    return height
+
+
 def area_statement_group(
     statement: Any,
     *,
     origin_mm: tuple[int, int] = (25, 25),
     group_id: str = "area-statement",
+    carpet_lines: Sequence[Any] = (),
 ) -> DrawingGroup:
     return DrawingGroup(
         id=group_id,
         placement=Placement.paper(),
-        primitives=area_statement_table(statement, origin_mm=origin_mm),
+        primitives=area_statement_table(statement, origin_mm=origin_mm, carpet_lines=carpet_lines),
     )

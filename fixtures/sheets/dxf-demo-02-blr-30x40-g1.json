@@ -595,9 +595,9 @@
       "chains": 0,
       "dimensionSegments": 0,
       "entities": {
-        "A-AREA/TEXT": 52,
-        "A-TEXT/TEXT": 26,
-        "A-TITL/LINE": 35,
+        "A-AREA/TEXT": 95,
+        "A-TEXT/TEXT": 32,
+        "A-TITL/LINE": 42,
         "A-TITL/LWPOLYLINE": 4
       },
       "hatches": [],

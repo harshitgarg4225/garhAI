@@ -24,14 +24,29 @@ through :func:`services.llm.brief_mock.synthesize_brief_parse` — a determinist
 keyword parser that reads real Indian briefs ("3BHK, pooja room chahiye, budget 60
 lakh") and emits an assumption for everything the text did not state. Its output passes
 the same :class:`~services.llm.provider.SchemaGate` as everything else.
+
+**``compliance.explain`` has no corpus at all** (:data:`SYNTHESIZED_TASKS`). An
+explanation is a sentence about one project's numbers, so a pinned answer would be
+wrong the moment the plot changes — and wrong by fabricating a compliance number, the
+one error this product cannot ship. It is always synthesized from the prompt; see
+:mod:`services.llm.explain_mock`.
+
+**Streaming (B-4).** :meth:`MockLlmProvider.stream_json` replays the resolved answer as
+prose deltas and then hands over the same object as a
+:class:`~services.llm.streaming.ProviderDraft`, so the whole streaming path — including
+the schema gate that runs on the complete object before anything is folded — is
+exercisable with zero API keys. The mock has its answer up front and a real provider
+does not; what the two share, and all that matters here, is that the preview is prose
+and the answer is a separate, gated object.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import time
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +54,9 @@ from services.common.config import WorkerSettings, get_worker_settings
 from services.common.jsonschema_lite import format_errors
 from services.common.logging import get_logger
 from services.llm.brief_mock import synthesize_brief_parse
+from services.llm.explain_mock import synthesize_explanation
 from services.llm.provider import gate_for
+from services.llm.streaming import ProviderDraft, TextDelta, word_chunks
 from services.llm.types import LlmResult, LlmTask, LlmUsage
 
 log = get_logger("llm.mock")
@@ -53,6 +70,18 @@ FIXTURE_FILES: dict[str, str] = {
     "brief.parse": "brief-parse.json",
     "copilot.ops": "copilot-commands.json",
     "rationale.write": "rationales.json",
+}
+
+#: Tasks with no corpus at all — always synthesized from the prompt. See the module
+#: docstring: a pinned compliance explanation would fabricate a number.
+SYNTHESIZED_TASKS: frozenset[str] = frozenset({"compliance.explain"})
+
+#: The field whose prose is replayed as stream deltas, per task. A task absent here
+#: streams no prose at all — a brief parse has no sentence worth watching arrive.
+PREVIEW_FIELD: dict[str, str] = {
+    "copilot.ops": "intent",
+    "rationale.write": "paragraph",
+    "compliance.explain": "explanation",
 }
 
 _WORD = re.compile(r"[a-z0-9']+")
@@ -101,30 +130,14 @@ class MockLlmProvider:
         self.settings = settings or get_worker_settings()
         self._corpus: dict[str, _TaskFixtures] = {}
         self._loaded = False
+        #: Pause between streamed deltas. Zero in tests (deterministic and instant);
+        #: a caller that wants the demo to *feel* like a model typing sets it.
+        self.stream_chunk_delay_ms: int = 0
 
     # ------------------------------------------------------------------
     async def complete_json(self, task: LlmTask) -> LlmResult:
         started = time.monotonic()
-        self._ensure_loaded()
-        fixtures = self._corpus.get(task.name)
-        if fixtures is None:
-            raise FixtureCorpusError(
-                "No mock fixtures for task %r. Add %s to the fixture corpus."
-                % (task.name, FIXTURE_FILES.get(task.name, task.name))
-            )
-
-        if task.name == "brief.parse":
-            # Curated fixtures win on an exact/normalised hit (golden corpora stay
-            # pinned); everything else is genuinely parsed. See the module docstring.
-            resolved = fixtures.resolve_exact(task)
-            if resolved is None:
-                key, data = "synthesized", synthesize_brief_parse(task.fixture_key or task.user)
-            else:
-                key, data = resolved
-        else:
-            key, data = fixtures.resolve(task)
-        gate = gate_for(task)
-        payload = gate.require(json.loads(json.dumps(data)), attempts=1)
+        key, payload = self._answer(task)
         log.info("llm.mock.answered", task=task.name, fixture_key=key)
         return LlmResult(
             data=payload,
@@ -137,8 +150,66 @@ class MockLlmProvider:
             duration_ms=int((time.monotonic() - started) * 1000),
         )
 
+    async def stream_json(self, task: LlmTask) -> AsyncIterator[Any]:
+        """Replay the resolved answer as prose deltas, then hand over the draft.
+
+        The deltas are the answer's *preview field* (:data:`PREVIEW_FIELD`) and nothing
+        else — no JSON, no ops. What crosses as data is the single
+        :class:`~services.llm.streaming.ProviderDraft` at the end, which
+        :func:`~services.llm.streaming.guarded_stream` then puts through the schema
+        gate before any caller sees it.
+        """
+        started = time.monotonic()
+        key, payload = self._answer(task)
+
+        preview = str(payload.get(PREVIEW_FIELD.get(task.name, ""), "") or "")
+        for chunk in word_chunks(preview):
+            if self.stream_chunk_delay_ms > 0:
+                await asyncio.sleep(self.stream_chunk_delay_ms / 1000)
+            yield TextDelta(chunk)
+
+        log.info("llm.mock.streamed", task=task.name, fixture_key=key, preview_chars=len(preview))
+        yield ProviderDraft(
+            data=payload,
+            usage=LlmUsage(),
+            attempts=1,
+            is_mock=True,
+            duration_ms=int((time.monotonic() - started) * 1000),
+        )
+
     async def aclose(self) -> None:
         return None
+
+    # ------------------------------------------------------------------
+    def _answer(self, task: LlmTask) -> tuple[str, dict[str, Any]]:
+        """Resolve and gate one answer. The single resolution path, shared by both
+        entry points, so a streamed answer can never differ from a blocking one."""
+        self._ensure_loaded()
+        gate = gate_for(task)
+
+        if task.name in SYNTHESIZED_TASKS:
+            # No corpus by design. Built from the prompt, exactly as a real provider
+            # would have to.
+            key, data = "synthesized", synthesize_explanation(task.user)
+        else:
+            fixtures = self._corpus.get(task.name)
+            if fixtures is None:
+                raise FixtureCorpusError(
+                    "No mock fixtures for task %r. Add %s to the fixture corpus."
+                    % (task.name, FIXTURE_FILES.get(task.name, task.name))
+                )
+            if task.name == "brief.parse":
+                # Curated fixtures win on an exact/normalised hit (golden corpora stay
+                # pinned); everything else is genuinely parsed. See the module docstring.
+                resolved = fixtures.resolve_exact(task)
+                if resolved is None:
+                    key, data = "synthesized", synthesize_brief_parse(task.fixture_key or task.user)
+                else:
+                    key, data = resolved
+            else:
+                key, data = fixtures.resolve(task)
+
+        return key, gate.require(json.loads(json.dumps(data)), attempts=1)
 
     # ------------------------------------------------------------------
     def _ensure_loaded(self) -> None:
@@ -302,4 +373,11 @@ def _tokenise(text: str) -> frozenset[str]:
     return frozenset(word for word in _WORD.findall(text.lower()) if word not in _STOPWORDS)
 
 
-__all__ = ["BUILTIN_FIXTURE_DIR", "FIXTURE_FILES", "FixtureCorpusError", "MockLlmProvider"]
+__all__ = [
+    "BUILTIN_FIXTURE_DIR",
+    "FIXTURE_FILES",
+    "PREVIEW_FIELD",
+    "SYNTHESIZED_TASKS",
+    "FixtureCorpusError",
+    "MockLlmProvider",
+]
