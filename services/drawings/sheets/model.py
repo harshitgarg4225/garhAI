@@ -25,6 +25,7 @@ from typing import Any, Literal
 SheetKind = Literal[
     "site-plan",
     "floor-plan",
+    "setting-out",
     "elevation",
     "section",
     "door-window-schedule",
@@ -34,10 +35,23 @@ SheetKind = Literal[
 SHEET_KINDS: tuple[SheetKind, ...] = (
     "site-plan",
     "floor-plan",
+    "setting-out",
     "elevation",
     "section",
     "door-window-schedule",
     "area-statement",
+)
+
+#: Working drawings: issued to SITE, during construction, and numbered in their own
+#: W-series. They are sheet kinds like any other — same frame, same layers, same
+#: exporters — but they are not part of the municipal submission, so anything that
+#: means "the set an architect files" must use :data:`SUBMISSION_SHEET_KINDS`.
+WORKING_SHEET_KINDS: tuple[SheetKind, ...] = ("setting-out",)
+
+#: The §7 submission set. Derived, never restated: a new kind added above lands in
+#: exactly one of these two tuples and cannot end up in neither or both.
+SUBMISSION_SHEET_KINDS: tuple[SheetKind, ...] = tuple(
+    kind for kind in SHEET_KINDS if kind not in WORKING_SHEET_KINDS
 )
 
 Direction4 = Literal["N", "E", "S", "W"]
@@ -384,6 +398,8 @@ __all__ = [
     "SCALE_1_100",
     "SCALE_1_200",
     "SHEET_KINDS",
+    "SUBMISSION_SHEET_KINDS",
+    "WORKING_SHEET_KINDS",
     "AreaStatementRow",
     "Direction4",
     "Frame",

@@ -63,6 +63,8 @@ from services.drawings.sheets import (  # noqa: E402
     PAPER_UM_PER_MM,
     SCALE_1_50,
     SHEET_KINDS,
+    SUBMISSION_SHEET_KINDS,
+    WORKING_SHEET_KINDS,
     Frame,
     PaperTransform,
     Scale,
@@ -116,8 +118,14 @@ def test_defaults_are_the_section_7_defaults():
     assert frame.paper.name == "A2"
     assert (frame.paper.width_mm, frame.paper.height_mm) == (594, 420), "A2, landscape"
     assert PAPER_SIZES["A2"].width_mm == 594
-    assert tuple(kind for kind, _number, _title in DEFAULT_SHEET_PLAN) == SHEET_KINDS
-    assert len(SHEET_KINDS) == 6, "the MVP cut line: six sheet kinds"
+    # The default plan is the SUBMISSION set. Working drawings (W-series) are a
+    # separate deliverable and are asked for by name.
+    assert tuple(kind for kind, _number, _title in DEFAULT_SHEET_PLAN) == (SUBMISSION_SHEET_KINDS)
+    # The MVP cut line was six sheet kinds, and it still is — for the SUBMISSION
+    # set, which is what that line was about. D-2 added a seventh kind that is
+    # never filed with a municipal office: the setting-out plan, issued to site.
+    assert len(SUBMISSION_SHEET_KINDS) == 6, "the MVP cut line: six submission kinds"
+    assert len(SHEET_KINDS) == len(SUBMISSION_SHEET_KINDS) + len(WORKING_SHEET_KINDS)
 
 
 def test_viewport_requires_exactly_one_selector():
@@ -426,7 +434,7 @@ def test_build_sheet_set_covers_the_six_kinds():
     house = two_room_house()
     sheets = build_sheet_set(house, title_block=TitleBlock(firm_name="Studio Demo"))
     kinds = [sheet.kind for sheet in sheets]
-    for kind in SHEET_KINDS:
+    for kind in SUBMISSION_SHEET_KINDS:
         assert kind in kinds, kind
     assert kinds.count("floor-plan") == len(house.storeys)
     assert kinds.count("elevation") == len(ELEVATION_ORDER) == 4

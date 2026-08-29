@@ -2005,3 +2005,186 @@ def build_sheet_set(
             )
         )
     return SheetSet(drawings)
+
+
+# ---------------------------------------------------------------------------
+# D-2 — the setting-out plan (the GFC drawing that goes to site)
+# ---------------------------------------------------------------------------
+#: Arm length of the datum cross, in model mm. Big enough to find on an A2 print.
+DATUM_ARM_MM = 600
+
+#: Radius of the column marker on the setting-out plan.
+COLUMN_MARK_MM = 150
+
+
+def setting_out_primitives(
+    house: Any, storey_id: str
+) -> tuple[list[Primitive], tuple[DimChain, ...], Pt2]:
+    """Wall CENTRELINES, columns and a datum — the drawing a site engineer works from.
+
+    This is deliberately not a floor plan with the furniture switched off. A submission
+    plan answers "is this compliant"; a setting-out plan answers "where do I put the
+    first brick", and the two are drawn differently on purpose:
+
+    * **Centrelines, not poché.** A mason sets out to a line, not to a face. The model
+      already stores each wall as ``a``/``b`` — that IS the centreline, so nothing is
+      derived and nothing can drift from the plan sheet.
+    * **Every dimension from ONE datum**, not chained bay to bay. A chained dimension
+      accumulates the setting-out error of every bay before it; a running dimension
+      from a single corner does not. This is why the sheet states its datum in words
+      as well as drawing it.
+    * **No openings, no fittings, no room names.** They are not set out at this stage
+      and they would bury the only lines that matter.
+
+    Returns ``(primitives, chains, datum)``. The datum is the building's own
+    lower-left extent corner — the corner a site engineer can find with a tape from
+    two boundary lines.
+    """
+    walls = [w for w in house.walls if w.storey_id == storey_id]
+    if not walls:
+        return [], (), (0, 0)
+
+    xs = [v for w in walls for v in (w.a.x, w.b.x)]
+    ys = [v for w in walls for v in (w.a.y, w.b.y)]
+    datum: Pt2 = (min(xs), min(ys))
+
+    out: list[Primitive] = []
+    for wall in walls:
+        out.append(
+            Line(
+                (wall.a.x, wall.a.y),
+                (wall.b.x, wall.b.y),
+                A_WALL,
+                style=STYLE_CENTRE,
+                element_id=wall.id,
+            )
+        )
+
+    for column in getattr(house, "columns", ()):
+        if getattr(column, "storey_id", storey_id) != storey_id:
+            continue
+        cx, cy = column.pt.x, column.pt.y
+        out.append(Circle((cx, cy), COLUMN_MARK_MM, A_WALL, element_id=column.id))
+        # A cross through the circle: a filled dot is ambiguous at 1:100, and the
+        # engineer needs the centre, not the blob.
+        out.append(Line((cx - COLUMN_MARK_MM, cy), (cx + COLUMN_MARK_MM, cy), A_WALL))
+        out.append(Line((cx, cy - COLUMN_MARK_MM), (cx, cy + COLUMN_MARK_MM), A_WALL))
+
+    # The datum itself, drawn where it is and named in words. A setting-out plan whose
+    # datum is implicit is a setting-out plan nobody can use.
+    dx, dy = datum
+    out.append(Line((dx - DATUM_ARM_MM, dy), (dx + DATUM_ARM_MM, dy), A_DIM))
+    out.append(Line((dx, dy - DATUM_ARM_MM), (dx, dy + DATUM_ARM_MM), A_DIM))
+    out.append(Circle(datum, DATUM_ARM_MM // 3, A_DIM))
+    out.append(
+        Text(
+            at=(dx + DATUM_ARM_MM + 200, dy - 400),
+            text="DATUM (0,0) - ALL DIMENSIONS FROM THIS POINT",
+            layer=A_TEXT,
+            height_paper_um=2_000,
+            anchor="start",
+        )
+    )
+
+    # Running dimensions off the datum: every distinct wall-end coordinate becomes a
+    # break, so each line the engineer has to place gets a number measured from the
+    # datum rather than from its neighbour.
+    chains: list[DimChain] = []
+    horizontal = _chain_from_breaks(
+        chain_id="setout-x-%s" % storey_id,
+        orientation="horizontal",
+        level=1,
+        offset_mm=min(ys) - LEVEL_1_OFFSET_MM,
+        lo=min(xs),
+        hi=max(xs),
+        breaks=sorted({x for x in xs if min(xs) < x < max(xs)}),
+        storey_id=storey_id,
+    )
+    vertical = _chain_from_breaks(
+        chain_id="setout-y-%s" % storey_id,
+        orientation="vertical",
+        level=1,
+        offset_mm=min(xs) - LEVEL_1_OFFSET_MM,
+        lo=min(ys),
+        hi=max(ys),
+        breaks=sorted({y for y in ys if min(ys) < y < max(ys)}),
+        storey_id=storey_id,
+    )
+    for chain in (horizontal, vertical):
+        if chain is not None:
+            chains.append(chain)
+
+    # Draw them. A chain returned in `SheetDrawing.chains` and never turned into a
+    # Dim primitive is annotation the sheet believes it has and the printer never
+    # sees — and on a setting-out plan the dimensions ARE the drawing; the
+    # centrelines without them are decoration.
+    assert_chains_sum(tuple(chains))
+    out.extend(
+        Dim(chain=chain, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM)
+        for chain in chains
+    )
+
+    return out, tuple(chains), datum
+
+
+def setting_out_sheet(
+    doc: Any,
+    storey_id: str,
+    *,
+    number: str,
+    title_block: TitleBlock,
+    revisions: Sequence[tuple[str, str, str]] = (),
+    register: RevisionHistory | None = None,
+) -> SheetDrawing:
+    """One storey's setting-out plan (D-2, job J-21).
+
+    An architect's fee is earned twice — once at submission and once on site — and
+    until now this product only produced the first half. This is the sheet the site
+    engineer actually holds.
+    """
+    house = doc.house
+    # Named, not `next(...)`: an unknown storey id off a job payload otherwise
+    # surfaces as a bare StopIteration three frames away from the cause, and the
+    # worker reports it as an unexplained skipped sheet.
+    storey = next((s for s in house.storeys if s.id == storey_id), None)
+    if storey is None:
+        raise ValueError("no storey %r, so it has nothing to set out" % storey_id)
+    frame = default_frame()
+    rect = content_rect(frame)
+    primitives, chains, _datum = setting_out_primitives(house, storey_id)
+    if not primitives:
+        raise ValueError("storey %r has no walls, so it has nothing to set out" % storey_id)
+
+    group = DrawingGroup(id="setout", placement=Placement(100), primitives=primitives)
+    extent = group.extent_model_mm()
+    assert extent is not None
+    pad = LEVEL_1_OFFSET_MM + 1_200
+    padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
+    denominator = choose_scale(padded, rect, preferred=DEFAULT_SCALE.denominator)
+    scale = Scale(denominator)
+    placement = fit_placement(padded, rect, denominator)
+
+    sheet = _sheet(
+        sheet_id="sheet-setout-%s" % storey_id,
+        kind="setting-out",
+        number=number,
+        title="Setting Out - %s" % storey.name,
+        viewport=Viewport(storey_id=storey_id),
+        scale=scale,
+        title_block=title_block,
+    )
+    return SheetDrawing(
+        sheet=sheet,
+        groups=(
+            frame_group(sheet.frame, revisions=_strip_rows(revisions, register)),
+            DrawingGroup(
+                id="setout",
+                placement=placement,
+                primitives=primitives,
+                label="SETTING OUT - %s - %s" % (storey.name.upper(), scale.label),
+                label_at=((extent[0] + extent[2]) // 2, padded[1] + 500),
+            ),
+        ),
+        chains=chains,
+        meta={"kind": "setting-out", "storeyId": storey_id},
+    )

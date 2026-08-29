@@ -97,12 +97,19 @@ class PipelineError(ValueError):
 DB_KIND_TO_DRAWING_KIND: dict[str, str] = {
     "site": "site-plan",
     "floor": "floor-plan",
+    # D-2. Sits right after the floor plans in submission order because it is read
+    # against them: same storey, same scale, centrelines instead of poché.
+    "setting-out": "setting-out",
     "elevation": "elevation",
     "section": "section",
     "schedule": "door-window-schedule",
     "area-statement": "area-statement",
 }
 DRAWING_KIND_TO_DB_KIND: dict[str, str] = {v: k for k, v in DB_KIND_TO_DRAWING_KIND.items()}
+
+from services.drawings.sheets.model import (  # noqa: E402
+    WORKING_SHEET_KINDS as _WORKING_SHEET_KINDS,
+)
 
 #: Submission order. Also the numbering order (§7 title block, "sheet numbering").
 DB_KIND_ORDER: tuple[str, ...] = (
@@ -112,11 +119,27 @@ DB_KIND_ORDER: tuple[str, ...] = (
     "section",
     "schedule",
     "area-statement",
+    # D-2 sits LAST in this tuple and is numbered in its own series (see
+    # WORKING_KINDS): a setting-out plan is a WORKING drawing, not a submission one.
+    # Inserting it into the A-series would have renumbered every sheet after it —
+    # and would also have been wrong, because the municipal set and the GFC set are
+    # two different deliverables that an architect issues separately.
+    "setting-out",
 )
+
+#: Working-drawing kinds, numbered W-01… rather than A-01…. A submission set and a
+#: GFC set go to different people at different times; sharing a number series would
+#: mean a revision to one silently renumbers the other.
+WORKING_KINDS: frozenset[str] = frozenset(
+    DRAWING_KIND_TO_DB_KIND[kind] for kind in _WORKING_SHEET_KINDS
+)
+_WORKING_NUMBER_INDEX: dict[str, int] = {"setting-out": 1}
 
 #: Sheet numbers by kind: ``A-01`` … ``A-06``, with a letter suffix when a kind
 #: yields more than one sheet (two storeys → ``A-02A``/``A-02B``).
-_KIND_NUMBER_INDEX: dict[str, int] = {kind: i + 1 for i, kind in enumerate(DB_KIND_ORDER)}
+_KIND_NUMBER_INDEX: dict[str, int] = {
+    kind: i + 1 for i, kind in enumerate(k for k in DB_KIND_ORDER if k not in WORKING_KINDS)
+}
 
 #: Formats a sheet can be published as. ``svg`` always; ``dxf`` needs ezdxf; ``pdf``
 #: needs a converter binary. Mirrors ``garh_api.routers.jobs.SHEET_FORMATS``.
@@ -129,11 +152,16 @@ _DIRECTION_WORD = {"N": "North", "E": "East", "S": "South", "W": "West"}
 def canonical_sheet_kinds(raw: Iterable[str] | None) -> tuple[str, ...]:
     """Normalise a requested kind list to the DB vocabulary, in submission order.
 
-    ``None`` means the full F7-A set. Unknown kinds raise, naming both spellings —
-    a typo in a payload should not silently generate five sheets instead of six.
+    ``None`` means the full F7-A SUBMISSION set — which deliberately excludes the
+    working drawings in :data:`WORKING_KINDS`. A GFC drawing is a separate deliverable
+    issued at a different time to a different person, so it is opt-in: an existing
+    caller asking for "the sheets" must keep getting exactly the sheets it got before,
+    not a setting-out plan it never requested and may not want the client to see.
+    Unknown kinds raise, naming both spellings — a typo in a payload should not
+    silently generate five sheets instead of six.
     """
     if raw is None:
-        return DB_KIND_ORDER
+        return tuple(k for k in DB_KIND_ORDER if k not in WORKING_KINDS)
     wanted: list[str] = []
     for item in raw:
         key = str(item).strip()
@@ -628,7 +656,11 @@ def _sheet_plan(
     entries: list[tuple[str, str, str, str, Any]] = []
 
     def number_for(kind: str, ordinal: int, count: int) -> str:
-        base = "%s-%02d" % (bundle.number_prefix, _KIND_NUMBER_INDEX[kind])
+        if kind in WORKING_KINDS:
+            # W-01…, a series of its own. See WORKING_KINDS.
+            base = "W-%02d" % _WORKING_NUMBER_INDEX[kind]
+        else:
+            base = "%s-%02d" % (bundle.number_prefix, _KIND_NUMBER_INDEX[kind])
         return base if count <= 1 else base + chr(ord("A") + ordinal)
 
     if "site" in bundle.kinds:
@@ -669,6 +701,32 @@ def _sheet_plan(
                             revisions=bundle.revisions,
                             register=bundle.register,
                             diff=diff,
+                        )
+                    ),
+                )
+            )
+
+    if "setting-out" in bundle.kinds:
+        # One per storey with walls, same as the floor plans — a setting-out plan is
+        # read against its own storey's plan and there is nothing to set out on a
+        # storey that has no walls.
+        storeys = [s for s in house.storeys if _has_walls(house, s.id)]
+        for ordinal, storey in enumerate(storeys):
+            number = number_for("setting-out", ordinal, len(storeys))
+            entries.append(
+                (
+                    "setting-out-%s" % storey.id,
+                    "setting-out",
+                    number,
+                    "Setting Out - %s" % storey.name,
+                    (
+                        lambda tb, sid=storey.id, num=number: ref.setting_out_sheet(
+                            doc,
+                            sid,
+                            number=num,
+                            title_block=tb,
+                            revisions=bundle.revisions,
+                            register=bundle.register,
                         )
                     ),
                 )

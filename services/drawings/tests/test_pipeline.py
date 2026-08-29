@@ -36,6 +36,7 @@ from services.drawings.pipeline import (  # noqa: E402
     DB_KIND_ORDER,
     DB_KIND_TO_DRAWING_KIND,
     DRAWING_KIND_TO_DB_KIND,
+    WORKING_KINDS,
     PipelineError,
     SheetBundle,
     TransportStatement,
@@ -137,7 +138,9 @@ def test_the_two_kind_vocabularies_are_a_bijection():
     from services.drawings.sheets import SHEET_KINDS as DRAWING_KINDS
 
     assert tuple(sorted(DRAWING_KIND_TO_DB_KIND)) == tuple(sorted(DRAWING_KINDS))
-    assert len(DB_KIND_TO_DRAWING_KIND) == len(DRAWING_KIND_TO_DB_KIND) == 6
+    # Seven: the six §7 submission kinds plus the setting-out working drawing
+    # (D-2), which is opt-in and numbered in its own W-series.
+    assert len(DB_KIND_TO_DRAWING_KIND) == len(DRAWING_KIND_TO_DB_KIND) == 7
     # The DB half needs SQLAlchemy to import garh_api.models. Absent here (Python 3.9,
     # no worker deps), so the check is skipped LOUDLY rather than silently passing:
     # in CI both halves import and the assertion runs.
@@ -150,7 +153,9 @@ def test_the_two_kind_vocabularies_are_a_bijection():
 
 
 def test_canonical_kinds_accepts_both_spellings():
-    assert canonical_sheet_kinds(None) == DB_KIND_ORDER
+    # `None` is the SUBMISSION set, which deliberately excludes working drawings:
+    # a GFC sheet is a separate deliverable and must be asked for by name.
+    assert canonical_sheet_kinds(None) == tuple(k for k in DB_KIND_ORDER if k not in WORKING_KINDS)
     assert canonical_sheet_kinds(["floor"]) == ("floor",)
     assert canonical_sheet_kinds(["floor-plan"]) == ("floor",)
     # Order is submission order, not request order.
@@ -175,7 +180,7 @@ def test_unknown_kind_is_an_actionable_error():
 def test_the_full_set_is_the_six_f7a_kinds():
     result = build_sheets(make_bundle())
     kinds = {sheet.kind for sheet in result.sheets}
-    assert kinds == set(DB_KIND_ORDER), (kinds, result.skipped)
+    assert kinds == set(DB_KIND_ORDER) - set(WORKING_KINDS), (kinds, result.skipped)
     # One site, one section, one schedule, one area statement, four elevations, and one
     # plan per storey that has walls.
     counts = {kind: len([s for s in result.sheets if s.kind == kind]) for kind in kinds}
@@ -351,7 +356,9 @@ def test_a_missing_evaluation_skips_the_area_sheet_with_a_note():
     assert all(sheet.kind != "area-statement" for sheet in result.sheets)
     assert any("compliance" in note for note in result.notes), result.notes
     # The other five kinds still generate.
-    assert {s.kind for s in result.sheets} == set(DB_KIND_ORDER) - {"area-statement"}
+    assert {s.kind for s in result.sheets} == (
+        set(DB_KIND_ORDER) - {"area-statement"} - set(WORKING_KINDS)
+    )
 
 
 def test_ratios_match_the_engines_own_formatted_strings():

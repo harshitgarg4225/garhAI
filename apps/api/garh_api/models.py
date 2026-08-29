@@ -100,6 +100,11 @@ SHEET_KINDS: tuple[str, ...] = (
     "section",
     "schedule",
     "area-statement",
+    # D-2, the setting-out plan: a WORKING drawing, not a submission one. It is
+    # opt-in (services.drawings.pipeline.WORKING_KINDS) and numbered W-01 rather
+    # than in the A-series, but it is still a sheet row, so it belongs in this
+    # vocabulary and in ck_sheets_kind. See migration 0005.
+    "setting-out",
 )
 
 #: annotations.anchor_kind — what ``anchor_element_id`` points at (playbook §7).
