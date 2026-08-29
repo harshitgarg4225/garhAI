@@ -1,0 +1,14 @@
+{
+  "$comment": "Manifest for GET /submission-templates. A submission template says what ONE authority wants of a drawing set: which sheets, in which order, on what paper, and which statutory identifiers must appear in the title block. It is deliberately NOT the rule pack — a rule pack answers 'is this design legal', a template answers 'is this SET submittable'. Bengaluru is why the two are separate: BBMP and BDA sanction different plots under the same blr rule pack and want different sets.",
+  "schemaVersion": 1,
+  "generatedFor": "Garh AI MVP - 3 launch cities, 4 sanctioning authorities",
+  "confidence": "seed",
+  "review": "unreviewed",
+  "reviewNote": "Every template below is a SEED. The sheet list reflects the conventional Indian plan-sanction set and this product's own drawing vocabulary; it has not been checked against any authority's current published checklist. An empanelled local architect must confirm each one before a set built from it is submitted. Where a template names a document it names the document, not a clause number, because no clause here has been read.",
+  "templates": [
+    { "authority": "bbmp", "file": "bbmp.json", "cityPack": "blr" },
+    { "authority": "bda", "file": "bda.json", "cityPack": "blr" },
+    { "authority": "ncr", "file": "ncr.json", "cityPack": "ncr" },
+    { "authority": "ghmc", "file": "ghmc.json", "cityPack": "hyd" }
+  ]
+}

@@ -81,10 +81,18 @@ from garh_api.schemas.sheets import (
     AnnotationOut,
     DrawingPreferencesIn,
     DrawingPreferencesOut,
+    ProjectSubmissionIn,
+    ProjectSubmissionOut,
     ReviewTrayOut,
     RevisionRow,
     SheetContentOut,
     SheetSetSummaryOut,
+    ShortfallOut,
+    StatutoryFieldOut,
+    SubmissionReadinessOut,
+    SubmissionSheetOut,
+    SubmissionTemplateListOut,
+    SubmissionTemplateOut,
     TitleBlockFields,
 )
 from garh_api.tenancy import EntityNotFoundError
@@ -246,6 +254,18 @@ def sheet_slugs_for(document: dict[str, Any], kinds: Sequence[str]) -> list[tupl
 # ---------------------------------------------------------------------------
 # Building the job (called by routers/jobs.generate_sheets)
 # ---------------------------------------------------------------------------
+def _submission_fields(project: Any) -> dict[str, Any]:
+    """This project's statutory values, flattened into the title-block payload (D-4).
+
+    They ride in ``titleBlock`` rather than a field of their own because that is what
+    the worker's template lookup reads, and because a khata number IS a title-block
+    value — it is simply one only a municipality asks for.
+    """
+    stored = dict(getattr(project, "submission", None) or {})
+    fields = stored.get("fields")
+    return {str(k): str(v) for k, v in fields.items()} if isinstance(fields, dict) else {}
+
+
 async def build_sheets_job(
     session: Any,
     ctx: TenantCtx,
@@ -300,11 +320,13 @@ async def build_sheets_job(
         "sheetSize": sheet_size or prefs.default_sheet_size,
         "dimToJamb": jamb,
         "numberPrefix": prefs.sheet_number_prefix,
-        "titleBlock": block.model_dump(by_alias=True),
+        "titleBlock": {**block.model_dump(by_alias=True), **_submission_fields(project)},
         "revisions": [row.model_dump(by_alias=True) for row in revision_rows],
         "formats": list(chosen_formats),
         "areasSource": areas_source,
     }
+    if project.submission and project.submission.get("authority"):
+        payload["authority"] = str(project.submission["authority"])
 
     assets: dict[str, queue.BlobRef] = {
         "model": await _upload_json(
@@ -1236,6 +1258,217 @@ async def get_sheet_set_summary(
         notes=[str(note) for note in first.get("setNotes") or ()],
         formats_available=sorted(formats),
         generated_at=max(generated) if generated else None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Routes: submission templates (D-4)
+# ---------------------------------------------------------------------------
+def _submission() -> Any:
+    """Import the D-4 template module lazily, with one honest error when absent.
+
+    ``services/drawings`` lives at the repo root. It is on PYTHONPATH in the API image
+    and in CI, but a deployment that mounts only ``apps/api`` must not have the whole
+    sheets router fail at import time over a feature it is not using — the same rule
+    the copilot route follows. There is deliberately no fallback: a readiness check
+    computed from a guessed template would be worse than none.
+    """
+    try:
+        from services.drawings import submission
+
+        return submission
+    except ImportError as exc:
+        raise SheetsUnavailableError(
+            "Submission templates are not installed on this server.",
+            extra={"importError": str(exc)},
+        ) from exc
+
+
+def _template_out(template: Any) -> SubmissionTemplateOut:
+    return SubmissionTemplateOut(
+        authority=template.authority,
+        city_pack=template.city_pack,
+        title=template.title,
+        short_title=template.short_title,
+        citation=template.citation,
+        confidence=template.confidence,
+        review=template.review,
+        verify=template.verify,
+        paper=template.paper,
+        scale_denominator=template.scale_denominator,
+        sheets=[
+            SubmissionSheetOut(kind=s.kind, required=s.required, note=s.note)
+            for s in template.sheets
+        ],
+        statutory_fields=[
+            StatutoryFieldOut(key=f.key, label=f.label, required=f.required, note=f.note)
+            for f in template.statutory_fields
+        ],
+        declarations=list(template.declarations),
+    )
+
+
+@router.get(
+    "/submission-templates",
+    response_model=SubmissionTemplateListOut,
+    summary="What each sanctioning authority wants of a drawing set",
+)
+async def list_submission_templates(
+    ctx: TenantDep, city_pack: str | None = Query(default=None, alias="cityPack")
+) -> SubmissionTemplateListOut:
+    """Every template, or the ones that apply to one rule pack.
+
+    Bengaluru returns two — BBMP and BDA sanction different plots under the same
+    ``blr`` pack — which is why this returns a list and never a single template.
+    """
+    api = _submission()
+    found = (
+        api.templates_for_city_pack(city_pack)
+        if city_pack
+        else tuple(api.load_templates().values())
+    )
+    return SubmissionTemplateListOut(templates=[_template_out(t) for t in found])
+
+
+async def _project_submission(session: Any, ctx: TenantCtx, project_id: uuid.UUID) -> Any:
+    project = await ProjectRepository(session, ctx).require(project_id)
+    stored = dict(project.submission or {})
+    raw_fields = stored.get("fields")
+    fields = {str(k): str(v) for k, v in raw_fields.items()} if isinstance(raw_fields, dict) else {}
+    authority = str(stored["authority"]) if stored.get("authority") else None
+    return project, authority, fields
+
+
+@router.get(
+    "/projects/{project_id}/submission",
+    response_model=ProjectSubmissionOut,
+    summary="Which authority this project is for, and its statutory identifiers",
+)
+async def get_project_submission(
+    project_id: uuid.UUID, session: SessionDep, ctx: TenantDep
+) -> ProjectSubmissionOut:
+    # Tenancy first, always. Asking whether the templates are installed before asking
+    # whose project this is answers another firm 503 where §13 requires 404 — the
+    # ordering, not the status code, is the defect.
+    await require_project(session, ctx, project_id)
+    ctx.require_scope("sheets")
+    api = _submission()
+    project, authority, fields = await _project_submission(session, ctx, project_id)
+    available = api.templates_for_city_pack(project.city_pack) if project.city_pack else ()
+    return ProjectSubmissionOut(
+        authority=authority,
+        fields=fields,
+        available=[_template_out(t) for t in available],
+    )
+
+
+@router.put(
+    "/projects/{project_id}/submission",
+    response_model=ProjectSubmissionOut,
+    summary="Set the authority and the statutory identifiers for this project",
+)
+async def put_project_submission(
+    project_id: uuid.UUID, body: ProjectSubmissionIn, session: SessionDep, ctx: TenantDep
+) -> ProjectSubmissionOut:
+    """Refuses an authority this build does not ship, rather than storing it.
+
+    A project row naming a template nobody serves would print no statutory boxes and
+    report no shortfalls — a set that looks finished and is not. Better to fail here,
+    where the architect is looking, than on the drawing.
+    """
+    await require_project(session, ctx, project_id)
+    ctx.require_write("setting submission details")
+    templates = _submission().load_templates()
+    if body.authority and body.authority not in templates:
+        raise ApiError(
+            "There's no submission template for %r." % body.authority,
+            status=422,
+            code="unknown_authority",
+            action="Call GET /submission-templates to see what's available: %s."
+            % ", ".join(sorted(templates)),
+        )
+    await ProjectRepository(session, ctx).set_submission(
+        project_id,
+        None
+        if body.authority is None
+        else {"authority": body.authority, "fields": dict(body.fields)},
+    )
+    _log.info("sheets.submission_saved", project_id=str(project_id), authority=body.authority)
+    return await get_project_submission(project_id, session, ctx)
+
+
+@router.get(
+    "/projects/{project_id}/sheets/submission-readiness",
+    response_model=SubmissionReadinessOut,
+    summary="What still stands between this set and the municipal counter",
+)
+async def get_submission_readiness(
+    project_id: uuid.UUID,
+    session: SessionDep,
+    ctx: TenantDep,
+    version: uuid.UUID | None = Query(default=None),
+    authority: str | None = Query(default=None),
+) -> SubmissionReadinessOut:
+    """Measured against the sheets that actually exist, never against the template.
+
+    A design can be fully compliant and still be sent back because the khata number is
+    missing from the title block. No compliance engine sees that, which is the whole
+    reason this endpoint exists.
+    """
+    # Tenancy first, always: see GET /projects/{id}/submission above.
+    project = await require_project(session, ctx, project_id)
+    ctx.require_scope("sheets")
+    api = _submission()
+    _project, stored_authority, fields = await _project_submission(session, ctx, project_id)
+
+    chosen = authority or stored_authority
+    if chosen is None:
+        # Do not guess. Bengaluru offers two, and picking the first would hand half the
+        # city a checklist for the wrong desk.
+        options = api.templates_for_city_pack(project.city_pack) if project.city_pack else ()
+        return SubmissionReadinessOut(
+            project_id=project_id, choose_from=[t.authority for t in options]
+        )
+
+    templates = api.load_templates()
+    if chosen not in templates:
+        raise ApiError(
+            "There's no submission template for %r." % chosen,
+            status=404,
+            code="not_found",
+            action="Call GET /submission-templates to see what's available.",
+        )
+    template = templates[chosen]
+
+    version_id = version or await _latest_sheet_version(session, ctx, project_id)
+    sheets = (
+        await SheetRepository(session, ctx).list_for_version(project_id, version_id)
+        if version_id
+        else []
+    )
+    prefs = await load_drawing_preferences(session, ctx)
+    readiness = api.check_submission(
+        template,
+        kinds=[sheet.kind for sheet in sheets],
+        title_block_fields=fields,
+        # Only judge the paper once a set exists. Telling an architect their paper is
+        # wrong before they have generated anything is noise.
+        paper=prefs.default_sheet_size if sheets else None,
+    )
+    return SubmissionReadinessOut(
+        project_id=project_id,
+        authority=readiness.authority,
+        title=readiness.title,
+        ready=readiness.ready,
+        shortfalls=[
+            ShortfallOut(kind=s.kind, what=s.what, detail=s.detail) for s in readiness.shortfalls
+        ],
+        advisories=list(readiness.advisories),
+        satisfied=readiness.satisfied,
+        total=readiness.total,
+        confidence=readiness.confidence,
+        review=readiness.review,
+        verify=readiness.verify,
     )
 
 

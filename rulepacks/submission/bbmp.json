@@ -1,0 +1,30 @@
+{
+  "authority": "bbmp",
+  "cityPack": "blr",
+  "title": "Bengaluru - BBMP plan sanction (seed)",
+  "shortTitle": "BBMP",
+  "citation": "BBMP Building Bye-laws 2020",
+  "confidence": "seed",
+  "review": "unreviewed",
+  "verify": "Confirm against the current BBMP plan-sanction checklist and the Sakala service requirements before submitting. The sheet list, the paper size and the statutory fields below are all seeds.",
+  "paper": "A2",
+  "scaleDenominator": 100,
+  "sheets": [
+    { "kind": "site", "required": true, "note": "Site / key plan with the plot dimensioned against the abutting road." },
+    { "kind": "floor", "required": true, "note": "One plan per storey, including any basement and the terrace." },
+    { "kind": "elevation", "required": true, "note": "At least the road-facing elevation." },
+    { "kind": "section", "required": true, "note": "At least one section through the stair." },
+    { "kind": "schedule", "required": false, "note": "Door and window schedule. Useful for the contractor; not known to be demanded at sanction." },
+    { "kind": "area-statement", "required": true, "note": "FAR, coverage and setbacks against the sanctioned limits." }
+  ],
+  "statutoryFields": [
+    { "key": "khataNumber", "label": "KHATA NO.", "required": true, "note": "BBMP khata (A-khata / B-khata) identifying the property on the corporation register." },
+    { "key": "wardNumber", "label": "WARD NO.", "required": true, "note": "BBMP ward the property falls in." },
+    { "key": "architectRegistrationNo", "label": "ARCH. REG. NO.", "required": true, "note": "Council of Architecture registration of the architect signing the set." },
+    { "key": "ownerName", "label": "OWNER", "required": true, "note": "Owner as recorded on the khata, for the signature block." }
+  ],
+  "declarations": [
+    "The plan conforms to the BBMP Building Bye-laws 2020 and to the National Building Code 2016 as applicable.",
+    "All dimensions are in millimetres unless noted otherwise. Do not scale off this drawing."
+  ]
+}

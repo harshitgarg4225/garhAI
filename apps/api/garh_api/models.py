@@ -328,6 +328,12 @@ class Project(UuidPk, Timestamps, TenantOwned, Base):
     #: rulepack id, e.g. ``blr`` / ``ncr`` / ``hyd`` (see ``rulepacks/``).
     city_pack: Mapped[str | None] = mapped_column(Text, nullable=True)
     demo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    #: D-4 submission details, or NULL for a project nobody is submitting:
+    #: ``{"authority": "bbmp", "fields": {"khataNumber": "...", "wardNumber": "..."}}``.
+    #: Per-project rather than per-firm because a khata number is a fact about a plot —
+    #: two projects in one practice have different ones, and sharing the firm's
+    #: title-block template would put one project's number on another's sanction set.
+    submission: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     __table_args__ = (
         CheckConstraint(_in_check("status", PROJECT_STATUSES), name="ck_projects_status"),

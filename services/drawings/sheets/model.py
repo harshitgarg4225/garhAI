@@ -157,6 +157,14 @@ class TitleBlock:
     checked_by: str = ""
     notes: str = ""
     logo_url: str | None = None
+    #: Statutory identifiers one authority insists on — ``(label, value)`` in the
+    #: template's own order (D-4, ``services.drawings.submission``). Separate from the
+    #: fields above because they are municipal, not universal: BBMP wants a khata
+    #: number, Delhi wants a block and colony, and neither means anything to the other.
+    #: The frame prints them in a row of their own, INCLUDING the blank ones — a box an
+    #: architect can see is empty gets filled; a box that quietly vanishes gets noticed
+    #: at the counter.
+    statutory: tuple[tuple[str, str], ...] = ()
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -172,6 +180,7 @@ class TitleBlock:
             "checkedBy": self.checked_by,
             "notes": self.notes,
             "logoUrl": self.logo_url,
+            "statutory": [list(pair) for pair in self.statutory],
         }
 
 

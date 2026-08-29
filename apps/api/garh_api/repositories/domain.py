@@ -124,6 +124,10 @@ class Project:
     demo: bool
     created_at: datetime
     updated_at: datetime
+    #: D-4 submission details, or ``None``. Carried on the domain object because the
+    #: sheet job needs the statutory values at payload time — a field the repository
+    #: reads but the domain object drops is a value the drawing never prints.
+    submission: dict[str, Any] | None = None
 
     @classmethod
     def from_row(cls, row: Any) -> Project:
@@ -138,6 +142,7 @@ class Project:
             demo=row.demo,
             created_at=row.created_at,
             updated_at=row.updated_at,
+            submission=getattr(row, "submission", None),
         )
 
 

@@ -155,6 +155,21 @@ class ProjectRepository(Repository[models.Project, Project]):
         await self.flush()
         return self.to_domain(row)
 
+    async def set_submission(
+        self, project_id: uuid.UUID, submission: dict[str, Any] | None
+    ) -> Project:
+        """Set or clear this project's D-4 submission details.
+
+        Replaces rather than merges: an architect switching a project from BBMP to BDA
+        wants BBMP's khata number gone, not carried across onto a set for a different
+        desk. The router validates the authority before this is reached.
+        """
+        self.ctx.require_write("setting submission details")
+        row = await self._require_row(project_id)
+        row.submission = submission
+        await self.flush()
+        return self.to_domain(row)
+
     async def clear_architect_of_record(self, project_id: uuid.UUID) -> Project:
         self.ctx.require_write("editing this project")
         row = await self._require_row(project_id)

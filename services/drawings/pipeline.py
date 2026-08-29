@@ -61,6 +61,7 @@ __all__ = [
     "SheetSetResult",
     "TransportStatement",
     "build_sheets",
+    "SUBMISSION_DB_KINDS",
     "canonical_sheet_kinds",
     "sheet_dxf_bytes",
     "sheet_glb_bytes",
@@ -136,6 +137,11 @@ WORKING_KINDS: frozenset[str] = frozenset(
     DRAWING_KIND_TO_DB_KIND[kind] for kind in _WORKING_SHEET_KINDS
 )
 _WORKING_NUMBER_INDEX: dict[str, int] = {"setting-out": 1, "structural-grid": 2}
+
+#: The submission set, in the DB vocabulary: everything that is NOT a working drawing.
+#: Named here rather than re-derived at each call site so a new kind cannot be added to
+#: one list and forgotten in the other — which is how a requirement goes quietly inert.
+SUBMISSION_DB_KINDS: tuple[str, ...] = tuple(k for k in DB_KIND_ORDER if k not in WORKING_KINDS)
 
 #: Sheet numbers by kind: ``A-01`` … ``A-06``, with a letter suffix when a kind
 #: yields more than one sheet (two storeys → ``A-02A``/``A-02B``).
@@ -369,6 +375,11 @@ class SheetBundle:
     number_prefix: str = "A"
     #: Provenance only — printed nowhere, logged and returned with the result.
     design_version_id: str | None = None
+    #: Sanctioning authority id (D-4: ``bbmp``/``bda``/``ncr``/``ghmc``), when the set is
+    #: being prepared for a submission. Its template supplies the statutory identifiers
+    #: the title block must carry — a khata number in Bengaluru, a block and colony in
+    #: Delhi. ``None`` for an ordinary working set, which is most of them.
+    authority: str | None = None
 
     @classmethod
     def from_payload(
@@ -407,6 +418,7 @@ class SheetBundle:
             design_version_id=(
                 str(payload["designVersionId"]) if payload.get("designVersionId") else None
             ),
+            authority=(str(payload["authority"]) if payload.get("authority") else None),
         )
 
 
@@ -951,12 +963,33 @@ def _has_walls(house: Any, storey_id: str) -> bool:
     return any(getattr(wall, "storey_id", None) == storey_id for wall in house.walls)
 
 
+def _statutory(bundle: SheetBundle) -> tuple[tuple[str, str], ...]:
+    """Statutory identifiers for this set's authority, or none (D-4).
+
+    An unknown authority id draws nothing rather than failing the job. A sheet job that
+    died because a project row named a template this build does not ship would cost an
+    architect their whole set; the missing boxes are visible on the drawing, and the
+    readiness check — which is where an architect looks before submitting — reports the
+    same gap in words.
+    """
+    if not bundle.authority:
+        return ()
+    from services.drawings.submission import statutory_pairs, template_for
+
+    try:
+        template = template_for(bundle.authority)
+    except Exception:  # a bad or unknown template must not kill a whole set
+        return ()
+    return statutory_pairs(template, bundle.title_block_fields)
+
+
 def _title_block(bundle: SheetBundle) -> Any:
     """Firm/project fields → a ``TitleBlock``. Unknown keys are ignored, not guessed."""
     from services.drawings.sheets import TitleBlock
 
     fields = dict(bundle.title_block_fields)
     return TitleBlock(
+        statutory=_statutory(bundle),
         firm_name=str(fields.get("firmName") or ""),
         project_name=str(fields.get("projectName") or ""),
         client_name=str(fields.get("clientName") or ""),

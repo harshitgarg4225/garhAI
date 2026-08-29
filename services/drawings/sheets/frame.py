@@ -62,8 +62,29 @@ CELL_PAD_MM = 1.5
 
 #: Row heights as fractions of the title block height, top row first. They sum to 1, and
 #: the assertion below is what keeps that true if somebody edits the table.
-ROW_FRACTIONS: tuple[float, ...] = (14 / 60, 12 / 60, 12 / 60, 12 / 60, 10 / 60)
+#: Whole units out of 60, so the arithmetic below stays exact until the final divide.
+#: Floats here would leave the bottom row sitting at -3.6e-15 instead of 0 once a
+#: statutory row renormalises them, and the tiling invariant would fail on a rounding
+#: artefact rather than on anything a reader could see.
+ROW_UNITS: tuple[int, ...] = (14, 12, 12, 12, 10)
+ROW_FRACTIONS: tuple[float, ...] = tuple(u / sum(ROW_UNITS) for u in ROW_UNITS)
 assert abs(sum(ROW_FRACTIONS) - 1.0) < 1e-9, "title block rows must fill the block"
+
+#: Height of one statutory row, in the same 60-unit currency as ROW_UNITS. When a
+#: submission template supplies statutory identifiers (D-4) they get rows of their own
+#: BELOW the administrative row, and every fraction is renormalised so the block still
+#: fills exactly — the block does not grow, the existing rows compress.
+STATUTORY_ROW_UNITS = 9
+
+#: Statutory cells per row. Four fits the labels these templates use ("KHATA NO.",
+#: "ARCHITECT REG. NO."); a fifth would collide at A3.
+STATUTORY_PER_ROW = 4
+
+#: Longest label the title block can print without an ellipsis. Named because D-4's
+#: template loader checks statutory labels against it: a truncated "ARCHITECT REG.…" on
+#: a sanction drawing is a defect nobody sees until the drawing is on a counter, and
+#: the place to catch it is where the template is authored.
+LABEL_MAX_CHARS = 16
 
 
 @dataclass(frozen=True)
@@ -88,13 +109,23 @@ def title_block_cells(frame: Frame) -> tuple[TitleCell, ...]:
     block = frame.title_block
     width = float(frame.title_block_width_mm)
     height = float(frame.title_block_height_mm)
-    heights = [fraction * height for fraction in ROW_FRACTIONS]
-    # y of each row's bottom, top row first.
+
+    # Statutory identifiers (D-4) come in rows of their own. Chunked rather than
+    # squeezed: a template with six fields gets two rows, not six slivers.
+    statutory_rows: list[tuple[tuple[str, str], ...]] = [
+        tuple(block.statutory[i : i + STATUTORY_PER_ROW])
+        for i in range(0, len(block.statutory), STATUTORY_PER_ROW)
+    ]
+    units = list(ROW_UNITS) + [STATUTORY_ROW_UNITS] * len(statutory_rows)
+    total_units = sum(units)
+    heights = [height * unit / total_units for unit in units]
+    # y of each row's bottom, top row first — computed from the units REMAINING below
+    # it rather than by subtracting float heights, so the bottom row lands on exactly 0.
     tops: list[float] = []
-    cursor = height
-    for row_height in heights:
-        cursor -= row_height
-        tops.append(cursor)
+    remaining = total_units
+    for unit in units:
+        remaining -= unit
+        tops.append(height * remaining / total_units)
 
     rows: Sequence[Sequence[tuple[str, str, float, float]]] = (
         # (label, value, column fraction, value text size)
@@ -115,6 +146,14 @@ def title_block_cells(frame: Frame) -> tuple[TitleCell, ...]:
             ("CHECKED", block.checked_by, 0.25, SMALL_VALUE_TEXT_MM),
             ("NOTES", block.notes, 0.5, SMALL_VALUE_TEXT_MM),
         ),
+    )
+    # A statutory box prints even when its value is blank: the label is the reminder,
+    # and a requirement that disappears when unfilled is a requirement nobody meets.
+    # `value or " "` defeats frame_primitives' skip-empty-values rule for these cells
+    # only — the box must be visibly there, waiting.
+    rows = tuple(rows) + tuple(
+        tuple((label, value or " ", 1.0 / len(row), SMALL_VALUE_TEXT_MM) for label, value in row)
+        for row in statutory_rows
     )
 
     cells: list[TitleCell] = []
@@ -214,7 +253,7 @@ def frame_primitives(frame: Frame) -> tuple[Primitive, ...]:
 
 def _cell_text(cell: TitleCell, block_x: float, block_y: float) -> list[Primitive]:
     out: list[Primitive] = []
-    label = sanitise_text(cell.label, max_length=16)
+    label = sanitise_text(cell.label, max_length=LABEL_MAX_CHARS)
     value = sanitise_text(cell.value, max_length=90)
     text_x = block_x + cell.x_mm + CELL_PAD_MM
     if label:
@@ -278,6 +317,8 @@ def sheet_title_block(
 __all__ = [
     "CELL_PAD_MM",
     "FIRM_TEXT_MM",
+    "LABEL_MAX_CHARS",
+    "ROW_UNITS",
     "LABEL_TEXT_MM",
     "ROW_FRACTIONS",
     "SMALL_VALUE_TEXT_MM",

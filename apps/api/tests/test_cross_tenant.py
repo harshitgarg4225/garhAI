@@ -285,6 +285,17 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
     Case("GET", "/projects/{project_id}/sheets/review-tray"),
     Case("GET", "/projects/{project_id}/sheets/{sheet_id}/annotations"),
     Case("GET", "/projects/{project_id}/sheets/{sheet_id}/content"),
+    # -- D-4 submission templates -----------------------------------------
+    # The PUT body is deliberately VALID (bbmp is a real authority, the khata number a
+    # real shape) so a 404 proves tenancy rather than input validation — which would
+    # pass while the route leaked another firm's project.
+    Case("GET", "/projects/{project_id}/submission"),
+    Case(
+        "PUT",
+        "/projects/{project_id}/submission",
+        body={"authority": "bbmp", "fields": {"khataNumber": "A-1234/56"}},
+    ),
+    Case("GET", "/projects/{project_id}/sheets/submission-readiness"),
 )
 
 

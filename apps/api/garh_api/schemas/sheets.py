@@ -156,6 +156,99 @@ class DrawingPreferencesOut(ResponseModel):
 
 
 # ---------------------------------------------------------------------------
+# Submission templates (D-4)
+# ---------------------------------------------------------------------------
+class SubmissionSheetOut(ResponseModel):
+    """One sheet an authority expects, and whether it is actually mandatory."""
+
+    kind: StrictStr
+    required: StrictBool = True
+    note: StrictStr = ""
+
+
+class StatutoryFieldOut(ResponseModel):
+    """One identifier the authority wants printed in the title block."""
+
+    key: StrictStr
+    label: StrictStr
+    required: StrictBool = True
+    note: StrictStr = ""
+
+
+class SubmissionTemplateOut(ResponseModel):
+    """What one sanctioning authority wants of a set.
+
+    ``confidence`` and ``review`` are not decoration. Not one of these templates has
+    been checked against a published municipal checklist, and every screen that shows a
+    template must show that alongside it — the same rule the rule packs live under.
+    """
+
+    authority: StrictStr
+    city_pack: StrictStr
+    title: StrictStr
+    short_title: StrictStr
+    citation: StrictStr
+    confidence: StrictStr
+    review: StrictStr
+    verify: StrictStr = ""
+    paper: StrictStr
+    scale_denominator: StrictInt
+    sheets: list[SubmissionSheetOut] = Field(default_factory=list)
+    statutory_fields: list[StatutoryFieldOut] = Field(default_factory=list)
+    declarations: list[StrictStr] = Field(default_factory=list)
+
+
+class SubmissionTemplateListOut(ResponseModel):
+    templates: list[SubmissionTemplateOut] = Field(default_factory=list)
+
+
+class ProjectSubmissionIn(CamelModel):
+    """The authority this project is being submitted to, and its statutory values."""
+
+    authority: StrictStr | None = None
+    fields: dict[str, StrictStr] = Field(default_factory=dict)
+
+
+class ProjectSubmissionOut(ResponseModel):
+    authority: StrictStr | None = None
+    fields: dict[str, StrictStr] = Field(default_factory=dict)
+    #: Every authority available for this project's rule pack. Bengaluru returns two.
+    available: list[SubmissionTemplateOut] = Field(default_factory=list)
+
+
+class ShortfallOut(ResponseModel):
+    """One thing standing between this set and the counter."""
+
+    kind: StrictStr
+    what: StrictStr
+    detail: StrictStr
+
+
+class SubmissionReadinessOut(ResponseModel):
+    """What the template asks for, measured against the set that actually exists.
+
+    ``ready`` means every mandatory item is present. It never means "this will be
+    sanctioned", which is why ``confidence`` and ``review`` travel with it — a screen
+    must not be able to render the tick without rendering what the tick is worth.
+    """
+
+    project_id: uuid.UUID
+    authority: StrictStr | None = None
+    title: StrictStr = ""
+    ready: StrictBool = False
+    shortfalls: list[ShortfallOut] = Field(default_factory=list)
+    advisories: list[StrictStr] = Field(default_factory=list)
+    satisfied: StrictInt = 0
+    total: StrictInt = 0
+    confidence: StrictStr = "seed"
+    review: StrictStr = "unreviewed"
+    verify: StrictStr = ""
+    #: Set when no authority was chosen and the rule pack offers more than one, so the
+    #: UI asks instead of guessing. Guessing hands half of Bengaluru the wrong checklist.
+    choose_from: list[StrictStr] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
 # Annotations & the Review Tray (§7, D13)
 # ---------------------------------------------------------------------------
 class AnnotationOut(ResponseModel):

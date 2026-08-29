@@ -1,0 +1,30 @@
+{
+  "authority": "bda",
+  "cityPack": "blr",
+  "title": "Bengaluru - BDA plan sanction (seed)",
+  "shortTitle": "BDA",
+  "citation": "Bangalore Development Authority building sanction, read with the BBMP Building Bye-laws 2020",
+  "confidence": "seed",
+  "review": "unreviewed",
+  "verify": "BDA sanctions plots in BDA-formed layouts; the corporation sanctions the rest. Confirm which authority owns this plot BEFORE choosing a template - the sets differ and a set sent to the wrong desk is returned unread. Every field below is a seed.",
+  "paper": "A2",
+  "scaleDenominator": 100,
+  "sheets": [
+    { "kind": "site", "required": true, "note": "Site plan showing the sital position within the layout." },
+    { "kind": "floor", "required": true, "note": "One plan per storey." },
+    { "kind": "elevation", "required": true, "note": "Road-facing elevation." },
+    { "kind": "section", "required": true, "note": "Section through the stair." },
+    { "kind": "schedule", "required": false, "note": "Door and window schedule." },
+    { "kind": "area-statement", "required": true, "note": "FAR, coverage and setbacks." }
+  ],
+  "statutoryFields": [
+    { "key": "sitalNumber", "label": "SITE / SITAL NO.", "required": true, "note": "Site number within the BDA layout, as allotted." },
+    { "key": "layoutName", "label": "LAYOUT", "required": true, "note": "Name of the BDA layout the site sits in." },
+    { "key": "architectRegistrationNo", "label": "ARCH. REG. NO.", "required": true, "note": "Council of Architecture registration of the architect signing the set." },
+    { "key": "ownerName", "label": "OWNER", "required": true, "note": "Allottee / owner, for the signature block." }
+  ],
+  "declarations": [
+    "The plan conforms to the sanctioned layout conditions and to the building bye-laws applicable to this site.",
+    "All dimensions are in millimetres unless noted otherwise. Do not scale off this drawing."
+  ]
+}
