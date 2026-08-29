@@ -338,6 +338,12 @@
     padding-top: 3px;
     letter-spacing: 0.05em;
   }
+  /* The size column carries a build state instead, for the landed items. Uses the
+     --built token the chip row already uses for "served today", so the two agree. */
+  .item .sz.built {
+    color: var(--built);
+    font-weight: 600;
+  }
 
   .note {
     font-size: 0.875rem;
@@ -396,6 +402,83 @@
 
 <div class="wrap stack g64">
   <!-- ============ VERDICT ============ -->
+  <section class="stack g24" id="landed">
+    <h2 class="h2">Landed since this map was written</h2>
+    <p class="col">
+      Five items, each with its gates broken on purpose and observed to go red before being
+      reverted. This list is deliberately narrow: an unmarked row below does <em>not</em> mean "not
+      built" — earlier passes are recorded in the git history, not here, and marking rows from
+      memory is exactly the kind of unearned claim this map exists to avoid.
+    </p>
+    <div class="stack g8">
+      <div class="item">
+        <span class="ref">D-7</span
+        ><span
+          ><span class="ttl">Structural grid (W-02)</span
+          ><span class="why"
+            >Lettered and numbered grid from the column layout, columns drawn at their real size,
+            and columns within 75 mm clustered onto one line at the cluster's mean. Refuses a
+            load-bearing storey rather than implying an engineer was involved. The drainage half was
+            <strong>not</strong> built: the model has no services element, and a services plan would
+            have been invented geometry.</span
+          ></span
+        ><span class="sz built">built</span>
+      </div>
+      <div class="item">
+        <span class="ref">D-4</span
+        ><span
+          ><span class="ttl">Per-city submission templates</span
+          ><span class="why"
+            >BBMP, BDA, Delhi and GHMC, keyed on the <em>authority</em> rather than the city because
+            Bengaluru has two under one rule pack. Every template is marked <code>seed</code>/<code
+              >unreviewed</code
+            >
+            and says what a local architect must confirm; readiness carries that outward so no tick
+            renders without it. Statutory identifiers now print in a title-block row of their
+            own.</span
+          ></span
+        ><span class="sz built">built</span>
+      </div>
+      <div class="item">
+        <span class="ref">C-3</span
+        ><span
+          ><span class="ttl">Geometric constraints</span
+          ><span class="why"
+            >Parallel, perpendicular, collinear, equal length and the two axis alignments, emitting
+            only <code>wall.move</code> so every constraint is undoable and rules-checked. One-shot,
+            not a maintained constraint graph, and the module says so. The pivot is the end joined
+            to more other walls, or the tool tears the plan apart.</span
+          ></span
+        ><span class="sz built">built</span>
+      </div>
+      <div class="item">
+        <span class="ref">C-8</span
+        ><span
+          ><span class="ttl">Version compare</span
+          ><span class="why"
+            >Two saved versions diffed into elements and drawn on the plan. Reports which kinds it
+            compared and which it did not, because "no change" and "no change in what I looked at"
+            are different claims. A moved furniture item is counted but not boxed — its footprint
+            lives in the catalogue, and inventing one would draw the wrong shape.</span
+          ></span
+        ><span class="sz built">built</span>
+      </div>
+      <div class="item">
+        <span class="ref">D-3</span
+        ><span
+          ><span class="ttl">Sheet layout editor</span
+          ><span class="why"
+            >Paper, orientation, margins and the title-block box, per practice. Found and fixed a
+            live defect on the way in: <code>sheetSize</code> was a field on the API, the firm
+            preferences, the job payload and the recorded result, and it reached <em>nothing</em> —
+            every sheet was drawn A2 and recorded itself as A2. Internally consistent and wrong on
+            paper.</span
+          ></span
+        ><span class="sz built">built</span>
+      </div>
+    </div>
+  </section>
+
   <section class="stack g24">
     <div class="verdict">
       <div><span class="n">25</span><span class="k">jobs mapped</span></div>
