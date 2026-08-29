@@ -99,6 +99,28 @@ PRESET_MODES: dict[str, tuple[str, ...]] = {
     "interior-living": ("explore",),
     "interior-bedroom": ("explore",),
     "interior-kitchen": ("explore",),
+    # The orientation-aware elevation presets. Precise only, deliberately: an
+    # elevation render is a drawing-check against a named face, and Explore is
+    # allowed to reinterpret geometry. Their LIGHT is computed from the project's
+    # own north in services/render/orientation.py, which is why the id carries a
+    # face and an hour but no camera — the same "north elevation" points a
+    # different way on every plot.
+    "elevation-north-morning": ("precise",),
+    "elevation-north-midday": ("precise",),
+    "elevation-north-afternoon": ("precise",),
+    "elevation-north-evening": ("precise",),
+    "elevation-east-morning": ("precise",),
+    "elevation-east-midday": ("precise",),
+    "elevation-east-afternoon": ("precise",),
+    "elevation-east-evening": ("precise",),
+    "elevation-south-morning": ("precise",),
+    "elevation-south-midday": ("precise",),
+    "elevation-south-afternoon": ("precise",),
+    "elevation-south-evening": ("precise",),
+    "elevation-west-morning": ("precise",),
+    "elevation-west-midday": ("precise",),
+    "elevation-west-afternoon": ("precise",),
+    "elevation-west-evening": ("precise",),
 }
 
 CLIENT_PACK_SHOTS: tuple[tuple[str, str, str], ...] = (

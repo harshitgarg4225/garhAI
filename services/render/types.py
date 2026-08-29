@@ -38,9 +38,25 @@ class RenderPreset:
     tint_rgb: tuple[int, int, int]
     #: Second tint; the mock builds its gradient between the two.
     tint_rgb_secondary: tuple[int, int, int]
+    #: Set on the ELEVATION presets only: which face of the building this shows.
+    #: ``None`` on the free-camera presets, whose framing is whatever the architect
+    #: pointed the viewport at.
+    facade: str | None = None
+    #: Set alongside ``facade``: which of the four named hours.
+    time_of_day: str | None = None
 
     def allows(self, mode: str) -> bool:
         return mode in self.modes
+
+    @property
+    def is_elevation(self) -> bool:
+        """True for the orientation-aware presets, whose light is COMPUTED.
+
+        The distinction matters at prompt-build time: a free-camera preset's text is
+        a fixed template, an elevation preset's text depends on the project's own
+        north, so the two cannot share a code path without one of them lying.
+        """
+        return self.facade is not None and self.time_of_day is not None
 
 
 #: The MVP preset catalogue. Ids are API values — changing one is a breaking change.
@@ -103,6 +119,59 @@ PRESETS: dict[str, RenderPreset] = {
     ),
 }
 
+
+# ---------------------------------------------------------------------------
+# The elevation presets — the ones that know which way the building faces
+# ---------------------------------------------------------------------------
+#: How the four hours read on a swatch: cool early, warm late.
+_HOUR_TINTS: dict[str, tuple[tuple[int, int, int], tuple[int, int, int]]] = {
+    "morning": ((198, 216, 232), (250, 244, 226)),
+    "midday": ((188, 210, 236), (252, 250, 240)),
+    "afternoon": ((232, 200, 164), (250, 232, 202)),
+    "evening": ((96, 104, 148), (238, 166, 112)),
+}
+
+_HOUR_LABELS: dict[str, str] = {
+    "morning": "morning light",
+    "midday": "midday",
+    "afternoon": "afternoon light",
+    "evening": "evening light",
+}
+
+
+def _elevation_presets() -> dict[str, RenderPreset]:
+    """One preset per facade per hour, generated rather than typed.
+
+    Sixteen entries written by hand is sixteen chances to give the east elevation
+    the west one's tint, and a prompt catalogue that disagrees with itself renders
+    a building nobody drew. Generating them also means
+    :func:`services.render.prompts.assert_templates_cover_presets` cannot fall out
+    of step: the same two loops build both sides.
+    """
+    out: dict[str, RenderPreset] = {}
+    for face in ("north", "east", "south", "west"):
+        for hour in ("morning", "midday", "afternoon", "evening"):
+            preset_id = "elevation-%s-%s" % (face, hour)
+            warm, cool = _HOUR_TINTS[hour]
+            out[preset_id] = RenderPreset(
+                id=preset_id,
+                label="%s elevation, %s" % (face.capitalize(), _HOUR_LABELS[hour]),
+                scene="exterior",
+                # Precise only, and that is the whole point: an elevation render is
+                # a drawing-check, not a mood board. Letting Explore reinterpret the
+                # geometry would defeat the reason an architect asked for a named
+                # face in the first place.
+                modes=("precise",),
+                tint_rgb=warm,
+                tint_rgb_secondary=cool,
+                facade=face,
+                time_of_day=hour,
+            )
+    return out
+
+
+PRESETS.update(_elevation_presets())
+
 DEFAULT_PRESET = "exterior-street-day"
 
 
@@ -125,6 +194,11 @@ class RenderRequest:
     depth_png: bytes | None = None
     edges_png: bytes | None = None
     prompt_extras: str = ""
+    #: The project's north rotation, degrees clockwise. Only the ELEVATION presets
+    #: read it, and they cannot work without it: "north elevation" is a different
+    #: physical face on every plot. Defaults to 0 so every existing caller and the
+    #: whole free-camera catalogue are unaffected.
+    north_deg: float = 0.0
     #: Free-form provider hints (negative prompt overrides, LoRA ids in future).
     options: dict[str, Any] = field(default_factory=dict)
 

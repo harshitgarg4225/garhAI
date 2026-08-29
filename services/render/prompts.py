@@ -146,9 +146,49 @@ def sanitise_prompt_extras(text: str) -> str:
     return cleaned
 
 
+#: The elevation presets share ONE template, because their difference is not
+#: wording — it is the light, which is computed per project from where north
+#: actually is. Sixteen near-identical strings would be sixteen places for the
+#: east elevation to end up describing the west one's sun.
+ELEVATION_TEMPLATE = (
+    "Straight-on architectural photograph of the {facade} elevation of a contemporary "
+    "Indian residential house, {light}, {scene_extra}, camera perpendicular to the "
+    "facade at eye level, minimal perspective distortion, " + _QUALITY
+)
+
+
 def build_prompt(request: RenderRequest) -> PromptSpec:
-    """Resolve preset + mode + user extras into one :class:`PromptSpec`."""
+    """Resolve preset + mode + user extras into one :class:`PromptSpec`.
+
+    An ELEVATION preset takes the computed branch: its sun is derived from the
+    project's own north rotation (``request.north_deg``) rather than written into a
+    template, because "north elevation" points a different way on every plot. A
+    render that paints warm afternoon sun onto a north wall is a convincing picture
+    of a building that does not exist, and it is the architect who would have to
+    explain it to the client.
+    """
     preset = request.preset_def()
+
+    if preset.is_elevation:
+        from services.render.orientation import describe_light
+
+        light = describe_light(
+            preset.facade,  # type: ignore[arg-type]  # is_elevation proves both are set
+            preset.time_of_day,  # type: ignore[arg-type]
+            north_deg=request.north_deg,
+        )
+        extras = sanitise_prompt_extras(request.prompt_extras)
+        positive = ELEVATION_TEMPLATE.format(
+            facade=preset.facade,
+            light=light.phrase,
+            scene_extra=extras or "flat chajjas and a vertical cladding band at the stair bay",
+        )
+        return PromptSpec(
+            positive=positive,
+            negative=NEGATIVE_PROMPT,
+            params=MODE_PARAMS[request.mode],
+        )
+
     template = PROMPT_TEMPLATES.get(preset.id)
     if template is None:  # pragma: no cover - PRESETS and templates are asserted equal
         raise ValueError("No prompt template for preset %r" % preset.id)
@@ -171,8 +211,13 @@ def assert_templates_cover_presets() -> None:
     """Every preset must have a template. Called at provider construction."""
     from services.render.types import PRESETS
 
-    missing = sorted(set(PRESETS) - set(PROMPT_TEMPLATES))
-    extra = sorted(set(PROMPT_TEMPLATES) - set(PRESETS))
+    # Elevation presets are covered by ELEVATION_TEMPLATE, which is computed rather
+    # than looked up — so they are legitimately absent from PROMPT_TEMPLATES, and
+    # excluding them here is the difference between a real gate and one that fails
+    # on its own design.
+    free_camera = {key for key, preset in PRESETS.items() if not preset.is_elevation}
+    missing = sorted(free_camera - set(PROMPT_TEMPLATES))
+    extra = sorted(set(PROMPT_TEMPLATES) - free_camera)
     if missing or extra:
         raise ValueError(
             "Prompt templates and presets disagree — missing: %s; orphaned: %s"
