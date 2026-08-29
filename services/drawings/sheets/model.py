@@ -385,6 +385,142 @@ DEFAULT_SHEET_PLAN: tuple[tuple[SheetKind, str, str], ...] = (
 )
 
 
+@dataclass(frozen=True)
+class SheetLayout:
+    """A practice's sheet composition (D-3): paper, orientation, margins, title block.
+
+    Every office has its own. Some print the whole set on A1 because their plotter is
+    A1 and folding down is the office habit; some run A3 for client sets and A2 for
+    submission; some want a 220 mm title block because their letterhead has three lines
+    of statutory registration in it. Until this existed all of that was one hard-coded
+    A2 landscape frame with 20/10/10/10 margins.
+
+    Not decoration. ``sheetSize`` was already a field on the API, on the firm's
+    preferences and in the job payload — and it reached nothing: every builder called
+    ``default_frame()`` with no argument, so a set requested on A1 came out A2 and
+    RECORDED itself as A2. Internally consistent and wrong on paper, which is the worst
+    combination there is. This is the value that actually travels.
+    """
+
+    paper: str = DEFAULT_PAPER
+    #: ``landscape`` | ``portrait``. Landscape is the Indian submission habit; a tall
+    #: narrow plot on a deep site reads better portrait, and some authorities ask for it.
+    orientation: str = "landscape"
+    #: The left margin is wider by convention, for binding.
+    margin_left_mm: int = 20
+    margin_right_mm: int = 10
+    margin_top_mm: int = 10
+    margin_bottom_mm: int = 10
+    title_block_width_mm: int = 180
+    title_block_height_mm: int = 60
+
+    def paper_size(self) -> PaperSize:
+        size = PAPER_SIZES.get(self.paper)
+        if size is None:
+            raise ValueError(
+                "%r is not a known paper size. Expected one of: %s."
+                % (self.paper, ", ".join(sorted(PAPER_SIZES)))
+            )
+        return size.portrait() if self.orientation == "portrait" else size.landscape()
+
+    def validate(self) -> None:
+        """Refuse a layout that leaves nowhere to draw.
+
+        A title block wider than the drawable area, or margins that eat the sheet, both
+        produce a technically valid frame with no room for the building — and the
+        renderer will happily scale a plan down to nothing to fit. Failing here means
+        the architect sees it in the layout editor; not failing means they see it on a
+        plot they have already paid for.
+        """
+        size = self.paper_size()
+        for name, value in (
+            ("margin_left_mm", self.margin_left_mm),
+            ("margin_right_mm", self.margin_right_mm),
+            ("margin_top_mm", self.margin_top_mm),
+            ("margin_bottom_mm", self.margin_bottom_mm),
+            ("title_block_width_mm", self.title_block_width_mm),
+            ("title_block_height_mm", self.title_block_height_mm),
+        ):
+            if value < 0:
+                raise ValueError("%s cannot be negative (got %d)." % (name, value))
+        if self.orientation not in ("landscape", "portrait"):
+            raise ValueError(
+                "orientation must be landscape or portrait, not %r." % self.orientation
+            )
+
+        width = size.width_mm - self.margin_left_mm - self.margin_right_mm
+        height = size.height_mm - self.margin_top_mm - self.margin_bottom_mm
+        if width <= 0 or height <= 0:
+            raise ValueError(
+                "Those margins leave no drawable area on %s (%d x %d mm)."
+                % (self.paper, size.width_mm, size.height_mm)
+            )
+        if self.title_block_width_mm > width:
+            raise ValueError(
+                "A %d mm title block does not fit in the %d mm drawable width of %s."
+                % (self.title_block_width_mm, width, self.paper)
+            )
+        if self.title_block_height_mm > height:
+            raise ValueError(
+                "A %d mm title block does not fit in the %d mm drawable height of %s."
+                % (self.title_block_height_mm, height, self.paper)
+            )
+
+    def frame(self, title_block: TitleBlock | None = None) -> Frame:
+        """This layout as a :class:`Frame`, validated first."""
+        self.validate()
+        return Frame(
+            paper=self.paper_size(),
+            margin_left_mm=self.margin_left_mm,
+            margin_right_mm=self.margin_right_mm,
+            margin_top_mm=self.margin_top_mm,
+            margin_bottom_mm=self.margin_bottom_mm,
+            title_block_width_mm=self.title_block_width_mm,
+            title_block_height_mm=self.title_block_height_mm,
+            title_block=title_block or TitleBlock(),
+        )
+
+    @classmethod
+    def from_json(cls, raw: Mapping[str, Any] | None) -> SheetLayout:
+        """Build from a payload, falling back field by field. Never raises on a missing
+        key — an absent field means "the house default", not "invalid"."""
+        data = dict(raw or {})
+        base = cls()
+
+        def _int(key: str, fallback: int) -> int:
+            value = data.get(key)
+            return (
+                int(value) if isinstance(value, int) and not isinstance(value, bool) else fallback
+            )
+
+        return cls(
+            paper=str(data.get("paper") or base.paper),
+            orientation=str(data.get("orientation") or base.orientation),
+            margin_left_mm=_int("marginLeftMm", base.margin_left_mm),
+            margin_right_mm=_int("marginRightMm", base.margin_right_mm),
+            margin_top_mm=_int("marginTopMm", base.margin_top_mm),
+            margin_bottom_mm=_int("marginBottomMm", base.margin_bottom_mm),
+            title_block_width_mm=_int("titleBlockWidthMm", base.title_block_width_mm),
+            title_block_height_mm=_int("titleBlockHeightMm", base.title_block_height_mm),
+        )
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "paper": self.paper,
+            "orientation": self.orientation,
+            "marginLeftMm": self.margin_left_mm,
+            "marginRightMm": self.margin_right_mm,
+            "marginTopMm": self.margin_top_mm,
+            "marginBottomMm": self.margin_bottom_mm,
+            "titleBlockWidthMm": self.title_block_width_mm,
+            "titleBlockHeightMm": self.title_block_height_mm,
+        }
+
+
+#: The §7 house style: A2 landscape, 20/10/10/10, 180x60 title block.
+DEFAULT_SHEET_LAYOUT = SheetLayout()
+
+
 def default_frame(paper: str = DEFAULT_PAPER, *, title_block: TitleBlock | None = None) -> Frame:
     """An A2-landscape frame with the standard margins (§7 default)."""
     size = PAPER_SIZES.get(paper)

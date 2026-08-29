@@ -62,6 +62,7 @@ from services.drawings.sheets.frame import (
 from services.drawings.sheets.model import (
     DEFAULT_PAPER,
     DEFAULT_SCALE,
+    DEFAULT_SHEET_LAYOUT,
     DEFAULT_SHEET_PLAN,
     PAPER_SIZES,
     SCALE_1_50,
@@ -79,6 +80,7 @@ from services.drawings.sheets.model import (
     Sheet,
     SheetAnnotation,
     SheetKind,
+    SheetLayout,
     TitleBlock,
     Viewport,
     default_frame,
@@ -102,6 +104,7 @@ from services.drawings.sheets.transform import (
 __all__ = [
     # -- model (the pre-existing sheets.py surface, unchanged) ------------
     "DEFAULT_PAPER",
+    "DEFAULT_SHEET_LAYOUT",
     "DEFAULT_SCALE",
     "DEFAULT_SHEET_PLAN",
     "PAPER_SIZES",
@@ -116,6 +119,7 @@ __all__ = [
     "Frame",
     "PaperSize",
     "Scale",
+    "SheetLayout",
     "ScheduleRow",
     "Sheet",
     "SheetAnnotation",

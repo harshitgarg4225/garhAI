@@ -1203,12 +1203,33 @@ export const titleBlockSchema = z.object({
 export type TitleBlockValue = z.infer<typeof titleBlockSchema>;
 
 /** `GET|PUT /firm/drawing-preferences` — the §7 title-block editor's document. */
+/**
+ * The practice's sheet composition (D-3).
+ *
+ * `paper` and the older `defaultSheetSize` are the same choice said twice; the layout is
+ * authoritative and the server keeps the older field in step on save. Before this
+ * existed `defaultSheetSize` reached nothing — every sheet was drawn A2 whatever was
+ * asked for, and recorded itself as A2.
+ */
+export const sheetLayoutSchema = z.object({
+  paper: z.string().default('A2'),
+  orientation: z.enum(['landscape', 'portrait']).default('landscape'),
+  marginLeftMm: z.number().int().default(20),
+  marginRightMm: z.number().int().default(10),
+  marginTopMm: z.number().int().default(10),
+  marginBottomMm: z.number().int().default(10),
+  titleBlockWidthMm: z.number().int().default(180),
+  titleBlockHeightMm: z.number().int().default(60),
+});
+export type SheetLayoutValue = z.infer<typeof sheetLayoutSchema>;
+
 export const drawingPreferencesSchema = z.object({
   titleBlock: titleBlockSchema,
   dimToJamb: z.boolean().default(false),
   sheetNumberPrefix: z.string().default('A'),
   defaultScaleDenominator: z.number().int().default(100),
   defaultSheetSize: z.string().default('A2'),
+  sheetLayout: sheetLayoutSchema.default({}),
   revisions: z.array(revisionRowSchema).default([]),
   /** `firm` once a template is saved, `defaults` before that. Shown as a chip. */
   source: z.string().default('defaults'),

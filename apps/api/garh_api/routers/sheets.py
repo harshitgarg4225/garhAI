@@ -86,6 +86,7 @@ from garh_api.schemas.sheets import (
     ReviewTrayOut,
     RevisionRow,
     SheetContentOut,
+    SheetLayoutFields,
     SheetSetSummaryOut,
     ShortfallOut,
     StatutoryFieldOut,
@@ -317,7 +318,8 @@ async def build_sheets_job(
         "designVersionId": str(design_version_id),
         "kinds": resolved_kinds,
         "scaleDenominator": int(scale_denominator or prefs.default_scale_denominator),
-        "sheetSize": sheet_size or prefs.default_sheet_size,
+        "sheetSize": sheet_size or prefs.sheet_layout.paper,
+        "sheetLayout": prefs.sheet_layout.model_dump(by_alias=True),
         "dimToJamb": jamb,
         "numberPrefix": prefs.sheet_number_prefix,
         "titleBlock": {**block.model_dump(by_alias=True), **_submission_fields(project)},
@@ -896,6 +898,20 @@ async def _latest_sheet_version(
 # ---------------------------------------------------------------------------
 # Routes: firm drawing preferences (§7 title-block editor)
 # ---------------------------------------------------------------------------
+def _stored_layout(stored: dict[str, Any]) -> SheetLayoutFields:
+    """The saved sheet layout (D-3), or the house style.
+
+    A firm that saved preferences BEFORE this field existed has no ``sheetLayout`` but
+    may well have a ``defaultSheetSize``. Seeding the layout's paper from it keeps their
+    chosen size working on the first load rather than silently resetting them to A2 —
+    which, given that size never reached the drawing before, would be the second time
+    the product ignored the same choice.
+    """
+    raw = dict(stored.get("sheetLayout") or {})
+    raw.setdefault("paper", str(stored.get("defaultSheetSize") or "A2"))
+    return SheetLayoutFields.model_validate(raw)
+
+
 async def load_drawing_preferences(session: Any, ctx: TenantCtx) -> DrawingPreferencesOut:
     firm = await FirmRepository(session, ctx).get_current()
     stored = firm.settings.get(FIRM_SETTINGS_KEY)
@@ -917,6 +933,7 @@ async def load_drawing_preferences(session: Any, ctx: TenantCtx) -> DrawingPrefe
         sheet_number_prefix=str(stored.get("sheetNumberPrefix") or "A"),
         default_scale_denominator=int(stored.get("defaultScaleDenominator") or 100),
         default_sheet_size=str(stored.get("defaultSheetSize") or "A2"),
+        sheet_layout=_stored_layout(stored),
         revisions=[RevisionRow.model_validate(row) for row in stored.get("revisions") or ()],
         source="firm",
         firm_logo_url=firm.logo_url,
@@ -954,7 +971,8 @@ async def put_drawing_preferences(
                 "dimToJamb": body.dim_to_jamb,
                 "sheetNumberPrefix": body.sheet_number_prefix,
                 "defaultScaleDenominator": body.default_scale_denominator,
-                "defaultSheetSize": body.default_sheet_size,
+                "defaultSheetSize": body.sheet_layout.paper,
+                "sheetLayout": body.sheet_layout.model_dump(by_alias=True),
                 "revisions": [row.model_dump(by_alias=True) for row in body.revisions],
             }
         }

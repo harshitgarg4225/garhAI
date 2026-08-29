@@ -23,6 +23,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Badge, Button, Icon, Input, Field, cn, useToast } from '@garh/ui';
 
 import { AppError } from '../../lib/errors';
+import { PAPER_SIZES, drawableArea } from './sheetLayout';
 import {
   fetchDrawingPreferences,
   saveDrawingPreferences,
@@ -30,6 +31,7 @@ import {
   type RevisionRow,
   type TitleBlock,
 } from './api';
+import type { SheetLayoutValue } from '../../lib/schemas';
 
 const MAX_REVISIONS = 12;
 
@@ -61,6 +63,12 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
     return () => controller.abort();
   }, []);
 
+  const patchLayout = useCallback((patch: Partial<SheetLayoutValue>) => {
+    setPrefs((current) =>
+      current ? { ...current, sheetLayout: { ...current.sheetLayout, ...patch } } : current,
+    );
+  }, []);
+
   const patchBlock = useCallback((patch: Partial<TitleBlock>) => {
     setPrefs((current) =>
       current ? { ...current, titleBlock: { ...current.titleBlock, ...patch } } : current,
@@ -76,7 +84,8 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
         dimToJamb: prefs.dimToJamb,
         sheetNumberPrefix: prefs.sheetNumberPrefix,
         defaultScaleDenominator: prefs.defaultScaleDenominator,
-        defaultSheetSize: prefs.defaultSheetSize,
+        defaultSheetSize: prefs.sheetLayout.paper,
+        sheetLayout: prefs.sheetLayout,
         revisions: prefs.revisions,
       });
       setPrefs(saved);
@@ -124,6 +133,8 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
   }
 
   const block = prefs.titleBlock;
+  const layout = prefs.sheetLayout;
+  const area = drawableArea(layout);
   const setRevision = (index: number, patch: Partial<RevisionRow>) =>
     setPrefs((current) =>
       current
@@ -151,7 +162,10 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
           <Button
             size="sm"
             onClick={() => void save()}
-            disabled={saving}
+            // Blocked while the layout leaves nowhere to draw. The server refuses it
+            // too — this just means the architect finds out before the round trip,
+            // next to the field that caused it.
+            disabled={saving || area.problem !== null}
             data-testid="title-block-save"
           >
             {saving ? 'Saving…' : 'Save for the firm'}
@@ -225,6 +239,108 @@ export function TitleBlockEditor({ onSaved, className }: TitleBlockEditorProps):
             />
           )}
         </Field>
+        {/* ── D-3: sheet layout ─────────────────────────────────────────────
+            Every practice has its own composition. Until this existed there was one
+            hard-coded A2 landscape frame — and the sheet-size field that already
+            existed reached nothing, so a set asked for on A1 came out A2 and recorded
+            itself as A2. The drawable-area readout below is the number that tells an
+            architect whether their choice actually works. */}
+        <div className="sm:col-span-2 mt-2 border-t border-line pt-3">
+          <h4 className="text-2xs font-medium uppercase tracking-wide text-ink-subtle">
+            Sheet layout
+          </h4>
+        </div>
+        <Field label="Paper" hint="Every sheet in the set is drawn at this size.">
+          {({ id, describedBy }) => (
+            <select
+              id={id}
+              aria-describedby={describedBy}
+              className="w-full rounded border border-line bg-surface px-2 py-1.5 text-sm"
+              value={layout.paper}
+              onChange={(e) => patchLayout({ paper: e.currentTarget.value })}
+            >
+              {PAPER_SIZES.map((size) => (
+                <option key={size.name} value={size.name}>
+                  {size.name} — {size.widthMm} × {size.heightMm} mm
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+        <Field label="Orientation" hint="Portrait suits a deep, narrow plot.">
+          {({ id, describedBy }) => (
+            <select
+              id={id}
+              aria-describedby={describedBy}
+              className="w-full rounded border border-line bg-surface px-2 py-1.5 text-sm"
+              value={layout.orientation}
+              onChange={(e) =>
+                patchLayout({ orientation: e.currentTarget.value as 'landscape' | 'portrait' })
+              }
+            >
+              <option value="landscape">Landscape</option>
+              <option value="portrait">Portrait</option>
+            </select>
+          )}
+        </Field>
+        <Field label="Left margin (mm)" hint="Wider by convention, for binding.">
+          {({ id, describedBy }) => (
+            <Input
+              id={id}
+              aria-describedby={describedBy}
+              type="number"
+              value={String(layout.marginLeftMm)}
+              onChange={(e) => patchLayout({ marginLeftMm: Number(e.currentTarget.value) || 0 })}
+            />
+          )}
+        </Field>
+        <Field label="Other margins (mm)" hint="Right, top and bottom together.">
+          {({ id, describedBy }) => (
+            <Input
+              id={id}
+              aria-describedby={describedBy}
+              type="number"
+              value={String(layout.marginRightMm)}
+              onChange={(e) => {
+                const mm = Number(e.currentTarget.value) || 0;
+                patchLayout({ marginRightMm: mm, marginTopMm: mm, marginBottomMm: mm });
+              }}
+            />
+          )}
+        </Field>
+        <Field label="Title block width (mm)">
+          {({ id, describedBy }) => (
+            <Input
+              id={id}
+              aria-describedby={describedBy}
+              type="number"
+              value={String(layout.titleBlockWidthMm)}
+              onChange={(e) =>
+                patchLayout({ titleBlockWidthMm: Number(e.currentTarget.value) || 0 })
+              }
+            />
+          )}
+        </Field>
+        <Field label="Title block height (mm)">
+          {({ id, describedBy }) => (
+            <Input
+              id={id}
+              aria-describedby={describedBy}
+              type="number"
+              value={String(layout.titleBlockHeightMm)}
+              onChange={(e) =>
+                patchLayout({ titleBlockHeightMm: Number(e.currentTarget.value) || 0 })
+              }
+            />
+          )}
+        </Field>
+        <p
+          className={cn('sm:col-span-2 text-2xs', area.problem ? 'text-fail' : 'text-ink-subtle')}
+          data-testid="drawable-area"
+        >
+          {area.problem ?? `Leaves ${area.widthMm} × ${area.heightMm} mm to draw in.`}
+        </p>
+
         <Field label="Sheet number prefix" hint="A-01, A-02… Some corporations want AR.">
           {(props) => (
             <Input

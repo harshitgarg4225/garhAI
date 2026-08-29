@@ -110,6 +110,30 @@ class TitleBlockFields(CamelModel):
         return value
 
 
+class SheetLayoutFields(CamelModel):
+    """The practice's sheet composition (D-3): paper, orientation, margins, title block.
+
+    Every office has its own — an A1 plotter and a folding habit, a 220 mm title block
+    because their letterhead carries three lines of statutory registration. Until this
+    existed there was one hard-coded A2 landscape frame, and ``defaultSheetSize`` was a
+    field that reached nothing: every sheet came out A2 whatever was asked for, and
+    RECORDED itself as A2.
+
+    Bounds here are the sane-drawing bounds; the true refusal — "a title block that big
+    leaves nowhere to draw on that paper" — depends on all the fields together and lives
+    in ``SheetLayout.validate``, because it cannot be expressed field by field.
+    """
+
+    paper: StrictStr = Field(default="A2", max_length=8)
+    orientation: StrictStr = Field(default="landscape", pattern="^(landscape|portrait)$")
+    margin_left_mm: StrictInt = Field(default=20, ge=0, le=100)
+    margin_right_mm: StrictInt = Field(default=10, ge=0, le=100)
+    margin_top_mm: StrictInt = Field(default=10, ge=0, le=100)
+    margin_bottom_mm: StrictInt = Field(default=10, ge=0, le=100)
+    title_block_width_mm: StrictInt = Field(default=180, ge=40, le=400)
+    title_block_height_mm: StrictInt = Field(default=60, ge=20, le=200)
+
+
 class DrawingPreferencesIn(CamelModel):
     """``PUT /firm/drawing-preferences`` — the firm-wide drafting template.
 
@@ -129,6 +153,10 @@ class DrawingPreferencesIn(CamelModel):
     )
     default_scale_denominator: StrictInt = Field(default=100, ge=1, le=2000)
     default_sheet_size: StrictStr = Field(default="A2", max_length=8)
+    #: D-3. ``paper`` here and ``defaultSheetSize`` above are the same choice said twice;
+    #: the layout is authoritative and the older field is kept in step on save, because
+    #: existing callers still send it.
+    sheet_layout: SheetLayoutFields = Field(default_factory=SheetLayoutFields)
     revisions: list[RevisionRow] = Field(default_factory=list, max_length=MAX_REVISION_ROWS)
 
     @field_validator("sheet_number_prefix")
@@ -148,6 +176,7 @@ class DrawingPreferencesOut(ResponseModel):
     sheet_number_prefix: StrictStr = "A"
     default_scale_denominator: StrictInt = 100
     default_sheet_size: StrictStr = "A2"
+    sheet_layout: SheetLayoutFields = Field(default_factory=SheetLayoutFields)
     revisions: list[RevisionRow] = Field(default_factory=list)
     #: ``firm`` when the firm has saved a template, ``defaults`` when it has not.
     #: Shown as a chip, because golden rule 4 wants every default visible.

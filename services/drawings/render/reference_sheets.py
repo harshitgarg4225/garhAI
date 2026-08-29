@@ -114,12 +114,13 @@ from services.drawings.revisions import (
 )
 from services.drawings.sheets import (
     DEFAULT_SCALE,
+    DEFAULT_SHEET_LAYOUT,
     Scale,
     ScheduleRow,
     Sheet,
+    SheetLayout,
     TitleBlock,
     Viewport,
-    default_frame,
 )
 
 __all__ = [
@@ -1493,6 +1494,7 @@ def _sheet(
     viewport: Viewport,
     scale: Scale,
     title_block: TitleBlock,
+    layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
 ) -> Sheet:
     sheet = Sheet(
         id=sheet_id,
@@ -1501,9 +1503,7 @@ def _sheet(
         title=title,
         viewport=viewport,
         scale=scale,
-        frame=default_frame(
-            title_block=_title_block(title_block, title=title, number=number, scale=scale)
-        ),
+        frame=layout.frame(_title_block(title_block, title=title, number=number, scale=scale)),
     )
     sheet.validate()
     return sheet
@@ -1519,6 +1519,7 @@ def floor_plan_sheet(
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
     diff: ModelDiff | None = None,
+    layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
 ) -> SheetDrawing:
     """One storey's plan, with revision clouds when a diff against the previous issue
     is supplied.
@@ -1530,7 +1531,7 @@ def floor_plan_sheet(
     """
     house = doc.house
     storey = next(s for s in house.storeys if s.id == storey_id)
-    frame = default_frame()
+    frame = layout.frame()
     rect = content_rect(frame)
     extent = building_extent(house, storey_id)
     if extent is None:
@@ -1575,6 +1576,7 @@ def floor_plan_sheet(
     scale = Scale(denominator)
     placement = fit_placement(padded, rect, denominator)
     sheet = _sheet(
+        layout=layout,
         sheet_id="sheet-plan-%s" % storey.name.lower().replace(" ", "-"),
         kind="floor-plan",
         number=number,
@@ -1609,8 +1611,9 @@ def elevation_sheet(
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
+    layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
 ) -> SheetDrawing:
-    frame = default_frame()
+    frame = layout.frame()
     rect = content_rect(frame)
     primitives, chains = elevation_primitives(doc, direction, scale_denominator=100)
     if not primitives:
@@ -1632,6 +1635,7 @@ def elevation_sheet(
     scale = Scale(denominator)
     placement = fit_placement(padded, rect, denominator)
     sheet = _sheet(
+        layout=layout,
         sheet_id="sheet-elev-%s" % direction.lower(),
         kind="elevation",
         number=number,
@@ -1664,8 +1668,9 @@ def section_sheet(
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
+    layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
 ) -> SheetDrawing:
-    frame = default_frame()
+    frame = layout.frame()
     rect = content_rect(frame)
     primitives, chains = section_primitives(doc, scale_denominator=100)
     if not primitives:
@@ -1680,6 +1685,7 @@ def section_sheet(
     placement = fit_placement(padded, rect, denominator)
     cut = choose_section_line(doc)
     sheet = _sheet(
+        layout=layout,
         sheet_id="sheet-section-a",
         kind="section",
         number=number,
@@ -1713,8 +1719,9 @@ def site_plan_sheet(
     statement: Any = None,
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
+    layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
 ) -> SheetDrawing:
-    frame = default_frame()
+    frame = layout.frame()
     rect = content_rect(frame)
     primitives, chains = site_plan_primitives(doc, statement=statement, scale_denominator=200)
     if not primitives:
@@ -1731,6 +1738,7 @@ def site_plan_sheet(
     scale = Scale(denominator)
     placement = fit_placement(padded, rect, denominator)
     sheet = _sheet(
+        layout=layout,
         sheet_id="sheet-site",
         kind="site-plan",
         number=number,
@@ -1763,11 +1771,13 @@ def schedule_sheet(
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
+    layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
 ) -> SheetDrawing:
     house = doc.house
     rows = build_schedule_rows(house)
     storey_labels = tuple((storey.id, storey.name) for storey in house.storeys)
     sheet = _sheet(
+        layout=layout,
         sheet_id="sheet-schedule",
         kind="door-window-schedule",
         number=number,
@@ -1868,6 +1878,7 @@ def area_statement_sheet(
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
     carpet_lines: Sequence[Any] | None = None,
+    layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
 ) -> SheetDrawing:
     """The area statement in the municipal proforma, with the revision register beneath it.
 
@@ -1882,6 +1893,7 @@ def area_statement_sheet(
     """
     lines = carpet_lines_for(doc, statement) if carpet_lines is None else tuple(carpet_lines)
     sheet = _sheet(
+        layout=layout,
         sheet_id="sheet-areas",
         kind="area-statement",
         number=number,
@@ -2136,6 +2148,7 @@ def setting_out_sheet(
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
+    layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
 ) -> SheetDrawing:
     """One storey's setting-out plan (D-2, job J-21).
 
@@ -2150,7 +2163,7 @@ def setting_out_sheet(
     storey = next((s for s in house.storeys if s.id == storey_id), None)
     if storey is None:
         raise ValueError("no storey %r, so it has nothing to set out" % storey_id)
-    frame = default_frame()
+    frame = layout.frame()
     rect = content_rect(frame)
     primitives, chains, _datum = setting_out_primitives(house, storey_id)
     if not primitives:
@@ -2166,6 +2179,7 @@ def setting_out_sheet(
     placement = fit_placement(padded, rect, denominator)
 
     sheet = _sheet(
+        layout=layout,
         sheet_id="sheet-setout-%s" % storey_id,
         kind="setting-out",
         number=number,
@@ -2329,6 +2343,7 @@ def structural_grid_sheet(
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
+    layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
 ) -> SheetDrawing:
     """One storey's structural grid (D-7).
 
@@ -2341,7 +2356,7 @@ def structural_grid_sheet(
     storey = next((s for s in house.storeys if s.id == storey_id), None)
     if storey is None:
         raise ValueError("no storey %r, so it has no structural grid" % storey_id)
-    frame = default_frame()
+    frame = layout.frame()
     rect = content_rect(frame)
     primitives, _schedule = structural_grid_primitives(house, storey_id)
     if not primitives:
@@ -2360,6 +2375,7 @@ def structural_grid_sheet(
     placement = fit_placement(padded, rect, denominator)
 
     sheet = _sheet(
+        layout=layout,
         sheet_id="sheet-grid-%s" % storey_id,
         kind="structural-grid",
         number=number,

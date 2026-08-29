@@ -375,6 +375,10 @@ class SheetBundle:
     number_prefix: str = "A"
     #: Provenance only — printed nowhere, logged and returned with the result.
     design_version_id: str | None = None
+    #: The firm's sheet composition (D-3): paper, orientation, margins, title-block box.
+    #: Defaults to the §7 house style. Before this existed ``paper`` was carried, recorded
+    #: and never used — every sheet came out A2 whatever was asked for.
+    layout: Any = field(default_factory=lambda: _default_layout())
     #: Sanctioning authority id (D-4: ``bbmp``/``bda``/``ncr``/``ghmc``), when the set is
     #: being prepared for a submission. Its template supplies the statutory identifiers
     #: the title block must carry — a khata number in Bengaluru, a block and colony in
@@ -411,6 +415,7 @@ class SheetBundle:
             kinds=canonical_sheet_kinds(payload.get("kinds")),
             scale_denominator=denominator,
             paper=str(payload.get("sheetSize") or "A2"),
+            layout=_layout_from(payload),
             dim_to_jamb=bool(payload.get("dimToJamb")),
             title_block_fields=dict(payload.get("titleBlock") or {}),
             revisions=tuple(revisions),
@@ -420,6 +425,30 @@ class SheetBundle:
             ),
             authority=(str(payload["authority"]) if payload.get("authority") else None),
         )
+
+
+def _default_layout() -> Any:
+    """The §7 house style. A function so ``SheetBundle`` needs no import at module scope."""
+    from services.drawings.sheets.model import DEFAULT_SHEET_LAYOUT
+
+    return DEFAULT_SHEET_LAYOUT
+
+
+def _layout_from(payload: Mapping[str, Any]) -> Any:
+    """The sheet layout for this job (D-3).
+
+    ``sheetLayout`` is the firm's saved composition; ``sheetSize`` is the per-request
+    override that has always been in the payload. The size wins when both are present,
+    because it is the one the caller just chose — a request that names A1 must get A1
+    even when the firm's letterhead says A2.
+    """
+    from services.drawings.sheets.model import SheetLayout
+
+    layout = SheetLayout.from_json(payload.get("sheetLayout"))
+    size = payload.get("sheetSize")
+    if size:
+        layout = replace(layout, paper=str(size))
+    return layout
 
 
 def _register_from(rows: Any) -> Any | None:
@@ -688,6 +717,7 @@ def _sheet_plan(
                     doc,
                     number=number_for("site", 0, 1),
                     title_block=tb,
+                    layout=bundle.layout,
                     statement=bundle.areas,
                     revisions=bundle.revisions,
                     register=bundle.register,
@@ -711,6 +741,7 @@ def _sheet_plan(
                             sid,
                             number=num,
                             title_block=tb,
+                            layout=bundle.layout,
                             dim_to_jamb=bundle.dim_to_jamb,
                             revisions=bundle.revisions,
                             register=bundle.register,
@@ -739,6 +770,7 @@ def _sheet_plan(
                             sid,
                             number=num,
                             title_block=tb,
+                            layout=bundle.layout,
                             revisions=bundle.revisions,
                             register=bundle.register,
                         )
@@ -766,6 +798,7 @@ def _sheet_plan(
                             sid,
                             number=num,
                             title_block=tb,
+                            layout=bundle.layout,
                             revisions=bundle.revisions,
                             register=bundle.register,
                         )
@@ -788,6 +821,7 @@ def _sheet_plan(
                             d,
                             number=num,
                             title_block=tb,
+                            layout=bundle.layout,
                             revisions=bundle.revisions,
                             register=bundle.register,
                         )
@@ -807,6 +841,7 @@ def _sheet_plan(
                     doc,
                     number=num,
                     title_block=tb,
+                    layout=bundle.layout,
                     revisions=bundle.revisions,
                     register=bundle.register,
                 ),
@@ -825,6 +860,7 @@ def _sheet_plan(
                     doc,
                     number=num,
                     title_block=tb,
+                    layout=bundle.layout,
                     revisions=bundle.revisions,
                     register=bundle.register,
                 ),
@@ -844,6 +880,7 @@ def _sheet_plan(
                     bundle.areas,
                     number=num,
                     title_block=tb,
+                    layout=bundle.layout,
                     revisions=bundle.revisions,
                     register=bundle.register,
                 ),
