@@ -16,8 +16,11 @@ Three locked properties hold across this package:
    the client did not state, and the parser manufactures one for anything the model
    filled in silently.
 4. **Numbers come from the engine, never the model.** The compliance explainer forwards
-   the rules engine's own numbers and citation and fact-checks the prose against them;
-   a fabricated number falls back to a deterministic, cited explanation.
+   the rules engine's own numbers and citation and fact-checks the prose against the
+   *measured* ones — ``actual``, ``limit``, and the numerals inside the engine's own
+   message and the pack's fix hint. A digit that appears only in a rule id or a
+   citation grounds nothing. A fabricated number falls back to a deterministic, cited
+   explanation.
 
 Typical use::
 
@@ -59,9 +62,11 @@ from services.llm.copilot import (
 from services.llm.explainer import (
     ComplianceExplainer,
     Explanation,
+    Grounding,
     NotExplainable,
     compose_explanation,
     finding_facts,
+    grounding_for,
     verify_explanation,
 )
 from services.llm.op_catalog import OpCatalog, OpCatalogError, get_op_catalog
@@ -120,6 +125,7 @@ __all__ = [
     "Explanation",
     "FoldIssue",
     "FoldOutcome",
+    "Grounding",
     "LlmError",
     "LlmProvider",
     "LlmRefusalError",
@@ -146,6 +152,7 @@ __all__ = [
     "get_brief_parser",
     "get_llm_provider",
     "get_op_catalog",
+    "grounding_for",
     "guarded_stream",
     "synthesize_brief_parse",
     "verify_explanation",

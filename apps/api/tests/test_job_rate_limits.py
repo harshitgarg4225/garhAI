@@ -29,6 +29,9 @@ of one, on the route the UI puts a single button in front of.
 from __future__ import annotations
 
 import base64
+import importlib
+import inspect
+import pkgutil
 import uuid
 from typing import Any
 
@@ -155,18 +158,80 @@ def test_sheets_and_export_share_one_bucket_but_not_one_sentence(settings: Setti
     assert export_jobs_per_firm_rule(settings, feature="nope").message
 
 
-def test_every_new_rule_is_in_rule_factories() -> None:
+#: Modules under ``garh_api`` that legitimately cannot be imported by this test run.
+#: ``copilot_loop`` imports the sibling ``services.*`` package, which the API's own test
+#: environment does not put on the path. The scan asserts failures stay a SUBSET of
+#: this: a new module that stops importing fails the test rather than quietly shrinking
+#: what the audit can see.
+_UNIMPORTABLE_MODULES = frozenset({"garh_api.copilot_loop"})
+
+#: Rule factories that are knowingly absent from ``RULE_FACTORIES``, and why.
+#:
+#: ``share.comments_per_ip`` is declared privately inside ``routers/share.py``. Moving
+#: or registering it means editing that module, which is not this lane's to edit — it is
+#: in the handoff. It is listed here so the gap is a recorded exemption rather than an
+#: invisible hole, and the test below fails if the exemption stops being needed, so it
+#: cannot rot.
+_UNREGISTERED_BY_DESIGN = frozenset({"share.comments_per_ip"})
+
+
+def _discover_rule_factories() -> dict[str, tuple[str, str]]:
+    """Every ``-> RateLimitRule`` factory in ``garh_api``: rule name -> (module, func).
+
+    Derived from the source tree, not typed out. The hazard is bug pattern 4 — a rule
+    that believes it is registered — and the previous version of this test named the
+    three rules it already knew about, so it could not see ``2fa_attempt``, which was
+    mounted on every second-factor verification and in no audit at all. A hand-written
+    list cannot detect an omission from a hand-written list.
+    """
+    import garh_api
+
+    discovered: dict[str, tuple[str, str]] = {}
+    failures: set[str] = set()
+    for info in pkgutil.walk_packages(garh_api.__path__, prefix="garh_api."):
+        try:
+            module = importlib.import_module(info.name)
+        except Exception:
+            failures.add(info.name)
+            continue
+        for attribute, value in vars(module).items():
+            if not inspect.isfunction(value) or value.__module__ != info.name:
+                continue
+            annotation = inspect.signature(value).return_annotation
+            if annotation in ("RateLimitRule", ratelimit.RateLimitRule):
+                discovered[value().name] = (info.name, attribute)
+    assert failures <= _UNIMPORTABLE_MODULES, (
+        "a garh_api module stopped importing, so this scan is blind to its rules: %s"
+        % (failures - _UNIMPORTABLE_MODULES)
+    )
+    return discovered
+
+
+def test_every_shipped_rule_is_registered_in_rule_factories(settings: Settings) -> None:
     """Bug pattern 4: a rule that believes it is registered.
 
-    ``RULE_FACTORIES`` is what the security checklist audits. A rule missing from it is
-    invisible to that audit even while it is mounted and working.
+    ``RULE_FACTORIES`` is what the security checklist audits — the fail-open/fail-closed
+    sweep in ``test_rate_limits.py`` iterates it, and a rule outside it is unexamined
+    however carefully it was written. So this walks the package for anything that
+    returns a ``RateLimitRule`` and insists the registry knows its name.
     """
-    names = {factory.__name__ for factory in RULE_FACTORIES}
-    assert {
-        "render_jobs_per_firm_rule",
-        "export_jobs_per_firm_rule",
-        "sheet_jobs_per_firm_rule",
-    } <= names, names
+    discovered = _discover_rule_factories()
+    registered = {factory(settings).name for factory in RULE_FACTORIES}
+
+    assert "2fa_attempt" in discovered, "the scan lost sight of the second-factor rule"
+    missing = {
+        name: where
+        for name, where in discovered.items()
+        if name not in registered and name not in _UNREGISTERED_BY_DESIGN
+    }
+    assert not missing, "rate-limit rules the security audit cannot see: %s" % missing
+
+    # An exemption that is no longer needed must not survive as cover for the next gap.
+    stale = _UNREGISTERED_BY_DESIGN - set(discovered)
+    assert not stale, "stale exemptions in _UNREGISTERED_BY_DESIGN: %s" % stale
+    assert _UNREGISTERED_BY_DESIGN.isdisjoint(
+        registered
+    ), "an exempted rule is registered after all — delete the exemption"
 
 
 async def test_failure_policy_is_executed_not_just_declared(
@@ -409,3 +474,13 @@ async def test_buckets_are_keyed_by_firm_id(
     assert await peek_rate_limit(rule, _identity(firm_a)) == 2
     assert await peek_rate_limit(rule, _identity(firm_b)) == 0
     assert await peek_rate_limit(rule, "firm:%s" % uuid.uuid4()) == 0
+
+
+# ---------------------------------------------------------------------------
+# Negative control
+# ---------------------------------------------------------------------------
+#
+# Removing ``two_factor_attempt_rule`` from ``RULE_FACTORIES`` — the state it shipped
+# in — makes ``test_every_shipped_rule_is_registered_in_rule_factories`` fail naming
+# both the rule and the module that declares it, and takes the fail-closed sweep in
+# ``test_rate_limits.py`` down with it (``KeyError: 'two_factor_attempt_rule'``).

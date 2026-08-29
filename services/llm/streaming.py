@@ -38,7 +38,16 @@ gate could end up silently not firing:
 Providers that cannot stream need no changes. :func:`guarded_stream` falls back to
 ``complete_json``, whose own contract already says the provider validates before
 returning — so both paths hand the caller a result that has been through the gate
-exactly once, and the copilot has one code path either way.
+exactly once, and the copilot has one code path either way. **Both paths emit the same
+stage beats**, including ``"validating"``: the five-beat walk is the pipeline's promise
+to the client, and a progress bar that silently loses a beat because the configured
+provider happens not to implement ``stream_json`` is a progress bar that lies about
+which gates ran.
+
+A provider that *does* implement ``stream_json`` must satisfy
+:class:`StreamingLlmProvider` in full, checked here rather than assumed. Half a
+streaming provider would otherwise take the streaming path and fail somewhere further
+in — and a protocol nothing checks is documentation, not a contract.
 """
 
 from __future__ import annotations
@@ -151,6 +160,17 @@ class StreamingLlmProvider(Protocol):
     async def aclose(self) -> None: ...
 
 
+#: Every member :class:`StreamingLlmProvider` requires, read off the protocol itself
+#: rather than restated beside it — a hand-copied list drifts, and the drifted half is
+#: always the half doing the checking.
+STREAMING_PROVIDER_MEMBERS: tuple[str, ...] = tuple(
+    sorted(
+        {name for name in vars(StreamingLlmProvider) if not name.startswith("_")}
+        | set(StreamingLlmProvider.__annotations__)
+    )
+)
+
+
 async def guarded_stream(
     provider: LlmProvider,
     task: LlmTask,
@@ -169,8 +189,23 @@ async def guarded_stream(
         # returning" (see LlmProvider), so the object arriving here has already been
         # through this task's gate exactly once.
         result = await provider.complete_json(task)
+        # The same beat, in the same position, as the streaming branch below. The stage
+        # contract belongs to the pipeline, so it must not depend on which provider is
+        # configured: `AnthropicLlmProvider` has no `stream_json`, and a five-beat walk
+        # that becomes four on the real provider is the shape of contract that gets
+        # written into a client and then quietly broken in production.
+        yield StageEvent("validating")
         yield Answer(result)
         return
+
+    if not isinstance(provider, StreamingLlmProvider):
+        missing = [name for name in STREAMING_PROVIDER_MEMBERS if not hasattr(provider, name)]
+        raise TypeError(
+            "%s offers stream_json but does not satisfy StreamingLlmProvider%s. A "
+            "half-implemented streaming provider takes the streaming path and fails "
+            "later, somewhere with less context than here."
+            % (type(provider).__name__, (": missing %s" % ", ".join(missing)) if missing else "")
+        )
 
     gate = gate_for(task)
     draft: ProviderDraft | None = None
@@ -286,6 +321,7 @@ def _detached(data: dict[str, Any]) -> dict[str, Any]:
 __all__ = [
     "MAX_PREVIEW_CHARS",
     "STAGES",
+    "STREAMING_PROVIDER_MEMBERS",
     "Answer",
     "ProviderDraft",
     "Stage",

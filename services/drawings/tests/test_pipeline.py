@@ -547,6 +547,143 @@ def test_dxf_absence_is_reported_as_a_format_problem_not_a_job_failure():
 
 
 # ---------------------------------------------------------------------------
+# The revision register and the carpet section, on the sheet the product ships
+# ---------------------------------------------------------------------------
+#: The revision rows **exactly as the API serialises them**: the field names of
+#: ``garh_api.schemas.sheets.RevisionRow`` under ``model_dump(by_alias=True)``, which
+#: ``routers/sheets.py`` drops straight into the ``drawings.generate_sheets`` payload.
+#: Hand-made rows in the register's own ``{"number", "description"}`` spelling are how
+#: the register came to be permanently empty in production with every test green.
+API_REVISION_ROWS = [
+    {"revision": "R1", "date": "05-03-2026", "note": "Issued for sanction", "author": "SG"},
+    {"revision": "R2", "date": "19-03-2026", "note": "Setbacks revised per query", "author": "SG"},
+]
+
+
+def _payload_bundle(**payload_overrides):
+    """A bundle built the way the worker builds one: payload in, nothing hand-set.
+
+    ``make_bundle`` above reconstructs the dataclass field by field and drops ``register``
+    on the way; this keeps whatever ``SheetBundle.from_payload`` decided, which is the
+    only thing production runs.
+    """
+    document = payload_overrides.pop("document", None) or load_document()
+    areas = payload_overrides.pop("areas", "auto")
+    if areas == "auto":
+        areas = TransportStatement.from_json(load_areas(document))
+    payload = {
+        "designVersionId": "11111111-1111-1111-1111-111111111111",
+        "kinds": ["area-statement"],
+        "titleBlock": TITLE_BLOCK,
+        "revisions": API_REVISION_ROWS,
+    }
+    payload.update(payload_overrides)
+    bundle = SheetBundle.from_payload(payload, document=document, areas=None)
+    import dataclasses
+
+    return dataclasses.replace(bundle, areas=areas)
+
+
+def test_the_api_revision_payload_draws_a_real_register_on_the_paper():
+    """D-1 through the only caller that exists, in the shape it actually sends.
+
+    ``Revision.from_json`` demanded ``number``; ``RevisionRow`` sends ``revision`` and
+    ``note``. So ``_register_from`` raised, swallowed the error and returned ``None``,
+    and every sheet set the product has ever generated carried an empty register while
+    the feature's own tests — which built rows in the other spelling — stayed green.
+    """
+    bundle = _payload_bundle()
+    assert bundle.register is not None, "the API's own row shape must build a register"
+    assert [r.number for r in bundle.register] == ["R1", "R2"]
+    assert bundle.register.latest.author == "SG"
+
+    sheet = next(s for s in build_sheets(bundle).sheets if s.kind == "area-statement")
+    assert ">REVISION REGISTER<" in sheet.svg
+    assert sheet.svg.count(">BY<") == 1, "the register's author column must be on the sheet"
+    for row in API_REVISION_ROWS:
+        assert ">%s<" % row["note"] in sheet.svg, row
+        assert ">%s<" % row["author"] in sheet.svg, row
+
+
+def test_the_shipped_area_sheet_carries_the_carpet_section_and_its_serials():
+    """D-6's citable serials, on the rendering the product produces (not the test's own).
+
+    ``AreaStatementSheet.municipal_form()`` passes its own storey lines, so carpet is
+    section 5 and setbacks are section 6 — which is what the docstrings and
+    ``test_area_statement.py`` cite ("clarify item 6.2"). The worker passed no carpet
+    lines at all, so the shipped sheet had no section 5 and every section after it was
+    numbered one lower. A serial that differs between the tested sheet and the printed
+    one is not a citable serial.
+    """
+    from services.drawings.pipeline import _parse_document
+    from services.drawings.render.reference_sheets import carpet_lines_for
+    from services.drawings.schedules.municipal import municipal_form
+
+    document = load_document()
+    statement = TransportStatement.from_json(load_areas(document))
+    lines = carpet_lines_for(_parse_document(document), statement)
+    assert lines, "the demo model has rooms, so the shipped sheet must have carpet lines"
+    assert all(line.carpet_area_mm2 for line in lines)
+    # Carpet is a subset of built-up; a derivation that counted the wrong rooms shows here.
+    for line in lines:
+        assert line.carpet_area_mm2 <= line.built_up_area_mm2, line
+
+    form = municipal_form(statement, carpet_lines=lines)
+    numbered = {row.number: row.description for row in form.rows}
+    carpet_band = next(n for n, d in numbered.items() if "CARPET AREA" in d)
+    setback_band = next(n for n, d in numbered.items() if d.startswith("SETBACKS"))
+    assert carpet_band == "5", numbered
+    assert setback_band == "6", numbered
+    assert "6.2" in numbered, numbered
+
+    # …and that is the sheet the worker draws, section band and figures both.
+    sheet = next(s for s in build_sheets(_payload_bundle()).sheets if s.kind == "area-statement")
+    assert ">CARPET AREA (not a regulatory figure)<" in sheet.svg
+    assert ">TOTAL CARPET AREA<" in sheet.svg
+    for number, description in numbered.items():
+        assert ">%s<" % number in sheet.svg, (number, description)
+
+
+def test_an_unreadable_previous_issue_skips_the_clouds_not_the_whole_set():
+    """The diff is an optional annotation; it must never cost the sheets.
+
+    ``_revision_diff`` runs before the per-sheet ``try``/``except``, so a previous
+    document the diff cannot read used to fail the entire job — nine good sheets lost to
+    one unreadable asset, contradicting the handler's promise that a set without a
+    readable previous issue "draws exactly as before".
+    """
+    import dataclasses
+
+    # Float geometry: `diff.py` refuses it by design (integer millimetres, model-wide).
+    broken_previous = {
+        "house": {
+            "storeys": [{"id": "storey_x", "name": "Ground"}],
+            "walls": [
+                {
+                    "id": "wall_x",
+                    "storeyId": "storey_x",
+                    "a": {"x": 0.5, "y": 0},
+                    "b": {"x": 1000, "y": 0},
+                    "thicknessMm": 230,
+                    "heightMm": 3000,
+                }
+            ],
+        }
+    }
+    bundle = dataclasses.replace(
+        _payload_bundle(kinds=["floor", "area-statement"]), previous_document=broken_previous
+    )
+    assert bundle.register is not None
+
+    result = build_sheets(bundle)
+    assert result.sheets, "an unreadable previous issue must not fail the set"
+    assert any("no revision clouds" in note for note in result.notes), result.notes
+    # The register still prints: it does not depend on the diff.
+    area = next(s for s in result.sheets if s.kind == "area-statement")
+    assert ">REVISION REGISTER<" in area.svg
+
+
+# ---------------------------------------------------------------------------
 # §14 budget
 # ---------------------------------------------------------------------------
 def test_g1_3bhk_set_is_far_inside_the_five_minute_budget():

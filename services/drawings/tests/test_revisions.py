@@ -266,6 +266,71 @@ def test_a_legacy_three_column_revision_still_loads() -> None:
     assert history[0].register_row()[3] == "-"
 
 
+#: The revision row **as the API actually serialises it** — the field names of
+#: ``garh_api.schemas.sheets.RevisionRow`` under ``model_dump(by_alias=True)``, which
+#: ``routers/sheets.py`` puts verbatim into the ``drawings.generate_sheets`` payload.
+#: Spelled out as a literal so this gate still fires on an interpreter that cannot import
+#: the API package at all; ``test_the_api_revision_row_shape_is_the_shape_the_register_
+#: reads`` pins the literal against the schema wherever pydantic is real.
+API_REVISION_ROWS: tuple[dict[str, str], ...] = (
+    {"revision": "R1", "date": "05-03-2026", "note": "Issued for sanction", "author": "SG"},
+    {
+        "revision": "R2",
+        "date": "19-03-2026",
+        "note": "Partition wall shifted 500 east per client",
+        "author": "SG",
+    },
+)
+
+
+def test_the_api_row_shape_builds_a_revision_not_a_valueerror() -> None:
+    """The shape the product sends, read by the code that reads it. This was broken.
+
+    ``Revision.from_json`` required ``number``; ``RevisionRow`` has ``revision`` and
+    ``note`` and no ``number`` at all. Every real job therefore raised here,
+    ``pipeline._register_from`` caught the ValueError and returned ``None``, and the
+    register drew nothing — silently, on every set, forever. Nothing was red, because
+    every register test in this file hand-built rows in the *other* spelling.
+    """
+    record = Revision.from_json(API_REVISION_ROWS[0])
+    assert record.number == "R1"
+    assert record.date == "05-03-2026"
+    assert record.description == "Issued for sanction"
+    assert record.author == "SG"
+
+    # A row from before the author field existed still loads; it is not invented.
+    older = Revision.from_json({"revision": "R1", "date": "05-03-2026", "note": "Issued"})
+    assert older.author == "-"
+
+    # …and a row with neither spelling of the number is still refused by name.
+    try:
+        Revision.from_json({"date": "05-03-2026", "note": "no number"})
+    except ValueError as error:
+        assert "number" in str(error) and "revision" in str(error), error
+    else:  # pragma: no cover
+        raise AssertionError("a revision row with no number must be refused")
+
+    assert RevisionHistory(API_REVISION_ROWS) == HISTORY
+
+
+def test_the_api_revision_row_shape_is_the_shape_the_register_reads() -> None:
+    """Pin :data:`API_REVISION_ROWS` against the API schema itself, where importable.
+
+    The literal above is the wire contract. This is what stops it going stale: rename a
+    field on ``RevisionRow`` (or drop ``author`` again) and the key sets stop matching.
+    Skipped only where pydantic is stubbed out, and the literal-driven gates above and in
+    ``test_pipeline.py`` still run there.
+    """
+    if "pydantic" in STUBBED:  # pragma: no cover - bare-interpreter run
+        print("SKIP schema cross-check: pydantic is stubbed here")
+        return
+    from garh_api.schemas.sheets import RevisionRow
+
+    row = RevisionRow(revision="R1", date="05-03-2026", note="Issued for sanction", author="SG")
+    assert row.model_dump(by_alias=True) == API_REVISION_ROWS[0]
+    assert Revision.from_json(row.model_dump(by_alias=True)).author == "SG"
+
+
 # ---------------------------------------------------------------------------
 # the diff — real folds, real ops
 # ---------------------------------------------------------------------------
@@ -601,6 +666,75 @@ def test_an_unrevised_set_carries_no_cloud_and_no_register() -> None:
         assert _cloud_arcs(drawing) == []
         for group in drawing.groups:
             assert group.id != "revision-register"
+
+
+def _minimal_statement() -> Any:
+    """The smallest statement A-06 can be drawn from, through the worker's own codec.
+
+    One plot-area row and nothing else: the register's placement depends on the
+    statement's *height*, never on its figures, so this file does not need the rules
+    engine to prove the register is mounted.
+    """
+    from services.drawings.pipeline import TransportStatement
+
+    return TransportStatement.from_json(
+        {
+            "rows": [
+                {
+                    "key": "plot_area",
+                    "label": "Plot area",
+                    "value": 111_483_648,
+                    "unit": "mm2",
+                    "kind": "informational",
+                }
+            ],
+            "warnings": [],
+        }
+    )
+
+
+def test_the_register_table_is_mounted_on_the_area_statement_sheet() -> None:
+    """Bug class 4: a table that is built, documented — and never mounted.
+
+    ``revision_register_group`` had exactly one caller — three lines in
+    ``reference_sheets.area_statement_sheet`` — and nothing asserted they were there.
+    Deleting them left the whole suite green and the §16 goldens diff-clean, because every
+    other register assertion in this file reads the compact title-block strip, which a
+    different function draws from the same history. This is the gate that goes red.
+    """
+    from services.drawings.render.reference_sheets import area_statement_sheet
+    from services.drawings.revisions import REGISTER_TITLE
+
+    statement = _minimal_statement()
+    drawing = area_statement_sheet(
+        None, statement, number="A-06", title_block=TitleBlock(), register=HISTORY
+    )
+    group = next((g for g in drawing.groups if g.id == "revision-register"), None)
+    assert group is not None, [g.id for g in drawing.groups]
+
+    texts = {p.text for p in group.primitives if isinstance(p, Text)}
+    assert REGISTER_TITLE in texts
+    # "BY" is the column the three-column title-block strip has no room for, which is the
+    # whole reason the register exists; the frame prints "DRAWN"/"CHECKED", never "BY".
+    assert "BY" in texts
+    for record in HISTORY:
+        assert record.author in texts, record
+        assert record.description in texts, record
+
+    svg = render_sheet_svg(drawing)
+    assert ">%s<" % REGISTER_TITLE in svg
+    assert svg.count(">BY<") == 1, "the BY header must reach the paper exactly once"
+
+    # …and the register clears the statement it sits under: nothing overprints.
+    from services.drawings.render.tables import area_statement_height_mm
+
+    statement_bottom = 25 + area_statement_height_mm(statement)
+    register_top = min(y for p in group.primitives for _x, y in p.points())
+    assert register_top > statement_bottom, (register_top, statement_bottom)
+
+    # Without a register the group is absent entirely — the feature stays inert.
+    plain = area_statement_sheet(None, statement, number="A-06", title_block=TitleBlock())
+    assert all(g.id != "revision-register" for g in plain.groups)
 
 
 def test_every_sheet_carries_the_issue_strip_from_the_one_register() -> None:

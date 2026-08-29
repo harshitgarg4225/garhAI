@@ -30,18 +30,30 @@ import time
 import uuid
 from typing import Any
 
+import jwt
 import pytest
+from garh_api.config import Settings
+from garh_api.errors import RateLimitedError
+from garh_api.ratelimit import peek_rate_limit
 from garh_api.repositories.two_factor import TwoFactorRepository
 from garh_api.security import (
+    _AUDIENCE_BY_TYPE,
+    AUDIENCE_ACCESS,
+    AUDIENCE_TWO_FACTOR,
+    JWT_ALGORITHM,
     REFRESH_COOKIE_NAME,
+    TOKEN_TYPE_ACCESS,
     TOKEN_TYPE_TWO_FACTOR,
     create_two_factor_challenge,
     decode_token,
+    get_jwt_keys,
 )
 from garh_api.twofactor import (
     RECOVERY_CODE_COUNT,
     TOTP_STEP_SECONDS,
     TWO_FACTOR_MAX_ATTEMPTS,
+    TwoFactorInvalidError,
+    TwoFactorService,
     counter_at,
     generate_recovery_codes,
     generate_secret,
@@ -50,6 +62,7 @@ from garh_api.twofactor import (
     normalise_recovery_code,
     otpauth_uri,
     totp_at,
+    two_factor_attempt_rule,
     verify_totp,
 )
 
@@ -327,21 +340,81 @@ async def test_sign_in_stops_at_the_second_factor(client: Any, api: str, firm_a:
     assert not client.cookies.get(REFRESH_COOKIE_NAME), "the gate still set a refresh cookie"
 
 
-async def test_the_challenge_is_not_a_bearer_token(client: Any, api: str, firm_a: Any) -> None:
-    """A challenge presented as ``Authorization: Bearer`` must be rejected.
+def _claims_of(token: str) -> dict[str, Any]:
+    """The payload, unverified — a test reading what was actually minted."""
+    return dict(
+        jwt.decode(
+            token,
+            options={"verify_signature": False, "verify_aud": False, "verify_exp": False},
+            algorithms=[JWT_ALGORITHM],
+        )
+    )
 
-    Different audience (``garh-api/2fa``), so PyJWT refuses it before any of our own
-    code runs. If it were minted with the access audience, the 403 body would be
-    handing out a working credential.
+
+def _mint(claims: dict[str, Any], settings: Settings) -> str:
+    """Sign arbitrary claims with the API's own key.
+
+    Needed because the interesting attacker is not one who forges a signature — they
+    cannot — but one holding a *legitimately signed* token of the wrong kind. That is
+    exactly what a 2FA challenge is, and the only thing standing between it and a
+    session is the audience.
+    """
+    return str(jwt.encode(claims, get_jwt_keys(settings).private_pem, algorithm=JWT_ALGORITHM))
+
+
+async def test_the_challenge_is_not_a_bearer_token(
+    client: Any, api: str, firm_a: Any, settings: Settings
+) -> None:
+    """A challenge presented as ``Authorization: Bearer`` must be rejected **by its
+    audience**, which is what this test's name has always claimed and what it did not
+    used to check.
+
+    The old version asserted only that ``GET /auth/me`` answered 401. It does — but on
+    the ``typ`` belt, not the audience brace: a reviewer collapsed
+    ``_AUDIENCE_BY_TYPE[2fa]`` onto the access audience and minted the challenge with
+    it, and the test stayed green while the separation it is named for was gone. So it
+    now asserts three things the regression cannot survive:
+
+    1. the minted challenge really does carry ``garh-api/2fa``;
+    2. a token that satisfies ``typ`` and differs *only* in audience is still refused;
+    3. the same claims with the access audience are accepted — so (2) is the audience
+       doing the work and not some other check.
     """
     await enrol(client, api, firm_a.headers)
     challenge = await _gate_and_challenge(client, api, firm_a.email)
+
+    claims = _claims_of(challenge)
+    assert claims["typ"] == TOKEN_TYPE_TWO_FACTOR
+    assert claims["aud"] == AUDIENCE_TWO_FACTOR, (
+        "the challenge was minted with %r — as a bearer credential this is now a "
+        "working session ticket" % claims["aud"]
+    )
+    assert AUDIENCE_TWO_FACTOR != AUDIENCE_ACCESS
+    assert _AUDIENCE_BY_TYPE[TOKEN_TYPE_TWO_FACTOR] == AUDIENCE_TWO_FACTOR
 
     response = await client.get(
         "%s/auth/me" % api, headers={"Authorization": "Bearer %s" % challenge}
     )
     assert response.status_code == 401, response.text
     assert problem(response)["code"] == "token_invalid"
+
+    # The belt is satisfied and the brace is not: same signature, same subject, same
+    # expiry, ``typ`` says "access". Only the audience is wrong.
+    forged = _mint({**claims, "typ": TOKEN_TYPE_ACCESS}, settings)
+    refused = await client.get("%s/auth/me" % api, headers={"Authorization": "Bearer %s" % forged})
+    assert refused.status_code == 401, (
+        "a 2FA-audience token was accepted as a bearer credential once it claimed "
+        "typ=access: %s" % refused.text
+    )
+    assert problem(refused)["code"] == "token_invalid"
+
+    # Positive control: identical claims, access audience. If this did not pass, the
+    # 401 above would prove nothing about audiences.
+    accepted = _mint({**claims, "typ": TOKEN_TYPE_ACCESS, "aud": AUDIENCE_ACCESS}, settings)
+    allowed = await client.get(
+        "%s/auth/me" % api, headers={"Authorization": "Bearer %s" % accepted}
+    )
+    assert allowed.status_code == 200, allowed.text
 
 
 async def test_a_live_code_completes_the_sign_in(client: Any, api: str, firm_a: Any) -> None:
@@ -614,6 +687,49 @@ async def test_guessing_is_rate_limited_per_user(client: Any, api: str, firm_a: 
     assert statuses.index(429) <= TWO_FACTOR_MAX_ATTEMPTS, statuses
 
 
+async def test_a_successful_verification_hands_the_attempt_budget_back(
+    session: Any, clean_redis: Any, firm_a: Any
+) -> None:
+    """Five wrong guesses, not five uses.
+
+    The budget was charged before every verification and released after none, so it
+    counted *successes* too: sign in on a sixth device inside ten minutes — or activate,
+    sign in, then rotate your recovery codes — and the product refuses you for doing
+    everything right. Worse, a user who fat-fingers two codes has three real attempts
+    left rather than five, on the screen where being locked out is the expensive
+    failure. A proof of possession is not a guess, so it gives the slot back.
+
+    Driven through :class:`TwoFactorService` rather than HTTP because seven *live*
+    verifications need seven credentials, and TOTP only accepts one step either side of
+    now — recovery codes are the credential a real lost-phone user spends in a row.
+    """
+    repo = TwoFactorRepository(session, firm_a.ctx())
+    service = TwoFactorService(repo)
+    identity = "user:%s" % firm_a.user_id
+    rule = two_factor_attempt_rule()
+
+    secret = generate_secret()
+    await repo.upsert_pending(firm_a.user_id, secret=secret)
+    codes = await service.activate(firm_a.user_id, code_now(secret))
+    assert await peek_rate_limit(rule, identity) == 0, "activation kept the slot it spent"
+
+    # Two more than the budget, all of them legitimate.
+    for code in codes[: TWO_FACTOR_MAX_ATTEMPTS + 2]:
+        result = await service.verify_second_factor(firm_a.user_id, code)
+        assert result.used_recovery_code is True
+        assert await peek_rate_limit(rule, identity) == 0, (
+            "a successful verification left a slot spent — the %dth legitimate one in "
+            "the window will 429" % TWO_FACTOR_MAX_ATTEMPTS
+        )
+
+    # The control: the limit is still a limit. Wrong codes accumulate and bite.
+    for _ in range(TWO_FACTOR_MAX_ATTEMPTS):
+        with pytest.raises(TwoFactorInvalidError):
+            await service.verify_second_factor(firm_a.user_id, "000000")
+    with pytest.raises(RateLimitedError):
+        await service.verify_second_factor(firm_a.user_id, "000000")
+
+
 # ---------------------------------------------------------------------------
 # 6. Tenancy and storage
 # ---------------------------------------------------------------------------
@@ -719,3 +835,20 @@ async def test_the_replay_high_water_mark_never_goes_backwards(
 
     record = await repo.for_user(firm_a.user_id)
     assert record is not None and record.last_counter == high
+
+
+# ---------------------------------------------------------------------------
+# Negative controls added by the F-4 repair pass
+# ---------------------------------------------------------------------------
+#
+# * ``test_the_challenge_is_not_a_bearer_token`` was green while the audience
+#   separation it is named for was gone (``typ`` alone was refusing the token). Both
+#   halves of the regression now redden it: setting
+#   ``_AUDIENCE_BY_TYPE[TOKEN_TYPE_TWO_FACTOR] = AUDIENCE_ACCESS`` and minting the
+#   challenge with the access audience fails the ``claims["aud"]`` assertion, and
+#   flipping ``verify_aud`` to False in ``decode_token`` fails the forged-``typ``
+#   assertion with a 200 where a 401 belongs.
+# * deleting either ``_clear_attempts`` call in ``TwoFactorService`` reddens
+#   ``test_a_successful_verification_hands_the_attempt_budget_back`` — on the peek
+#   after activation, or (with the peek muted) on a ``RateLimitedError`` raised by the
+#   sixth legitimate verification inside the window.

@@ -55,11 +55,25 @@ class RevisionRow(CamelModel):
     ``date``: it is printed verbatim on paper, submissions carry things like
     "12-03-2026 (rev. at counter)", and reformatting an architect's own text on a
     municipal drawing is not this API's business.
+
+    These four field names are a **wire contract with the drawings worker**:
+    ``routers/sheets.py`` puts ``model_dump(by_alias=True)`` of these rows straight into
+    the ``drawings.generate_sheets`` payload, and
+    ``services.drawings.revisions.record.Revision.from_json`` reads them back. Renaming
+    one here without renaming it there empties the revision register on every sheet set
+    and raises nothing — which is exactly what ``author`` being absent used to do to the
+    register's BY column. ``test_revisions.py::
+    test_the_api_revision_row_shape_is_the_shape_the_register_reads`` pins the pair.
     """
 
     revision: StrictStr = Field(max_length=8, description="A, B, C… or R1, R2.")
     date: StrictStr = Field(default="", max_length=24, description="DD-MM-YYYY.")
     note: StrictStr = Field(default="", max_length=120, description="What changed.")
+    #: Who issued it. The register's BY column — the one column the compact title-block
+    #: strip has no room for, and the reason the register exists at all. Optional because
+    #: rows stored before this field existed have none; the register prints "-" for them
+    #: rather than inventing a name on a signed drawing.
+    author: StrictStr = Field(default="", max_length=40, description="Who issued it.")
 
 
 class TitleBlockFields(CamelModel):

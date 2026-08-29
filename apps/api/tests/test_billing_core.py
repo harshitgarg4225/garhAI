@@ -208,9 +208,7 @@ def test_a_period_that_still_contains_now_is_returned_untouched() -> None:
         end,
     )
     # The bounds are half-open: the instant before the end is still inside.
-    assert subscriptions.current_period(
-        start, end, end - timedelta(microseconds=1)
-    ) == (start, end)
+    assert subscriptions.current_period(start, end, end - timedelta(microseconds=1)) == (start, end)
 
 
 def test_a_period_that_has_ended_rolls_forward_to_the_one_containing_now() -> None:
@@ -658,3 +656,71 @@ def test_webhook_verification_fails_closed_without_its_own_secret(
     correct = hmac.new(b"not-a-real-webhook-secret", body, hashlib.sha256).hexdigest()
     assert provider.verify_webhook_signature(body=body, signature=correct) is True
     assert provider.verify_webhook_signature(body=body + b" ", signature=correct) is False
+
+
+# ---------------------------------------------------------------------------
+# Documentation that is executable, because a wrong instruction is a defect
+# ---------------------------------------------------------------------------
+
+
+def test_require_quota_is_mounted_bare_and_the_documented_form_is_the_working_one() -> None:
+    """``require_quota`` already returns ``Depends(...)``; wrapping it again raises.
+
+    Both ``quotas.py``'s module docstring and ``require_quota``'s own used to show
+    ``dependencies=[Depends(require_quota("render"))]``, which is not a slow-burn
+    correctness issue — it is an instruction that fails at import of any router that
+    follows it. This asserts the working form works, the documented-wrong form does not,
+    and that neither docstring has drifted back to it.
+    """
+    from fastapi import APIRouter, Depends, params
+    from garh_api.billing.quotas import require_quota
+
+    assert isinstance(require_quota("render"), params.Depends)
+
+    good = APIRouter()
+
+    @good.post("/probe", dependencies=[require_quota("render")])
+    async def _probe() -> dict[str, bool]:
+        return {"ok": True}
+
+    assert good.routes, "the documented form did not even register a route"
+
+    bad = APIRouter()
+    with pytest.raises(AssertionError, match="callable dependency"):
+
+        @bad.post("/probe", dependencies=[Depends(require_quota("render"))])
+        async def _bad_probe() -> dict[str, bool]:
+            return {"ok": True}
+
+    from garh_api.billing import quotas
+
+    for text in (quotas.__doc__ or "", require_quota.__doc__ or ""):
+        assert (
+            "dependencies=[Depends(require_quota" not in text
+        ), "a docstring is telling the next reader to write the form that raises"
+
+
+def test_every_module_in_the_package_points_at_a_test_file_that_exists() -> None:
+    """A docstring naming ``tests/test_billing_provider.py`` — which does not exist — is
+    a dead pointer, and the reader who follows it concludes the code is untested.
+
+    Cheap to check and impossible to keep true by diligence, so it is checked: every
+    ``tests/test_*.py`` path mentioned anywhere in ``garh_api/billing`` must be a real
+    file.
+    """
+    import re
+    from pathlib import Path
+
+    package = Path(__file__).resolve().parent.parent / "garh_api" / "billing"
+    tests_dir = Path(__file__).resolve().parent
+    pattern = re.compile(r"tests/(test_[A-Za-z0-9_]+\.py)")
+
+    dangling: list[str] = []
+    checked = 0
+    for path in sorted(package.glob("*.py")):
+        for name in pattern.findall(path.read_text(encoding="utf-8")):
+            checked += 1
+            if not (tests_dir / name).is_file():
+                dangling.append("%s -> tests/%s" % (path.name, name))
+    assert checked, "no test-file references found at all — this guard would be vacuous"
+    assert not dangling, dangling

@@ -233,17 +233,25 @@ def _as_mappings(value: Any) -> list[Mapping[str, Any]]:
     return [item for item in value if isinstance(item, Mapping)]
 
 
-#: Every field name any summary allowlist may forward to a provider, plus the two
-#: inline allowlists inside :func:`summarise_model` / :func:`summarise_violations`.
+#: The registry of every allowlist that may forward a field to a provider. Keyed by the
+#: constant's own name, because :func:`check_every_allowlist_is_registered` matches on
+#: it: a label like "plot (summarise_model)" reads nicely and makes the registration
+#: unverifiable, and an unverifiable registry is how a line goes missing.
 _SUMMARY_ALLOWLISTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("ROOM_SUMMARY_FIELDS", ROOM_SUMMARY_FIELDS),
     ("STOREY_SUMMARY_FIELDS", STOREY_SUMMARY_FIELDS),
     ("WALL_SUMMARY_FIELDS", WALL_SUMMARY_FIELDS),
     ("OPENING_SUMMARY_FIELDS", OPENING_SUMMARY_FIELDS),
-    ("plot (summarise_model)", PLOT_SUMMARY_FIELDS),
-    ("violations (summarise_violations)", VIOLATION_SUMMARY_FIELDS),
+    # `plot` inside summarise_model
+    ("PLOT_SUMMARY_FIELDS", PLOT_SUMMARY_FIELDS),
+    # the row projection inside summarise_violations
+    ("VIOLATION_SUMMARY_FIELDS", VIOLATION_SUMMARY_FIELDS),
     ("EXPLAINER_FINDING_FIELDS", EXPLAINER_FINDING_FIELDS),
 )
+
+#: Suffix every summary allowlist constant carries. The naming convention is what makes
+#: the registry auditable, so it is enforced rather than encouraged.
+_ALLOWLIST_SUFFIX = "_FIELDS"
 
 
 def check_allowlists_are_pii_free() -> None:
@@ -267,7 +275,41 @@ def check_allowlists_are_pii_free() -> None:
         )
 
 
+def check_every_allowlist_is_registered() -> None:
+    """Fail loudly if a summary allowlist exists but is not in :data:`_SUMMARY_ALLOWLISTS`.
+
+    :func:`check_allowlists_are_pii_free` can only police the tuples it is handed, so
+    deleting a line from the registry — or adding a new ``*_FIELDS`` constant and
+    forgetting to register it — silently narrows the §13 gate while every test stays
+    green. That is this repo's signature failure, bug class 4: a module that believes
+    it is registered. So registration is itself gated. Every module-level
+    ``*_FIELDS`` tuple must appear in the registry **under its own name and as the
+    same object**, which no amount of copying a similar-looking tuple can fake.
+
+    Runs at import, like its sibling: the invariant is static, so a violation is a
+    coding error and the whole ``services.llm`` package should refuse to load.
+    """
+    registered = dict(_SUMMARY_ALLOWLISTS)
+    problems: list[str] = []
+    for name, value in sorted(globals().items()):
+        if not name.endswith(_ALLOWLIST_SUFFIX) or not isinstance(value, tuple):
+            continue
+        if name not in registered:
+            problems.append("%s is not registered" % name)
+        elif registered[name] is not value:
+            problems.append("%s is registered, but against a different tuple" % name)
+    unknown = [name for name, _ in _SUMMARY_ALLOWLISTS if name not in globals()]
+    problems.extend("%s is registered but no such constant exists" % name for name in unknown)
+    if problems:
+        raise RuntimeError(
+            "§13 registry is out of step with this module: %s. Every summary allowlist "
+            "must be listed in _SUMMARY_ALLOWLISTS so check_allowlists_are_pii_free "
+            "actually covers it." % "; ".join(problems)
+        )
+
+
 check_allowlists_are_pii_free()
+check_every_allowlist_is_registered()
 
 
 __all__ = [
@@ -281,6 +323,7 @@ __all__ = [
     "VIOLATION_SUMMARY_FIELDS",
     "WALL_SUMMARY_FIELDS",
     "check_allowlists_are_pii_free",
+    "check_every_allowlist_is_registered",
     "fence",
     "find_pii",
     "looks_like_pii_key",

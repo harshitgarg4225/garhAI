@@ -49,9 +49,11 @@ from services.drawings.render.primitives import (
 )
 
 __all__ = [
+    "AREA_COLUMN_WIDTHS_MM",
     "AREA_ROW_HEIGHT_MM",
     "SCHEDULE_ROW_HEIGHT_MM",
     "Column",
+    "area_statement_columns",
     "area_statement_group",
     "area_statement_table",
     "format_area_dual",
@@ -323,16 +325,45 @@ def _format_value(row: Any) -> str:
     return "—" if row.value is None else str(row.value)
 
 
-def _format_allowed(row: Any) -> str:
-    if row.allowed is None:
-        return "—"
-    if row.unit == "mm2":
-        return format_area_dual(int(row.allowed))
-    if row.unit == "mm":
-        return "%d mm" % int(row.allowed)
-    if row.unit == "count":
-        return str(int(row.allowed))
-    return str(row.allowed)
+#: Paper mm per municipal column, **keyed by the column key, not by position**. 400 mm of
+#: the 594 mm A2 width — wide enough that a dual-unit area never wraps, narrow enough to
+#: clear the title-block column on the right. Keyed so that reordering
+#: :data:`~services.drawings.schedules.municipal.MUNICIPAL_COLUMNS` moves each width with
+#: its own column instead of leaving the widths behind in the old order.
+AREA_COLUMN_WIDTHS_MM: dict[str, int] = {
+    "sl": 18,
+    "item": 92,
+    "limit": 85,
+    "value": 85,
+    "remarks": 120,
+}
+
+
+def area_statement_columns() -> list[Column]:
+    """The drawn columns, derived from the proforma's own column definition.
+
+    Header text, order and alignment all come from
+    :data:`~services.drawings.schedules.municipal.MUNICIPAL_COLUMNS`; only the paper
+    widths live here, and they are looked up by key. Before this, the five headers were
+    re-listed in this module while the cells came from ``FormRow.cells()`` — two unlinked
+    statements of one order, which is precisely the shape that let three hatch properties
+    drift apart in this repository. Swapping two columns in the proforma now moves the
+    headings and the figures under them together, or fails loudly here.
+    """
+    from services.drawings.schedules.municipal import MUNICIPAL_COLUMNS
+
+    columns: list[Column] = []
+    for key, header, align in MUNICIPAL_COLUMNS:
+        try:
+            width = AREA_COLUMN_WIDTHS_MM[key]
+        except KeyError as error:
+            raise KeyError(
+                "municipal column %r (%s) has no paper width in AREA_COLUMN_WIDTHS_MM. "
+                "Give it one — a column drawn at a guessed width overprints its "
+                "neighbour on a submission sheet." % (key, header)
+            ) from error
+        columns.append(Column(header, width, align))
+    return columns
 
 
 def area_statement_table(
@@ -350,16 +381,23 @@ def area_statement_table(
     of its own; this function turns those rows into ruled-table primitives and nothing
     else.
 
-    **The column order is the point.** A municipal scrutiny proforma is read
-    ``SL. NO. | DESCRIPTION | PERMISSIBLE / REQUIRED | PROPOSED / PROVIDED | REMARKS`` —
-    the bye-law first, then what the drawing does. This sheet used to print a flat list
-    with the proposal ahead of the limit and no serial numbers, which is a set that comes
-    back from the counter before anyone checks a figure, and which no query sheet can
-    cite ("clarify item 6.2" needs an item 6.2).
+    **The column order is the point, and it is not restated here.** A municipal scrutiny
+    proforma is read ``SL. NO. | DESCRIPTION | PERMISSIBLE / REQUIRED | PROPOSED /
+    PROVIDED | REMARKS`` — the bye-law first, then what the drawing does. This sheet used
+    to print a flat list with the proposal ahead of the limit and no serial numbers, which
+    is a set that comes back from the counter before anyone checks a figure, and which no
+    query sheet can cite ("clarify item 6.2" needs an item 6.2). Both the headings
+    (:func:`area_statement_columns`) and the cells under them (``FormRow.cells``) are now
+    derived from
+    :data:`~services.drawings.schedules.municipal.MUNICIPAL_COLUMNS`, so they move
+    together or not at all.
 
-    ``carpet_lines`` are optional
+    ``carpet_lines`` are
     :class:`~services.drawings.schedules.area_statement.StoreyLine` records; carpet area
-    is not a regulatory figure and gets its own labelled section when it is supplied.
+    is not a regulatory figure and gets its own labelled section. Callers of
+    ``reference_sheets.area_statement_sheet`` get them derived from the model by default
+    (:func:`~services.drawings.render.reference_sheets.carpet_lines_for`) — passing none
+    here draws a sheet with no carpet section, and therefore different section serials.
 
     Warnings on the statement (e.g. "per-storey built-up areas do not sum to the total")
     are printed under the table rather than swallowed. A statement whose rows do not add
@@ -369,16 +407,7 @@ def area_statement_table(
     from services.drawings.schedules.municipal import municipal_form
 
     form = municipal_form(statement, carpet_lines=carpet_lines)
-    # 400 mm of the 594 mm A2 width — the same total the flat table used, redistributed
-    # to give the serial column its own gutter. Wide enough that a dual-unit area never
-    # wraps, narrow enough to clear the title-block column on the right.
-    columns = [
-        Column("SL. NO.", 18),
-        Column("DESCRIPTION", 92),
-        Column("PERMISSIBLE / REQUIRED", 85, "right"),
-        Column("PROPOSED / PROVIDED", 85, "right"),
-        Column("REMARKS", 120),
-    ]
+    columns = area_statement_columns()
     body = [list(row.cells()) for row in form.rows]
 
     out: list[Primitive] = list(

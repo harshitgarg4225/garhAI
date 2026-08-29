@@ -512,8 +512,11 @@ def build_sheets(bundle: SheetBundle, *, on_sheet: Any = None) -> SheetSetResult
     house = doc.house
     title_block = _title_block(bundle)
 
-    plan = _sheet_plan(doc, bundle, diff=_revision_diff(bundle))
+    diff, diff_note = _revision_diff(bundle)
+    plan = _sheet_plan(doc, bundle, diff=diff)
     result = SheetSetResult(state_hash=_state_hash(doc))
+    if diff_note:
+        result.notes.append(diff_note)
     total = len(plan)
 
     for index, entry in enumerate(plan):
@@ -585,20 +588,35 @@ def build_sheets(bundle: SheetBundle, *, on_sheet: Any = None) -> SheetSetResult
 # ---------------------------------------------------------------------------
 # Plan assembly (one closure per sheet, so a failure is scoped to one sheet)
 # ---------------------------------------------------------------------------
-def _revision_diff(bundle: SheetBundle) -> Any | None:
-    """The geometric diff against the previous issue, or ``None``.
+def _revision_diff(bundle: SheetBundle) -> tuple[Any | None, str]:
+    """``(diff, note)`` — the geometric diff against the previous issue, or no diff.
 
     Both halves are required and neither is guessed: without a register there is no
     revision number to tag a cloud with, and without the previous document there is
     nothing to compare against. A diff that found no change also returns ``None`` — an
     issue that moved nothing gets a register row and no clouds, which is the truth.
+
+    **Failure degrades to no clouds, never to no sheets.** This runs once, before the
+    per-sheet ``try``/``except`` in :func:`build_sheets`, so an unreadable previous
+    document — a truncated asset, a document from an older schema, geometry that is not
+    integer millimetres — used to fail the entire job. That contradicts the handler's own
+    promise that a set without a readable previous issue "draws exactly as before", and it
+    fails nine good sheets over one optional annotation. The reason is returned as a note
+    rather than swallowed: §15's honesty rule means the missing clouds are stated.
     """
     if bundle.register is None or bundle.previous_document is None:
-        return None
+        return (None, "")
     from services.drawings.revisions import diff_models
 
-    diff = diff_models(bundle.previous_document, bundle.document)
-    return diff if diff else None
+    try:
+        diff = diff_models(bundle.previous_document, bundle.document)
+    except (TypeError, ValueError, KeyError, AttributeError) as exc:
+        return (
+            None,
+            "The previous issue's model could not be read, so this set carries no "
+            "revision clouds — every other sheet is unaffected (%s)." % _reason(exc),
+        )
+    return (diff if diff else None, "")
 
 
 def _sheet_plan(

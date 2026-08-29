@@ -30,10 +30,11 @@ WIRING — AND THE ONE FORM THAT WORKS
 
     @router.post("/projects/{project_id}/renders", dependencies=[require_quota("render")])
 
-Wrapping it again — ``dependencies=[Depends(require_quota("render"))]`` — makes FastAPI
-treat a ``Depends`` marker as the dependency *callable* and raises at import of the
-router that does it. The docstring here used to show exactly that, which is why it is
-spelled out.
+Do **not** wrap it in a second ``Depends()``. That hands FastAPI a ``Depends`` marker
+where it expects the dependency *callable*, and the router dies at import with
+``AssertionError: A parameter-less dependency must have a callable dependency``. The
+docstrings here used to instruct exactly that, which is why the working form is spelled
+out above and ``tests/test_billing_core.py`` mounts both forms to prove which is which.
 
 Mounted, as of this change, on the spending routes with a positive free allowance:
 
@@ -174,9 +175,9 @@ def require_quota(kind: str, *, qty: int = 1) -> params.Depends:
 
         dependencies=[require_quota("render")]
 
-    NOT ``dependencies=[Depends(require_quota("render"))]`` — that hands FastAPI a
-    ``Depends`` marker where it expects a callable and raises at import of the router
-    that does it. The return annotation says so in the type system as well as here.
+    Never wrapped in a second ``Depends()``: that hands FastAPI a ``Depends`` marker
+    where it expects a callable and raises at import of the router that does it. The
+    return annotation says so in the type system as well as here.
 
     The kind is validated **here**, at import time of the router that mounts it, so a
     typo is a boot failure rather than a permanently open gate.

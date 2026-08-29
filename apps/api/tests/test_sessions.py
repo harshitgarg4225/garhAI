@@ -20,9 +20,11 @@ from typing import Any
 
 import pytest
 from garh_api.auth import SessionStore, family_key, user_families_key
+from garh_api.errors import ServiceUnavailableError
 from garh_api.ratelimit import otp_per_email_rule, otp_resend_rule, reset_rate_limit
 from garh_api.routers.sessions import describe_user_agent
 from garh_api.security import REFRESH_COOKIE_NAME, new_token_family, pseudonymise
+from redis.asyncio import Redis
 
 from tests.helpers import problem
 
@@ -369,6 +371,38 @@ async def test_start_family_records_where_the_sign_in_came_from(
     assert entry.last_used_at == entry.started_at
 
 
+async def test_list_families_fails_closed_when_redis_is_unreachable(
+    clean_redis: Any, settings: Any, firm_a: Any
+) -> None:
+    """ "No devices" and "we could not ask" must not look the same.
+
+    The method's docstring says it fails closed and, until this test, nothing checked.
+    It matters more here than for most reads: this list is what somebody opens when
+    they think they have been compromised, and an empty page rendered because Redis
+    blinked answers "nothing else is signed in" — the one wrong answer that makes a
+    person close the tab and do nothing.
+
+    A second client on a dead port rather than a monkeypatch, so what is exercised is
+    the real ``RedisError`` path through the real code.
+    """
+    dead = Redis.from_url(
+        "redis://127.0.0.1:6399/0",
+        decode_responses=True,
+        socket_timeout=0.5,
+        socket_connect_timeout=0.5,
+    )
+    try:
+        with pytest.raises(ServiceUnavailableError):
+            await SessionStore(redis=dead, settings=settings).list_families(firm_a.user_id)
+    finally:
+        await dead.aclose()
+
+    # The control that gives that assertion meaning: against a live Redis the same
+    # call answers "none", quietly and successfully. Without this, a store that raised
+    # unconditionally would pass the test above.
+    assert await SessionStore().list_families(firm_a.user_id) == []
+
+
 async def test_a_users_families_are_invisible_to_another_user(
     clean_redis: Any, firm_a: Any, firm_b: Any
 ) -> None:
@@ -418,3 +452,14 @@ def test_device_labels_are_recognisable_or_honest(user_agent: Any, expected: str
     nothing says so rather than being bucketed into the nearest guess.
     """
     assert describe_user_agent(user_agent) == expected
+
+
+# ---------------------------------------------------------------------------
+# Negative control
+# ---------------------------------------------------------------------------
+#
+# ``SessionStore.list_families`` claims in two docstrings that it fails closed and
+# nothing checked it. Replacing its ``except`` with ``return []`` — the fail-open
+# version, which is what most read paths would do — makes
+# ``test_list_families_fails_closed_when_redis_is_unreachable`` fail with
+# "DID NOT RAISE ServiceUnavailableError".

@@ -126,6 +126,7 @@ __all__ = [
     "SheetSet",
     "build_schedule_rows",
     "build_sheet_set",
+    "carpet_lines_for",
     "elevation_sheet",
     "floor_plan_sheet",
     "outer_chains",
@@ -1784,6 +1785,79 @@ def schedule_sheet(
     )
 
 
+#: ``garh_rules.areas.AreaStatement.rows()`` keys its per-storey built-up lines
+#: ``built_up.<storeyId>``; ``built_up_total`` is the total and deliberately does not
+#: match, because it is not a storey.
+_BUILT_UP_PREFIX = "built_up."
+
+
+def _storey_names(doc: Any) -> dict[str, str]:
+    """``{storey_id: name}`` from a folded doc, a house, or either one's JSON."""
+    house = doc.get("house", doc) if isinstance(doc, Mapping) else getattr(doc, "house", doc)
+    storeys = (
+        house.get("storeys") or ()
+        if isinstance(house, Mapping)
+        else getattr(house, "storeys", ()) or ()
+    )
+    if isinstance(house, Mapping):
+        return {str(s["id"]): str(s.get("name") or "") for s in storeys}
+    return {str(s.id): str(getattr(s, "name", "") or "") for s in storeys}
+
+
+def carpet_lines_for(doc: Any, statement: Any) -> tuple[Any, ...]:
+    """The carpet section's storey lines, derived from the model the sheet is drawn from.
+
+    Carpet area is the one figure §7 asks for that the rules engine does not carry (its
+    ``StoreyAreaRow`` has built-up and no carpet), so it comes from the same rooms every
+    plan in the set is drawn from — see
+    :func:`services.drawings.schedules.area_statement.carpet_by_storey`, which is the one
+    definition of what counts as carpet.
+
+    **Deriving it here rather than making every caller pass it is the point.** It used to
+    be a keyword nobody supplied: :meth:`AreaStatementSheet.municipal_form` passed its own
+    storeys, but the shipped path (``pipeline._sheet_plan``) and the §16 golden harness
+    both passed nothing, so the sheet the product prints had no carpet section — and
+    carpet is section 5, so every section after it was numbered one lower than the
+    rendering the tests and the docstrings cite. A serial that differs between the tested
+    sheet and the shipped sheet is not a citable serial.
+
+    One line per built-up row the engine reported, in the engine's order, labelled the way
+    the built-up rows are labelled. A storey with no rooms in the model gets a line with
+    no carpet figure, which :func:`~services.drawings.schedules.municipal.municipal_form`
+    prints as an omission plus a warning rather than as a zero.
+    """
+    if doc is None or statement is None:
+        return ()
+    from services.drawings.schedules.area_statement import StoreyLine, carpet_by_storey
+    from services.drawings.schedules.display import storey_row_label
+
+    try:
+        carpet = carpet_by_storey(doc)
+    except TypeError:
+        # No readable rooms (a caller that passed a statement and no model). The carpet
+        # section is absent, exactly as it is for a first-issue set — never guessed.
+        return ()
+    names = _storey_names(doc)
+    lines: list[Any] = []
+    storey_rows = [row for row in statement.rows() if str(row.key).startswith(_BUILT_UP_PREFIX)]
+    for index, row in enumerate(storey_rows):
+        storey_id = str(row.key)[len(_BUILT_UP_PREFIX) :]
+        carpet_row = carpet.get(storey_id)
+        built_up = (
+            row.value if isinstance(row.value, int) and not isinstance(row.value, bool) else None
+        )
+        lines.append(
+            StoreyLine(
+                storey_id=storey_id,
+                index=index,
+                label=storey_row_label(names.get(storey_id, "")) or str(row.label),
+                built_up_area_mm2=built_up,
+                carpet_area_mm2=(carpet_row.carpet_area_mm2 if carpet_row is not None else None),
+            )
+        )
+    return tuple(lines)
+
+
 def area_statement_sheet(
     doc: Any,
     statement: Any,
@@ -1792,7 +1866,7 @@ def area_statement_sheet(
     title_block: TitleBlock,
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
-    carpet_lines: Sequence[Any] = (),
+    carpet_lines: Sequence[Any] | None = None,
 ) -> SheetDrawing:
     """The area statement in the municipal proforma, with the revision register beneath it.
 
@@ -1800,7 +1874,12 @@ def area_statement_sheet(
     information sheet: it has the white space, and it is where a reviewer already looks
     for the numbers. Every *other* sheet still carries the compact REV/DATE/DESCRIPTION
     strip in its title block, fed from the same history — see :func:`_strip_rows`.
+
+    ``carpet_lines`` defaults to :func:`carpet_lines_for` of ``doc`` and ``statement``, so
+    every caller draws the same sheet with the same section numbers. Pass an explicit
+    sequence (``()`` included) only to override that.
     """
+    lines = carpet_lines_for(doc, statement) if carpet_lines is None else tuple(carpet_lines)
     sheet = _sheet(
         sheet_id="sheet-areas",
         kind="area-statement",
@@ -1812,10 +1891,10 @@ def area_statement_sheet(
     )
     groups = [
         frame_group(sheet.frame, revisions=_strip_rows(revisions, register)),
-        area_statement_group(statement, origin_mm=(25, 25), carpet_lines=carpet_lines),
+        area_statement_group(statement, origin_mm=(25, 25), carpet_lines=lines),
     ]
     if register:
-        below = 25 + area_statement_height_mm(statement, carpet_lines=carpet_lines) + 12
+        below = 25 + area_statement_height_mm(statement, carpet_lines=lines) + 12
         groups.append(revision_register_group(register, origin_mm=(25, below)))
     return SheetDrawing(
         sheet=sheet,
@@ -1848,7 +1927,7 @@ def build_sheet_set(
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
     diff: ModelDiff | None = None,
-    carpet_lines: Sequence[Any] = (),
+    carpet_lines: Sequence[Any] | None = None,
 ) -> SheetSet:
     """All F7-A sheets for a model: site, one plan per storey, four elevations, section, tables.
 

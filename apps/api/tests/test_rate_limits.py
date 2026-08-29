@@ -26,6 +26,8 @@ from garh_api.ratelimit import (
     OTP_PER_EMAIL_PER_HOUR,
     OTP_RESEND_COOLDOWN_SECONDS,
     RULE_FACTORIES,
+    TWO_FACTOR_ATTEMPT_WINDOW_SECONDS,
+    TWO_FACTOR_MAX_ATTEMPTS,
     VERIFY_PER_IP_PER_HOUR,
     RateLimitRule,
     check_rate_limit,
@@ -132,6 +134,32 @@ async def test_peek_and_reset(clean_redis: Any) -> None:
     assert await peek_rate_limit(rule, identity) == 0
 
 
+#: What each shipped rule does when Redis cannot answer. Split into two named sets
+#: rather than asserted rule by rule so that the sweep below can insist every factory
+#: in ``RULE_FACTORIES`` appears in one of them: a new limit with no declared policy is
+#: a decision nobody made, which is how ``2fa_attempt`` went years without one being
+#: checked at all.
+FAIL_CLOSED_RULES = frozenset(
+    {
+        "auth_ip_rule",
+        "otp_per_email_rule",
+        "otp_resend_rule",
+        "verify_ip_rule",
+        "llm_per_firm_rule",
+        "render_jobs_per_firm_rule",
+        "two_factor_attempt_rule",
+    }
+)
+FAIL_OPEN_RULES = frozenset(
+    {
+        "ops_per_firm_rule",
+        "solver_jobs_per_firm_rule",
+        "export_jobs_per_firm_rule",
+        "sheet_jobs_per_firm_rule",
+    }
+)
+
+
 def test_shipped_rules_carry_the_playbook_numbers(settings: Settings) -> None:
     """§11/§13's numbers, and the fail-open/fail-closed policy per rule."""
     rules = {factory.__name__: factory(settings) for factory in RULE_FACTORIES}
@@ -168,14 +196,36 @@ def test_shipped_rules_carry_the_playbook_numbers(settings: Settings) -> None:
     # An unknown feature falls back to real copy rather than a KeyError mid-429.
     assert ratelimit.llm_per_firm_rule(settings, feature="nope").message
 
-    for name in (
-        "auth_ip_rule",
-        "otp_per_email_rule",
-        "otp_resend_rule",
-        "verify_ip_rule",
-        "llm_per_firm_rule",
-    ):
+    # The second factor. Six digits is 10^6, so this rule is the difference between
+    # TOTP being a control and being decoration — and it spent its whole life outside
+    # ``RULE_FACTORIES``, which meant this sweep had never once looked at it.
+    second_factor = rules["two_factor_attempt_rule"]
+    assert (second_factor.limit, second_factor.window_seconds, second_factor.scope) == (
+        TWO_FACTOR_MAX_ATTEMPTS,
+        TWO_FACTOR_ATTEMPT_WINDOW_SECONDS,
+        "user",
+    ), second_factor
+    assert (second_factor.limit, second_factor.window_seconds) == (5, 600)
+    assert second_factor.fail_closed is True, (
+        "two_factor_attempt_rule must fail closed — if Redis cannot count the guesses, "
+        "an unmetered six-digit code is a brute-force target with an afternoon's work "
+        "in it."
+    )
+    # Per *user*: rotating source addresses must not buy a fresh budget.
+    assert second_factor.scope == "user"
+
+    for name in FAIL_CLOSED_RULES:
         assert rules[name].fail_closed is True, "%s must fail closed (§13)" % name
+    for name in FAIL_OPEN_RULES:
+        assert rules[name].fail_closed is False, "%s must fail open" % name
+
+    # Derived, so a new rule cannot slip through with no stated policy: every factory
+    # in the registry has to appear in one list or the other, which forces whoever
+    # adds it to decide what happens when Redis is unreachable.
+    undecided = set(rules) - FAIL_CLOSED_RULES - FAIL_OPEN_RULES
+    assert not undecided, (
+        "rate-limit rules with no declared Redis-outage policy in this test: %s" % undecided
+    )
 
     assert rules["otp_per_email_rule"].limit == OTP_PER_EMAIL_PER_HOUR == 5
     assert rules["otp_resend_rule"].window_seconds == OTP_RESEND_COOLDOWN_SECONDS == 60

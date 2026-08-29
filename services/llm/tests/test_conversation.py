@@ -16,6 +16,12 @@ The two gates, and how each is held to account:
   block. It exists for the failure the first gate cannot catch: a new field added and
   not routed through the redactor. ``test_render_catches_a_field_that_skipped_the
   _redactor`` simulates exactly that and requires the sweep to fire.
+
+  That sweep used to visit two named keys, ``command`` and ``intent`` — which is to say
+  it could see every field except a new one, the only kind it exists for. A row
+  carrying ``{"note": "client asked; reach him on 9876543210"}`` rendered unmasked.
+  ``test_render_sweeps_a_field_the_sweep_has_never_heard_of`` is that defect pinned,
+  and ``test_the_sweep_visits_every_key_a_row_carries`` is the general form.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ from typing import Any
 import pytest
 
 from services.llm.conversation import (
+    ID_BEARING_KEYS,
     MAX_COMMAND_CHARS,
     MAX_HISTORY_TURNS,
     ConversationContext,
@@ -172,6 +179,84 @@ def test_render_catches_a_field_that_skipped_the_redactor() -> None:
     with pytest.raises(ConversationRedactionError) as caught:
         ConversationContext((turn,)).render()
     assert PHONE in str(caught.value)
+
+
+class NoteCarryingContext(ConversationContext):
+    """A context that grew a field, exactly the way one would next quarter.
+
+    Not contrived: ``prompt_rows`` is the documented seam for what goes in the prompt,
+    and the note here is the kind of thing a product manager asks for — "remember what
+    the client said about it". It is also user prose with a phone number in it.
+    """
+
+    def prompt_rows(self) -> list[dict[str, Any]]:
+        rows = super().prompt_rows()
+        for row in rows:
+            row["note"] = "client asked; reach him on %s" % PHONE
+        return rows
+
+
+def test_render_sweeps_a_field_the_sweep_has_never_heard_of() -> None:
+    """The reviewed defect, verbatim: a `note` key rendered unredacted.
+
+    A sweep over a hardcoded ``("command", "intent")`` is blind to precisely the
+    failure it was written for — a field nobody routed through the redactor — because
+    the field it must catch is by definition one it was not told about.
+    """
+    with pytest.raises(ConversationRedactionError) as caught:
+        NoteCarryingContext((a_turn(),)).render()
+    assert PHONE in str(caught.value)
+
+
+def test_the_sweep_visits_every_key_a_row_carries() -> None:
+    """The general form, so the fix is not "add `note` to the list of swept keys"."""
+
+    class MultiFieldContext(ConversationContext):
+        def prompt_rows(self) -> list[dict[str, Any]]:
+            rows = super().prompt_rows()
+            for row in rows:
+                row["clientEmail"] = EMAIL
+                row["nested"] = {"deep": ["reach him on %s" % PHONE]}
+            return rows
+
+    with pytest.raises(ConversationRedactionError) as caught:
+        MultiFieldContext((a_turn(),)).render()
+    message = str(caught.value)
+    assert EMAIL in message, "a new top-level field must be swept"
+    assert PHONE in message, "a value nested inside a new field must be swept too"
+
+
+def test_the_id_exemption_is_earned_by_shape_not_only_by_name() -> None:
+    """A registered id key that stops carrying ids loses its exemption.
+
+    Otherwise the exemption becomes a hole: put prose in ``storeyId`` and the sweep
+    waves it through on the strength of the key's name alone.
+    """
+    assert "storeyId" in ID_BEARING_KEYS
+
+    class ProseInAnIdField(ConversationContext):
+        def prompt_rows(self) -> list[dict[str, Any]]:
+            rows = super().prompt_rows()
+            for row in rows:
+                row["storeyId"] = "storey ground floor, call %s" % PHONE
+            return rows
+
+    with pytest.raises(ConversationRedactionError) as caught:
+        ProseInAnIdField((a_turn(),)).render()
+    assert PHONE in str(caught.value)
+
+
+def test_a_real_id_still_renders_through_the_sweep() -> None:
+    """The negative control's twin: the sweep must not fire on a legitimate ULID.
+
+    Without this, the sweep could be "fixed" by making it fire on everything, which is
+    a gate that cannot stay switched on.
+    """
+    numeric = "wall_01JQ" + PHONE + "ABCD"
+    context = ConversationContext((a_turn(element_ids=(numeric,), storey_id=STOREY_FIRST),))
+    block = context.render()
+    assert numeric in block
+    assert STOREY_FIRST in block
 
 
 def test_empty_history_renders_to_nothing() -> None:

@@ -12,11 +12,23 @@ put a citation in, so the worst a model can do is write a clause number in its p
 and :func:`verify_explanation` rejects both a foreign rule id and any number that was
 not supplied.
 
-**No number may be invented.** Every numeral in the prose must equal a numeral in the
-supplied facts, compared as a *value* (``1.5`` matches the engine's ``1.50 m``) rather
-than as a string. This is the half of fact-checking that matters: an architect acts on
-numbers, and the rules engine is the only thing entitled to produce one. There is one
-source for compliance numbers, and this module is not it — it forwards them.
+**No number may be invented.** Every numeral in the prose must equal a numeral the
+*rules engine measured* — ``actual``, ``limit``, and the numerals inside the engine's
+own ``message`` and the pack's ``fixHint`` for this very check
+(:data:`GROUNDING_NUMBER_FIELDS`) — compared as a *value* (``1.5`` matches the engine's
+``1.50 m``) rather than as a string.
+
+Grounding in the *fact list* instead, as an earlier version did, is not a smaller
+version of this rule; it is no rule at all. The fact list also carries the rule id
+(``blr.setback.front.plot.le120``) and the citation (``BBMP Building Bye-laws 2020 -
+Table 6``), so every digit in an identifier and a bye-law's year became a licence to
+write a dimension: "a front setback of at least 6 m" passed on the ``6`` in *Table 6*.
+Those strings are addressing, not measurement. They may be **quoted verbatim** — a
+model that writes "it comes from Table 6 of the BBMP Bye-laws" is being accurate — so
+:data:`QUOTABLE_FIELDS` are removed from the prose as whole strings before the numerals
+are counted. Only an exact copy is removed, which leaves a number mined out of one
+exposed. There is one source for compliance numbers, and this module is not it — it
+forwards them.
 
 **No geometry, ever.** The locked decision holds here too. The explainer explains; it
 does not propose coordinates. The schema gives coordinates nowhere to live, and the
@@ -33,7 +45,7 @@ sane arrangement for a compliance claim.
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -57,6 +69,19 @@ EXPLAINABLE_STATUSES: tuple[str, ...] = ("fail", "warn")
 
 #: Slack over the word target before the prose is treated as over-long.
 WORD_LIMIT_TOLERANCE = 12
+
+#: The ONLY finding fields whose numerals the prose may reuse. ``actual`` and ``limit``
+#: are engine-computed; ``message`` is the engine's own rendered sentence about this
+#: check; ``fixHint`` is the pack's prescription for this check and is shown to the
+#: architect verbatim anyway. Deliberately excludes ``ruleId``/``packId`` (…``le120``),
+#: ``cite``/``citeShort`` ("Table 6", "Bye-laws 2020") and ``confidence`` — a digit in
+#: an identifier or a publication year is not a dimension anybody measured.
+GROUNDING_NUMBER_FIELDS: tuple[str, ...] = ("actual", "limit", "message", "fixHint")
+
+#: Fields the prose may quote **verbatim** but may not mine for numerals. Removed from
+#: the prose as whole strings before numbers are counted, longest first so a
+#: ``citeShort`` nested inside a ``cite`` cannot chop it in half.
+QUOTABLE_FIELDS: tuple[str, ...] = ("ruleId", "cite", "citeShort")
 
 _WORD = re.compile(r"[\w'%-]+")
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
@@ -110,12 +135,16 @@ class NotExplainable(ValueError):
 
 
 def finding_facts(finding: Mapping[str, Any]) -> tuple[str, ...]:
-    """The supplied-fact list: the ONE thing the explanation may draw numbers from.
+    """The supplied-fact list: everything the model is *told*, in the words it is told.
 
-    Every downstream check — the number allowlist, the ``factsUsed`` cross-check, the
-    mock's synthesizer — reads this function, so there is a single definition of "what
-    the model was told". A second, slightly different list somewhere else is how a
-    verifier ends up approving a number nobody supplied.
+    One definition of "what the model was given", read by the prompt builder, the
+    ``factsUsed`` cross-check and the mock's synthesizer alike, because a second
+    slightly-different list is how those three drift apart.
+
+    It is **not** the number allowlist. It has to include the rule id and the citation
+    for the model to write a useful sentence, and those carry digits that measure
+    nothing — see :func:`grounding_for`, which draws numbers from the finding's
+    measured fields instead.
     """
     row = pick(finding, EXPLAINER_FINDING_FIELDS)
     facts: list[str] = []
@@ -144,6 +173,60 @@ def finding_facts(finding: Mapping[str, Any]) -> tuple[str, ...]:
     if confidence:
         facts.append("Confidence in this rule's value: %s." % confidence)
     return tuple(facts)
+
+
+@dataclass(frozen=True)
+class Grounding:
+    """Everything :func:`verify_explanation` is allowed to measure the prose against.
+
+    One object with one constructor (:func:`grounding_for`), so a caller cannot hand
+    the verifier a number source that was never a measurement. That is not a style
+    preference: the defect this replaces was exactly a caller passing the fact list —
+    a plausible-looking sequence of strings — where the measured numbers belonged.
+    """
+
+    #: What the model was told, verbatim: the ``factsUsed`` cross-check reads this.
+    facts: tuple[str, ...] = ()
+    #: Values the prose may write. From :data:`GROUNDING_NUMBER_FIELDS` only.
+    numbers: frozenset[Decimal] = frozenset()
+    #: Strings the prose may copy but not mine — the rule id and the citation.
+    quotable: tuple[str, ...] = ()
+    #: The one rule this explanation is about. Any other rule id in the prose is a lie.
+    rule_id: str = ""
+
+
+def grounding_for(finding: Mapping[str, Any]) -> Grounding:
+    """Build the verifier's grounding from one rules-engine row.
+
+    The number set comes from :data:`GROUNDING_NUMBER_FIELDS` and nowhere else, so the
+    only way to widen what the model may write is to widen that tuple deliberately.
+    """
+    row = pick(finding, EXPLAINER_FINDING_FIELDS)
+
+    numbers: set[Decimal] = set()
+    for name in GROUNDING_NUMBER_FIELDS:
+        value = row.get(name)
+        if value is not None:
+            numbers |= _numbers_in(str(value))
+
+    quotable: list[str] = []
+    for name in QUOTABLE_FIELDS:
+        text = str(row.get(name) or "").strip()
+        if not text:
+            continue
+        quotable.append(text)
+        # Prose ends a sentence: "…from Table 6." carries the citation without its own
+        # trailing punctuation, so the trimmed form has to be removable too.
+        trimmed = text.rstrip(" .")
+        if trimmed and trimmed != text:
+            quotable.append(trimmed)
+
+    return Grounding(
+        facts=finding_facts(row),
+        numbers=frozenset(numbers),
+        quotable=tuple(quotable),
+        rule_id=str(row.get("ruleId") or ""),
+    )
 
 
 def compose_explanation(finding: Mapping[str, Any]) -> Explanation:
@@ -201,34 +284,37 @@ def verify_explanation(
     body: str,
     fixes: Sequence[str],
     facts_used: Sequence[str],
-    supplied: Sequence[str],
-    *,
-    rule_id: str,
+    grounding: Grounding,
 ) -> tuple[str, ...]:
     """Reasons this explanation must not be shown. Empty ⇒ safe to show.
 
     Ordered by how much damage the failure would do: a wrong number first, then a
     wrong citation, then geometry, then length.
+
+    Takes a :class:`Grounding`, not a list of strings, so that "what the model may
+    write" and "what the model was told" cannot quietly become the same thing again.
     """
     problems: list[str] = []
     prose = " ".join([body, *fixes])
+    #: Citations and the rule id may be copied but not mined: only their *exact* text
+    #: is removed, so "at least 6 m" written next to "Table 6" is still caught.
+    countable = _without_quotables(prose, grounding.quotable)
 
     if not body.strip():
         problems.append("empty explanation")
 
-    supplied_numbers = _numbers_in(" ".join(supplied))
-    for token in _NUMBER.findall(prose):
+    for token in _NUMBER.findall(countable):
         value = _as_decimal(token)
-        if value is None or value not in supplied_numbers:
+        if value is None or value not in grounding.numbers:
             problems.append("used a number the rules engine did not produce: %s" % token)
 
-    normalised_supplied = {_normalise(fact) for fact in supplied}
+    normalised_supplied = {_normalise(fact) for fact in grounding.facts}
     for fact in facts_used:
         if _normalise(fact) not in normalised_supplied:
             problems.append("cited a fact that was not supplied: %r" % fact[:80])
 
     for token in _RULE_ID_SHAPE.findall(prose):
-        if token != rule_id:
+        if token != grounding.rule_id:
             problems.append("named a rule other than the one being explained: %s" % token)
 
     if _POINT_PAIR.search(prose):
@@ -268,7 +354,8 @@ class ComplianceExplainer:
         """
         grounded = compose_explanation(finding)
         row = pick(finding, EXPLAINER_FINDING_FIELDS)
-        facts = grounded.facts
+        grounding = grounding_for(row)
+        facts = grounding.facts
 
         task = LlmTask(
             name="compliance.explain",
@@ -293,7 +380,7 @@ class ComplianceExplainer:
         facts_used = tuple(
             str(item).strip() for item in result.data.get("factsUsed") or [] if str(item).strip()
         )
-        problems = verify_explanation(body, fixes, facts_used, facts, rule_id=grounded.rule_id)
+        problems = verify_explanation(body, fixes, facts_used, grounding)
         if problems:
             log.warning(
                 "llm.explainer.rejected",
@@ -336,6 +423,20 @@ def _with_problems(grounded: Explanation, problems: Sequence[str]) -> Explanatio
     )
 
 
+def _without_quotables(prose: str, quotable: Iterable[str]) -> str:
+    """``prose`` with every verbatim quotation of a citation or rule id removed.
+
+    Longest first, so removing a ``citeShort`` cannot cut the ``cite`` that contains it
+    into two halves that no longer match. Only whole-string matches go: a model that
+    lifts one number *out* of a citation still has it counted against the measured set,
+    which is the case this whole function exists to keep catchable.
+    """
+    stripped = prose
+    for token in sorted({item for item in quotable if item}, key=len, reverse=True):
+        stripped = stripped.replace(token, " ")
+    return stripped
+
+
 def _numbers_in(text: str) -> set[Decimal]:
     """Every numeral in ``text`` as a value.
 
@@ -364,11 +465,15 @@ def _normalise(text: str) -> str:
 
 __all__ = [
     "EXPLAINABLE_STATUSES",
+    "GROUNDING_NUMBER_FIELDS",
+    "QUOTABLE_FIELDS",
     "WORD_LIMIT_TOLERANCE",
     "ComplianceExplainer",
     "Explanation",
+    "Grounding",
     "NotExplainable",
     "compose_explanation",
     "finding_facts",
+    "grounding_for",
     "verify_explanation",
 ]

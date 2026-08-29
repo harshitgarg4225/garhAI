@@ -60,6 +60,7 @@ from services.drawings.schedules.table import Column, Table, TableStyle
 
 __all__ = [
     "CERTIFICATION_NOTES",
+    "COLUMN_FIELDS",
     "MISSING",
     "MUNICIPAL_COLUMNS",
     "FormRow",
@@ -73,6 +74,14 @@ __all__ = [
 MISSING = "\u2014"
 
 #: The five columns, in the order a scrutiny clerk reads them. ``(key, header, align)``.
+#:
+#: **This tuple is the only statement of the column order in the product.** Everything
+#: else derives from it: :meth:`FormRow.cells` emits its cells in this order (via
+#: :data:`COLUMN_FIELDS`), :meth:`MunicipalAreaForm.table` builds the text/JSON table's
+#: headers from it, and ``render.tables.area_statement_table`` builds the drawn sheet's
+#: ruled columns from it (widths keyed by ``key``, never by position). A second, unlinked
+#: list of columns is the exact shape that produced this repo's three hatch drifts — the
+#: sheet would print PROPOSED under the PERMISSIBLE heading and no test would notice.
 MUNICIPAL_COLUMNS: tuple[tuple[str, str, str], ...] = (
     ("sl", "SL. NO.", "left"),
     ("item", "DESCRIPTION", "left"),
@@ -80,6 +89,17 @@ MUNICIPAL_COLUMNS: tuple[tuple[str, str, str], ...] = (
     ("value", "PROPOSED / PROVIDED", "right"),
     ("remarks", "REMARKS", "left"),
 )
+
+#: Column key -> the :class:`FormRow` attribute that fills it. The one place the two
+#: vocabularies meet; a column with no entry here is a column nothing can fill, and
+#: :meth:`FormRow.cells` says so rather than printing a blank a reviewer reads as "nil".
+COLUMN_FIELDS: dict[str, str] = {
+    "sl": "number",
+    "item": "description",
+    "limit": "limit",
+    "value": "value",
+    "remarks": "remarks",
+}
 
 #: The strip under the table. The signature lines are blank fields on a form for the
 #: people who sign it — this software certifies nothing, and the third note says so in as
@@ -108,8 +128,25 @@ class FormRow:
     #: Totals and the two ratio lines — the rows a reviewer's eye is sent to.
     emphasis: bool = False
 
-    def cells(self) -> tuple[str, str, str, str, str]:
-        return (self.number, self.description, self.limit, self.value, self.remarks)
+    def cells(self) -> tuple[str, ...]:
+        """The row's cells in :data:`MUNICIPAL_COLUMNS` order — derived, never listed.
+
+        Reordering the columns therefore reorders the cells, in the text table, the JSON
+        and the drawn sheet, together. A hand-written tuple here would be a second
+        statement of the order that a column swap would silently leave behind.
+        """
+        cells: list[str] = []
+        for key, header, _align in MUNICIPAL_COLUMNS:
+            try:
+                field_name = COLUMN_FIELDS[key]
+            except KeyError as error:
+                raise KeyError(
+                    "municipal column %r (%s) has no FormRow field in COLUMN_FIELDS, so "
+                    "nothing can fill it. Add the mapping rather than printing a blank "
+                    "cell a scrutiny clerk reads as nil." % (key, header)
+                ) from error
+            cells.append(getattr(self, field_name))
+        return tuple(cells)
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -130,7 +167,7 @@ class MunicipalAreaForm:
     rows: tuple[FormRow, ...]
     warnings: tuple[str, ...] = ()
 
-    def cells(self) -> tuple[tuple[str, str, str, str, str], ...]:
+    def cells(self) -> tuple[tuple[str, ...], ...]:
         return tuple(row.cells() for row in self.rows)
 
     def emphasis_indices(self) -> tuple[int, ...]:

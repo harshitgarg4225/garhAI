@@ -26,7 +26,12 @@ constructor:
    :func:`~services.llm.redaction.find_pii` and raises if anything survived. That
    second gate exists for the failure this codebase actually has: not a missing regex,
    but a *new field* added to a turn that nobody routed through one. Rule 1 cannot
-   catch that; this can.
+   catch that; this can — but only if the sweep visits **every key the row carries**
+   rather than a hardcoded pair. A sweep that names the fields it checks cannot see a
+   field that did not exist when it was written, which is the whole failure it is for.
+   So it iterates the row, and the only exemption (:data:`ID_BEARING_KEYS`) has to be
+   earned twice: the key must be registered as id-bearing *and* the value must still
+   be :data:`ID_PATTERN`-shaped.
 
 What is deliberately not remembered: room names, storey names, brief prose, plot
 addresses. The copilot addresses elements by id, and ``summarise_model`` already gives
@@ -68,6 +73,18 @@ MAX_ELEMENT_IDS = 8
 #: System-minted identifiers and op types only. Anything with a space, a quote or a
 #: fence delimiter in it is not an id and does not go in the prompt.
 ID_PATTERN = re.compile(r"\A[A-Za-z0-9_.:-]{1,64}\Z")
+
+#: The only prompt-row keys the render sweep skips, because their values are
+#: system-minted ids: a ULID is Crockford base32 and can legitimately carry ten digits
+#: in a row, which ``find_pii`` would report as a phone number.
+#:
+#: Registered here rather than assumed, and the exemption is earned twice — the key
+#: must be named here AND the value must still match :data:`ID_PATTERN`. Everything
+#: else in a row is swept, so a field added to :meth:`ConversationTurn.to_prompt_row`
+#: next quarter is covered by default instead of by memory. A new id-bearing field
+#: that is not registered here fails *closed* (a loud sweep error), which is the right
+#: direction for a gate whose failure mode is silence.
+ID_BEARING_KEYS: frozenset[str] = frozenset({"opTypes", "storeyId", "elementIds"})
 
 _WHITESPACE = re.compile(r"\s+")
 
@@ -171,17 +188,19 @@ class ConversationContext:
     def render(self) -> str:
         """The prompt block, or ``""`` when there is no history.
 
-        Sweeps the free-text fields one last time. Ids are excluded from the sweep on
-        purpose — see the module docstring; a ULID is not a phone number even when it
-        contains nine digits.
+        Sweeps **every value in every row**, not a named pair, because the failure this
+        gate exists for is a field nobody knew about — including one added by a
+        subclass that overrides :meth:`prompt_rows`. Ids are excluded on purpose (see
+        :data:`ID_BEARING_KEYS`); a ULID is not a phone number even when it contains
+        ten digits.
         """
         if not self.turns:
             return ""
         rows = self.prompt_rows()
         leaked: list[str] = []
         for row in rows:
-            for key in ("command", "intent"):
-                leaked.extend(find_pii(str(row.get(key) or "")))
+            for key, value in row.items():
+                leaked.extend(_sweep(str(key), value))
         if leaked:
             raise ConversationRedactionError(
                 "§13 violation: conversation history still carries %s after redaction. "
@@ -239,6 +258,30 @@ def _clean_ids(values: Iterable[Any], limit: int) -> tuple[str, ...]:
     return tuple(out)
 
 
+def _sweep(key: str, value: Any) -> list[str]:
+    """Every PII span in one prompt-row entry. Recurses; defaults to sweeping.
+
+    The default matters more than the exemption. A key this function has never heard
+    of is swept, so the sweep covers a field added after it was written — which is the
+    only failure the second gate can catch that the constructor cannot.
+    """
+    if isinstance(value, Mapping):
+        found: list[str] = []
+        for sub_key, sub_value in value.items():
+            found.extend(find_pii(str(sub_key)))
+            found.extend(_sweep(str(sub_key), sub_value))
+        return found
+    if isinstance(value, list | tuple | set | frozenset):
+        nested: list[str] = []
+        for item in value:
+            nested.extend(_sweep(key, item))
+        return nested
+    text = "" if value is None else str(value)
+    if key in ID_BEARING_KEYS and ID_PATTERN.match(text):
+        return []
+    return list(find_pii(text))
+
+
 def _optional_str(value: Any) -> str | None:
     return None if value is None else str(value)
 
@@ -248,6 +291,7 @@ def _compact_row(row: Mapping[str, Any]) -> str:
 
 
 __all__ = [
+    "ID_BEARING_KEYS",
     "ID_PATTERN",
     "MAX_COMMAND_CHARS",
     "MAX_ELEMENT_IDS",

@@ -155,9 +155,27 @@ class Revision:
             out["stateHash"] = self.state_hash
         return out
 
+    #: The two spellings of one row, and why both are read.
+    #:
+    #: ``number``/``description`` is this module's own JSON (:meth:`to_json`) and what a
+    #: register round-trips through. ``revision``/``note`` is what the **API actually
+    #: sends**: ``garh_api.schemas.sheets.RevisionRow`` has fields ``revision``, ``date``,
+    #: ``note`` and ``author``, and ``routers/sheets.py`` puts those verbatim into the
+    #: ``drawings.generate_sheets`` payload. Reading only ``number`` meant every real job
+    #: raised here, ``pipeline._register_from`` swallowed it, and the register silently
+    #: never drew — a whole feature inert in production with nothing red anywhere.
+    _NUMBER_KEYS = ("number", "revision")
+    _DESCRIPTION_KEYS = ("description", "note")
+
     @classmethod
     def from_json(cls, raw: Any) -> Revision:
-        """Accept the API's object form, or the three-tuple the title block already uses."""
+        """Accept either object form the product uses, or the title block's three-tuple.
+
+        The object forms are this module's ``{"number", "description", ...}`` and the
+        API's ``{"revision", "note", ...}``; see :data:`_NUMBER_KEYS`. Anything else —
+        a row with neither spelling of the number — is refused by name, because a
+        register row nobody can cite is not a register row.
+        """
         if isinstance(raw, Revision):
             return raw
         if isinstance(raw, list | tuple):
@@ -167,16 +185,22 @@ class Revision:
                 )
             author = str(raw[3]) if len(raw) > 3 and raw[3] else "-"
             return cls(str(raw[0]), str(raw[1]), str(raw[2]), author)
-        try:
-            number = raw["number"]
-        except (TypeError, KeyError) as error:
+        if not hasattr(raw, "get"):
             raise ValueError(
-                "A revision needs a number, a date, a description and an author; got %r" % (raw,)
-            ) from error
+                "A revision needs a number (%s), a date, a description and an author; got %r"
+                % (" or ".join(cls._NUMBER_KEYS), raw)
+            )
+        number = next((raw.get(key) for key in cls._NUMBER_KEYS if raw.get(key)), None)
+        if not number:
+            raise ValueError(
+                "A revision needs a number (%s), a date, a description and an author; got %r"
+                % (" or ".join(cls._NUMBER_KEYS), raw)
+            )
+        description = next((raw.get(key) for key in cls._DESCRIPTION_KEYS if raw.get(key)), "")
         return cls(
             number=str(number),
             date=str(raw.get("date") or ""),
-            description=str(raw.get("description") or raw.get("note") or ""),
+            description=str(description),
             author=str(raw.get("author") or "-"),
             state_hash=(str(raw["stateHash"]) if raw.get("stateHash") else None),
         )

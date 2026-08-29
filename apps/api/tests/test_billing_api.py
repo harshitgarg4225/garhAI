@@ -25,6 +25,7 @@ rather than a silently unreachable package.
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -35,8 +36,8 @@ from garh_api import models
 from garh_api.billing.mock import MockBillingProvider
 from garh_api.billing.models import BILLING_METADATA, BILLING_TABLES
 from garh_api.billing.quotas import check_quota, require_quota
-from garh_api.billing.repositories import SubscriptionRepository
-from garh_api.billing.subscriptions import ensure_subscription
+from garh_api.billing.repositories import PaymentRepository, SubscriptionRepository
+from garh_api.billing.subscriptions import ensure_subscription, month_bounds
 from garh_api.routers import billing as billing_router
 from sqlalchemy import text
 
@@ -304,6 +305,38 @@ async def test_the_quota_denies_the_unit_over_the_allowance(
     assert body["planCode"] == "free"
 
 
+async def test_the_real_render_route_refuses_once_the_plan_allowance_is_spent(
+    billing_client: httpx.AsyncClient, api: str, firm_a: Any, project_a: Any, session: Any
+) -> None:
+    """The gate on a route that actually spends money, not on the probe.
+
+    ``require_quota`` was mounted on nothing when this package landed, so every test of
+    it ran against a probe route invented by the test file — a gate proven to work in a
+    place production does not have. This drives ``POST /projects/:id/renders``, the real
+    route, and requires the 402 there.
+
+    The five-render free allowance is spent with real ``credit_events`` rows. Below it
+    the route answers whatever the render pipeline answers (there is no saved design
+    version here, so a 409) — the assertion is only that it is **not** the quota's 402.
+    At the allowance it is.
+    """
+    url = "%s/projects/%s/renders" % (api, project_a.id)
+    body = {"mode": "explore"}
+
+    await _record_credits(session, firm_a, "render", 4)
+    under = await billing_client.post(url, headers=firm_a.headers, json=body)
+    assert under.status_code != 402, (
+        "the quota denied a firm that is under its allowance: %s" % under.text[:300]
+    )
+
+    await _record_credits(session, firm_a, "render", 1)
+    denied = await billing_client.post(url, headers=firm_a.headers, json=body)
+    assert denied.status_code == 402, denied.text
+    problem_body = problem(denied)
+    assert problem_body["code"] == "quota_exceeded"
+    assert problem_body["kind"] == "render" and problem_body["planCode"] == "free"
+
+
 async def test_a_paid_plan_lifts_the_quota_that_denied(
     billing_client: httpx.AsyncClient, api: str, firm_a: Any, session: Any
 ) -> None:
@@ -343,6 +376,123 @@ async def test_the_quota_counts_only_the_current_billing_period(
     assert (
         await billing_client.post("%s/quota-probe/render" % api, headers=firm_a.headers)
     ).status_code == 200
+
+
+async def test_the_quota_still_denies_after_the_billing_period_rolls_over(
+    billing_client: httpx.AsyncClient, api: str, firm_a: Any, session: Any
+) -> None:
+    """THE GATE THAT WENT INERT, and the clock that used to switch it off.
+
+    Nothing in this product renews a subscription. The row a firm gets when it
+    subscribes carries a one-month window and no scheduler ever moves it, so once the
+    wall clock passed ``current_period_end`` every later ``credit_event`` fell OUTSIDE
+    ``usage_by_kind(since=period_start, until=period_end)``. Usage read zero, the
+    allowance was never reached, and the 402 could never be raised again — bug class 1
+    from CLAUDE.md, "a gate that silently never fires", with a one-month fuse.
+
+    So: park a real subscription row three months in the past, spend six renders *now*
+    (one over the free plan's five), and require the refusal anyway. With the stored
+    window returned verbatim this reads 200.
+    """
+    ctx = firm_a.ctx()
+    subscription = await ensure_subscription(session, ctx)
+    stale_start, stale_end = month_bounds(datetime.now(UTC) - timedelta(days=95))
+    await SubscriptionRepository(session, ctx).update(
+        subscription.id, period_start=stale_start, period_end=stale_end
+    )
+    await session.commit()
+    assert stale_end < datetime.now(UTC), "the fixture window must really be in the past"
+
+    await _record_credits(session, firm_a, "render", 6)
+
+    usage = await billing_client.get("%s/billing/usage" % api, headers=firm_a.headers)
+    assert usage.status_code == 200, usage.text
+    body = usage.json()
+    this_month_start, this_month_end = month_bounds(datetime.now(UTC))
+    assert datetime.fromisoformat(body["periodStart"]) == this_month_start, (
+        "the usage window is still the stale stored one — every later credit event "
+        "falls outside it and the quota can never deny again"
+    )
+    assert datetime.fromisoformat(body["periodEnd"]) == this_month_end
+    render = next(row for row in body["lines"] if row["kind"] == "render")
+    assert render["used"] == 6 and render["remaining"] == 0
+
+    denied = await billing_client.post("%s/quota-probe/render" % api, headers=firm_a.headers)
+    assert denied.status_code == 402, denied.text
+    assert problem(denied)["used"] == 6
+
+    # The subscription page reports the same rolled window, so the customer is told
+    # which period they are being metered against.
+    shown = (
+        await billing_client.get("%s/billing/subscription" % api, headers=firm_a.headers)
+    ).json()
+    assert datetime.fromisoformat(shown["currentPeriodStart"]) == this_month_start
+
+
+async def test_an_admin_write_persists_the_rolled_period_onto_the_row(
+    billing_client: httpx.AsyncClient, api: str, firm_a: Any, session: Any
+) -> None:
+    """There is no scheduler, so the write paths are the renewal path.
+
+    ``entitlement`` already answers with the live window whether or not anything has
+    persisted it — that is what keeps the gate honest — but the stored row must catch up
+    too, because the next invoice's period comes off it and a stale one would issue a
+    duplicate invoice for a period already billed.
+    """
+    ctx = firm_a.ctx()
+    subscription = await ensure_subscription(session, ctx)
+    stale_start, stale_end = month_bounds(datetime.now(UTC) - timedelta(days=95))
+    await SubscriptionRepository(session, ctx).update(
+        subscription.id, period_start=stale_start, period_end=stale_end
+    )
+    await session.commit()
+
+    assert (await _set_plan(billing_client, api, firm_a, "studio")).status_code == 200
+
+    session.expire_all()
+    row = await SubscriptionRepository(session, ctx).get_for_firm()
+    assert row is not None
+    this_month_start, this_month_end = month_bounds(datetime.now(UTC))
+    assert (row.current_period_start, row.current_period_end) == (
+        this_month_start,
+        this_month_end,
+    ), "the renewal path left the stored window in the past"
+    assert row.status == "active"
+
+
+async def test_a_subscription_cancelled_at_period_end_really_stops_at_the_period_end(
+    billing_client: httpx.AsyncClient, api: str, firm_a: Any, session: Any
+) -> None:
+    """Rolling the window forward must not renew a subscription the firm cancelled.
+
+    ``cancel_at_period_end`` means "keep what you paid for until the period ends". Once
+    it has, the firm is on free allowances — otherwise the roll-forward that fixed one
+    permanently-open gate would have opened another, handing a cancelled firm its paid
+    allowance every month for ever.
+    """
+    ctx = firm_a.ctx()
+    assert (await _set_plan(billing_client, api, firm_a, "practice")).status_code == 200
+    subscription = await ensure_subscription(session, ctx)
+    stale_start, stale_end = month_bounds(datetime.now(UTC) - timedelta(days=40))
+    await SubscriptionRepository(session, ctx).update(
+        subscription.id,
+        period_start=stale_start,
+        period_end=stale_end,
+        cancel_at_period_end=True,
+    )
+    await session.commit()
+
+    body = (
+        await billing_client.get("%s/billing/subscription" % api, headers=firm_a.headers)
+    ).json()
+    assert body["status"] == "cancelled"
+    assert body["planCode"] == "practice" and body["effectivePlanCode"] == "free"
+
+    # ...and the free plan's five renders are what actually applies now.
+    await _record_credits(session, firm_a, "render", 5)
+    denied = await billing_client.post("%s/quota-probe/render" % api, headers=firm_a.headers)
+    assert denied.status_code == 402, denied.text
+    assert problem(denied)["planCode"] == "free"
 
 
 async def test_a_past_due_subscription_drops_to_free_allowances_but_keeps_its_seats(
@@ -564,6 +714,48 @@ async def test_checkout_opens_an_order_for_the_invoice_total_in_paise(
     # The same money in the gateway's unit, exactly — never a rounded conversion.
     assert checkout["amountPaise"] == STUDIO_TOTAL_INR * 100
     assert checkout["provider"] == "mock" and checkout["orderId"].startswith("order_")
+
+
+async def test_checking_out_the_same_invoice_twice_is_idempotent_not_a_500(
+    billing_client: httpx.AsyncClient, api: str, firm_a: Any, session: Any, supplier_env: None
+) -> None:
+    """A second click on "Pay" used to be an unhandled 500.
+
+    ``billing_payments.provider_order_id`` is globally unique and the mock provider
+    derives the order id deterministically from the invoice number, so the second insert
+    violated ``uq_billing_payments_provider_order_id`` and the ``IntegrityError`` escaped
+    as a server error. A customer reloading the checkout page is not an exceptional
+    event, and one invoice should have one open order — so the second call returns the
+    first one, byte for byte, and writes no second row.
+    """
+    invoice = await _issue_invoice(
+        billing_client, api, firm_a, state_code="29", gstin=KARNATAKA_GSTIN
+    )
+    url = "%s/billing/invoices/%s/checkout" % (api, invoice["id"])
+
+    first = await billing_client.post(url, headers=firm_a.headers)
+    assert first.status_code == 200, first.text
+    second = await billing_client.post(url, headers=firm_a.headers)
+    assert second.status_code == 200, second.text
+    assert second.json() == first.json(), "a re-checkout answered with a different order"
+
+    third = await billing_client.post(url, headers=firm_a.headers)
+    assert third.status_code == 200, third.text
+
+    rows = await PaymentRepository(session, firm_a.ctx()).list_for_invoice(uuid.UUID(invoice["id"]))
+    assert len(rows) == 1, "each checkout opened another gateway order for one invoice"
+    assert rows[0].provider_order_id == first.json()["orderId"]
+    assert rows[0].amount_inr == STUDIO_TOTAL_INR
+
+    # The reused order is a real order: it still settles.
+    payment_id, signature = MockBillingProvider().simulate_payment(second.json()["orderId"])
+    settled = await billing_client.post(
+        "%s/billing/payments/verify" % api,
+        headers=firm_a.headers,
+        json={"orderId": second.json()["orderId"], "paymentId": payment_id, "signature": signature},
+    )
+    assert settled.status_code == 200, settled.text
+    assert settled.json()["invoice"]["status"] == "paid"
 
 
 async def test_a_tampered_signature_cannot_pay_an_invoice(
@@ -799,9 +991,11 @@ async def test_firm_b_cannot_reach_firm_as_billing(
 ) -> None:
     """Firm B holds a valid token and firm A's real ids, and gets 404 on every one.
 
-    The routes here carry ``invoice_id``/``seat_id`` path parameters, which
-    ``tests/test_cross_tenant.py::TENANT_SCOPED_PARAMS`` does not list yet — so this is
-    the coverage for them until that table is extended (see the handoff).
+    ``tests/test_cross_tenant.py`` now lists ``invoice_id``/``seat_id`` in
+    ``TENANT_SCOPED_PARAMS`` and carries a ``Case`` for each of these three routes, so
+    they are covered by that guard *by default* rather than by this file remembering. The
+    duplication is deliberate: this one also asserts the negative halves (firm B's own
+    invoice list and seat list come back empty), which the sweep there does not.
     """
     invoice = await _issue_invoice(
         billing_client, api, firm_a, state_code="29", gstin=KARNATAKA_GSTIN
@@ -875,6 +1069,201 @@ async def test_an_unauthenticated_caller_reaches_nothing(
     for path in ("/billing/plans", "/billing/usage", "/billing/invoices", "/billing/seats"):
         response = await billing_client.get(api + path)
         assert response.status_code == 401, path
+
+
+#: Handlers that write a ``credit_events`` row but deliberately do NOT carry
+#: ``require_quota``, each with the reason it is not a one-line mount. Anything metered
+#: and not listed here must be gated, or
+#: :func:`test_every_metered_route_is_gated_or_listed_as_deliberately_ungated` fails.
+UNGATED_ON_PURPOSE: dict[tuple[str, str], str] = {
+    ("start_export", "export"): (
+        "The free plan's export allowance is 0 ON PURPOSE (plans.py: the municipal set "
+        "is the one thing the free tier does not do), so mounting this flips every "
+        "free-tier export to 402. That is the intended product behaviour but not a "
+        "one-line change: the demo seed must move to a paid plan first. Handoff."
+    ),
+    ("archive_render_pack", "export"): (
+        "Same export allowance as start_export, and it is the png-pack half of the same "
+        "decision. Handoff, with start_export."
+    ),
+    ("start_client_pack", "render"): (
+        "Meters qty=len(shots), so a static require_quota('render') with qty=1 would "
+        "admit a twelve-shot pack against one unit of allowance — an under-check reads "
+        "as a gate while letting the spend through. Wants an in-handler check_quota "
+        "with the real quantity. Handoff."
+    ),
+}
+
+#: Routes that must carry the gate, and the kind each must carry.
+QUOTA_GATED_ROUTES: dict[tuple[str, str], str] = {
+    ("POST", "/projects/{project_id}/solve"): "solver",
+    ("POST", "/projects/{project_id}/renders"): "render",
+    ("POST", "/projects/{project_id}/copilot"): "llm",
+    ("POST", "/projects/{project_id}/brief/parse"): "llm",
+}
+
+
+def _mounted_quota_kinds(route: Any) -> set[str]:
+    """The kinds ``require_quota`` is mounted for on one route.
+
+    Identified by the closure ``require_quota`` builds, and the ``kind`` it closed over —
+    not by a name a router could shadow and not by reading the source.
+    """
+    kinds: set[str] = set()
+    stack = list(route.dependant.dependencies)
+    while stack:
+        dependency = stack.pop()
+        call = dependency.call
+        if getattr(call, "__qualname__", "").startswith("require_quota."):
+            frees = getattr(call, "__code__", None)
+            cells = getattr(call, "__closure__", None) or ()
+            if frees is not None:
+                closed = dict(
+                    zip(
+                        frees.co_freevars,
+                        (cell.cell_contents for cell in cells),
+                        strict=False,
+                    )
+                )
+                kind = closed.get("kind")
+                if isinstance(kind, str):
+                    kinds.add(kind)
+        stack.extend(dependency.dependencies)
+    return kinds
+
+
+def _metered_handlers() -> dict[str, set[str]]:
+    """``handler name -> {credit kinds it records}``, read off the routers' own source.
+
+    An AST scan rather than a maintained list, so a new spending route is covered the
+    moment it writes its first ``credit_events`` row.
+    """
+    import ast
+    from pathlib import Path
+
+    routers = Path(__file__).resolve().parent.parent / "garh_api" / "routers"
+    found: dict[str, set[str]] = {}
+    for path in sorted(routers.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for function in ast.walk(tree):
+            if not isinstance(function, ast.FunctionDef | ast.AsyncFunctionDef):
+                continue
+            for node in ast.walk(function):
+                if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                    continue
+                if node.func.attr != "record":
+                    continue
+                receiver = node.func.value
+                if not (
+                    isinstance(receiver, ast.Call)
+                    and isinstance(receiver.func, ast.Name)
+                    and receiver.func.id == "CreditEventRepository"
+                ):
+                    continue
+                for keyword in node.keywords:
+                    if keyword.arg == "kind" and isinstance(keyword.value, ast.Constant):
+                        found.setdefault(function.name, set()).add(str(keyword.value.value))
+    return found
+
+
+def test_the_quota_is_mounted_on_the_spending_routes(app_routes: Any, settings: Any) -> None:
+    """A quota mounted on no route is a gate that cannot fire.
+
+    ``require_quota`` was fully implemented, unit-tested and mounted on **nothing**: a
+    solve, a render and a copilot call all ran unmetered against the plan. That is bug
+    class 4 (a module that believes it is registered) and there is no compile-time signal
+    for it, so this reads the live dependency graph and requires the mount.
+    """
+    by_route = {
+        (method, route.path): _mounted_quota_kinds(route)
+        for route in walk_routes(app_routes)
+        for method in (getattr(route, "methods", None) or ())
+        if method not in ("HEAD", "OPTIONS")
+    }
+    missing: list[str] = []
+    for (method, path), kind in QUOTA_GATED_ROUTES.items():
+        full = "%s%s" % (settings.api_prefix, path)
+        mounted = by_route.get((method, full))
+        if mounted is None:
+            missing.append("%s %s — route not found at all" % (method, full))
+        elif kind not in mounted:
+            missing.append(
+                "%s %s — expected require_quota(%r), found %s"
+                % (method, full, kind, sorted(mounted) or "no quota dependency")
+            )
+    assert not missing, "\n  ".join(["the quota gate is not mounted where it must be:", *missing])
+
+
+def test_every_metered_route_is_gated_or_listed_as_deliberately_ungated(
+    app_routes: Any, settings: Any
+) -> None:
+    """Coverage by default: a new route that spends money is gated, or named here.
+
+    The metered handlers are read out of the routers' source (every
+    ``CreditEventRepository(...).record(kind=...)`` call), so this cannot be satisfied by
+    remembering to update a list — only by mounting the gate or writing down why not.
+    """
+    gated: dict[str, set[str]] = {}
+    for route in walk_routes(app_routes):
+        endpoint = getattr(route, "endpoint", None)
+        name = getattr(endpoint, "__name__", None)
+        if name:
+            gated.setdefault(name, set()).update(_mounted_quota_kinds(route))
+
+    metered = _metered_handlers()
+    assert len(metered) >= 5, metered
+
+    ungated = sorted(
+        (handler, kind)
+        for handler, kinds in metered.items()
+        for kind in kinds
+        if kind not in gated.get(handler, set())
+    )
+    unexplained = [pair for pair in ungated if pair not in UNGATED_ON_PURPOSE]
+    assert not unexplained, (
+        "%d route(s) spend a metered kind with no quota gate and no stated reason:\n  %s\n"
+        "Mount require_quota(<kind>) on the route, or add it to UNGATED_ON_PURPOSE in "
+        "this file with the reason it cannot be a one-line mount."
+        % (len(unexplained), "\n  ".join("%s -> %s" % pair for pair in unexplained))
+    )
+    # ...and the exemption list may not rot into a list of things that ARE gated: an
+    # entry that no longer describes an ungated route is a stale excuse.
+    stale = sorted(set(UNGATED_ON_PURPOSE) - set(ungated))
+    assert not stale, "UNGATED_ON_PURPOSE names %d route(s) that are gated (or gone):\n  %s" % (
+        len(stale),
+        "\n  ".join("%s -> %s" % pair for pair in stale),
+    )
+
+
+def test_the_billing_router_is_mounted_on_the_real_app(app_routes: Any, settings: Any) -> None:
+    """Bug class 4: a module that believes it is registered.
+
+    Every other test in this file drives ``billing_app``, which is the real app plus one
+    quota probe. If ``garh_api.routers.api_router`` stopped including the billing router
+    they would ALL still pass while ``/api/v1/billing/**`` served 404 in production —
+    which is exactly the state this package shipped in. So this reads the plain ``app``
+    fixture (no billing-specific wiring at all) and requires every route the router
+    declares to be there, under the real prefix, with the real methods.
+    """
+    live = {
+        (method, route.path)
+        for route in walk_routes(app_routes)
+        for method in (getattr(route, "methods", None) or ())
+        if method not in ("HEAD", "OPTIONS")
+    }
+    declared = {
+        (method, "%s%s" % (settings.api_prefix, route.path))
+        for route in billing_router.router.routes
+        for method in (getattr(route, "methods", None) or ())
+        if method not in ("HEAD", "OPTIONS")
+    }
+    assert len(declared) >= 15, declared
+    missing = sorted(declared - live)
+    assert not missing, (
+        "%d billing route(s) are declared but not reachable on the app:\n  %s\n"
+        "Mount the router in garh_api/routers/__init__.py::api_router."
+        % (len(missing), "\n  ".join("%s %s" % pair for pair in missing))
+    )
 
 
 async def test_every_billing_route_requires_a_tenant(billing_app: Any, settings: Any) -> None:

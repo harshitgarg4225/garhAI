@@ -62,13 +62,13 @@
 <text x="218.000" y="40.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">PERMISSIBLE / REQUIRED</text>
 <text x="303.000" y="40.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">PROPOSED / PROVIDED</text>
 <text x="307.000" y="40.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">REMARKS</text>
-<text x="25.000" y="175.000" font-size="2.000" text-anchor="start" dominant-baseline="hanging" font-weight="600">NOTES</text>
-<text x="25.000" y="180.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- Areas in m2 with sq ft alongside; plot area also in gaj (1 gaj = 1 sq yd = 9 sq ft). All lengths in millimetres.</text>
-<text x="25.000" y="184.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- No FAR rule applied, so no FAR allowance is stated.</text>
-<text x="25.000" y="188.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- No coverage rule applied, so no coverage allowance is stated.</text>
-<text x="25.000" y="192.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- Permissible and required figures are the compliance engine&apos;s results for the rule packs loaded, cited by rule id in REMARKS. This sheet does not recompute them.</text>
-<text x="25.000" y="196.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- Rule-pack values carry a confidence grade and must be verified against the sanctioning authority&apos;s bye-laws in force before submission.</text>
-<text x="25.000" y="200.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- SIGNATURE OF OWNER: ______________________     SIGNATURE &amp; SEAL OF ARCHITECT / LICENSED ENGINEER: ______________________</text>
+<text x="25.000" y="196.000" font-size="2.000" text-anchor="start" dominant-baseline="hanging" font-weight="600">NOTES</text>
+<text x="25.000" y="201.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- Areas in m2 with sq ft alongside; plot area also in gaj (1 gaj = 1 sq yd = 9 sq ft). All lengths in millimetres.</text>
+<text x="25.000" y="205.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- No FAR rule applied, so no FAR allowance is stated.</text>
+<text x="25.000" y="209.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- No coverage rule applied, so no coverage allowance is stated.</text>
+<text x="25.000" y="213.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- Permissible and required figures are the compliance engine&apos;s results for the rule packs loaded, cited by rule id in REMARKS. This sheet does not recompute them.</text>
+<text x="25.000" y="217.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- Rule-pack values carry a confidence grade and must be verified against the sanctioning authority&apos;s bye-laws in force before submission.</text>
+<text x="25.000" y="221.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">- SIGNATURE OF OWNER: ______________________     SIGNATURE &amp; SEAL OF ARCHITECT / LICENSED ENGINEER: ______________________</text>
 </g>
 </g>
 <g class="layer" data-layer="A-AREA" stroke="#3a3a3a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
@@ -124,49 +124,64 @@
 <text x="303.000" y="110.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">26.35 m² (283.7 sq ft)</text>
 <text x="307.000" y="110.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600"></text>
 <text x="27.000" y="117.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">5</text>
-<text x="45.000" y="117.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">SETBACKS (mm)</text>
+<text x="45.000" y="117.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">CARPET AREA (not a regulatory figure)</text>
 <text x="218.000" y="117.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600"></text>
 <text x="303.000" y="117.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600"></text>
 <text x="307.000" y="117.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600"></text>
 <text x="27.000" y="124.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">5.1</text>
-<text x="45.000" y="124.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Front setback</text>
+<text x="45.000" y="124.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Ground floor</text>
 <text x="218.000" y="124.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="124.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0 mm</text>
-<text x="307.000" y="124.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
-<text x="27.000" y="131.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">5.2</text>
-<text x="45.000" y="131.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Side A setback</text>
-<text x="218.000" y="131.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="131.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3029 mm</text>
-<text x="307.000" y="131.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
-<text x="27.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">5.3</text>
-<text x="45.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Rear setback</text>
-<text x="218.000" y="138.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="138.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">8077 mm</text>
-<text x="307.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
-<text x="27.000" y="145.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">5.4</text>
-<text x="45.000" y="145.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Side B setback</text>
+<text x="303.000" y="124.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">21.32 m² (229.5 sq ft)</text>
+<text x="307.000" y="124.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">80.9% of built-up</text>
+<text x="27.000" y="131.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">5.2</text>
+<text x="45.000" y="131.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">TOTAL CARPET AREA</text>
+<text x="218.000" y="131.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">—</text>
+<text x="303.000" y="131.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">21.32 m² (229.5 sq ft)</text>
+<text x="307.000" y="131.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600"></text>
+<text x="27.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">6</text>
+<text x="45.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">SETBACKS (mm)</text>
+<text x="218.000" y="138.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600"></text>
+<text x="303.000" y="138.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600"></text>
+<text x="307.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600"></text>
+<text x="27.000" y="145.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">6.1</text>
+<text x="45.000" y="145.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Front setback</text>
 <text x="218.000" y="145.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
 <text x="303.000" y="145.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0 mm</text>
 <text x="307.000" y="145.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
-<text x="27.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">6</text>
-<text x="45.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">HEIGHT OF BUILDING (mm)</text>
+<text x="27.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">6.2</text>
+<text x="45.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Side A setback</text>
 <text x="218.000" y="152.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="152.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">4600 mm</text>
-<text x="307.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
-<text x="27.000" y="159.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">7</text>
-<text x="45.000" y="159.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">NUMBER OF FLOORS ABOVE GROUND</text>
+<text x="303.000" y="152.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3029 mm</text>
+<text x="307.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
+<text x="27.000" y="159.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">6.3</text>
+<text x="45.000" y="159.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Rear setback</text>
 <text x="218.000" y="159.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="159.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="307.000" y="159.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
-<text x="27.000" y="166.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">8</text>
-<text x="45.000" y="166.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">CAR PARKING SPACES (nos.)</text>
+<text x="303.000" y="159.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">8077 mm</text>
+<text x="307.000" y="159.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
+<text x="27.000" y="166.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">6.4</text>
+<text x="45.000" y="166.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Side B setback</text>
 <text x="218.000" y="166.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="166.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="307.000" y="166.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="303.000" y="166.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0 mm</text>
+<text x="307.000" y="166.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
+<text x="27.000" y="173.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">7</text>
+<text x="45.000" y="173.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">HEIGHT OF BUILDING (mm)</text>
+<text x="218.000" y="173.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
+<text x="303.000" y="173.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">4600 mm</text>
+<text x="307.000" y="173.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="27.000" y="180.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">8</text>
+<text x="45.000" y="180.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">NUMBER OF FLOORS ABOVE GROUND</text>
+<text x="218.000" y="180.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
+<text x="303.000" y="180.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="307.000" y="180.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="27.000" y="187.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">9</text>
+<text x="45.000" y="187.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">CAR PARKING SPACES (nos.)</text>
+<text x="218.000" y="187.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
+<text x="303.000" y="187.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="307.000" y="187.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 </g>
 </g>
 <g class="layer" data-layer="A-TITL" stroke="#000000" stroke-width="0.350" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-<polygon points="25.000,34.000 425.000,34.000 425.000,169.000 25.000,169.000" fill="none"/>
+<polygon points="25.000,34.000 425.000,34.000 425.000,190.000 25.000,190.000" fill="none"/>
 <line x1="25.000" y1="43.000" x2="425.000" y2="43.000"/>
 <line x1="25.000" y1="50.000" x2="425.000" y2="50.000"/>
 <line x1="25.000" y1="57.000" x2="425.000" y2="57.000"/>
@@ -185,10 +200,13 @@
 <line x1="25.000" y1="148.000" x2="425.000" y2="148.000"/>
 <line x1="25.000" y1="155.000" x2="425.000" y2="155.000"/>
 <line x1="25.000" y1="162.000" x2="425.000" y2="162.000"/>
-<line x1="43.000" y1="34.000" x2="43.000" y2="169.000"/>
-<line x1="135.000" y1="34.000" x2="135.000" y2="169.000"/>
-<line x1="220.000" y1="34.000" x2="220.000" y2="169.000"/>
-<line x1="305.000" y1="34.000" x2="305.000" y2="169.000"/>
+<line x1="25.000" y1="169.000" x2="425.000" y2="169.000"/>
+<line x1="25.000" y1="176.000" x2="425.000" y2="176.000"/>
+<line x1="25.000" y1="183.000" x2="425.000" y2="183.000"/>
+<line x1="43.000" y1="34.000" x2="43.000" y2="190.000"/>
+<line x1="135.000" y1="34.000" x2="135.000" y2="190.000"/>
+<line x1="220.000" y1="34.000" x2="220.000" y2="190.000"/>
+<line x1="305.000" y1="34.000" x2="305.000" y2="190.000"/>
 </g>
 </g>
 </svg>
