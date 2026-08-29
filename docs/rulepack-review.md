@@ -44,16 +44,16 @@ You need three things. There is no way around any of them.
 
 ## The three states a number can be in
 
-| State | What it means | Shown to the architect as |
-|---|---|---|
-| **seed** | Drafted by the Garh AI team from secondary summaries. Where every value starts. | Caution marker. Not authoritative. |
-| **reviewed** | *You* read the value and its clause in the primary document and signed. | No caution marker. **Authoritative.** |
+| State        | What it means                                                                                                                                         | Shown to the architect as                   |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **seed**     | Drafted by the Garh AI team from secondary summaries. Where every value starts.                                                                       | Caution marker. Not authoritative.          |
+| **reviewed** | _You_ read the value and its clause in the primary document and signed.                                                                               | No caution marker. **Authoritative.**       |
 | **verified** | Reviewed, **and** confirmed against a real outcome — a project sanctioned under this value, or a written confirmation from the sanctioning authority. | Authoritative, with the sanction reference. |
 
 There is no rung for "the office has the document but nobody has read it yet".
 That was considered and left out on purpose: `confidence` is the word an architect
 sees next to a number they are about to submit, so it has to mean exactly one
-thing — *has a registered professional put their name on this*. Whether the office
+thing — _has a registered professional put their name on this_. Whether the office
 holds the primary document is tracked separately, on the pack's `sources` list.
 
 **A pack is only as good as its weakest rule.** The pack as a whole cannot be
@@ -81,15 +81,18 @@ For each rule, you are checking five things. Four of them are not the number.
 Then one of three things happens.
 
 ### The seeded number is right
+
 Mark it `confirmed`. Note the clause you read it in.
 
 ### The seeded number is wrong
+
 Correct it, mark it `corrected`, and **record what it used to say**. A compliance
 report issued last month pinned the old value; if nobody wrote down what it was,
 that report can never be explained again. The software will not accept a
 correction without it.
 
 ### The rule is structurally wrong
+
 A band that needs splitting in two, a rule that should not exist, a requirement
 the pack cannot express (Karnataka's `height ≤ 1.5 × (road width + front setback)`
 is the known example — the packs cannot do formulas yet). **Do not repurpose the
@@ -98,13 +101,15 @@ compliance reports reference it. Flag it, and the Garh team retires the id and
 adds a new one.
 
 ### You cannot find the clause
+
 Say so. That is a finding, and a valuable one — it usually means the rule was
 invented from a summary and should be deleted, not that you looked in the wrong
 place. Do not sign a value you could not locate. Leave it `seed` with a note.
 
 ### Two rules seem to contradict each other
+
 They probably do not. Minimums **stack**: city setback tables are indexed by plot
-size *and* by road width, and the pack encodes them as two separate families whose
+size _and_ by road width, and the pack encodes them as two separate families whose
 larger requirement governs. That is deliberate. If two rules genuinely conflict
 (a floor count that cannot fit under a height cap, say), flag it — the build
 already refuses that particular combination and found a real error in the
@@ -122,12 +127,12 @@ it reads back correctly.
   "id": "blr.setback.front.plot.121-240",
   "confidence": "reviewed",
   "review": {
-    "reviewer":   "R. Iyer",
-    "coaNumber":  "CA/2011/52341",
+    "reviewer": "R. Iyer",
+    "coaNumber": "CA/2011/52341",
     "reviewedAt": "2026-09-14",
-    "source":     "BBMP Building Bye-laws 2020",
-    "clause":     "Table 6, row 121-240 m2",
-    "outcome":    "confirmed"
+    "source": "BBMP Building Bye-laws 2020",
+    "clause": "Table 6, row 121-240 m2",
+    "outcome": "confirmed"
   }
 }
 ```

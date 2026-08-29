@@ -1,92 +1,151 @@
 <title>Garh AI Build Map</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+/>
 <style>
   :root {
-    --paper:      #EDF0F2;
-    --surface:    #F7F9FA;
-    --sunk:       #E2E7EA;
-    --ink:        #10161B;
-    --ink-2:      #3D4A54;
-    --ink-3:      #6B7A85;
-    --rule:       #C9D2D8;
-    --rule-soft:  #DCE3E7;
-    --blueprint:  #1B4F8C;
-    --blueprint-w:#D9E4F1;
-    --markup:     #B03A22;
-    --seed:       #96660A;
-    --built:      #2C6E49;
-    --shadow:     0 1px 2px rgba(16,22,27,.06), 0 8px 24px -12px rgba(16,22,27,.18);
+    --paper: #edf0f2;
+    --surface: #f7f9fa;
+    --sunk: #e2e7ea;
+    --ink: #10161b;
+    --ink-2: #3d4a54;
+    --ink-3: #6b7a85;
+    --rule: #c9d2d8;
+    --rule-soft: #dce3e7;
+    --blueprint: #1b4f8c;
+    --blueprint-w: #d9e4f1;
+    --markup: #b03a22;
+    --seed: #96660a;
+    --built: #2c6e49;
+    --shadow: 0 1px 2px rgba(16, 22, 27, 0.06), 0 8px 24px -12px rgba(16, 22, 27, 0.18);
   }
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme='light']) {
     @media (prefers-color-scheme: dark) {
-      --paper:      #0D1216;
-      --surface:    #141B21;
-      --sunk:       #1B242B;
-      --ink:        #E6EDF2;
-      --ink-2:      #AFBDC7;
-      --ink-3:      #7E8D98;
-      --rule:       #2A353D;
-      --rule-soft:  #212B32;
-      --blueprint:  #7FB0E8;
-      --blueprint-w:#16283C;
-      --markup:     #E88367;
-      --seed:       #D9A441;
-      --built:      #6FBF95;
-      --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+      --paper: #0d1216;
+      --surface: #141b21;
+      --sunk: #1b242b;
+      --ink: #e6edf2;
+      --ink-2: #afbdc7;
+      --ink-3: #7e8d98;
+      --rule: #2a353d;
+      --rule-soft: #212b32;
+      --blueprint: #7fb0e8;
+      --blueprint-w: #16283c;
+      --markup: #e88367;
+      --seed: #d9a441;
+      --built: #6fbf95;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
     }
   }
-  :root[data-theme="dark"] {
-    --paper:      #0D1216;
-    --surface:    #141B21;
-    --sunk:       #1B242B;
-    --ink:        #E6EDF2;
-    --ink-2:      #AFBDC7;
-    --ink-3:      #7E8D98;
-    --rule:       #2A353D;
-    --rule-soft:  #212B32;
-    --blueprint:  #7FB0E8;
-    --blueprint-w:#16283C;
-    --markup:     #E88367;
-    --seed:       #D9A441;
-    --built:      #6FBF95;
-    --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  :root[data-theme='dark'] {
+    --paper: #0d1216;
+    --surface: #141b21;
+    --sunk: #1b242b;
+    --ink: #e6edf2;
+    --ink-2: #afbdc7;
+    --ink-3: #7e8d98;
+    --rule: #2a353d;
+    --rule-soft: #212b32;
+    --blueprint: #7fb0e8;
+    --blueprint-w: #16283c;
+    --markup: #e88367;
+    --seed: #d9a441;
+    --built: #6fbf95;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
   }
 
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
   body {
     margin: 0;
     background: var(--paper);
     color: var(--ink);
-    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
     font-size: 16px;
     line-height: 1.62;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px 120px; }
-  .col  { max-width: 68ch; }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 28px 120px;
+  }
+  .col {
+    max-width: 68ch;
+  }
 
-  h1, h2, h3, h4 { font-family: Archivo, ui-sans-serif, system-ui, sans-serif; text-wrap: balance; margin: 0; }
-  h1 { font-size: clamp(2.1rem, 4.6vw, 3.1rem); font-weight: 700; letter-spacing: -.022em; line-height: 1.06; }
-  h2 { font-size: clamp(1.45rem, 2.6vw, 1.85rem); font-weight: 650; letter-spacing: -.014em; line-height: 1.18; }
-  h3 { font-size: 1.1rem; font-weight: 600; letter-spacing: -.006em; }
-  p  { margin: 0; }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: Archivo, ui-sans-serif, system-ui, sans-serif;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 {
+    font-size: clamp(2.1rem, 4.6vw, 3.1rem);
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    line-height: 1.06;
+  }
+  h2 {
+    font-size: clamp(1.45rem, 2.6vw, 1.85rem);
+    font-weight: 650;
+    letter-spacing: -0.014em;
+    line-height: 1.18;
+  }
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.006em;
+  }
+  p {
+    margin: 0;
+  }
 
   .eyebrow {
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: .705rem; font-weight: 500; text-transform: uppercase;
-    letter-spacing: .13em; color: var(--ink-3);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.705rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--ink-3);
   }
-  .lede { font-size: 1.12rem; color: var(--ink-2); }
-  .stack { display: flex; flex-direction: column; }
-  .g8  { gap: 8px; }  .g12 { gap: 12px; } .g16 { gap: 16px; }
-  .g24 { gap: 24px; } .g40 { gap: 40px; } .g64 { gap: 64px; }
+  .lede {
+    font-size: 1.12rem;
+    color: var(--ink-2);
+  }
+  .stack {
+    display: flex;
+    flex-direction: column;
+  }
+  .g8 {
+    gap: 8px;
+  }
+  .g12 {
+    gap: 12px;
+  }
+  .g16 {
+    gap: 16px;
+  }
+  .g24 {
+    gap: 24px;
+  }
+  .g40 {
+    gap: 40px;
+  }
+  .g64 {
+    gap: 64px;
+  }
 
   header.mast {
     border-bottom: 1px solid var(--rule);
     padding: 72px 0 40px;
     margin-bottom: 56px;
     background-image: linear-gradient(var(--rule-soft) 1px, transparent 1px),
-                      linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px);
+      linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px);
     background-size: 28px 28px;
     background-position: -1px -1px;
   }
@@ -96,70 +155,229 @@
     border-left: 3px solid var(--blueprint);
   }
 
-  section { scroll-margin-top: 24px; }
-  .sec-head { border-top: 2px solid var(--ink); padding-top: 14px; margin-bottom: 28px; }
+  section {
+    scroll-margin-top: 24px;
+  }
+  .sec-head {
+    border-top: 2px solid var(--ink);
+    padding-top: 14px;
+    margin-bottom: 28px;
+  }
 
   /* verdict strip */
-  .verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
-  .verdict > div { background: var(--surface); padding: 16px 18px; }
-  .verdict .n { font-family: Archivo, sans-serif; font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; display: block; }
-  .verdict .k { font-family: "IBM Plex Mono", monospace; font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3); }
+  .verdict {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .verdict > div {
+    background: var(--surface);
+    padding: 16px 18px;
+  }
+  .verdict .n {
+    font-family: Archivo, sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    display: block;
+  }
+  .verdict .k {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+  }
 
   /* alerts */
-  .alert { border: 1px solid var(--rule); border-left: 3px solid var(--markup); background: var(--surface); padding: 18px 20px; }
-  .alert.seed { border-left-color: var(--seed); }
-  .alert h3 { margin-bottom: 6px; }
-  .alert p { color: var(--ink-2); font-size: .95rem; }
+  .alert {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--markup);
+    background: var(--surface);
+    padding: 18px 20px;
+  }
+  .alert.seed {
+    border-left-color: var(--seed);
+  }
+  .alert h3 {
+    margin-bottom: 6px;
+  }
+  .alert p {
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
 
   /* tables */
-  .scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
-  table { border-collapse: collapse; width: 100%; font-size: .875rem; min-width: 660px; }
-  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
-  thead th {
-    font-family: "IBM Plex Mono", monospace; font-size: .67rem; text-transform: uppercase;
-    letter-spacing: .09em; color: var(--ink-3); font-weight: 500;
-    background: var(--sunk); border-bottom: 1px solid var(--rule); white-space: nowrap;
+  .scroll {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    background: var(--surface);
   }
-  tbody tr:last-child td { border-bottom: none; }
-  td.id { font-family: "IBM Plex Mono", monospace; font-weight: 500; color: var(--blueprint); white-space: nowrap; }
-  td.job { font-weight: 500; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.875rem;
+    min-width: 660px;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  thead th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.67rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-3);
+    font-weight: 500;
+    background: var(--sunk);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+  td.id {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    color: var(--blueprint);
+    white-space: nowrap;
+  }
+  td.job {
+    font-weight: 500;
+  }
 
   /* status chips */
   .chip {
-    display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: .66rem;
-    font-weight: 500; text-transform: uppercase; letter-spacing: .07em;
-    padding: 2px 7px; border: 1px solid currentColor; white-space: nowrap;
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.66rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
   }
-  .chip.have  { color: var(--built); }
-  .chip.part  { color: var(--seed); }
-  .chip.none  { color: var(--markup); }
-  .chip.risk  { color: var(--markup); }
+  .chip.have {
+    color: var(--built);
+  }
+  .chip.part {
+    color: var(--seed);
+  }
+  .chip.none {
+    color: var(--markup);
+  }
+  .chip.risk {
+    color: var(--markup);
+  }
 
   /* build list */
-  .lane { border: 1px solid var(--rule); background: var(--surface); }
-  .lane > .hd { display: flex; align-items: baseline; gap: 12px; padding: 13px 18px; background: var(--sunk); border-bottom: 1px solid var(--rule); }
-  .lane > .hd .t { font-family: Archivo, sans-serif; font-weight: 650; font-size: 1.02rem; }
-  .lane > .hd .c { font-family: "IBM Plex Mono", monospace; font-size: .7rem; color: var(--ink-3); margin-left: auto; }
-  .item { display: grid; grid-template-columns: 78px 1fr 62px; gap: 14px; padding: 13px 18px; border-bottom: 1px solid var(--rule-soft); align-items: start; }
-  .item:last-child { border-bottom: none; }
-  .item .ref { font-family: "IBM Plex Mono", monospace; font-size: .74rem; color: var(--blueprint); font-weight: 500; padding-top: 2px; }
-  .item .ttl { font-weight: 600; font-size: .95rem; display: block; margin-bottom: 2px; }
-  .item .why { font-size: .875rem; color: var(--ink-2); }
-  .item .sz  { font-family: "IBM Plex Mono", monospace; font-size: .68rem; color: var(--ink-3); text-align: right; padding-top: 3px; letter-spacing: .05em; }
+  .lane {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+  }
+  .lane > .hd {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 13px 18px;
+    background: var(--sunk);
+    border-bottom: 1px solid var(--rule);
+  }
+  .lane > .hd .t {
+    font-family: Archivo, sans-serif;
+    font-weight: 650;
+    font-size: 1.02rem;
+  }
+  .lane > .hd .c {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--ink-3);
+    margin-left: auto;
+  }
+  .item {
+    display: grid;
+    grid-template-columns: 78px 1fr 62px;
+    gap: 14px;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--rule-soft);
+    align-items: start;
+  }
+  .item:last-child {
+    border-bottom: none;
+  }
+  .item .ref {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--blueprint);
+    font-weight: 500;
+    padding-top: 2px;
+  }
+  .item .ttl {
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .item .why {
+    font-size: 0.875rem;
+    color: var(--ink-2);
+  }
+  .item .sz {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--ink-3);
+    text-align: right;
+    padding-top: 3px;
+    letter-spacing: 0.05em;
+  }
 
-  .note { font-size: .875rem; color: var(--ink-3); }
-  strong { font-weight: 600; }
-  em { color: var(--ink-2); }
-  a { color: var(--blueprint); }
-  code { font-family: "IBM Plex Mono", monospace; font-size: .86em; background: var(--sunk); padding: 1px 5px; }
+  .note {
+    font-size: 0.875rem;
+    color: var(--ink-3);
+  }
+  strong {
+    font-weight: 600;
+  }
+  em {
+    color: var(--ink-2);
+  }
+  a {
+    color: var(--blueprint);
+  }
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.86em;
+    background: var(--sunk);
+    padding: 1px 5px;
+  }
 
-  .arc { border-left: 2px solid var(--blueprint-w); padding-left: 18px; }
-  .arc .eyebrow { color: var(--blueprint); }
+  .arc {
+    border-left: 2px solid var(--blueprint-w);
+    padding-left: 18px;
+  }
+  .arc .eyebrow {
+    color: var(--blueprint);
+  }
 
   @media (max-width: 640px) {
-    .wrap { padding: 0 18px 80px; }
-    .item { grid-template-columns: 1fr; gap: 4px; }
-    .item .sz { text-align: left; }
+    .wrap {
+      padding: 0 18px 80px;
+    }
+    .item {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    .item .sz {
+      text-align: left;
+    }
   }
 </style>
 
@@ -168,13 +386,15 @@
     <div class="inner stack g16">
       <span class="eyebrow">Competitive gap analysis &middot; 28 August 2026</span>
       <h1>Garh AI Build Map</h1>
-      <p class="lede col">Every job an Indian architect hires this class of software to do, which competitor currently does it, where we stand on each — and the ordered list of what has to be built.</p>
+      <p class="lede col">
+        Every job an Indian architect hires this class of software to do, which competitor currently
+        does it, where we stand on each — and the ordered list of what has to be built.
+      </p>
     </div>
   </div>
 </header>
 
 <div class="wrap stack g64">
-
   <!-- ============ VERDICT ============ -->
   <section class="stack g24">
     <div class="verdict">
@@ -184,7 +404,12 @@
       <div><span class="n">5</span><span class="k">not served</span></div>
       <div><span class="n">63</span><span class="k">items to build</span></div>
     </div>
-    <p class="col">The engineering is further along than the product. Eleven of twenty-five jobs are genuinely done and proven in a browser against a live stack. What is missing clusters in three places: <strong>asset depth</strong>, <strong>the AI layer never having met a real model</strong>, and <strong>everything commercial</strong>. Two of those are keys and content, not architecture.</p>
+    <p class="col">
+      The engineering is further along than the product. Eleven of twenty-five jobs are genuinely
+      done and proven in a browser against a live stack. What is missing clusters in three places:
+      <strong>asset depth</strong>, <strong>the AI layer never having met a real model</strong>, and
+      <strong>everything commercial</strong>. Two of those are keys and content, not architecture.
+    </p>
   </section>
 
   <!-- ============ TWO FINDINGS ============ -->
@@ -193,11 +418,27 @@
     <div class="stack g16">
       <div class="alert">
         <h3>The production deployment is running in dev mode</h3>
-        <p>The deployed API has no <code>SMTP_HOST</code>, yet sign-in works. The only way that is possible is <code>APP_ENV</code> being <code>dev</code> or <code>test</code>, which switches on <code>dev_echo_otp</code> — the one-time sign-in code is returned <em>in the API response body</em>. Anyone who knows an email address on the instance can sign in as that person. It also relaxes the fail-fast secret validator and drops <code>Secure</code> from the refresh cookie. This is fine for the demo it is; it is not a thing to leave running once a real client's plot drawings are in it. Fixed by <strong>F-1</strong> and <strong>F-2</strong> below.</p>
+        <p>
+          The deployed API has no <code>SMTP_HOST</code>, yet sign-in works. The only way that is
+          possible is <code>APP_ENV</code> being <code>dev</code> or <code>test</code>, which
+          switches on <code>dev_echo_otp</code> — the one-time sign-in code is returned
+          <em>in the API response body</em>. Anyone who knows an email address on the instance can
+          sign in as that person. It also relaxes the fail-fast secret validator and drops
+          <code>Secure</code> from the refresh cookie. This is fine for the demo it is; it is not a
+          thing to leave running once a real client's plot drawings are in it. Fixed by
+          <strong>F-1</strong> and <strong>F-2</strong> below.
+        </p>
       </div>
       <div class="alert seed">
         <h3>All 123 compliance values are unreviewed seeds</h3>
-        <p>Eight rule-pack files, 123 values, <strong>100% marked <code>confidence: "seed"</code></strong> and <code>review.status: unreviewed</code>. No architect has read one. The product sells citable compliance; an architect who trusts a seeded setback or FAR figure and submits it to a municipal office is the failure that ends the company. This is a domain-review programme, not a sprint — <strong>D-9</strong> builds the machinery it needs.</p>
+        <p>
+          Eight rule-pack files, 123 values,
+          <strong>100% marked <code>confidence: "seed"</code></strong> and
+          <code>review.status: unreviewed</code>. No architect has read one. The product sells
+          citable compliance; an architect who trusts a seeded setback or FAR figure and submits it
+          to a municipal office is the failure that ends the company. This is a domain-review
+          programme, not a sprint — <strong>D-9</strong> builds the machinery it needs.
+        </p>
       </div>
     </div>
   </section>
@@ -206,20 +447,62 @@
   <section class="stack g24">
     <div class="sec-head"><span class="eyebrow">The field</span></div>
     <h2 class="col">Four of the five competitors sell pictures. One sells drawing.</h2>
-    <p class="col">Grouping them by the job they actually get hired for, rather than by their feature lists, makes the wedge obvious.</p>
+    <p class="col">
+      Grouping them by the job they actually get hired for, rather than by their feature lists,
+      makes the wedge obvious.
+    </p>
     <div class="scroll">
       <table>
-        <thead><tr><th>Product</th><th>Hired to do</th><th>Stops at</th><th>What we take from them</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Hired to do</th>
+            <th>Stops at</th>
+            <th>What we take from them</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr><td class="job">Krea</td><td>Turn a massing sketch into a seductive image, in real time</td><td>An image. No model, no dimensions, nothing downstream.</td><td>Latency as a feature — the render should feel live, not queued.</td></tr>
-          <tr><td class="job">Gendo</td><td>Turn an architect's sketch or viewport into a client-ready render</td><td>An image, but architecture-aware and geometry-respecting.</td><td>Structure-preserving control, so the render is <em>this</em> building.</td></tr>
-          <tr><td class="job">ArchiX</td><td>Concept massing and visual exploration</td><td>Concept. No compliance, no drawing set.</td><td>Speed of exploration; option boards.</td></tr>
-          <tr><td class="job">xFigura</td><td>Generate floor-plan layouts from a brief</td><td>A plan image or light vector. No bye-laws, no submission set.</td><td>Brief&nbsp;→&nbsp;plan as a first-class entry point.</td></tr>
-          <tr><td class="job">Rayon</td><td>Be the collaborative drawing tool — real 2D CAD in a browser, multiplayer, deep block library</td><td>Drawing, well. Not Indian bye-laws, not a municipal set, not AI generation.</td><td>Everything about the editing loop, and the library depth.</td></tr>
+          <tr>
+            <td class="job">Krea</td>
+            <td>Turn a massing sketch into a seductive image, in real time</td>
+            <td>An image. No model, no dimensions, nothing downstream.</td>
+            <td>Latency as a feature — the render should feel live, not queued.</td>
+          </tr>
+          <tr>
+            <td class="job">Gendo</td>
+            <td>Turn an architect's sketch or viewport into a client-ready render</td>
+            <td>An image, but architecture-aware and geometry-respecting.</td>
+            <td>Structure-preserving control, so the render is <em>this</em> building.</td>
+          </tr>
+          <tr>
+            <td class="job">ArchiX</td>
+            <td>Concept massing and visual exploration</td>
+            <td>Concept. No compliance, no drawing set.</td>
+            <td>Speed of exploration; option boards.</td>
+          </tr>
+          <tr>
+            <td class="job">xFigura</td>
+            <td>Generate floor-plan layouts from a brief</td>
+            <td>A plan image or light vector. No bye-laws, no submission set.</td>
+            <td>Brief&nbsp;→&nbsp;plan as a first-class entry point.</td>
+          </tr>
+          <tr>
+            <td class="job">Rayon</td>
+            <td>
+              Be the collaborative drawing tool — real 2D CAD in a browser, multiplayer, deep block
+              library
+            </td>
+            <td>Drawing, well. Not Indian bye-laws, not a municipal set, not AI generation.</td>
+            <td>Everything about the editing loop, and the library depth.</td>
+          </tr>
         </tbody>
       </table>
     </div>
-    <p class="col note">Competitor characterisations come from the research pass earlier in this project and are pitched at the level of the job served, not the feature list — feature lists move weekly and the job does not.</p>
+    <p class="col note">
+      Competitor characterisations come from the research pass earlier in this project and are
+      pitched at the level of the job served, not the feature list — feature lists move weekly and
+      the job does not.
+    </p>
   </section>
 
   <!-- ============ JTD ============ -->
@@ -227,95 +510,326 @@
     <div class="stack g24">
       <div class="sec-head"><span class="eyebrow">Jobs to be done</span></div>
       <h2 class="col">Twenty-five jobs, along the arc of a residential commission</h2>
-      <p class="col">Written from the architect's side. Each job is what they are trying to get done, not a feature we might ship. <em>Ours</em> is the honest state of Garh AI today, verified against the running code.</p>
+      <p class="col">
+        Written from the architect's side. Each job is what they are trying to get done, not a
+        feature we might ship. <em>Ours</em> is the honest state of Garh AI today, verified against
+        the running code.
+      </p>
     </div>
 
     <div class="stack g24 arc">
       <span class="eyebrow">Arc 1 &middot; Win the work</span>
-      <div class="scroll"><table>
-        <thead><tr><th>#</th><th>The job</th><th>Done means</th><th>Ours</th><th>Best today</th></tr></thead>
-        <tbody>
-          <tr><td class="id">J-01</td><td class="job">Show a prospective client what their house could look like, fast enough to win the meeting</td><td>A credible visual inside one sitting</td><td><span class="chip part">partial</span></td><td>Krea / Gendo</td></tr>
-          <tr><td class="id">J-02</td><td class="job">Quote a fee without designing the house first</td><td>Scope &amp; area estimate from plot + brief</td><td><span class="chip none">none</span></td><td>Nobody</td></tr>
-        </tbody>
-      </table></div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>The job</th>
+              <th>Done means</th>
+              <th>Ours</th>
+              <th>Best today</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="id">J-01</td>
+              <td class="job">
+                Show a prospective client what their house could look like, fast enough to win the
+                meeting
+              </td>
+              <td>A credible visual inside one sitting</td>
+              <td><span class="chip part">partial</span></td>
+              <td>Krea / Gendo</td>
+            </tr>
+            <tr>
+              <td class="id">J-02</td>
+              <td class="job">Quote a fee without designing the house first</td>
+              <td>Scope &amp; area estimate from plot + brief</td>
+              <td><span class="chip none">none</span></td>
+              <td>Nobody</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="stack g24 arc">
       <span class="eyebrow">Arc 2 &middot; Understand the site and the brief</span>
-      <div class="scroll"><table>
-        <thead><tr><th>#</th><th>The job</th><th>Done means</th><th>Ours</th><th>Best today</th></tr></thead>
-        <tbody>
-          <tr><td class="id">J-03</td><td class="job">Turn a plot — survey, sketch, DXF — into a dimensionally correct digital site</td><td>Boundary in real mm, north set</td><td><span class="chip have">have</span></td><td>Rayon</td></tr>
-          <tr><td class="id">J-04</td><td class="job">Capture a client's rambling brief as a structured room programme</td><td>Rooms, counts, adjacencies, from prose</td><td><span class="chip part">partial</span></td><td>xFigura</td></tr>
-          <tr><td class="id">J-05</td><td class="job">Know what the bye-laws let me build here <em>before</em> I design</td><td>Setbacks, FAR, coverage, height — for this city</td><td><span class="chip part">partial</span></td><td>Nobody</td></tr>
-          <tr><td class="id">J-06</td><td class="job">Trace over an existing or scanned plan</td><td>Calibrated underlay, draw on top</td><td><span class="chip have">have</span></td><td>Rayon</td></tr>
-        </tbody>
-      </table></div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>The job</th>
+              <th>Done means</th>
+              <th>Ours</th>
+              <th>Best today</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="id">J-03</td>
+              <td class="job">
+                Turn a plot — survey, sketch, DXF — into a dimensionally correct digital site
+              </td>
+              <td>Boundary in real mm, north set</td>
+              <td><span class="chip have">have</span></td>
+              <td>Rayon</td>
+            </tr>
+            <tr>
+              <td class="id">J-04</td>
+              <td class="job">Capture a client's rambling brief as a structured room programme</td>
+              <td>Rooms, counts, adjacencies, from prose</td>
+              <td><span class="chip part">partial</span></td>
+              <td>xFigura</td>
+            </tr>
+            <tr>
+              <td class="id">J-05</td>
+              <td class="job">Know what the bye-laws let me build here <em>before</em> I design</td>
+              <td>Setbacks, FAR, coverage, height — for this city</td>
+              <td><span class="chip part">partial</span></td>
+              <td>Nobody</td>
+            </tr>
+            <tr>
+              <td class="id">J-06</td>
+              <td class="job">Trace over an existing or scanned plan</td>
+              <td>Calibrated underlay, draw on top</td>
+              <td><span class="chip have">have</span></td>
+              <td>Rayon</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="stack g24 arc">
       <span class="eyebrow">Arc 3 &middot; Generate and explore</span>
-      <div class="scroll"><table>
-        <thead><tr><th>#</th><th>The job</th><th>Done means</th><th>Ours</th><th>Best today</th></tr></thead>
-        <tbody>
-          <tr><td class="id">J-07</td><td class="job">Get several compliant plan options in minutes, not days</td><td>N options, each passing the rule engine</td><td><span class="chip have">have</span></td><td>xFigura (non-compliant)</td></tr>
-          <tr><td class="id">J-08</td><td class="job">Explore variations without losing the one I liked</td><td>Branch, compare, restore</td><td><span class="chip part">partial</span></td><td>Rayon</td></tr>
-          <tr><td class="id">J-09</td><td class="job">Honour Vastu / client constraints without hand-checking each one</td><td>Constraint declared once, enforced</td><td><span class="chip part">partial</span></td><td>Nobody</td></tr>
-          <tr><td class="id">J-10</td><td class="job">Start from something proven rather than a blank page</td><td>Templates that are real plans</td><td><span class="chip have">have</span></td><td>Rayon</td></tr>
-        </tbody>
-      </table></div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>The job</th>
+              <th>Done means</th>
+              <th>Ours</th>
+              <th>Best today</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="id">J-07</td>
+              <td class="job">Get several compliant plan options in minutes, not days</td>
+              <td>N options, each passing the rule engine</td>
+              <td><span class="chip have">have</span></td>
+              <td>xFigura (non-compliant)</td>
+            </tr>
+            <tr>
+              <td class="id">J-08</td>
+              <td class="job">Explore variations without losing the one I liked</td>
+              <td>Branch, compare, restore</td>
+              <td><span class="chip part">partial</span></td>
+              <td>Rayon</td>
+            </tr>
+            <tr>
+              <td class="id">J-09</td>
+              <td class="job">Honour Vastu / client constraints without hand-checking each one</td>
+              <td>Constraint declared once, enforced</td>
+              <td><span class="chip part">partial</span></td>
+              <td>Nobody</td>
+            </tr>
+            <tr>
+              <td class="id">J-10</td>
+              <td class="job">Start from something proven rather than a blank page</td>
+              <td>Templates that are real plans</td>
+              <td><span class="chip have">have</span></td>
+              <td>Rayon</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="stack g24 arc">
       <span class="eyebrow">Arc 4 &middot; Design and edit</span>
-      <div class="scroll"><table>
-        <thead><tr><th>#</th><th>The job</th><th>Done means</th><th>Ours</th><th>Best today</th></tr></thead>
-        <tbody>
-          <tr><td class="id">J-11</td><td class="job">Draw and edit precisely — typed dimensions, snapping, constraints</td><td>CAD-grade accuracy in a browser</td><td><span class="chip part">partial</span></td><td>Rayon</td></tr>
-          <tr><td class="id">J-12</td><td class="job">Edit by saying what I want instead of hunting for a tool</td><td>Natural language → real, reversible ops</td><td><span class="chip part">partial</span></td><td>Nobody (ours is ahead, on mocks)</td></tr>
-          <tr><td class="id">J-13</td><td class="job">See it in 3D while I edit in 2D</td><td>One model, both views, live</td><td><span class="chip have">have</span></td><td>Us</td></tr>
-          <tr><td class="id">J-14</td><td class="job">Furnish and specify from a library instead of drawing every fixture</td><td>Thousands of dimensioned, placeable objects</td><td><span class="chip part">partial</span></td><td>Rayon</td></tr>
-          <tr><td class="id">J-15</td><td class="job">Undo anything, at the granularity I did it</td><td>One gesture = one undo</td><td><span class="chip have">have</span></td><td>Rayon</td></tr>
-        </tbody>
-      </table></div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>The job</th>
+              <th>Done means</th>
+              <th>Ours</th>
+              <th>Best today</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="id">J-11</td>
+              <td class="job">Draw and edit precisely — typed dimensions, snapping, constraints</td>
+              <td>CAD-grade accuracy in a browser</td>
+              <td><span class="chip part">partial</span></td>
+              <td>Rayon</td>
+            </tr>
+            <tr>
+              <td class="id">J-12</td>
+              <td class="job">Edit by saying what I want instead of hunting for a tool</td>
+              <td>Natural language → real, reversible ops</td>
+              <td><span class="chip part">partial</span></td>
+              <td>Nobody (ours is ahead, on mocks)</td>
+            </tr>
+            <tr>
+              <td class="id">J-13</td>
+              <td class="job">See it in 3D while I edit in 2D</td>
+              <td>One model, both views, live</td>
+              <td><span class="chip have">have</span></td>
+              <td>Us</td>
+            </tr>
+            <tr>
+              <td class="id">J-14</td>
+              <td class="job">
+                Furnish and specify from a library instead of drawing every fixture
+              </td>
+              <td>Thousands of dimensioned, placeable objects</td>
+              <td><span class="chip part">partial</span></td>
+              <td>Rayon</td>
+            </tr>
+            <tr>
+              <td class="id">J-15</td>
+              <td class="job">Undo anything, at the granularity I did it</td>
+              <td>One gesture = one undo</td>
+              <td><span class="chip have">have</span></td>
+              <td>Rayon</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="stack g24 arc">
       <span class="eyebrow">Arc 5 &middot; Sell the design</span>
-      <div class="scroll"><table>
-        <thead><tr><th>#</th><th>The job</th><th>Done means</th><th>Ours</th><th>Best today</th></tr></thead>
-        <tbody>
-          <tr><td class="id">J-16</td><td class="job">Produce photoreal renders without a visualiser or a GPU</td><td>Client-grade image from the model</td><td><span class="chip part">partial</span></td><td>Gendo / Krea</td></tr>
-          <tr><td class="id">J-17</td><td class="job">Try facade options quickly</td><td>Swap a kit, keep the plan</td><td><span class="chip have">have</span></td><td>ArchiX</td></tr>
-          <tr><td class="id">J-18</td><td class="job">Share with the client and collect feedback in one place</td><td>Link, comments, resolution</td><td><span class="chip have">have</span></td><td>Rayon</td></tr>
-        </tbody>
-      </table></div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>The job</th>
+              <th>Done means</th>
+              <th>Ours</th>
+              <th>Best today</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="id">J-16</td>
+              <td class="job">Produce photoreal renders without a visualiser or a GPU</td>
+              <td>Client-grade image from the model</td>
+              <td><span class="chip part">partial</span></td>
+              <td>Gendo / Krea</td>
+            </tr>
+            <tr>
+              <td class="id">J-17</td>
+              <td class="job">Try facade options quickly</td>
+              <td>Swap a kit, keep the plan</td>
+              <td><span class="chip have">have</span></td>
+              <td>ArchiX</td>
+            </tr>
+            <tr>
+              <td class="id">J-18</td>
+              <td class="job">Share with the client and collect feedback in one place</td>
+              <td>Link, comments, resolution</td>
+              <td><span class="chip have">have</span></td>
+              <td>Rayon</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="stack g24 arc">
       <span class="eyebrow">Arc 6 &middot; Deliver the drawings — the moat</span>
-      <div class="scroll"><table>
-        <thead><tr><th>#</th><th>The job</th><th>Done means</th><th>Ours</th><th>Best today</th></tr></thead>
-        <tbody>
-          <tr><td class="id">J-19</td><td class="job">Produce a municipal submission set a reviewer accepts</td><td>Sheets in the format the office expects</td><td><span class="chip part">partial</span></td><td><strong>Nobody</strong></td></tr>
-          <tr><td class="id">J-20</td><td class="job">Prove compliance with citable references</td><td>Every number traceable to a clause</td><td><span class="chip part">partial</span></td><td><strong>Nobody</strong></td></tr>
-          <tr><td class="id">J-21</td><td class="job">Produce working drawings, schedules and area statements</td><td>GFC-grade output</td><td><span class="chip part">partial</span></td><td>Traditional CAD</td></tr>
-          <tr><td class="id">J-22</td><td class="job">Export to DXF/PDF for the consultant chain</td><td>Opens clean in their CAD</td><td><span class="chip have">have</span></td><td>Rayon</td></tr>
-          <tr><td class="id">J-23</td><td class="job">Revise a set and show what changed</td><td>Revision clouds, issue register</td><td><span class="chip none">none</span></td><td>Traditional CAD</td></tr>
-        </tbody>
-      </table></div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>The job</th>
+              <th>Done means</th>
+              <th>Ours</th>
+              <th>Best today</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="id">J-19</td>
+              <td class="job">Produce a municipal submission set a reviewer accepts</td>
+              <td>Sheets in the format the office expects</td>
+              <td><span class="chip part">partial</span></td>
+              <td><strong>Nobody</strong></td>
+            </tr>
+            <tr>
+              <td class="id">J-20</td>
+              <td class="job">Prove compliance with citable references</td>
+              <td>Every number traceable to a clause</td>
+              <td><span class="chip part">partial</span></td>
+              <td><strong>Nobody</strong></td>
+            </tr>
+            <tr>
+              <td class="id">J-21</td>
+              <td class="job">Produce working drawings, schedules and area statements</td>
+              <td>GFC-grade output</td>
+              <td><span class="chip part">partial</span></td>
+              <td>Traditional CAD</td>
+            </tr>
+            <tr>
+              <td class="id">J-22</td>
+              <td class="job">Export to DXF/PDF for the consultant chain</td>
+              <td>Opens clean in their CAD</td>
+              <td><span class="chip have">have</span></td>
+              <td>Rayon</td>
+            </tr>
+            <tr>
+              <td class="id">J-23</td>
+              <td class="job">Revise a set and show what changed</td>
+              <td>Revision clouds, issue register</td>
+              <td><span class="chip none">none</span></td>
+              <td>Traditional CAD</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="stack g24 arc">
       <span class="eyebrow">Arc 7 &middot; Run the practice</span>
-      <div class="scroll"><table>
-        <thead><tr><th>#</th><th>The job</th><th>Done means</th><th>Ours</th><th>Best today</th></tr></thead>
-        <tbody>
-          <tr><td class="id">J-24</td><td class="job">Work on the same file as my team, live</td><td>Presence, cursors, no lost edits</td><td><span class="chip have">have</span></td><td>Rayon</td></tr>
-          <tr><td class="id">J-25</td><td class="job">Pay for it in rupees, on Indian rails</td><td>UPI/card, GST invoice</td><td><span class="chip none">none</span></td><td>Rayon (USD)</td></tr>
-        </tbody>
-      </table></div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>The job</th>
+              <th>Done means</th>
+              <th>Ours</th>
+              <th>Best today</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="id">J-24</td>
+              <td class="job">Work on the same file as my team, live</td>
+              <td>Presence, cursors, no lost edits</td>
+              <td><span class="chip have">have</span></td>
+              <td>Rayon</td>
+            </tr>
+            <tr>
+              <td class="id">J-25</td>
+              <td class="job">Pay for it in rupees, on Indian rails</td>
+              <td>UPI/card, GST invoice</td>
+              <td><span class="chip none">none</span></td>
+              <td>Rayon (USD)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -325,42 +839,82 @@
     <h2 class="col">Six axes, honestly scored</h2>
     <div class="scroll">
       <table>
-        <thead><tr><th>Axis</th><th>Where we genuinely lead</th><th>Where we genuinely trail</th><th>Verdict</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Axis</th>
+            <th>Where we genuinely lead</th>
+            <th>Where we genuinely trail</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
         <tbody>
           <tr>
             <td class="job">Tech</td>
-            <td>Op-log model core with a byte-identical TS/Python twin; a pure-stdlib rules engine; one canvas serving 2D and 3D; primitives shared across SVG/DXF/PDF so geometry cannot drift.</td>
-            <td>~1,008 mypy errors outside the strict trees. No visual-regression baseline. Solver quality unproven at scale.</td>
+            <td>
+              Op-log model core with a byte-identical TS/Python twin; a pure-stdlib rules engine;
+              one canvas serving 2D and 3D; primitives shared across SVG/DXF/PDF so geometry cannot
+              drift.
+            </td>
+            <td>
+              ~1,008 mypy errors outside the strict trees. No visual-regression baseline. Solver
+              quality unproven at scale.
+            </td>
             <td><span class="chip have">ahead</span></td>
           </tr>
           <tr>
             <td class="job">Functionality</td>
-            <td>The only one of the five that produces a municipal drawing set at all. Compliance engine, 3D, renders, copilot, collaboration in one product.</td>
-            <td>Asset library 229 items vs Rayon's thousands. No revisions. No fee/area estimator.</td>
+            <td>
+              The only one of the five that produces a municipal drawing set at all. Compliance
+              engine, 3D, renders, copilot, collaboration in one product.
+            </td>
+            <td>
+              Asset library 229 items vs Rayon's thousands. No revisions. No fee/area estimator.
+            </td>
             <td><span class="chip part">mixed</span></td>
           </tr>
           <tr>
             <td class="job">Design</td>
-            <td>Consistent design system; drawing output is typographically correct with a real licensed face.</td>
-            <td>No design language of its own — reads as competent-generic. Rayon and Krea both have a point of view.</td>
+            <td>
+              Consistent design system; drawing output is typographically correct with a real
+              licensed face.
+            </td>
+            <td>
+              No design language of its own — reads as competent-generic. Rayon and Krea both have a
+              point of view.
+            </td>
             <td><span class="chip part">behind</span></td>
           </tr>
           <tr>
             <td class="job">UX</td>
-            <td>Natural-language editing that folds into the same op log as a mouse edit — nobody else does this.</td>
-            <td>No onboarding, no empty-state teaching beyond the brief tab, no keyboard-shortcut layer, no command palette.</td>
+            <td>
+              Natural-language editing that folds into the same op log as a mouse edit — nobody else
+              does this.
+            </td>
+            <td>
+              No onboarding, no empty-state teaching beyond the brief tab, no keyboard-shortcut
+              layer, no command palette.
+            </td>
             <td><span class="chip part">mixed</span></td>
           </tr>
           <tr>
             <td class="job">Ease of use</td>
             <td>Runs with zero API keys and zero GPUs; a demo project opens on first login.</td>
-            <td>An architect must still understand rule packs, storeys and op branches to get value. First-run path is not guided.</td>
+            <td>
+              An architect must still understand rule packs, storeys and op branches to get value.
+              First-run path is not guided.
+            </td>
             <td><span class="chip part">behind</span></td>
           </tr>
           <tr>
             <td class="job">Security</td>
-            <td>Tenancy enforced at the repository layer and audited in CI; cross-tenant suite proves 404/403; SVG export sanitised against an allowlist; PII kept out of LLM prompts.</td>
-            <td><strong>Production is running in dev mode with OTP echo.</strong> No MFA, no session management UI, no audit trail exposed to the customer, no DPDP-Act posture.</td>
+            <td>
+              Tenancy enforced at the repository layer and audited in CI; cross-tenant suite proves
+              404/403; SVG export sanitised against an allowlist; PII kept out of LLM prompts.
+            </td>
+            <td>
+              <strong>Production is running in dev mode with OTP echo.</strong> No MFA, no session
+              management UI, no audit trail exposed to the customer, no DPDP-Act posture.
+            </td>
             <td><span class="chip risk">at risk</span></td>
           </tr>
         </tbody>
@@ -373,108 +927,632 @@
     <div class="stack g24">
       <div class="sec-head"><span class="eyebrow">The build list</span></div>
       <h2 class="col">Sixty-three items, grouped by lane</h2>
-      <p class="col">Sized <strong>S</strong> (under a day), <strong>M</strong> (a few days), <strong>L</strong> (a week or more), <strong>XL</strong> (a programme). Items marked <em class="note">blocked</em> need something I cannot supply from here — an API key, a network route, or a domain expert.</p>
+      <p class="col">
+        Sized <strong>S</strong> (under a day), <strong>M</strong> (a few days),
+        <strong>L</strong> (a week or more), <strong>XL</strong> (a programme). Items marked
+        <em class="note">blocked</em> need something I cannot supply from here — an API key, a
+        network route, or a domain expert.
+      </p>
     </div>
 
     <div class="stack g24">
-
       <div class="lane">
-        <div class="hd"><span class="t">A &middot; Assets and content</span><span class="c">11 items</span></div>
-        <div class="item"><span class="ref">A-1</span><span><span class="ttl">Procedural PBR material generator</span><span class="why">Materials carry only <code>colorHex</code>. Generate real seamless albedo/normal/roughness maps at build time — noise, weave, grain, tile grout — so 3D and renders stop looking flat. Ours by construction, so no licence question.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">A-2</span><span><span class="ttl">Material library to 400+</span><span class="why">Indian palette: kota, granite, marble, vitrified, terrazzo, IPS, exposed brick, teak, sal, MS, SS, glazing, paints.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">A-3</span><span><span class="ttl">Parametric 2D block library</span><span class="why">Plan symbols are drawing <em>conventions</em>, not art — generate them from parameters rather than sourcing them. Doors, windows, stairs, sanitary, kitchen, electrical, furniture, trees, vehicles, north arrows.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">A-4</span><span><span class="ttl">Furniture library to 800+</span><span class="why">Closest practical approach to Rayon depth without a licence risk: parametric families × size variants, all with real IS dimensions.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">A-5</span><span><span class="ttl">Door and window schedules as parametric families</span><span class="why">One family, many sizes — a schedule then writes itself from the model instead of being typed.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">A-6</span><span><span class="ttl">Sanitary and kitchen families to IS dimensions</span><span class="why">The two rooms every Indian residential reviewer checks hardest.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">A-7</span><span><span class="ttl">Asset browser with search, filter and favourites</span><span class="why">A 800-item library is worthless behind a flat list.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">A-8</span><span><span class="ttl">Firm-private asset upload</span><span class="why">Practices have their own standard details; letting them bring them is the retention hook.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">A-9</span><span><span class="ttl">Hatch pattern picker in the UI</span><span class="why">15 patterns now exist in the renderer with nothing exposing them to a user.</span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">A-10</span><span><span class="ttl">Material → hatch binding</span><span class="why">Assigning brick to a wall should make it hatch as brick in section, automatically.</span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">A-11</span><span><span class="ttl">CC0 texture ingest from an unblocked machine</span><span class="why">ambientCG and Poly Haven are genuinely CC0 and genuinely useful — and unreachable from this sandbox. Needs a one-off fetch elsewhere. <em class="note">blocked — network</em></span></span><span class="sz">S</span></div>
+        <div class="hd">
+          <span class="t">A &middot; Assets and content</span><span class="c">11 items</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-1</span
+          ><span
+            ><span class="ttl">Procedural PBR material generator</span
+            ><span class="why"
+              >Materials carry only <code>colorHex</code>. Generate real seamless
+              albedo/normal/roughness maps at build time — noise, weave, grain, tile grout — so 3D
+              and renders stop looking flat. Ours by construction, so no licence question.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-2</span
+          ><span
+            ><span class="ttl">Material library to 400+</span
+            ><span class="why"
+              >Indian palette: kota, granite, marble, vitrified, terrazzo, IPS, exposed brick, teak,
+              sal, MS, SS, glazing, paints.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-3</span
+          ><span
+            ><span class="ttl">Parametric 2D block library</span
+            ><span class="why"
+              >Plan symbols are drawing <em>conventions</em>, not art — generate them from
+              parameters rather than sourcing them. Doors, windows, stairs, sanitary, kitchen,
+              electrical, furniture, trees, vehicles, north arrows.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-4</span
+          ><span
+            ><span class="ttl">Furniture library to 800+</span
+            ><span class="why"
+              >Closest practical approach to Rayon depth without a licence risk: parametric families
+              × size variants, all with real IS dimensions.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-5</span
+          ><span
+            ><span class="ttl">Door and window schedules as parametric families</span
+            ><span class="why"
+              >One family, many sizes — a schedule then writes itself from the model instead of
+              being typed.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-6</span
+          ><span
+            ><span class="ttl">Sanitary and kitchen families to IS dimensions</span
+            ><span class="why"
+              >The two rooms every Indian residential reviewer checks hardest.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-7</span
+          ><span
+            ><span class="ttl">Asset browser with search, filter and favourites</span
+            ><span class="why">A 800-item library is worthless behind a flat list.</span></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-8</span
+          ><span
+            ><span class="ttl">Firm-private asset upload</span
+            ><span class="why"
+              >Practices have their own standard details; letting them bring them is the retention
+              hook.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-9</span
+          ><span
+            ><span class="ttl">Hatch pattern picker in the UI</span
+            ><span class="why"
+              >15 patterns now exist in the renderer with nothing exposing them to a user.</span
+            ></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-10</span
+          ><span
+            ><span class="ttl">Material → hatch binding</span
+            ><span class="why"
+              >Assigning brick to a wall should make it hatch as brick in section,
+              automatically.</span
+            ></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">A-11</span
+          ><span
+            ><span class="ttl">CC0 texture ingest from an unblocked machine</span
+            ><span class="why"
+              >ambientCG and Poly Haven are genuinely CC0 and genuinely useful — and unreachable
+              from this sandbox. Needs a one-off fetch elsewhere.
+              <em class="note">blocked — network</em></span
+            ></span
+          ><span class="sz">S</span>
+        </div>
       </div>
 
       <div class="lane">
-        <div class="hd"><span class="t">B &middot; The AI layer</span><span class="c">10 items</span></div>
-        <div class="item"><span class="ref">B-1</span><span><span class="ttl">Turn on the real Anthropic provider</span><span class="why">Adapter is built and unit-tested; <code>PROVIDER_LLM=anthropic</code> is a config flip. <em class="note">blocked — API key</em></span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">B-2</span><span><span class="ttl">Turn on the real Stability provider</span><span class="why">Same shape, for renders. <em class="note">blocked — API key</em></span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">B-3</span><span><span class="ttl">Human evaluation panel for the copilot</span><span class="why">The 40-command corpus passes against a fixture keyed on command text. That proves the pipeline, not comprehension. Needs real architects phrasing real edits.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">B-4</span><span><span class="ttl">Streaming copilot responses</span><span class="why">A 6-second silent wait reads as broken; token streaming reads as thinking.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">B-5</span><span><span class="ttl">Multi-turn copilot with project context</span><span class="why">"Now do the same on the first floor" is the second thing every user says.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">B-6</span><span><span class="ttl">AI brief parsing from voice and WhatsApp</span><span class="why">How Indian clients actually send briefs. Reuses the existing parse pipeline.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">B-7</span><span><span class="ttl">Render presets an architect recognises</span><span class="why">"Morning light, north elevation" beats a prompt box.</span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">B-8</span><span><span class="ttl">Structure-preserving render control</span><span class="why">Gendo's whole pitch. Depth/edge conditioning so the render is <em>this</em> building, not a lookalike.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">B-9</span><span><span class="ttl">AI compliance explainer</span><span class="why">Turn a failed rule into "your east setback is 1.2 m, Bengaluru wants 1.5 — here are three ways to fix it."</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">B-10</span><span><span class="ttl">Cost and spend guardrails per firm</span><span class="why">Real providers cost real money the moment B-1 lands.</span></span><span class="sz">S</span></div>
+        <div class="hd">
+          <span class="t">B &middot; The AI layer</span><span class="c">10 items</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-1</span
+          ><span
+            ><span class="ttl">Turn on the real Anthropic provider</span
+            ><span class="why"
+              >Adapter is built and unit-tested; <code>PROVIDER_LLM=anthropic</code> is a config
+              flip. <em class="note">blocked — API key</em></span
+            ></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-2</span
+          ><span
+            ><span class="ttl">Turn on the real Stability provider</span
+            ><span class="why"
+              >Same shape, for renders. <em class="note">blocked — API key</em></span
+            ></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-3</span
+          ><span
+            ><span class="ttl">Human evaluation panel for the copilot</span
+            ><span class="why"
+              >The 40-command corpus passes against a fixture keyed on command text. That proves the
+              pipeline, not comprehension. Needs real architects phrasing real edits.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-4</span
+          ><span
+            ><span class="ttl">Streaming copilot responses</span
+            ><span class="why"
+              >A 6-second silent wait reads as broken; token streaming reads as thinking.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-5</span
+          ><span
+            ><span class="ttl">Multi-turn copilot with project context</span
+            ><span class="why"
+              >"Now do the same on the first floor" is the second thing every user says.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-6</span
+          ><span
+            ><span class="ttl">AI brief parsing from voice and WhatsApp</span
+            ><span class="why"
+              >How Indian clients actually send briefs. Reuses the existing parse pipeline.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-7</span
+          ><span
+            ><span class="ttl">Render presets an architect recognises</span
+            ><span class="why">"Morning light, north elevation" beats a prompt box.</span></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-8</span
+          ><span
+            ><span class="ttl">Structure-preserving render control</span
+            ><span class="why"
+              >Gendo's whole pitch. Depth/edge conditioning so the render is <em>this</em> building,
+              not a lookalike.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-9</span
+          ><span
+            ><span class="ttl">AI compliance explainer</span
+            ><span class="why"
+              >Turn a failed rule into "your east setback is 1.2 m, Bengaluru wants 1.5 — here are
+              three ways to fix it."</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">B-10</span
+          ><span
+            ><span class="ttl">Cost and spend guardrails per firm</span
+            ><span class="why">Real providers cost real money the moment B-1 lands.</span></span
+          ><span class="sz">S</span>
+        </div>
       </div>
 
       <div class="lane">
-        <div class="hd"><span class="t">C &middot; The plan editor</span><span class="c">10 items</span></div>
-        <div class="item"><span class="ref">C-1</span><span><span class="ttl">Command palette</span><span class="why">The single highest-leverage UX addition to any tool of this shape.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">C-2</span><span><span class="ttl">Full keyboard shortcut layer with a cheatsheet</span><span class="why">CAD users navigate by keyboard; a mouse-only editor reads as a toy.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">C-3</span><span><span class="ttl">Geometric constraints — parallel, equal, collinear</span><span class="why">Rayon's core competence and the difference between drawing and drafting.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">C-4</span><span><span class="ttl">Measure and dimension tools on canvas</span><span class="why">Architects measure constantly while drawing.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">C-5</span><span><span class="ttl">Copy / paste / array / mirror</span><span class="why">Table stakes; their absence is felt within a minute.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">C-6</span><span><span class="ttl">Layer manager with visibility and lock</span><span class="why">Nine layers exist in the model with no UI to control them.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">C-7</span><span><span class="ttl">Named views and saved cameras</span><span class="why">Jumping between "kitchen detail" and "whole plan" all day.</span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">C-8</span><span><span class="ttl">Version branches with visual compare</span><span class="why">J-08. The op log already supports branching; nothing surfaces it.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">C-9</span><span><span class="ttl">Multi-storey navigation and storey copy</span><span class="why">G+2 is the default Indian residential job.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">C-10</span><span><span class="ttl">Touch and stylus support</span><span class="why">Site visits happen on tablets.</span></span><span class="sz">M</span></div>
+        <div class="hd">
+          <span class="t">C &middot; The plan editor</span><span class="c">10 items</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-1</span
+          ><span
+            ><span class="ttl">Command palette</span
+            ><span class="why"
+              >The single highest-leverage UX addition to any tool of this shape.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-2</span
+          ><span
+            ><span class="ttl">Full keyboard shortcut layer with a cheatsheet</span
+            ><span class="why"
+              >CAD users navigate by keyboard; a mouse-only editor reads as a toy.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-3</span
+          ><span
+            ><span class="ttl">Geometric constraints — parallel, equal, collinear</span
+            ><span class="why"
+              >Rayon's core competence and the difference between drawing and drafting.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-4</span
+          ><span
+            ><span class="ttl">Measure and dimension tools on canvas</span
+            ><span class="why">Architects measure constantly while drawing.</span></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-5</span
+          ><span
+            ><span class="ttl">Copy / paste / array / mirror</span
+            ><span class="why">Table stakes; their absence is felt within a minute.</span></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-6</span
+          ><span
+            ><span class="ttl">Layer manager with visibility and lock</span
+            ><span class="why"
+              >Nine layers exist in the model with no UI to control them.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-7</span
+          ><span
+            ><span class="ttl">Named views and saved cameras</span
+            ><span class="why"
+              >Jumping between "kitchen detail" and "whole plan" all day.</span
+            ></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-8</span
+          ><span
+            ><span class="ttl">Version branches with visual compare</span
+            ><span class="why"
+              >J-08. The op log already supports branching; nothing surfaces it.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-9</span
+          ><span
+            ><span class="ttl">Multi-storey navigation and storey copy</span
+            ><span class="why">G+2 is the default Indian residential job.</span></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">C-10</span
+          ><span
+            ><span class="ttl">Touch and stylus support</span
+            ><span class="why">Site visits happen on tablets.</span></span
+          ><span class="sz">M</span>
+        </div>
       </div>
 
       <div class="lane">
-        <div class="hd"><span class="t">D &middot; Drawings and compliance — the moat</span><span class="c">9 items</span></div>
-        <div class="item"><span class="ref">D-1</span><span><span class="ttl">Revision management with clouds and an issue register</span><span class="why">J-23, entirely missing, and the thing that makes a set <em>professional</em>.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">D-2</span><span><span class="ttl">Working / GFC drawing set beyond the submission set</span><span class="why">The fee is earned twice: once at submission, once at construction.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">D-3</span><span><span class="ttl">Sheet layout editor</span><span class="why">Every practice wants its own title block and sheet composition.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">D-4</span><span><span class="ttl">Per-city submission templates</span><span class="why">BBMP, BDA, NCR and GHMC each want a different set. This is the real localisation.</span></span><span class="sz">XL</span></div>
-        <div class="item"><span class="ref">D-5</span><span><span class="ttl">Citation surface on every compliance number</span><span class="why">J-20. Clause text, source, confidence, reviewer — visible where the number is.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">D-6</span><span><span class="ttl">Area statement to municipal format</span><span class="why">Reviewers reject on format before they read the numbers.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">D-7</span><span><span class="ttl">Structural and services layer stubs</span><span class="why">Column grid and drainage lines, so the set is not obviously architecture-only.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">D-8</span><span><span class="ttl">DWG export via an ODA-compatible route</span><span class="why">Consultants ask for DWG, not DXF. LibreDWG is GPL and refused by our licence gate, so this needs a commercial component or an isolated process.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">D-9</span><span><span class="ttl">Rule-pack review workflow</span><span class="why">Per-city, per-rule sign-off recorded in the pack itself: reviewer, date, source document, confidence promoted from <code>seed</code>. The machinery the architect panel needs to work against. <em class="note">partly blocked — needs the panel</em></span></span><span class="sz">L</span></div>
+        <div class="hd">
+          <span class="t">D &middot; Drawings and compliance — the moat</span
+          ><span class="c">9 items</span>
+        </div>
+        <div class="item">
+          <span class="ref">D-1</span
+          ><span
+            ><span class="ttl">Revision management with clouds and an issue register</span
+            ><span class="why"
+              >J-23, entirely missing, and the thing that makes a set <em>professional</em>.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">D-2</span
+          ><span
+            ><span class="ttl">Working / GFC drawing set beyond the submission set</span
+            ><span class="why"
+              >The fee is earned twice: once at submission, once at construction.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">D-3</span
+          ><span
+            ><span class="ttl">Sheet layout editor</span
+            ><span class="why"
+              >Every practice wants its own title block and sheet composition.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">D-4</span
+          ><span
+            ><span class="ttl">Per-city submission templates</span
+            ><span class="why"
+              >BBMP, BDA, NCR and GHMC each want a different set. This is the real
+              localisation.</span
+            ></span
+          ><span class="sz">XL</span>
+        </div>
+        <div class="item">
+          <span class="ref">D-5</span
+          ><span
+            ><span class="ttl">Citation surface on every compliance number</span
+            ><span class="why"
+              >J-20. Clause text, source, confidence, reviewer — visible where the number is.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">D-6</span
+          ><span
+            ><span class="ttl">Area statement to municipal format</span
+            ><span class="why">Reviewers reject on format before they read the numbers.</span></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">D-7</span
+          ><span
+            ><span class="ttl">Structural and services layer stubs</span
+            ><span class="why"
+              >Column grid and drainage lines, so the set is not obviously architecture-only.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">D-8</span
+          ><span
+            ><span class="ttl">DWG export via an ODA-compatible route</span
+            ><span class="why"
+              >Consultants ask for DWG, not DXF. LibreDWG is GPL and refused by our licence gate, so
+              this needs a commercial component or an isolated process.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">D-9</span
+          ><span
+            ><span class="ttl">Rule-pack review workflow</span
+            ><span class="why"
+              >Per-city, per-rule sign-off recorded in the pack itself: reviewer, date, source
+              document, confidence promoted from <code>seed</code>. The machinery the architect
+              panel needs to work against.
+              <em class="note">partly blocked — needs the panel</em></span
+            ></span
+          ><span class="sz">L</span>
+        </div>
       </div>
 
       <div class="lane">
-        <div class="hd"><span class="t">E &middot; Design and UX</span><span class="c">8 items</span></div>
-        <div class="item"><span class="ref">E-1</span><span><span class="ttl">A visual identity of its own</span><span class="why">Currently competent-generic. Drafting vernacular is right there and unused.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">E-2</span><span><span class="ttl">Guided first-run: plot → brief → generate → sheet in under five minutes</span><span class="why">The single biggest activation lever.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">E-3</span><span><span class="ttl">Empty states that teach</span><span class="why">Every tab should say what to do next when it has nothing.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">E-4</span><span><span class="ttl">Progressive disclosure of rule packs</span><span class="why">An architect should not meet the words "rule pack" on day one.</span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">E-5</span><span><span class="ttl">Mobile and tablet review mode</span><span class="why">Clients open links on phones; today they get a desktop canvas.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">E-6</span><span><span class="ttl">Accessibility pass to WCAG AA</span><span class="why">Focus states, contrast, screen-reader labels, reduced motion.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">E-7</span><span><span class="ttl">Hindi and regional language shell</span><span class="why">India-first should mean it in the interface, not only in the bye-laws.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">E-8</span><span><span class="ttl">Visual regression baseline</span><span class="why">Zero baseline files today; the suite has never run.</span></span><span class="sz">S</span></div>
+        <div class="hd">
+          <span class="t">E &middot; Design and UX</span><span class="c">8 items</span>
+        </div>
+        <div class="item">
+          <span class="ref">E-1</span
+          ><span
+            ><span class="ttl">A visual identity of its own</span
+            ><span class="why"
+              >Currently competent-generic. Drafting vernacular is right there and unused.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">E-2</span
+          ><span
+            ><span class="ttl"
+              >Guided first-run: plot → brief → generate → sheet in under five minutes</span
+            ><span class="why">The single biggest activation lever.</span></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">E-3</span
+          ><span
+            ><span class="ttl">Empty states that teach</span
+            ><span class="why"
+              >Every tab should say what to do next when it has nothing.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">E-4</span
+          ><span
+            ><span class="ttl">Progressive disclosure of rule packs</span
+            ><span class="why"
+              >An architect should not meet the words "rule pack" on day one.</span
+            ></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">E-5</span
+          ><span
+            ><span class="ttl">Mobile and tablet review mode</span
+            ><span class="why"
+              >Clients open links on phones; today they get a desktop canvas.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">E-6</span
+          ><span
+            ><span class="ttl">Accessibility pass to WCAG AA</span
+            ><span class="why"
+              >Focus states, contrast, screen-reader labels, reduced motion.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">E-7</span
+          ><span
+            ><span class="ttl">Hindi and regional language shell</span
+            ><span class="why"
+              >India-first should mean it in the interface, not only in the bye-laws.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">E-8</span
+          ><span
+            ><span class="ttl">Visual regression baseline</span
+            ><span class="why">Zero baseline files today; the suite has never run.</span></span
+          ><span class="sz">S</span>
+        </div>
       </div>
 
       <div class="lane">
-        <div class="hd"><span class="t">F &middot; Security and trust</span><span class="c">8 items</span></div>
-        <div class="item"><span class="ref">F-1</span><span><span class="ttl">Move production to <code>APP_ENV=prod</code></span><span class="why">Closes the OTP-echo hole. Requires F-2 first or nobody can sign in.</span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">F-2</span><span><span class="ttl">Real mail delivery on the deployed stack</span><span class="why">The mailer is built; the deployment has no <code>SMTP_HOST</code>. <em class="note">blocked — SMTP credentials</em></span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">F-3</span><span><span class="ttl">Session management UI — devices, revoke</span><span class="why">Refresh-token families and generations already exist server-side with nothing exposing them.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">F-4</span><span><span class="ttl">Two-factor authentication</span><span class="why">Table stakes for a tool holding clients' property drawings.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">F-5</span><span><span class="ttl">Customer-visible audit trail</span><span class="why"><code>audit_log</code> is written and never shown.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">F-6</span><span><span class="ttl">DPDP Act posture — retention, export, erasure</span><span class="why">Indian data-protection law applies to exactly this data.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">F-7</span><span><span class="ttl">Rate limiting on every expensive route</span><span class="why">LLM routes are limited; solver, render and export are not.</span></span><span class="sz">S</span></div>
-        <div class="item"><span class="ref">F-8</span><span><span class="ttl">Penetration test before public launch</span><span class="why">The tenancy guard is good; it has never been attacked by someone trying.</span></span><span class="sz">M</span></div>
+        <div class="hd">
+          <span class="t">F &middot; Security and trust</span><span class="c">8 items</span>
+        </div>
+        <div class="item">
+          <span class="ref">F-1</span
+          ><span
+            ><span class="ttl">Move production to <code>APP_ENV=prod</code></span
+            ><span class="why"
+              >Closes the OTP-echo hole. Requires F-2 first or nobody can sign in.</span
+            ></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">F-2</span
+          ><span
+            ><span class="ttl">Real mail delivery on the deployed stack</span
+            ><span class="why"
+              >The mailer is built; the deployment has no <code>SMTP_HOST</code>.
+              <em class="note">blocked — SMTP credentials</em></span
+            ></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">F-3</span
+          ><span
+            ><span class="ttl">Session management UI — devices, revoke</span
+            ><span class="why"
+              >Refresh-token families and generations already exist server-side with nothing
+              exposing them.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">F-4</span
+          ><span
+            ><span class="ttl">Two-factor authentication</span
+            ><span class="why"
+              >Table stakes for a tool holding clients' property drawings.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">F-5</span
+          ><span
+            ><span class="ttl">Customer-visible audit trail</span
+            ><span class="why"><code>audit_log</code> is written and never shown.</span></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">F-6</span
+          ><span
+            ><span class="ttl">DPDP Act posture — retention, export, erasure</span
+            ><span class="why">Indian data-protection law applies to exactly this data.</span></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">F-7</span
+          ><span
+            ><span class="ttl">Rate limiting on every expensive route</span
+            ><span class="why"
+              >LLM routes are limited; solver, render and export are not.</span
+            ></span
+          ><span class="sz">S</span>
+        </div>
+        <div class="item">
+          <span class="ref">F-8</span
+          ><span
+            ><span class="ttl">Penetration test before public launch</span
+            ><span class="why"
+              >The tenancy guard is good; it has never been attacked by someone trying.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
       </div>
 
       <div class="lane">
-        <div class="hd"><span class="t">G &middot; Commercial</span><span class="c">7 items</span></div>
-        <div class="item"><span class="ref">G-1</span><span><span class="ttl">Razorpay billing</span><span class="why">J-25. Only a config enum and a log-scrubber key exist today — there is no implementation. You cannot take money.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">G-2</span><span><span class="ttl">Plans, quotas and the upgrade path</span><span class="why">Metering is already written to <code>credit_events</code>; nothing enforces or sells against it.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">G-3</span><span><span class="ttl">GST-compliant invoicing</span><span class="why">Indian practices cannot expense a receipt without a GSTIN on it.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">G-4</span><span><span class="ttl">Team seats and roles</span><span class="why">Firms buy per practice, not per person.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">G-5</span><span><span class="ttl">Fee and area estimator</span><span class="why">J-02, unserved by anyone, and the reason an architect opens the tool before they have a project.</span></span><span class="sz">M</span></div>
-        <div class="item"><span class="ref">G-6</span><span><span class="ttl">Onboarding for a practice, not a person</span><span class="why">Import the firm's title block, standards and past projects on day one.</span></span><span class="sz">L</span></div>
-        <div class="item"><span class="ref">G-7</span><span><span class="ttl">Usage analytics and activation funnel</span><span class="why">You cannot improve activation you cannot see.</span></span><span class="sz">M</span></div>
+        <div class="hd">
+          <span class="t">G &middot; Commercial</span><span class="c">7 items</span>
+        </div>
+        <div class="item">
+          <span class="ref">G-1</span
+          ><span
+            ><span class="ttl">Razorpay billing</span
+            ><span class="why"
+              >J-25. Only a config enum and a log-scrubber key exist today — there is no
+              implementation. You cannot take money.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">G-2</span
+          ><span
+            ><span class="ttl">Plans, quotas and the upgrade path</span
+            ><span class="why"
+              >Metering is already written to <code>credit_events</code>; nothing enforces or sells
+              against it.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">G-3</span
+          ><span
+            ><span class="ttl">GST-compliant invoicing</span
+            ><span class="why"
+              >Indian practices cannot expense a receipt without a GSTIN on it.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">G-4</span
+          ><span
+            ><span class="ttl">Team seats and roles</span
+            ><span class="why">Firms buy per practice, not per person.</span></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">G-5</span
+          ><span
+            ><span class="ttl">Fee and area estimator</span
+            ><span class="why"
+              >J-02, unserved by anyone, and the reason an architect opens the tool before they have
+              a project.</span
+            ></span
+          ><span class="sz">M</span>
+        </div>
+        <div class="item">
+          <span class="ref">G-6</span
+          ><span
+            ><span class="ttl">Onboarding for a practice, not a person</span
+            ><span class="why"
+              >Import the firm's title block, standards and past projects on day one.</span
+            ></span
+          ><span class="sz">L</span>
+        </div>
+        <div class="item">
+          <span class="ref">G-7</span
+          ><span
+            ><span class="ttl">Usage analytics and activation funnel</span
+            ><span class="why">You cannot improve activation you cannot see.</span></span
+          ><span class="sz">M</span>
+        </div>
       </div>
-
     </div>
   </section>
 
   <section class="stack g16">
     <div class="sec-head"><span class="eyebrow">How to read this</span></div>
-    <p class="col">Nothing here is a guess about our own state — every <em>Ours</em> column and every "does not exist" was checked against the running code on 28 August 2026. Competitor rows are pitched at the job, not the feature list. Where an item says <em class="note">blocked</em>, it is waiting on a key, a network route or a person, and no amount of engineering moves it.</p>
+    <p class="col">
+      Nothing here is a guess about our own state — every <em>Ours</em> column and every "does not
+      exist" was checked against the running code on 28 August 2026. Competitor rows are pitched at
+      the job, not the feature list. Where an item says <em class="note">blocked</em>, it is waiting
+      on a key, a network route or a person, and no amount of engineering moves it.
+    </p>
   </section>
-
 </div>
