@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Any
 
 from services.common.errors import InvalidJobError
@@ -291,6 +292,49 @@ def _parse_rooms(raw_rooms: Any) -> tuple[RoomRequest, ...]:
             used.add(key)
             out.append(_parse_room(entry, index, key=key))
             index += 1
+    return _with_sizes(tuple(out))
+
+
+def _with_sizes(rooms: tuple[RoomRequest, ...]) -> tuple[RoomRequest, ...]:
+    """Last line of defence: no room reaches Stage A without a size.
+
+    The parse path fills sizes in when a client's words are turned into a brief, but
+    that is not the only way a brief is authored — the Brief form writes rooms
+    directly, an import can, and a future caller will. A room that arrives here with
+    zero area is not a small room; it is a room the tiler cannot place, and the whole
+    run comes back "succeeded" with no options and nothing to explain it.
+
+    So the floor is applied here too, from the same rule-pack numbers, and it is
+    LOGGED — a default that silently rescues a malformed brief teaches nobody that the
+    brief was malformed.
+    """
+    try:
+        from services.llm.room_defaults import default_for
+    except ImportError:  # a solver image without the llm tree: leave the values alone
+        return rooms
+
+    out: list[RoomRequest] = []
+    patched: list[str] = []
+    for room in rooms:
+        if room.min_area_mm2 > 0 and room.min_width_mm > 0:
+            out.append(room)
+            continue
+        sized = default_for(room.room_type)
+        patched.append(room.key)
+        out.append(
+            replace(
+                room,
+                min_area_mm2=room.min_area_mm2 or sized.min_area_mm2,
+                target_area_mm2=room.target_area_mm2 or sized.target_area_mm2,
+                min_width_mm=room.min_width_mm or sized.min_width_mm,
+            )
+        )
+    if patched:
+        log.warning(
+            "solver.brief.rooms_unsized",
+            rooms=",".join(patched),
+            note="brief reached the solver without room sizes; code minimums applied",
+        )
     return tuple(out)
 
 

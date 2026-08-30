@@ -140,3 +140,32 @@ def test_sizes_survive_the_expansion() -> None:
         assert room.min_area_mm2 == 9_500_000
         assert room.target_area_mm2 == 11_500_000
         assert room.min_width_mm == 3_000
+
+
+# ===========================================================================
+# The size floor — no room reaches Stage A without one
+# ===========================================================================
+def test_a_room_with_no_size_is_given_the_code_minimum() -> None:
+    """The parse path fills sizes in, but it is not the only way a brief is authored —
+    the Brief form writes rooms directly, and an import can. A zero-area room is not a
+    small room; it is one the tiler cannot place, and the run comes back "succeeded"
+    with nothing to show for it."""
+    rooms = _parse_rooms([{"type": "bedroom", "count": 1}])
+    assert rooms[0].min_area_mm2 > 0
+    assert rooms[0].target_area_mm2 > 0
+    assert rooms[0].min_width_mm > 0
+
+
+def test_the_floor_never_shrinks_a_size_the_brief_stated() -> None:
+    """Negative control: a floor that overwrote a real number would silently reshape
+    the client's programme."""
+    rooms = _parse_rooms(
+        [{"type": "bedroom", "count": 1, "minAreaMm2": 14_000_000, "minWidthMm": 3_600}]
+    )
+    assert rooms[0].min_area_mm2 == 14_000_000
+    assert rooms[0].min_width_mm == 3_600
+
+
+def test_the_floor_applies_to_every_expanded_room() -> None:
+    rooms = _parse_rooms([{"type": "bath_wc", "count": 2}])
+    assert all(r.min_area_mm2 > 0 and r.min_width_mm > 0 for r in rooms)
