@@ -268,6 +268,7 @@ def default_stage_set() -> StageSet:
         *,
         profile: SolverProfile,
         relaxed: bool = False,
+        shortfalls: list[Any] | None = None,
     ) -> Candidate | None:
         return _call_with_supported(
             stages.stage_a_topology,
@@ -278,6 +279,9 @@ def default_stage_set() -> StageSet:
             relaxed=relaxed,
             time_budget_seconds=profile.time_budget_seconds or 0,
             num_search_workers=profile.num_search_workers,
+            # Collected so a run that produces nothing can say WHY. `_call_with_supported`
+            # drops the keyword for a stage implementation that predates it.
+            shortfalls=shortfalls,
         )
 
     def build_ops(
@@ -497,6 +501,9 @@ async def run_solver(context: SolveContext) -> SolveResult:
     # -- §5.2 stage A per candidate, parallel within the pool budget -------
     await announce("topology", stairCandidates=len(anchors))
     checkpoint: dict[str, Any] = dict(context.resume_state or {})
+    # Why each storey failed, collected across every anchor. Only read when the run
+    # ends with nothing to show — then it is the only thing the architect gets.
+    shortfalls: list[Any] = []
     candidates = await _solve_candidates(
         context,
         grid,
@@ -506,6 +513,7 @@ async def run_solver(context: SolveContext) -> SolveResult:
         relaxed=False,
         checkpoint=checkpoint,
         discard=discard,
+        shortfalls=shortfalls,
     )
 
     scored = await _refine_and_score(
@@ -526,7 +534,7 @@ async def run_solver(context: SolveContext) -> SolveResult:
         discarded=len(discards),
         discards=discards[:20],
     )
-    result = finalise(scored, envelope, target=params.target_option_count)
+    result = finalise(scored, envelope, target=params.target_option_count, shortfalls=shortfalls)
 
     # -- §5.6: relax soft weights ONCE when fewer than target cleared ------
     if gates.should_relax_and_retry(
@@ -543,6 +551,7 @@ async def run_solver(context: SolveContext) -> SolveResult:
                 relaxed=True,
                 checkpoint=None,  # the relax pass is cheap to redo; never checkpointed
                 discard=discard,
+                shortfalls=shortfalls,
             )
             relaxed_scored = await _refine_and_score(
                 context,
@@ -556,7 +565,9 @@ async def run_solver(context: SolveContext) -> SolveResult:
                 relaxed=True,
             )
             combined = _dedupe_by_id(tuple(scored) + tuple(relaxed_scored))
-            result = finalise(combined, envelope, target=params.target_option_count)
+            result = finalise(
+                combined, envelope, target=params.target_option_count, shortfalls=shortfalls
+            )
         else:
             log.warning(
                 "solver.relax_unsupported",
@@ -595,6 +606,7 @@ async def _solve_candidates(
     stage_set: StageSet,
     relaxed: bool,
     checkpoint: dict[str, Any] | None,
+    shortfalls: list[Any] | None = None,
     discard: Callable[[str, str, str], None],
 ) -> list[Candidate]:
     """Stage A once per stair anchor, ``candidate_parallelism`` at a time.
@@ -632,6 +644,7 @@ async def _solve_candidates(
                 anchor,
                 profile=profile,
                 relaxed=relaxed,
+                shortfalls=shortfalls,
             )
         if candidate is None:
             discard(anchor.id, "stage-a", "no feasible topology for this stair anchor")
@@ -761,6 +774,7 @@ def finalise(
     envelope: BuildableEnvelope,
     *,
     target: int = gates.TARGET_OPTION_COUNT,
+    shortfalls: Sequence[Any] = (),
 ) -> SolveResult:
     """Gate, diversify and rank. Pure logic over scored options.
 
@@ -775,10 +789,18 @@ def finalise(
             log.info("solver.gate_rejected", option_id=option_id, reasons=list(result.reasons))
 
     options = select_diverse(presentable, limit=max(target, gates.TARGET_OPTION_COUNT))
+    # With nothing to show, the banner is the only thing the architect gets. Stage A's
+    # diagnosis beats the generic count message there: "you are 8 m² short on the ground
+    # floor" is something to act on; "0 options" is not.
+    banner = gates.banner_for(len(options), target=target)
+    if not options and shortfalls:
+        from services.solver.diagnose import shortfall_banner
+
+        banner = shortfall_banner(list(shortfalls)) or banner
     return SolveResult(
         options=options,
         envelope=envelope,
-        banner=gates.banner_for(len(options), target=target),
+        banner=banner,
         considered=len(scored),
         rejected_by_gates=rejected,
     )

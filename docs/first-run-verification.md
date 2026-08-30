@@ -74,17 +74,39 @@ All three were silent: no error, no log, a job that still reported success.
 
 Six gates cover these, each broken on purpose and observed to fail.
 
-## Still open
+## A fourth defect, found with the diagnostic
 
-Fixing all three did **not** make a typed brief generate options on a 30 × 40 ft plot.
-Stage A still reports `infeasible` for every stair anchor. The demo brief remains the
-only input that solves.
+Stage A now says *why* a storey did not tile (`services/solver/diagnose.py`), and the
+first thing it said settled the question:
 
-What is now known: it is not the sizes, not the counts, and not the storey pins. What is
-not known is what else the demo brief carries that a derived one does not. The next step
-is a feasibility diagnostic — Stage A should be able to say *which* constraint it could
-not satisfy, and today it says only "infeasible", which is why this took a bisection
-rather than a read.
+> The rooms on this floor need about 62.8 m² once circulation is allowed for, and the
+> buildable area after setbacks is 55.9 m² — about 6.9 m² short.
 
-Until that is closed, **the product cannot take a new user from their own brief to a
-plan.** The demo works; a real project does not.
+62.8 m² is the *whole* programme. On a G+1 the ground floor should carry roughly half —
+so every room was landing on one storey.
+
+4. **The brief's `storeys` was read by nothing.** `_resolve_storeys` checked the
+   request, the model, then `floorsAboveGround`, then fell back to 1. `floorsAboveGround`
+   is G+n, which the seeded demo writes; `storeys` is the total, which the brief parser
+   emits for the same house. A typed brief therefore resolved to ONE storey and the whole
+   3BHK was piled onto the ground floor. The demo escaped it by writing the other
+   spelling — which is why the demo was the only project that generated anything.
+
+That is the same class as the other three, and the fourth instance of it: a field
+written under one name and read under another, failing silently.
+
+## Where it stands now
+
+With all four fixed, the ground floor tiles. The failure moved up:
+
+> The rooms fit this floor by area (41.9 m² needed, 55.9 m² available), but no
+> arrangement satisfied every constraint at once.
+
+That is a different problem and the diagnostic says so rather than guessing — six rooms
+on the upper floor have room by area but no arrangement satisfying adjacency, external
+wall and aspect constraints together. It is solver tuning, not plumbing: the remaining
+work is in the constraint model, not in fields that do not reach it.
+
+**A new user still does not get plan options.** What changed is that they are now told
+something true and actionable instead of "no workable layout", and the next engineer has
+a number to work from instead of a bisection.

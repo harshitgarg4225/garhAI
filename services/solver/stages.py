@@ -119,11 +119,16 @@ def stage_a_topology(
     relaxed: bool = False,
     time_budget_seconds: int | None = None,
     num_search_workers: int | None = None,
+    shortfalls: list[Any] | None = None,
 ) -> Candidate | None:
     """§5.2 stage A: CP-SAT room topology on the 300mm module.
 
     Returns ``None`` when the model is infeasible for this stair anchor — an expected
     outcome, not an error, since the pipeline tries several anchors.
+
+    ``shortfalls``, when given, collects a :class:`~services.solver.diagnose.
+    StoreyShortfall` per storey that failed, so the pipeline can tell the architect
+    WHY rather than only that. Opt-in, so every existing caller is unaffected.
 
     Delegates to :func:`services.solver.stage_a.stage_a_topology` (needs ``ortools``),
     which accepts both calling generations: the pipeline's ``profile``/``relaxed``
@@ -140,6 +145,7 @@ def stage_a_topology(
         relaxed=relaxed,
         time_budget_seconds=time_budget_seconds,
         num_search_workers=num_search_workers,
+        shortfalls=shortfalls,
     )
 
 

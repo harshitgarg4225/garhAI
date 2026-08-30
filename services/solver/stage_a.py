@@ -70,6 +70,7 @@ from typing import TYPE_CHECKING, Any
 
 from services.common.logging import get_logger
 from services.solver import stairs as stairs_mod
+from services.solver.diagnose import diagnose_storey
 from services.solver.envelope import derive_envelope
 from services.solver.geometry import Pt, bbox
 from services.solver.grid import (
@@ -1705,6 +1706,7 @@ def stage_a_topology(
     program: RoomProgram | None = None,
     rulepack_root: str | None = None,
     weights: StageAWeights | None = None,
+    shortfalls: list[Any] | None = None,
 ) -> Candidate | None:
     """§5.2 stage A for one stair candidate. ``None`` == infeasible, not an error.
 
@@ -1894,12 +1896,28 @@ def stage_a_topology(
             problem, params, profile, budgets[position], grid_origin, module_mm
         )
         if solution is None:
+            # Say WHY, not just that. "infeasible" was the only word this had, which
+            # made the Options screen's "no workable layout" the end of the road for
+            # the architect and a bisection for anyone debugging it.
+            shortfall = diagnose_storey(
+                storey_index=storey_index,
+                rooms=problem.rooms,
+                cols=problem.cols,
+                rows=problem.rows,
+                net_cap_cells=problem.net_cap_cells,
+                module_mm=module_mm,
+            )
             log.info(
                 "solver.stage_a.infeasible",
                 storey=storey_index,
                 anchor=anchor.id,
                 relaxed=relaxed,
+                shortfall=shortfall.kind,
+                proved=shortfall.proved,
+                reason=shortfall.message,
             )
+            if shortfalls is not None:
+                shortfalls.append(shortfall)
             return None
         solutions[storey_index] = solution
         if shaft_core is None:

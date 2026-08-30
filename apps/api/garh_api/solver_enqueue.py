@@ -249,7 +249,18 @@ def _brief_declarations(brief_data: Mapping[str, Any]) -> dict[str, Any]:
 def _resolve_storeys(
     requested: int | None, document: Mapping[str, Any], brief_data: Mapping[str, Any]
 ) -> int:
-    """The request's storeys, else the document's, else the brief's G+n, else 1."""
+    """The request's storeys, else the document's, else the brief's, else 1.
+
+    The brief states this two ways and BOTH are read, which is the point of this
+    docstring. ``floorsAboveGround`` is G+n — the seeded demo writes ``1`` for a G+1 —
+    and ``storeys`` is the total, which is what the brief parser emits for the same
+    house. Only the first was read, so a brief a user typed resolved to ONE storey: the
+    whole 3BHK programme was piled onto the ground floor, Stage A found it 7 m² short
+    of the buildable area, and the run returned no options. The demo escaped it by
+    writing the other spelling.
+
+    They are not interchangeable and are not treated as such: G+1 is 2 storeys.
+    """
     if isinstance(requested, int) and requested >= 1:
         return min(MAX_SOLVER_STOREYS, requested)
     modelled = len(list((document.get("house") or {}).get("storeys") or ()))
@@ -258,6 +269,9 @@ def _resolve_storeys(
     floors = brief_data.get("floorsAboveGround")
     if isinstance(floors, int) and not isinstance(floors, bool) and floors >= 0:
         return min(MAX_SOLVER_STOREYS, floors + 1)
+    total = brief_data.get("storeys")
+    if isinstance(total, int) and not isinstance(total, bool) and total >= 1:
+        return min(MAX_SOLVER_STOREYS, total)
     return 1
 
 
