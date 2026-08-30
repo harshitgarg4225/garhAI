@@ -122,7 +122,7 @@ def _parse_params(payload: Mapping[str, Any], *, kind: str) -> SolveParams:
         else {},
     )
 
-    rooms = tuple(_parse_room(item, index) for index, item in enumerate(brief.get("rooms") or []))
+    rooms = _parse_rooms(brief.get("rooms") or [])
     if not rooms:
         raise InvalidJobError(
             "This brief doesn't list any rooms yet.",
@@ -239,9 +239,65 @@ def _parse_edges(raw: Any, *, edge_count: int) -> tuple[PlotEdge, ...]:
     return tuple(edges)
 
 
-def _parse_room(raw: Any, index: int) -> RoomRequest:
+#: Most rooms a single brief entry may expand to. A typo of 400 bedrooms must not
+#: become 400 RoomRequests and a solver run nobody cancels; the cap refuses loudly
+#: through ``_int`` rather than silently truncating.
+MAX_ROOM_COUNT = 12
+
+
+def _optional_storey(entry: Mapping[str, Any], index: int) -> int | None:
+    """The storey a room is pinned to, under either spelling, or ``None``."""
+    for name in ("storeyIndex", "storey"):
+        value = entry.get(name)
+        if value is not None:
+            return _int(value, "brief.rooms[%d].%s" % (index, name), 0)
+    return None
+
+
+def _parse_rooms(raw_rooms: Any) -> tuple[RoomRequest, ...]:
+    """The brief's room list → one :class:`RoomRequest` per room the client asked for.
+
+    ``count`` is expanded here, and that is the whole reason this function exists.
+    Before it, ``{"type": "bedroom", "count": 2}`` produced ONE room: the count was
+    read by nothing, so a client who asked for two identical bedrooms silently got
+    one, and a brief that listed the same type twice collided on its key and lost a
+    room. The only brief in the product that survived was the seeded demo's, which
+    works around it by giving every room a distinct type — ``guest_bedroom`` rather
+    than a second ``bedroom`` — and says so in its own docstring.
+
+    Keys follow ``build_program_from_brief``'s convention (``bedroom``, ``bedroom2``,
+    …) so the two paths into the solver name the same rooms the same way.
+    """
+    out: list[RoomRequest] = []
+    used: set[str] = set()
+    index = 0
+    for entry_index, raw in enumerate(raw_rooms):
+        entry = _require_mapping(raw, "brief.rooms[%d]" % entry_index)
+        count = _int(
+            entry.get("count", 1), "brief.rooms[%d].count" % entry_index, 1, MAX_ROOM_COUNT
+        )
+        room_type = str(entry.get("type") or "unassigned")
+        base = str(entry.get("key") or room_type or "room%d" % index)
+        for _occurrence in range(count):
+            # Uniqueness is tracked across the WHOLE list, not merely within this
+            # entry. A brief may legitimately list `bedroom` twice with different
+            # sizes, and suffixing per-entry would hand both the bare key — the same
+            # collision one layer up, and still a silently lost room.
+            key = base
+            suffix = 1
+            while key in used:
+                suffix += 1
+                key = "%s%d" % (base, suffix)
+            used.add(key)
+            out.append(_parse_room(entry, index, key=key))
+            index += 1
+    return tuple(out)
+
+
+def _parse_room(raw: Any, index: int, *, key: str | None = None) -> RoomRequest:
     entry = _require_mapping(raw, "brief.rooms[%d]" % index)
-    key = str(entry.get("key") or entry.get("type") or "room%d" % index)
+    if key is None:
+        key = str(entry.get("key") or entry.get("type") or "room%d" % index)
     return RoomRequest(
         key=key,
         room_type=str(entry.get("type") or "unassigned"),
@@ -253,11 +309,11 @@ def _parse_room(raw: Any, index: int) -> RoomRequest:
         max_aspect_x100=_int(
             entry.get("maxAspectX100", 220), "brief.rooms[%d].maxAspectX100" % index, 100
         ),
-        storey_index=(
-            _int(entry["storeyIndex"], "brief.rooms[%d].storeyIndex" % index, 0)
-            if entry.get("storeyIndex") is not None
-            else None
-        ),
+        # BOTH spellings. The worker payload calls it ``storeyIndex``; the brief
+        # document — what the API forwards verbatim — calls it ``storey``. Only the
+        # first was read, so every storey pin an architect set on the Brief tab was
+        # silently discarded, including the seeded demo's own two.
+        storey_index=_optional_storey(entry, index),
         needs_external_wall=bool(entry.get("needsExternalWall", True)),
         is_wet=bool(entry.get("isWet", False)),
         locked=bool(entry.get("locked", False)),

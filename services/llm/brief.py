@@ -20,6 +20,7 @@ from services.common.assumptions import Assumption
 from services.common.logging import get_logger
 from services.llm.prompts import BRIEF_PARSE_SYSTEM, brief_parse_user
 from services.llm.provider import LlmProvider
+from services.llm.room_defaults import size_rooms
 from services.llm.schemas import BRIEF_PARSE_SCHEMA
 from services.llm.types import LlmResult, LlmTask
 
@@ -130,6 +131,27 @@ class BriefParser:
         declared_stated.update("brief.%s" % name for name in stated)
         promoted = _promote_unexplained(brief, assumptions, stated=declared_stated)
         assumptions.extend(promoted)
+
+        # Size the rooms the client did not dimension. Nobody says "the master is
+        # 13.5 m²", so before this the programme reached the solver with every area
+        # at zero, Stage A reported infeasible, and the job finished "succeeded" with
+        # no options — the only brief that generated anything was the seeded demo's,
+        # whose sizes are written out by hand. Minimums come from the rule pack (the
+        # same numbers the compliance tab cites); targets are practice defaults, and
+        # every one of them becomes a chip the architect can overwrite.
+        sized_rooms, room_assumptions = size_rooms(brief.get("rooms"))
+        if room_assumptions:
+            brief["rooms"] = sized_rooms
+            assumptions.extend(
+                Assumption(
+                    field=item["field"],
+                    value=item["value"],
+                    reason=item["reason"],
+                    cite=item["cite"] or None,
+                    source="brief-parse",
+                )
+                for item in room_assumptions
+            )
 
         unclear = tuple(
             str(item) for item in (result.data.get("unclear") or []) if isinstance(item, str)
