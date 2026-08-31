@@ -87,14 +87,23 @@ API_CONTENT_SECURITY_POLICY = (
 
 #: Route suffixes allowed to exceed ``settings.max_request_body_bytes``.
 #:
-#: Two entries: Phase 2's DXF upload (``POST /projects/{id}/import/dxf``) and the
-#: underlay image upload (``POST /projects/{id}/underlay/image``). Listing a
+#: Three entries: Phase 2's DXF upload (``POST /projects/{id}/import/dxf``), the
+#: underlay image upload (``POST /projects/{id}/underlay/image``) and the
+#: inspiration-board upload (``POST /projects/{id}/references``). Listing a
 #: path here is only half the job — the route must enforce its own byte cap, because
-#: this middleware stops caring about a path once it is listed. Both routers hold
+#: this middleware stops caring about a path once it is listed. All three routers hold
 #: up their half with the same ``_read_body_capped`` streaming guard: DXF against
-#: ``settings.max_dxf_upload_bytes``, underlay against
+#: ``settings.max_dxf_upload_bytes``, underlay and board against
 #: ``settings.max_image_upload_bytes``, each answering 413 as problem+json (§13).
-LARGE_BODY_PATH_SUFFIXES: tuple[str, ...] = ("/import/dxf", "/underlay/image")
+#:
+#: Matching is by suffix and ignores the method, so ``GET .../references`` is exempted
+#: too. Harmless — a GET carries no body — but it is why the POST's own cap is the
+#: real guard and not a belt-and-braces nicety.
+LARGE_BODY_PATH_SUFFIXES: tuple[str, ...] = (
+    "/import/dxf",
+    "/underlay/image",
+    "/references",
+)
 
 _SECURITY_HEADERS: dict[str, str] = {
     "content-security-policy": API_CONTENT_SECURITY_POLICY,
@@ -681,6 +690,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from garh_api.routers import underlay as underlay_router
 
     app.include_router(underlay_router.router, prefix=cfg.api_prefix)
+
+    # The per-project inspiration board (§11). Same prefix, same error contract,
+    # same mounting reason as the underlay above.
+    #
+    # Route-order note: it owns /projects/{id}/references and two children,
+    # /references/review (a literal) and /references/{reference_id} (a UUID
+    # parameter). FastAPI matches in registration order and `review` is declared
+    # AFTER the parameterised routes -- which is safe only because the
+    # parameterised ones are PATCH and DELETE while `review` is GET, so no GET
+    # route can shadow it. Adding a `GET /references/{reference_id}` means moving
+    # `review` above it, or `review` starts 404ing on a bad UUID parse.
+    from garh_api.routers import references as references_router
+
+    app.include_router(references_router.router, prefix=cfg.api_prefix)
 
     # Account security (F-3 signed-in devices, F-4 two-factor) and governance
     # (F-5 the readable audit trail, F-6 DPDP export/erasure). Mounted here for the

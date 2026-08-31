@@ -68,6 +68,7 @@ from garh_api.repositories.domain import (
     OtpChallenge,
     Plot,
     Project,
+    ProjectReference,
     RenderJob,
     ResolvedShare,
     ShareLink,
@@ -93,6 +94,11 @@ from garh_api.repositories.otp import (
 )
 from garh_api.repositories.plots import PlotRepository
 from garh_api.repositories.projects import ProjectPatch, ProjectRepository
+from garh_api.repositories.references import (
+    MAX_REFERENCE_EDGE_PX,
+    MAX_REFERENCES_PER_PROJECT,
+    ReferenceRepository,
+)
 from garh_api.repositories.share_links import (
     SHARE_SECTIONS,
     ShareLinkRepository,
@@ -136,6 +142,10 @@ __all__ = [
     "ShareLinkRepository",
     "SheetRepository",
     "SolverJobRepository",
+    "MAX_REFERENCES_PER_PROJECT",
+    "MAX_REFERENCE_EDGE_PX",
+    "ProjectReference",
+    "ReferenceRepository",
     "UnderlayRepository",
     "UserRepository",
     # repositories — non-tenant (documented exceptions)

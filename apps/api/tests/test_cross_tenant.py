@@ -59,6 +59,9 @@ TENANT_SCOPED_PARAMS: frozenset[str] = frozenset(
         "share_link_id",
         "comment_id",
         "annotation_id",
+        # §11. A board reference is a tenant-owned row reached by its own id under its
+        # project, exactly like a sheet.
+        "reference_id",
         # G-1/G-4. An invoice and a seat are tenant-owned rows reached by their own id,
         # with no project in the path to carry the ownership check — so the id IS the
         # scoping and these are exactly the routes this guard exists for. They were
@@ -203,6 +206,29 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
         headers={"content-type": "image/png"},
     ),
     # -- solver -----------------------------------------------------------
+    # -- inspiration board (§11: the client's pictures, and what each is for) --
+    #
+    # The reference row these target is REAL and belongs to firm A, so a 404 here is
+    # the tenancy layer answering and not a missing row — the distinction the whole
+    # file exists to make.
+    Case("GET", "/projects/{project_id}/references"),
+    Case(
+        "POST",
+        "/projects/{project_id}/references",
+        raw_body=_ONE_PIXEL_PNG,
+        headers={"content-type": "image/png"},
+    ),
+    Case(
+        "PATCH",
+        "/projects/{project_id}/references/{reference_id}",
+        body={"label": "Firm B's caption"},
+    ),
+    Case("DELETE", "/projects/{project_id}/references/{reference_id}"),
+    Case(
+        "GET",
+        "/projects/{project_id}/references/review",
+        query="preset=elevation-north-morning",
+    ),
     Case("POST", "/projects/{project_id}/solve", body={"optionCount": 3}),
     Case("GET", "/projects/{project_id}/solver-jobs"),
     Case("GET", "/solver-jobs/{job_id}"),
@@ -392,7 +418,7 @@ async def estate_a(
     """
     from garh_api import queue
     from garh_api.auth import SessionStore
-    from garh_api.repositories import SheetRepository
+    from garh_api.repositories import ReferenceRepository, SheetRepository
     from garh_api.security import new_token_family
 
     from tests import factories
@@ -404,6 +430,14 @@ async def estate_a(
     comment = await factories.create_comment(session, firm_a, project_a.id)
     sheet = await SheetRepository(session, firm_a.ctx()).create(
         project_a.id, kind="floor", number="A-101"
+    )
+    reference = await ReferenceRepository(session, firm_a.ctx()).add(
+        project_a.id,
+        object_key="references/%s/%s/seed" % (firm_a.firm_id, project_a.id),
+        content_type="image/png",
+        width_px=1,
+        height_px=1,
+        label="Firm A's kitchen reference",
     )
     await session.commit()
 
@@ -445,6 +479,7 @@ async def estate_a(
         "sheet_id": str(sheet.id),
         "share_link_id": str(share_link.id),
         "comment_id": str(comment.id),
+        "reference_id": str(reference.id),
         "export_job_id": export_job_id,
         # Packs are addressed under their project, so the ownership check on
         # project_id is what these cases prove; the pack id itself only needs

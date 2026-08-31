@@ -493,6 +493,13 @@ async def start_client_pack(
         pack_id = uuid.uuid4().hex
         base_seed = body.seed if body.seed is not None else _derive_seed(pack_id)
 
+        # §11: one board, snapshotted once, shared by every shot in the pack — so the
+        # pack is internally consistent and a mid-pack board edit cannot make shot 4
+        # follow a reference shot 1 never saw.
+        from garh_api.reference_payload import board_for_render
+
+        references = await board_for_render(session, ctx, project_id)
+
         rows = []
         for index, shot in enumerate(body.shots):
             params: dict[str, Any] = {
@@ -505,6 +512,8 @@ async def start_client_pack(
                 "packIndex": index,
                 "packSlug": shot.slug,
             }
+            if references:
+                params["references"] = references
             job = await repo.enqueue(
                 project_id,
                 mode=shot.mode,

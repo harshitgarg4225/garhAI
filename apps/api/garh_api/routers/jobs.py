@@ -505,6 +505,16 @@ async def start_render(
         if body.seed is not None:
             params["seed"] = body.seed
 
+        # §11: the project's inspiration board travels WITH the job. Snapshotted at
+        # enqueue rather than read by the worker, so the render is reproducible from
+        # its own payload and a later edit to the board cannot silently change what a
+        # finished render claims to have followed.
+        from garh_api.reference_payload import board_for_render
+
+        references = await board_for_render(session, ctx, project_id)
+        if references:
+            params["references"] = references
+
         job = await repo.enqueue(
             project_id,
             mode=body.mode,

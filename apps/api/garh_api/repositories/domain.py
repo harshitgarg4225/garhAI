@@ -597,6 +597,54 @@ class Comment:
 
 
 @dataclass(frozen=True)
+class ProjectReference:
+    """One picture on a project's inspiration board (see ``models.ProjectReference``).
+
+    The four annotation fields are the feature. A picture alone is ambiguous — "use this
+    kitchen" could mean the cabinets, the island or the light — so the architect says
+    where it applies, what to take, what to leave, and how hard to push.
+    """
+
+    id: uuid.UUID
+    firm_id: uuid.UUID
+    project_id: uuid.UUID
+    object_key: str
+    filename: str
+    content_type: str
+    width_px: int
+    height_px: int
+    label: str
+    scope: str
+    why: str
+    ignore_note: str
+    intent: str
+    position: int
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_row(cls, row: Any) -> ProjectReference:
+        return cls(
+            id=row.id,
+            firm_id=row.firm_id,
+            project_id=row.project_id,
+            object_key=row.object_key,
+            filename=row.filename,
+            content_type=row.content_type,
+            width_px=row.width_px,
+            height_px=row.height_px,
+            label=row.label,
+            scope=row.scope,
+            why=row.why,
+            ignore_note=row.ignore_note,
+            intent=row.intent,
+            position=row.position,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
+
+
+@dataclass(frozen=True)
 class Underlay:
     """The tracing underlay for one project (see ``models.ProjectUnderlay``).
 

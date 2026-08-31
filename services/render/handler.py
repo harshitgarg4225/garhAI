@@ -34,7 +34,9 @@ from services.common.errors import InvalidJobError
 from services.common.jobstore import JobResult
 from services.common.logging import get_logger
 from services.common.runtime import BaseJobHandler, JobContext
+from services.render.prompts import build_prompt
 from services.render.provider import RenderProvider, get_render_provider
+from services.render.references import INTENTS, SCOPES, Reference
 from services.render.types import DEFAULT_PRESET, PRESETS, RENDER_MODES, RenderRequest
 
 log = get_logger("render.handler")
@@ -104,6 +106,14 @@ class RenderJobHandler(BaseJobHandler):
             "outputKey": stored.key,
             **result.summary(),
         }
+        # §11: name the board references this render actually followed, so "did it use
+        # my reference?" has an answer on the render itself rather than a shrug. Taken
+        # from `build_prompt`, the same function the provider used, so this credit list
+        # cannot drift from the instruction the model received; only ids and the
+        # architect's own labels travel, never prompt text (§13).
+        credited = build_prompt(request).references_used
+        if credited:
+            data["references"] = [dict(entry) for entry in credited]
         log.info("render.job.done", **result.summary())
         return JobResult(
             data=data,
@@ -151,6 +161,7 @@ class RenderJobHandler(BaseJobHandler):
         )
 
         request = RenderRequest(
+            references=_references_from(payload.get("references")),
             viewport_png=viewport,
             depth_png=depth,
             edges_png=edges,
@@ -176,6 +187,53 @@ class RenderJobHandler(BaseJobHandler):
         if ref is None or not ref.readable:
             return None
         return await ctx.blobs.fetch(ref, what=what)
+
+
+def _references_from(raw: Any) -> tuple[Reference, ...]:
+    """Rebuild the inspiration board the API snapshotted into this job's payload (§11).
+
+    Skips anything malformed rather than failing the render. The board is additive: a
+    reference the worker cannot read must cost the architect a reference, never the
+    picture they were waiting for. Every skip is logged, because a board that silently
+    contributes nothing is the failure this feature exists to prevent.
+
+    Unknown scopes and intents are dropped for the same reason a bad scope is refused at
+    the API boundary — ``applies_to`` would answer ``True`` for anything it does not
+    recognise, so an unreadable scope would leak into every view.
+    """
+    if not isinstance(raw, list):
+        return ()
+    out: list[Reference] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        scope = str(entry.get("scope", ""))
+        intent = str(entry.get("intent", "guide"))
+        # An id-less entry cannot be credited on the finished render, and §11's claim
+        # is that an architect can see which references a render followed. A reference
+        # that can never be named is one that would show as a blank chip.
+        if not str(entry.get("id", "")).strip():
+            log.warning("render.reference.unidentified", scope=scope)
+            continue
+        if scope not in SCOPES or intent not in INTENTS:
+            log.warning(
+                "render.reference.unreadable",
+                reference_id=str(entry.get("id", "")),
+                scope=scope,
+                intent=intent,
+            )
+            continue
+        out.append(
+            Reference(
+                id=str(entry.get("id", "")),
+                label=str(entry.get("label", "")),
+                scope=scope,  # type: ignore[arg-type]  # checked against SCOPES above
+                why=str(entry.get("why", "")),
+                ignore=str(entry.get("ignore", "")),
+                intent=intent,  # type: ignore[arg-type]  # checked against INTENTS above
+            )
+        )
+    return tuple(out)
 
 
 def _int_or(value: Any, fallback: int) -> int:

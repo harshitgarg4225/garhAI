@@ -121,6 +121,16 @@ class PromptSpec:
     positive: str
     negative: str
     params: ModeParams
+    #: The board references this prompt actually consumed, as
+    #: ``({"id", "label", "intent"}, ...)`` in the order they were applied.
+    #:
+    #: Recorded HERE rather than recomputed by the caller so there is one source: a
+    #: second call to ``applicable_references`` would be a second answer to "which
+    #: references did this render follow?", and the render UI would eventually disagree
+    #: with the prompt. §11's whole claim is that the instruction the architect wrote
+    #: and the instruction the model got are the same thing — a separately-derived
+    #: credit list would quietly break that.
+    references_used: tuple[dict[str, str], ...] = ()
 
     def summary(self) -> dict[str, object]:
         """Log-safe: parameters only. Prompt text is never logged (§13)."""
@@ -130,6 +140,7 @@ class PromptSpec:
             "guidanceScale": self.params.guidance_scale,
             "steps": self.params.num_inference_steps,
             "positiveChars": len(self.positive),
+            "referencesUsed": len(self.references_used),
         }
 
 
@@ -209,15 +220,25 @@ def _with_references(positive: str, request: RenderRequest, preset: Any) -> Prom
     and a project with no board produces byte-identically the prompt it produced before
     the board existed, which is what keeps every existing render reproducible.
     """
-    from services.render.references import reference_prompt
+    from services.render.references import applicable_references, reference_prompt
 
-    extra_positive, extra_negative = reference_prompt(tuple(request.references), preset)
+    board = tuple(request.references)
+    extra_positive, extra_negative = reference_prompt(board, preset)
     if extra_positive:
         positive = "%s. Reference: %s" % (positive, extra_positive)
     negative = NEGATIVE_PROMPT
     if extra_negative:
         negative = "%s, %s" % (negative, extra_negative)
-    return PromptSpec(positive=positive, negative=negative, params=MODE_PARAMS[request.mode])
+    used = tuple(
+        {"id": r.id, "label": r.label, "intent": r.intent}
+        for r in applicable_references(board, preset)
+    )
+    return PromptSpec(
+        positive=positive,
+        negative=negative,
+        params=MODE_PARAMS[request.mode],
+        references_used=used,
+    )
 
 
 def assert_templates_cover_presets() -> None:
