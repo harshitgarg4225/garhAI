@@ -18,16 +18,16 @@ So the journey an architect comes to the product to do had never been executed.
 
 ## What works
 
-| Step | Result |
-| --- | --- |
-| Sign up a new practice | ✅ 201 |
-| Sign in with the emailed code (dev echo) | ✅ 200 |
-| Create a project on the BBMP pack | ✅ 201 |
-| Draw a 30 × 40 ft plot with a 9 m road | ✅ |
-| Paste a client's brief and have it parsed | ✅ |
-| Save the brief | ✅ |
-| Press Generate — job accepted and runs | ✅ 202 → `succeeded` |
-| Compliance evaluates against the BBMP pack | ✅ 23 results |
+| Step                                       | Result               |
+| ------------------------------------------ | -------------------- |
+| Sign up a new practice                     | ✅ 201               |
+| Sign in with the emailed code (dev echo)   | ✅ 200               |
+| Create a project on the BBMP pack          | ✅ 201               |
+| Draw a 30 × 40 ft plot with a 9 m road     | ✅                   |
+| Paste a client's brief and have it parsed  | ✅                   |
+| Save the brief                             | ✅                   |
+| Press Generate — job accepted and runs     | ✅ 202 → `succeeded` |
+| Compliance evaluates against the BBMP pack | ✅ 23 results        |
 
 ## What does not
 
@@ -40,20 +40,20 @@ The seeded demo project, on the **same plot**, produces 3 options. The differenc
 entirely in the brief, and bisecting the demo brief toward a parsed one showed three
 independent breakages — change any one and generation drops from 3 options to 0:
 
-| Mutation applied to the demo brief | Options |
-| --- | --- |
-| none (control) | 3 |
-| `bedroom` count 2 instead of a distinct `guest_bedroom` | 0 |
-| storey pins removed | 0 |
-| room sizes stripped | 0 |
-| rooms reduced to `{type, count}` — what the parser emitted | 0 |
+| Mutation applied to the demo brief                         | Options |
+| ---------------------------------------------------------- | ------- |
+| none (control)                                             | 3       |
+| `bedroom` count 2 instead of a distinct `guest_bedroom`    | 0       |
+| storey pins removed                                        | 0       |
+| room sizes stripped                                        | 0       |
+| rooms reduced to `{type, count}` — what the parser emitted | 0       |
 
 ## Three defects found and fixed
 
 All three were silent: no error, no log, a job that still reported success.
 
 1. **Parsed rooms had no sizes at all.** The parser emitted `{"type": "bedroom",
-   "count": 2}`; the program layer read `int(raw.get("minAreaMm2") or 0)`. Every room
+"count": 2}`; the program layer read `int(raw.get("minAreaMm2") or 0)`. Every room
    reached Stage A as a zero-area, zero-width rectangle. Nothing in the product turned
    "3BHK" into dimensions — the seeded demo's sizes are written out by hand, which is
    why it was the only brief that ever generated anything.
@@ -76,13 +76,13 @@ Six gates cover these, each broken on purpose and observed to fail.
 
 ## A fourth defect, found with the diagnostic
 
-Stage A now says *why* a storey did not tile (`services/solver/diagnose.py`), and the
+Stage A now says _why_ a storey did not tile (`services/solver/diagnose.py`), and the
 first thing it said settled the question:
 
 > The rooms on this floor need about 62.8 m² once circulation is allowed for, and the
 > buildable area after setbacks is 55.9 m² — about 6.9 m² short.
 
-62.8 m² is the *whole* programme. On a G+1 the ground floor should carry roughly half —
+62.8 m² is the _whole_ programme. On a G+1 the ground floor should carry roughly half —
 so every room was landing on one storey.
 
 4. **The brief's `storeys` was read by nothing.** `_resolve_storeys` checked the
@@ -119,21 +119,21 @@ quietly back to zero.
 
 Each failed with no error, no log line, and a job that still reported `succeeded`.
 
-| # | Defect | Why the demo survived it |
-| --- | --- | --- |
-| 1 | Parsed rooms carried no sizes | the seed writes sizes by hand |
-| 2 | `count` read by nothing — 2 bedrooms became 1 | the seed gives each room a distinct type |
-| 3 | Storey pins discarded (`storey` vs `storeyIndex`) | the seed's pins were dropped too, harmlessly |
-| 4 | `storeys` read by nothing — a G+1 planned as one floor | the seed writes `floorsAboveGround` |
-| 5 | Every bedroom forced upstairs; the floor would not tile | the seed pins a bedroom downstairs by hand |
-| 6 | `parkingCount` (web + parser) vs `carParking` (API) | the seed hard-codes the API's spelling |
+| #   | Defect                                                  | Why the demo survived it                     |
+| --- | ------------------------------------------------------- | -------------------------------------------- |
+| 1   | Parsed rooms carried no sizes                           | the seed writes sizes by hand                |
+| 2   | `count` read by nothing — 2 bedrooms became 1           | the seed gives each room a distinct type     |
+| 3   | Storey pins discarded (`storey` vs `storeyIndex`)       | the seed's pins were dropped too, harmlessly |
+| 4   | `storeys` read by nothing — a G+1 planned as one floor  | the seed writes `floorsAboveGround`          |
+| 5   | Every bedroom forced upstairs; the floor would not tile | the seed pins a bedroom downstairs by hand   |
+| 6   | `parkingCount` (web + parser) vs `carParking` (API)     | the seed hard-codes the API's spelling       |
 
 Five of the six are the same shape: **a field written under one name and read under
 another.** The seeded demo escaped every one of them, which is precisely why it was the
 only project in this product that ever generated anything — and why testing against it
 proved nothing about a real user.
 
-Defect 5 is the exception and the interesting one. Stage A now says *why* a storey
+Defect 5 is the exception and the interesting one. Stage A now says _why_ a storey
 failed (`services/solver/diagnose.py`), separating "does not fit by area" — which it can
 prove — from "fits, but no arrangement satisfied every constraint". On an `arrangement`
 failure it moves a bedroom and its bath downstairs and tries again, which is the
@@ -154,10 +154,10 @@ that can never go green teaches people to ignore warnings. The Brief form now ca
 
 The journey works. These remain, and none is code:
 
-* **Every regulatory value is `seed` / `unreviewed`** — 118 rules across 5 packs and all
+- **Every regulatory value is `seed` / `unreviewed`** — 118 rules across 5 packs and all
   4 submission templates. Sheets generated from them are not submittable until
   empanelled architects review them per city.
-* **The real providers have never run.** `PROVIDER_LLM=mock`, `PROVIDER_RENDER=mock`.
+- **The real providers have never run.** `PROVIDER_LLM=mock`, `PROVIDER_RENDER=mock`.
   The copilot corpus passes against a fixture; that proves the pipeline, not that a
   frontier model reads an architect's phrasing.
-* **mypy debt** outside the strict trees, and a visual-regression suite with no baseline.
+- **mypy debt** outside the strict trees, and a visual-regression suite with no baseline.

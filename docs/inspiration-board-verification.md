@@ -13,12 +13,12 @@ Trust this file over any summary, including the commit messages.
 A per-project board of the pictures a client sent. Each one carries four answers the
 architect writes:
 
-| Question | Field | Why it exists |
-| --- | --- | --- |
-| Where does it apply? | `scope` | "Use this kitchen" cannot inform a street elevation. |
-| What should we take? | `why` | A picture alone is ambiguous — cabinets, island, or light? |
-| What should we leave? | `ignore` | "Not like this" is what clients say most, and no tool records it. |
-| How hard to push? | `intent` | `match` / `guide` / `avoid`. `avoid` is the opposite of `guide`, not a weaker one. |
+| Question              | Field    | Why it exists                                                                      |
+| --------------------- | -------- | ---------------------------------------------------------------------------------- |
+| Where does it apply?  | `scope`  | "Use this kitchen" cannot inform a street elevation.                               |
+| What should we take?  | `why`    | A picture alone is ambiguous — cabinets, island, or light?                         |
+| What should we leave? | `ignore` | "Not like this" is what clients say most, and no tool records it.                  |
+| How hard to push?     | `intent` | `match` / `guide` / `avoid`. `avoid` is the opposite of `guide`, not a weaker one. |
 
 The product does **not** annotate. It does not read the image, parse the filename, or
 infer a scope. What it contributes is the pre-render review: the questions it can
@@ -29,12 +29,14 @@ justify, all deterministic, each stating what happens if the architect does noth
 ## EXECUTED
 
 ### The rules, in isolation
+
 `pytest services/render/tests/test_references.py` — 29 tests. Scope filtering, the three
 conflict rules, prompt fragment assembly, and the property that an empty board produces
 byte-identically the prompt this product produced before the board existed.
 **4 negative controls**, each applied and reverted.
 
 ### The wiring, from a job payload to an observable result
+
 `pytest services/render/tests/test_reference_wiring.py` — 11 tests. Every case starts
 from the payload shape the API actually enqueues and ends at the prompt string a
 provider receives or the credit list a finished render carries. Nothing is asserted
@@ -42,6 +44,7 @@ about an intermediate object that could be built correctly and then dropped — 
 CLAUDE.md's fourth bug class, and it is what this file exists to catch.
 
 ### The API
+
 `pytest apps/api/tests/test_references_routes.py` — 19 tests: upload (sniffed, capped,
 415/413/400), the four answers round-tripping, partial PATCH, the vocabulary refusal,
 wrong-project 404, delete, the review's three question kinds, and the credit on a
@@ -56,11 +59,13 @@ walker passes, meaning no board route is reachable without a tenancy case.
 `references.test.tsx` closes the triangle from the web side.
 
 ### The web
+
 `vitest run src/features/references/` — 17 tests on a real DOM: the annotation calls,
 the unannotated count, the review panel, and the launcher hook. **4 negative controls**,
 each applied, measured and reverted (1, 2, 1 and 1 failures respectively).
 
 ### End to end, against a live stack
+
 `python scripts/reference_journey.py` — **10/10 steps, run 2026-08-31** against
 Postgres 16, Redis, moto S3, a live API and a live render worker on `PROVIDER_RENDER=mock`:
 
@@ -119,12 +124,12 @@ Four smaller defects, each caught by a check rather than by reading:
 
 ## UNVERIFIED
 
-| Claim | The command that would settle it |
-| --- | --- |
+| Claim                                                                                        | The command that would settle it                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A real diffusion model follows an architect's phrasing well enough to be worth the question. | `PROVIDER_RENDER=stability STABILITY_API_KEY=… python scripts/reference_journey.py`, then a human panel comparing renders with and without the board. The mock provider proves the pipeline, never the judgement. |
-| The board survives a Railway deploy. | `alembic upgrade head` on the deployed stack, then `GARH_API=https://… python scripts/reference_journey.py`. |
-| The board renders correctly in a browser. | It is covered by jsdom tests and `tsc`, not by a screenshot. `pnpm playwright test` with a board step, or the visual-regression baseline, would settle it. |
-| The conflict rules match how architects actually think. | Nothing in this repository can answer that. It needs the empanelled-architect review already named as a launch gate. |
+| The board survives a Railway deploy.                                                         | `alembic upgrade head` on the deployed stack, then `GARH_API=https://… python scripts/reference_journey.py`.                                                                                                      |
+| The board renders correctly in a browser.                                                    | It is covered by jsdom tests and `tsc`, not by a screenshot. `pnpm playwright test` with a board step, or the visual-regression baseline, would settle it.                                                        |
+| The conflict rules match how architects actually think.                                      | Nothing in this repository can answer that. It needs the empanelled-architect review already named as a launch gate.                                                                                              |
 
 ## Deliberately not built
 
