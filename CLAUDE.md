@@ -93,11 +93,14 @@ apps/api/garh_model/ the Python twin — MUST stay byte-identical on state hashe
 apps/api/garh_rules/ rules engine (pure stdlib — that is why it is provable)
 apps/api/garh_api/   FastAPI: tenancy repos, auth, op sequencer, jobs, sheets
 services/            solver · drawings · render · llm workers, all behind mocks
-apps/web/src/features/  plot · brief · options · canvas (2D+3D) · copilot · renders · sheets
+apps/web/src/features/  plot · brief · options · canvas (2D+3D) · copilot · renders ·
+                     references (the inspiration board) · sheets
 rulepacks/           nbc-core + blr/ncr/hyd + vastu, every value marked confidence:"seed"
 fixtures/            briefs, plans, rules, catalog, llm corpora, sheet goldens
 docs/spec/           THE BINDING SPEC — read before coding
 docs/phase-*-verif*  what is proven, per phase
+docs/*-verification.md  same split for features that are not a phase
+                     (first-run, inspiration-board)
 DECISIONS.md         every deviation and every dependency, with reasons
 ```
 
@@ -139,6 +142,26 @@ asset-audit` runs clean with zero known gaps for the first time. Canvas and
    and confidence for exactly this reason.
 4. **Phases 8–9 may be incomplete.** Check `docs/phases.md` and the newest
    `docs/phase-*-verification.md` for the true edge.
+
+## The inspiration board, and what it does not claim
+
+A client sends pictures. Each one on the board carries four answers the **architect**
+writes — where it applies, what to take, what to leave, how hard to push — and the
+product never guesses any of them. It does not read the image or parse the filename; a
+guess here is wrong exactly often enough to be untrustworthy, and its mistakes are
+invisible in a render.
+
+What the product contributes is the pre-render review: three deterministic questions
+(two `match` intents on one scope, a scope this view cannot use, an empty annotation),
+each stating what happens if the architect does nothing. Deliberately NOT a rule:
+reading two `why` texts and deciding they disagree. That needs to understand English, it
+would be wrong sometimes, and a wrong question is worse than no question.
+
+`docs/inspiration-board-verification.md` is the ledger. The honest headline: the whole
+loop is proven under `PROVIDER_RENDER=mock`, including a live 10-step journey ending
+with a render that names the reference it followed. Whether a frontier model actually
+follows an architect's phrasing needs the real provider and a human panel — the same
+launch gate the copilot has.
 
 ## What "the copilot works" does and does not mean
 
