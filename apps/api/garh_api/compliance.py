@@ -68,6 +68,7 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from garh_api.brief_aliases import canonical_brief_data
 from garh_api.logging import get_logger
 
 _log = get_logger(__name__)
@@ -607,7 +608,7 @@ def build_evaluation_context(
         "parkingSpacesProvided": int(
             parking_spaces_provided
             if parking_spaces_provided is not None
-            else brief_data.get("carParking") or 0
+            else canonical_brief_data(brief_data).get("carParking") or 0
         ),
         "rwhDeclared": bool(
             rwh_declared if rwh_declared is not None else brief_data.get("rainwaterHarvesting")

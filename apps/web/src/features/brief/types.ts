@@ -212,6 +212,13 @@ export interface BriefData {
   readonly terraceAccess?: boolean | undefined;
   readonly futureExpansion?: boolean | undefined;
   readonly parkingCount?: number | undefined;
+  /**
+   * Rainwater harvesting, declared. Every city pack carries an `rwh.required` rule,
+   * and with nothing writing this the warning fired on every project forever with no
+   * way to clear it — a warning that can never go green teaches people to ignore
+   * warnings, which is worse than not showing it.
+   */
+  readonly rainwaterHarvesting?: boolean | undefined;
   readonly kitchenType?: KitchenType | undefined;
   readonly livingDining?: LivingDining | undefined;
   readonly rooms?: readonly RoomRequest[] | undefined;
@@ -351,6 +358,9 @@ export function readBriefData(data: JsonObject): BriefData {
     ...(asBool(data.terraceAccess) === undefined
       ? {}
       : { terraceAccess: asBool(data.terraceAccess) }),
+    ...(asBool(data.rainwaterHarvesting) === undefined
+      ? {}
+      : { rainwaterHarvesting: asBool(data.rainwaterHarvesting) }),
     ...(asBool(data.futureExpansion) === undefined
       ? {}
       : { futureExpansion: asBool(data.futureExpansion) }),

@@ -120,6 +120,7 @@ def stage_a_topology(
     time_budget_seconds: int | None = None,
     num_search_workers: int | None = None,
     shortfalls: list[Any] | None = None,
+    program: Any = None,
 ) -> Candidate | None:
     """§5.2 stage A: CP-SAT room topology on the 300mm module.
 
@@ -146,6 +147,7 @@ def stage_a_topology(
         time_budget_seconds=time_budget_seconds,
         num_search_workers=num_search_workers,
         shortfalls=shortfalls,
+        program=program,
     )
 
 

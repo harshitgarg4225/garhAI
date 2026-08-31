@@ -35,6 +35,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from garh_api.brief_aliases import canonical_brief_data
 from garh_api.logging import get_logger
 from garh_api.repositories import ProjectRepository, TenantCtx
 from garh_api.routers import ApiError
@@ -243,7 +244,14 @@ _BRIEF_DECLARATION_KEYS = ("carParking", "dwellingUnits", "rainwaterHarvesting")
 
 
 def _brief_declarations(brief_data: Mapping[str, Any]) -> dict[str, Any]:
-    return {key: brief_data[key] for key in _BRIEF_DECLARATION_KEYS if key in brief_data}
+    """The declarations the rules engine checks, under the names it reads.
+
+    Canonicalised first: the web app and the LLM parser write ``parkingCount`` where the
+    engine reads ``carParking``, and before that translation existed every plan a real
+    user generated was rejected for showing no parking.
+    """
+    data = canonical_brief_data(brief_data)
+    return {key: data[key] for key in _BRIEF_DECLARATION_KEYS if key in data}
 
 
 def _resolve_storeys(

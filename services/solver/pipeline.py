@@ -269,6 +269,7 @@ def default_stage_set() -> StageSet:
         profile: SolverProfile,
         relaxed: bool = False,
         shortfalls: list[Any] | None = None,
+        program: Any = None,
     ) -> Candidate | None:
         return _call_with_supported(
             stages.stage_a_topology,
@@ -282,6 +283,7 @@ def default_stage_set() -> StageSet:
             # Collected so a run that produces nothing can say WHY. `_call_with_supported`
             # drops the keyword for a stage implementation that predates it.
             shortfalls=shortfalls,
+            program=program,
         )
 
     def build_ops(
@@ -607,6 +609,7 @@ async def _solve_candidates(
     relaxed: bool,
     checkpoint: dict[str, Any] | None,
     shortfalls: list[Any] | None = None,
+    program: Any = None,
     discard: Callable[[str, str, str], None],
 ) -> list[Candidate]:
     """Stage A once per stair anchor, ``candidate_parallelism`` at a time.
@@ -645,6 +648,7 @@ async def _solve_candidates(
                 profile=profile,
                 relaxed=relaxed,
                 shortfalls=shortfalls,
+                program=program,
             )
         if candidate is None:
             discard(anchor.id, "stage-a", "no feasible topology for this stair anchor")

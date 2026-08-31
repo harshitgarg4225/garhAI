@@ -88,6 +88,7 @@ from services.solver.program import (
     ProgramRoom,
     RoomProgram,
     program_from_params,
+    rebalance_off_storey,
 )
 from services.solver.types import (
     COARSE_MODULE_MM,
@@ -1694,7 +1695,85 @@ def _bounds_for_storey(
     return tuple(out)
 
 
+#: How many times one anchor may move a room to another floor before giving up. Two
+#: clears a bedroom and its bath off an overloaded storey; past that the programme is
+#: the problem, not its distribution, and the honest answer is the shortfall banner.
+MAX_REBALANCE_PASSES = 2
+
+
 def stage_a_topology(
+    grid: Any,
+    params: SolveParams,
+    anchor: StairAnchor,
+    *,
+    profile: Any = None,
+    relaxed: bool = False,
+    time_budget_seconds: int | None = None,
+    num_search_workers: int | None = None,
+    program: RoomProgram | None = None,
+    rulepack_root: str | None = None,
+    weights: StageAWeights | None = None,
+    shortfalls: list[Any] | None = None,
+) -> Candidate | None:
+    """§5.2 stage A, with one rescue: move a room downstairs and try again.
+
+    The default programme puts every bedroom-ish room upstairs. On a generous plot that
+    is right. On a 30x40 ft G+1 it puts three bedrooms and two baths on one 7x9 m plate
+    that cannot be tiled — while the ground floor sits half empty — and the run returns
+    nothing at all. The areas fit; the arrangement does not.
+
+    An architect's answer is not to shrink a bedroom. It is to put the guest room
+    downstairs, which is the ordinary arrangement in an Indian G+1 anyway, and it is
+    exactly what the seeded demo brief does by hand — the workaround that let the demo
+    be the only project in this product that ever generated anything.
+
+    The move happens only AFTER a storey has actually failed to tile, and only for an
+    ``arrangement`` shortfall — never for ``area``, where the programme genuinely does
+    not fit and moving a room merely relocates the problem. A plan that already solves
+    is never reshaped by a rule that exists to rescue one that does not.
+    """
+    active = program if program is not None else program_from_params(params, root=rulepack_root)
+    for _ in range(MAX_REBALANCE_PASSES + 1):
+        local: list[Any] = []
+        candidate = _stage_a_topology_once(
+            grid,
+            params,
+            anchor,
+            profile=profile,
+            relaxed=relaxed,
+            time_budget_seconds=time_budget_seconds,
+            num_search_workers=num_search_workers,
+            program=active,
+            rulepack_root=rulepack_root,
+            weights=weights,
+            shortfalls=local,
+        )
+        if shortfalls is not None:
+            shortfalls.extend(local)
+        if candidate is not None:
+            return candidate
+        stuck = sorted(
+            {s.storey_index for s in local if getattr(s, "kind", "") == "arrangement"},
+            reverse=True,
+        )
+        moved = None
+        for storey in stuck:
+            moved = rebalance_off_storey(active, storey)
+            if moved is not None:
+                break
+        if moved is None:
+            return None
+        log.info(
+            "solver.stage_a.rebalanced",
+            anchor=anchor.id,
+            storey=stuck[0] if stuck else None,
+            reason=moved.assumptions[-1].reason if moved.assumptions else "",
+        )
+        active = moved
+    return None
+
+
+def _stage_a_topology_once(
     grid: Any,
     params: SolveParams,
     anchor: StairAnchor,

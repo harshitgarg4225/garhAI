@@ -255,6 +255,14 @@ export function BriefForm({ className }: BriefFormProps): JSX.Element {
               }
             />
             <ToggleField
+              label="Rainwater harvesting"
+              hint="Required by every city pack we ship. Declare it and the warning clears."
+              value={data.rainwaterHarvesting}
+              onChange={(v) =>
+                update({ patch: { rainwaterHarvesting: v }, label: 'Rainwater harvesting updated' })
+              }
+            />
+            <ToggleField
               label="Future expansion"
               hint="Plan structure and stair for one more floor later."
               value={data.futureExpansion}

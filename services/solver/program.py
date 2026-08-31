@@ -41,7 +41,7 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -790,6 +790,94 @@ def _finish(
     )
 
 
+#: Which room an architect moves downstairs first when an upper floor will not fit.
+#: The master never moves — upstairs and private is the point of it — and a bath moves
+#: only to follow the bedroom it serves. Order is the order they are tried.
+_MOVABLE_DOWN_ORDER: tuple[str, ...] = (
+    "guest_bedroom",
+    "study",
+    "bedroom",
+    "servant_room",
+)
+
+#: Toilets that can follow a bedroom down, so a ground-floor guest room is not left
+#: walking upstairs at night.
+_FOLLOWER_TYPES: frozenset[str] = frozenset({"wc", "bath_wc", "bath", "toilet"})
+
+
+def rebalance_off_storey(program: RoomProgram, storey_index: int) -> RoomProgram | None:
+    """Move one room off ``storey_index``, the way an architect would. ``None`` if none can.
+
+    Stage A puts every bedroom-ish room upstairs, which is right on a generous plot and
+    wrong on a small one: three bedrooms and two baths do not tile a 7 x 9 m plate, and
+    the run comes back with no options while the ground floor sits half empty. An
+    architect's answer is not to shrink a bedroom — it is to put the guest room
+    downstairs, which is the ordinary arrangement in an Indian G+1 anyway.
+
+    This is applied only AFTER a storey has actually failed to tile, never up front. A
+    plan that already works must not be reshaped by a rule that exists to rescue one
+    that does not, and the solver's own verdict is a better signal than any guess this
+    module could make about which distribution fits a plot it cannot see.
+
+    The master bedroom never moves: it is upstairs because that is what upstairs is for.
+    A toilet follows the bedroom it went down with, so the guest room is not left
+    climbing the stairs at night.
+    """
+    if storey_index <= 0 or not program.rooms:
+        return None
+
+    on_storey = [r for r in program.rooms if r.storey_index == storey_index and r.packed]
+    targets = [i for i in range(storey_index) if i >= 0]
+    if not targets:
+        return None
+    # The emptiest floor below — usually the ground, and on a G+1 always.
+    load = {i: sum(1 for r in program.rooms if r.storey_index == i and r.packed) for i in targets}
+    destination = min(targets, key=lambda i: (load[i], i))
+
+    mover: ProgramRoom | None = None
+    for room_type in _MOVABLE_DOWN_ORDER:
+        # Prefer the LAST of its type: `bedroom2` before `bedroom`, so the room a client
+        # named first keeps the better position.
+        matches = [r for r in on_storey if r.room_type == room_type]
+        if matches:
+            mover = matches[-1]
+            break
+    if mover is None:
+        return None
+
+    follower: ProgramRoom | None = None
+    followers = [r for r in on_storey if r.room_type in _FOLLOWER_TYPES]
+    # Only send a toilet down if the floor keeps one: a bedroom floor with no bath is a
+    # worse plan than the one this is trying to rescue.
+    if len(followers) > 1:
+        follower = followers[-1]
+
+    moved = {mover.key} | ({follower.key} if follower is not None else set())
+    rooms = tuple(
+        replace(room, storey_index=destination) if room.key in moved else room
+        for room in program.rooms
+    )
+    names = ", ".join(sorted(key.replace("_", " ") for key in moved))
+    return replace(
+        program,
+        rooms=rooms,
+        assumptions=(
+            *program.assumptions,
+            Assumption(
+                field="brief.rooms.storeyIndex",
+                value=destination,
+                reason=(
+                    "Floor %d could not fit everything the brief put on it, so %s moved "
+                    "to floor %d — the usual arrangement for a house this size. Pin the "
+                    "floors yourself on the Brief tab to override it."
+                    % (storey_index, names, destination)
+                ),
+                source="solver-program",
+            ),
+        ),
+    )
+
+
 def build_program_from_brief(
     brief_data: Mapping[str, Any],
     *,
@@ -892,6 +980,7 @@ def clear_program_caches() -> None:
 
 
 __all__ = [
+    "rebalance_off_storey",
     "ASPECT_CIRCULATION_X100",
     "ASPECT_COMPACT_X100",
     "ASPECT_HABITABLE_X100",

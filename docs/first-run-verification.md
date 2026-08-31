@@ -95,18 +95,69 @@ so every room was landing on one storey.
 That is the same class as the other three, and the fourth instance of it: a field
 written under one name and read under another, failing silently.
 
-## Where it stands now
+## Where it stands now — the journey runs end to end
 
-With all four fixed, the ground floor tiles. The failure moved up:
+**Executed 2026-08-31.** A brand-new practice, its own brief, no seed and no fixture:
 
-> The rooms fit this floor by area (41.9 m² needed, 55.9 m² available), but no
-> arrangement satisfied every constraint at once.
+```
+signup → sign in → project → 30 x 40 ft plot → brief typed as a client says it
+       → Generate → 2 options → apply → 21 walls, 13 rooms
+       → compliance (23 results) → 10 municipal sheets
+```
 
-That is a different problem and the diagnostic says so rather than guessing — six rooms
-on the upper floor have room by area but no arrangement satisfying adjacency, external
-wall and aspect constraints together. It is solver tuning, not plumbing: the remaining
-work is in the constraint model, not in fields that do not reach it.
+`scripts/first_run_journey.py` is that run, executable against any stack:
 
-**A new user still does not get plan options.** What changed is that they are now told
-something true and actionable instead of "no workable layout", and the next engineer has
-a number to work from instead of a bisection.
+```
+python scripts/first_run_journey.py            # local compose
+GARH_API=https://host/api/v1 python scripts/first_run_journey.py
+```
+
+It exits non-zero on the first thing an architect could not do, so this cannot go
+quietly back to zero.
+
+## Six defects, all silent, all fixed
+
+Each failed with no error, no log line, and a job that still reported `succeeded`.
+
+| # | Defect | Why the demo survived it |
+| --- | --- | --- |
+| 1 | Parsed rooms carried no sizes | the seed writes sizes by hand |
+| 2 | `count` read by nothing — 2 bedrooms became 1 | the seed gives each room a distinct type |
+| 3 | Storey pins discarded (`storey` vs `storeyIndex`) | the seed's pins were dropped too, harmlessly |
+| 4 | `storeys` read by nothing — a G+1 planned as one floor | the seed writes `floorsAboveGround` |
+| 5 | Every bedroom forced upstairs; the floor would not tile | the seed pins a bedroom downstairs by hand |
+| 6 | `parkingCount` (web + parser) vs `carParking` (API) | the seed hard-codes the API's spelling |
+
+Five of the six are the same shape: **a field written under one name and read under
+another.** The seeded demo escaped every one of them, which is precisely why it was the
+only project in this product that ever generated anything — and why testing against it
+proved nothing about a real user.
+
+Defect 5 is the exception and the interesting one. Stage A now says *why* a storey
+failed (`services/solver/diagnose.py`), separating "does not fit by area" — which it can
+prove — from "fits, but no arrangement satisfied every constraint". On an `arrangement`
+failure it moves a bedroom and its bath downstairs and tries again, which is the
+ordinary Indian G+1 arrangement and exactly what the demo brief does by hand. Measured:
+**0 of 6 stair anchors solved before, 3 of 6 after.** The move is chipped as an
+assumption the architect can override.
+
+## The gate that closes the class
+
+`apps/api/tests/test_brief_aliases.py` asserts that every brief field the API reads is
+one the web app can actually write. It found two more the moment it was written:
+`dwellingUnits` (genuinely derived — one house is one dwelling) and
+`rainwaterHarvesting`, which **no user could declare**, so every city pack's
+`rwh.required` warning fired on every project forever with no way to clear it. A warning
+that can never go green teaches people to ignore warnings. The Brief form now carries it.
+
+## Still not production grade
+
+The journey works. These remain, and none is code:
+
+* **Every regulatory value is `seed` / `unreviewed`** — 118 rules across 5 packs and all
+  4 submission templates. Sheets generated from them are not submittable until
+  empanelled architects review them per city.
+* **The real providers have never run.** `PROVIDER_LLM=mock`, `PROVIDER_RENDER=mock`.
+  The copilot corpus passes against a fixture; that proves the pipeline, not that a
+  frontier model reads an architect's phrasing.
+* **mypy debt** outside the strict trees, and a visual-regression suite with no baseline.
