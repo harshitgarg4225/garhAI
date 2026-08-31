@@ -436,6 +436,99 @@ export interface UploadUnderlayInput extends CallOptions {
  * is a normal state (render the upload affordance), which is why
  * {@link ApiClient.underlay.get} answers `null` rather than throwing.
  */
+// ---------------------------------------------------------------------------
+// The project's inspiration board (§11 — the client's pictures, and what each is for)
+// ---------------------------------------------------------------------------
+// Declared beside the underlay for the same reason: one feature consumes it
+// (`features/references`), and the schema belongs next to its bindings.
+//
+// The vocabulary below is NOT a free-text field, and that is load-bearing. It is
+// the same tuple as `services/render/references.SCOPES` and
+// `garh_api.models.REFERENCE_SCOPES` — a Python-side gate
+// (`test_reference_vocabulary.py`) keeps those two equal, and `references.test.ts`
+// keeps this copy equal to the OpenAPI enum. A scope the render side cannot read
+// is a picture that steers nothing, forever, with no message.
+
+export const REFERENCE_SCOPES = [
+  'whole-house',
+  'facade',
+  'interior',
+  'kitchen',
+  'living',
+  'bedroom',
+  'bathroom',
+  'landscape',
+  'material',
+] as const;
+export type ReferenceScope = (typeof REFERENCE_SCOPES)[number];
+
+/** How hard to push a reference. `avoid` is the opposite of `guide`, not a weaker one. */
+export const REFERENCE_INTENTS = ['match', 'guide', 'avoid'] as const;
+export type ReferenceIntent = (typeof REFERENCE_INTENTS)[number];
+
+const referenceSchema = z.object({
+  id: z.string().min(1),
+  projectId: z.string().min(1),
+  label: z.string(),
+  scope: z.enum(REFERENCE_SCOPES),
+  /** What to take from it, in the architect's words. Empty = not yet answered. */
+  why: z.string(),
+  /** What to leave. Steers the negative prompt. */
+  ignore: z.string(),
+  intent: z.enum(REFERENCE_INTENTS),
+  position: z.number().int(),
+  filename: z.string(),
+  widthPx: z.number().int(),
+  heightPx: z.number().int(),
+  /** Presigned GET, minted per response — §13 caps it at ~10 minutes. */
+  imageUrl: z.string().nullable().optional(),
+  createdAt: z.string().nullable().optional(),
+});
+
+/** One picture on the board, with the architect's four answers. */
+export type ProjectReference = z.infer<typeof referenceSchema>;
+
+const referenceListSchema = z.object({ references: z.array(referenceSchema) });
+
+const referenceConflictSchema = z.object({
+  /** `competing` | `out-of-view` | `unusable` */
+  kind: z.string(),
+  referenceIds: z.array(z.string()),
+  question: z.string(),
+  /** What happens if the architect does nothing. Always present, by design. */
+  default: z.string(),
+});
+export type ReferenceConflict = z.infer<typeof referenceConflictSchema>;
+
+const referenceReviewSchema = z.object({
+  projectId: z.string(),
+  preset: z.string(),
+  applies: z.array(referenceSchema),
+  notInView: z.array(referenceSchema),
+  conflicts: z.array(referenceConflictSchema),
+  positive: z.string(),
+  negative: z.string(),
+});
+
+/** What the board contributes to one preset, and what to settle first. */
+export type ReferenceReview = z.infer<typeof referenceReviewSchema>;
+
+/** A partial annotation. Only the members you pass change. */
+export interface ReferencePatch {
+  readonly label?: string;
+  readonly scope?: ReferenceScope;
+  readonly why?: string;
+  readonly ignore?: string;
+  readonly intent?: ReferenceIntent;
+  readonly position?: number;
+}
+
+export interface AddReferenceInput extends CallOptions {
+  readonly projectId: string;
+  readonly file: Blob;
+  readonly contentType?: string;
+}
+
 export const NO_UNDERLAY_CODE = 'no_underlay';
 
 /** True for the one 404 that means "nothing uploaded yet", not "went wrong". */
@@ -857,6 +950,85 @@ export function createApiClient(client: HttpClient = http) {
           method: 'DELETE',
           path: projectPath(projectId, '/underlay'),
           parse: parser(ackSchema),
+          ...opts,
+        }),
+    },
+
+    // ── The inspiration board (§11: the client's pictures, and what each is for) ──
+    // Project-scoped CRUD like the underlay, and for the same reason: a reference
+    // steers a render's prompt and touches no geometry, so it never enters the op
+    // sequence and never changes a state hash.
+    references: {
+      /** The board in the architect's own order — the only ranking that exists. */
+      list: (projectId: string, opts: CallOptions = {}): Promise<ProjectReference[]> =>
+        client
+          .request({
+            path: projectPath(projectId, '/references'),
+            parse: parser(referenceListSchema),
+            ...opts,
+          })
+          .then((page) => page.references),
+
+      /**
+       * Pin a picture. It arrives UNANNOTATED on purpose — the architect says what
+       * it is for in a second step, and until they do, `review` asks them to. A
+       * scope guessed from a filename would be wrong silently.
+       */
+      add: (input: AddReferenceInput): Promise<ProjectReference> =>
+        postBinary(client, {
+          path: projectPath(input.projectId, '/references'),
+          body: input.file,
+          contentType: uploadContentType(input.file, input.contentType),
+          parse: parser(referenceSchema),
+          ...(input.signal === undefined ? {} : { signal: input.signal }),
+        }),
+
+      /** Answer one or more of the four questions. Absent members are left alone. */
+      annotate: (
+        projectId: string,
+        referenceId: string,
+        patch: ReferencePatch,
+        opts: CallOptions = {},
+      ): Promise<ProjectReference> =>
+        client.request({
+          method: 'PATCH',
+          path: projectPath(projectId, `/references/${referenceId}`),
+          body: patch,
+          parse: parser(referenceSchema),
+          ...opts,
+        }),
+
+      /** Take it off the board. The stored image goes with it, best-effort. */
+      remove: (
+        projectId: string,
+        referenceId: string,
+        opts: CallOptions = {},
+      ): Promise<{ ok: boolean }> =>
+        client.request({
+          method: 'DELETE',
+          path: projectPath(projectId, `/references/${referenceId}`),
+          parse: parser(ackSchema),
+          ...opts,
+        }),
+
+      /**
+       * What the board contributes to one render, and what to settle first.
+       *
+       * Called BEFORE rendering, not after: a render is a thing a client is shown,
+       * and "which kitchen did you mean" is a question with a real answer. It also
+       * returns the exact prompt fragments the model will receive, so the
+       * instruction the architect wrote and the instruction the model gets are
+       * visibly the same thing.
+       */
+      review: (
+        projectId: string,
+        preset: string,
+        opts: CallOptions = {},
+      ): Promise<ReferenceReview> =>
+        client.request({
+          path: projectPath(projectId, '/references/review'),
+          query: { preset },
+          parse: parser(referenceReviewSchema),
           ...opts,
         }),
     },

@@ -26,7 +26,8 @@ import { selectJobsFor, useJobsStore } from '../../stores/jobs';
 import { useUiStore } from '../../stores/ui';
 import { useProjectOutlet } from '../../pages/ProjectShell';
 import { archiveRenderPack, type RenderJob } from './api';
-import { MODE_COPY, PRESETS_BY_ID, randomSeed } from './presets';
+import { ReferenceBoard } from '../references';
+import { MODE_COPY, PRESETS_BY_ID, RENDER_PRESETS, randomSeed } from './presets';
 import { useRendersUiStore } from './store';
 import { useRenderHistory } from './useRenderHistory';
 import { renderShareMessage, waShareUrl } from './whatsapp';
@@ -97,6 +98,13 @@ export function RendersTab(): JSX.Element {
           </div>
         ))}
       </div>
+
+      {/* ── the inspiration board (§11) ──────────────────────────────────
+          Placed above the queue and the history, because it is what a render
+          READS. A board tucked away in its own tab would be annotated once and
+          forgotten, and the review's questions have to be in front of the
+          architect at the moment they are about to make an image. */}
+      <ReferenceBoard projectId={project.id} presets={RENDER_PRESETS} className="mt-5" />
 
       {/* ── live queue (real events only — §15) ─────────────────────────── */}
       {activeJobs.length > 0 ? (

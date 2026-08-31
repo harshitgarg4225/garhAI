@@ -30,6 +30,8 @@ import {
   type StartRenderInput,
 } from './api';
 import { captureSet } from './capture';
+import type { ReferenceReview } from '../../lib/api';
+import { useReferenceReview } from '../references';
 import { PresetCameraError, presetCamera } from './cameras';
 import { captureSource, subscribeCaptureSource, type CaptureSource } from './captureBridge';
 import {
@@ -62,6 +64,10 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
   const [busy, setBusy] = useState<Busy>({ step: 'idle' });
 
   const preset = PRESETS_BY_ID.get(presetId);
+  // Re-run whenever the chosen style changes: "what applies" is a question about
+  // a specific view, so a review left over from another preset would answer the
+  // wrong question with the same confidence.
+  const boardReview = useReferenceReview(project.id, open ? presetId : null);
   // Interiors are Explore-only at MVP (spec F6); the toggle follows the preset.
   useEffect(() => {
     if (preset !== undefined && !preset.modes.includes(mode)) {
@@ -360,6 +366,13 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
           Use my current camera angle (instead of the preset&rsquo;s)
         </label>
 
+        {/* ── what the inspiration board will contribute, and what to settle ──
+            Asked HERE, at the moment the render starts, because that is the
+            last point where an answer is still cheap. The render is never
+            blocked: each question states what happens if the architect does
+            nothing, and doing nothing is a legitimate answer. */}
+        <ReferenceNotice review={boardReview} />
+
         {working ? (
           <p className="flex items-center gap-2 text-xs text-ink-muted" role="status">
             <Icon name="clock" size={14} aria-hidden="true" />
@@ -388,6 +401,42 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
           Start render
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The board's questions, inline in the launcher.
+ *
+ * Deliberately not a blocker and not a modal: every conflict states its own
+ * default, so an architect in a hurry renders anyway and knows exactly what the
+ * product did. A dialog that had to be dismissed before every render would be
+ * dismissed without reading within a week, and then the questions would be
+ * worse than nothing.
+ */
+function ReferenceNotice({ review }: { review: ReferenceReview | null }): JSX.Element | null {
+  if (review === null) return null;
+  if (review.conflicts.length === 0 && review.applies.length === 0) return null;
+
+  return (
+    <div className="rounded-md border border-line bg-canvas p-2" data-testid="launcher-references">
+      {review.applies.length > 0 ? (
+        <p className="text-2xs text-ink-muted">
+          Using {review.applies.length} reference{review.applies.length === 1 ? '' : 's'}:{' '}
+          {review.applies.map((r) => r.label).join(', ')}
+        </p>
+      ) : null}
+      {review.conflicts.map((conflict) => (
+        <p
+          key={`${conflict.kind}:${conflict.referenceIds.join(',')}`}
+          className="mt-1.5 flex gap-1.5 text-2xs text-ink-muted"
+        >
+          <Icon name="alert-triangle" size={12} className="mt-px shrink-0" aria-hidden="true" />
+          <span>
+            {conflict.question} <span className="text-ink-subtle">{conflict.default}</span>
+          </span>
+        </p>
+      ))}
     </div>
   );
 }
