@@ -199,6 +199,11 @@ class RenderRequest:
     #: physical face on every plot. Defaults to 0 so every existing caller and the
     #: whole free-camera catalogue are unaffected.
     north_deg: float = 0.0
+    #: The project's inspiration board, already annotated (D-x). Only the references
+    #: this view can use reach the prompt; see `services.render.references`. Empty for
+    #: a project with no board, and a render with an empty board must produce exactly
+    #: the prompt it produced before the board existed.
+    references: tuple[Any, ...] = ()
     #: Free-form provider hints (negative prompt overrides, LoRA ids in future).
     options: dict[str, Any] = field(default_factory=dict)
 

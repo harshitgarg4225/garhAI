@@ -879,6 +879,93 @@ class ProjectUnderlay(UuidPk, Timestamps, TenantOwned, Base):
     )
 
 
+#: Which part of the design a reference image speaks to. Mirrors
+#: ``services.render.references.SCOPES`` — the render side owns the meaning, this owns
+#: the storage, and `test_reference_vocabulary.py` asserts the two never drift.
+REFERENCE_SCOPES: tuple[str, ...] = (
+    "whole-house",
+    "facade",
+    "interior",
+    "kitchen",
+    "living",
+    "bedroom",
+    "bathroom",
+    "landscape",
+    "material",
+)
+
+#: How strongly to apply one. ``avoid`` is the opposite of ``guide``, not a weaker
+#: version of it: "not like this" is what clients say most and nothing else records it.
+REFERENCE_INTENTS: tuple[str, ...] = ("match", "guide", "avoid")
+
+
+class ProjectReference(UuidPk, Timestamps, TenantOwned, Base):
+    """One picture on a project's inspiration board, with what to do about it.
+
+    Many rows per project, unlike :class:`ProjectUnderlay` which is one: a board with a
+    single picture is not a board. Like the underlay it is a SIDECAR, never part of the
+    op-fold model — a reference steers a render's prompt and touches no geometry, so
+    putting it in the model core would demand byte-identical twin changes for nothing.
+
+    The four annotation columns are the feature. A picture alone is ambiguous — "use
+    this kitchen" could mean the cabinets, the island or the light — so the architect
+    says where it applies, what to take, what to leave, and how hard to push. Nothing
+    infers them: a guess here is wrong often enough to be untrustworthy, and its
+    mistakes are invisible until a client is looking at the render.
+    """
+
+    __tablename__ = "project_references"
+
+    firm_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), _firm_fk("project_references"), nullable=False
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey(
+            "projects.id", ondelete="CASCADE", name="fk_project_references_project_id_projects"
+        ),
+        nullable=False,
+    )
+    #: storage key of the image; presigned GETs are minted per response (§13).
+    object_key: Mapped[str] = mapped_column(Text, nullable=False)
+    #: the name it arrived with, kept so the architect recognises their own upload.
+    filename: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    content_type: Mapped[str] = mapped_column(Text, nullable=False)
+    #: parsed server-side from the actual bytes, never taken from the client.
+    width_px: Mapped[int] = mapped_column(Integer, nullable=False)
+    height_px: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    #: What the architect called it. Used verbatim in the conflict questions, so it has
+    #: to be something they recognise rather than a hash.
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    #: WHERE — which part of the design it speaks to.
+    scope: Mapped[str] = mapped_column(Text, nullable=False)
+    #: WHY — what to take from it, in their words.
+    why: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    #: What to LEAVE. ``ignore`` is a Python builtin-ish name in SQLAlchemy contexts and
+    #: a reserved word in some dialects, so the column carries the suffix.
+    ignore_note: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    #: HOW — match | guide | avoid.
+    intent: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'guide'"))
+    #: The architect's own ordering, which is the only ranking the render side applies.
+    position: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+
+    __table_args__ = (
+        CheckConstraint(_in_check("scope", REFERENCE_SCOPES), name="ck_project_references_scope"),
+        CheckConstraint(
+            _in_check("intent", REFERENCE_INTENTS), name="ck_project_references_intent"
+        ),
+        CheckConstraint("width_px > 0", name="ck_project_references_width_px_positive"),
+        CheckConstraint("height_px > 0", name="ck_project_references_height_px_positive"),
+        CheckConstraint("length(btrim(label)) > 0", name="ck_project_references_label_not_blank"),
+        CheckConstraint(
+            "length(btrim(object_key)) > 0", name="ck_project_references_object_key_not_blank"
+        ),
+        Index("ix_project_references_firm_id", "firm_id"),
+        Index("ix_project_references_project_id_position", "project_id", "position"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Metering & audit
 # ---------------------------------------------------------------------------
@@ -1004,6 +1091,7 @@ ALL_TABLES: tuple[str, ...] = (
     "share_links",
     "comments",
     "project_underlays",
+    "project_references",
     "credit_events",
     "audit_log",
     "flags",

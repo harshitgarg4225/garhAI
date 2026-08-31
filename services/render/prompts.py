@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from services.render.types import RenderMode, RenderRequest
 
@@ -183,11 +184,7 @@ def build_prompt(request: RenderRequest) -> PromptSpec:
             light=light.phrase,
             scene_extra=extras or "flat chajjas and a vertical cladding band at the stair bay",
         )
-        return PromptSpec(
-            positive=positive,
-            negative=NEGATIVE_PROMPT,
-            params=MODE_PARAMS[request.mode],
-        )
+        return _with_references(positive, request, preset)
 
     template = PROMPT_TEMPLATES.get(preset.id)
     if template is None:  # pragma: no cover - PRESETS and templates are asserted equal
@@ -200,11 +197,27 @@ def build_prompt(request: RenderRequest) -> PromptSpec:
         else "calm neutral palette with a wood accent"
     )
     positive = template.format(scene_extra=scene_extra)
-    return PromptSpec(
-        positive=positive,
-        negative=NEGATIVE_PROMPT,
-        params=MODE_PARAMS[request.mode],
-    )
+    return _with_references(positive, request, preset)
+
+
+def _with_references(positive: str, request: RenderRequest, preset: Any) -> PromptSpec:
+    """Fold the project's inspiration board into the prompt.
+
+    The architect said what to take from each picture and what to leave; the first
+    becomes something to draw, the second something not to. Only references this view
+    can use are read — a bathroom picture contributes nothing to a street elevation —
+    and a project with no board produces byte-identically the prompt it produced before
+    the board existed, which is what keeps every existing render reproducible.
+    """
+    from services.render.references import reference_prompt
+
+    extra_positive, extra_negative = reference_prompt(tuple(request.references), preset)
+    if extra_positive:
+        positive = "%s. Reference: %s" % (positive, extra_positive)
+    negative = NEGATIVE_PROMPT
+    if extra_negative:
+        negative = "%s, %s" % (negative, extra_negative)
+    return PromptSpec(positive=positive, negative=negative, params=MODE_PARAMS[request.mode])
 
 
 def assert_templates_cover_presets() -> None:
