@@ -497,3 +497,90 @@ async def test_an_unannotated_reference_is_not_shipped_to_the_worker(
     assert response.status_code == 202, response.text
     (raw,) = clean_redis.lrange("garh:queue:render", 0, -1)
     assert "references" not in jsonlib.loads(raw)["payload"]
+
+
+@pytest.mark.integration
+async def test_a_finished_render_names_the_references_it_followed(
+    client, api, session, clean_redis, firm_a, project_a
+) -> None:
+    """The last layer of the join, and the one that shipped broken.
+
+    The worker credits the references its prompt consumed; ``render_jobs`` kept only
+    ``output_url`` from a worker's result, so the credit was computed, logged and
+    dropped one layer before the architect ever saw it. Every unit test still passed:
+    they asserted the worker's ``JobResult.data``, which is not where an architect
+    looks.
+
+    A live run of ``scripts/reference_journey.py`` is what found it. This is that
+    finding turned into a gate that needs no live stack — applied through
+    ``apply_lifecycle_record``, the API's own consumer entry point, so it exercises
+    the path production events take.
+    """
+    from garh_api.routers.jobs import apply_lifecycle_record
+
+    from tests import factories
+    from tests.test_render_jobs import _lifecycle
+
+    await factories.create_version(session, firm_a, project_a.id)
+    job = await factories.create_render_job(session, firm_a, project_a.id)
+    await session.commit()
+
+    applied = await apply_lifecycle_record(
+        session,
+        _lifecycle(
+            job,
+            firm_a.firm_id,
+            "succeeded",
+            percent=100,
+            data={
+                "outputUrl": "https://example.invalid/renders/x.png",
+                "references": [
+                    {"id": "ref-1", "label": "Client's verandah photo", "intent": "match"}
+                ],
+            },
+        ),
+    )
+    assert applied
+    await session.commit()
+
+    fetched = await client.get("%s/render-jobs/%s" % (api, job.id), headers=firm_a.headers)
+    assert fetched.status_code == 200, fetched.text
+    body = fetched.json()
+    assert body["status"] == "succeeded"
+    assert body["referencesUsed"] == [
+        {"id": "ref-1", "label": "Client's verandah photo", "intent": "match"}
+    ]
+
+
+@pytest.mark.integration
+async def test_a_render_that_followed_nothing_credits_nothing(
+    client, api, session, clean_redis, firm_a, project_a
+) -> None:
+    """NEGATIVE CONTROL for the case above.
+
+    Without it, a schema field hard-coded to a non-empty list would satisfy that
+    assertion, and every render ever made would claim a reference.
+    """
+    from garh_api.routers.jobs import apply_lifecycle_record
+
+    from tests import factories
+    from tests.test_render_jobs import _lifecycle
+
+    await factories.create_version(session, firm_a, project_a.id)
+    job = await factories.create_render_job(session, firm_a, project_a.id)
+    await session.commit()
+
+    await apply_lifecycle_record(
+        session,
+        _lifecycle(
+            job,
+            firm_a.firm_id,
+            "succeeded",
+            percent=100,
+            data={"outputUrl": "https://example.invalid/renders/y.png"},
+        ),
+    )
+    await session.commit()
+
+    fetched = await client.get("%s/render-jobs/%s" % (api, job.id), headers=firm_a.headers)
+    assert fetched.json()["referencesUsed"] == []

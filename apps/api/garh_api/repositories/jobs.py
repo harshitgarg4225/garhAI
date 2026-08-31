@@ -218,14 +218,39 @@ class RenderJobRepository(ProjectScopedRepository[models.RenderJob, RenderJob]):
         await self.flush()
         return self.to_domain(row)
 
-    async def succeed(self, job_id: uuid.UUID, output_url: str) -> RenderJob:
+    async def succeed(
+        self,
+        job_id: uuid.UUID,
+        output_url: str,
+        references_used: list[dict[str, Any]] | None = None,
+    ) -> RenderJob:
+        """Store the image and, when the render followed any, the references it used.
+
+        ``references_used`` defaults to None rather than [] so a caller that does not
+        know about the board leaves whatever is stored alone, instead of quietly
+        erasing a credit list on a retry.
+        """
         row = await self._require_row(job_id)
         row.status = "succeeded"
         row.progress = 100
         row.output_url = output_url
         row.error = None
+        if references_used is not None:
+            row.references_used = [
+                {
+                    "id": str(entry.get("id", "")),
+                    "label": str(entry.get("label", "")),
+                    "intent": str(entry.get("intent", "")),
+                }
+                for entry in references_used
+                if isinstance(entry, dict) and str(entry.get("id", "")).strip()
+            ]
         await self.flush()
-        self._log.info("render_job.succeeded", entity_id=str(job_id))
+        self._log.info(
+            "render_job.succeeded",
+            entity_id=str(job_id),
+            references_used=len(row.references_used or []),
+        )
         return self.to_domain(row)
 
     async def fail(self, job_id: uuid.UUID, error: str) -> RenderJob:

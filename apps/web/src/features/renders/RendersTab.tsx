@@ -270,6 +270,15 @@ function RenderCard({
             {job.mode} · seed {seed}
             {job.designVersionId === null ? '' : ' · pinned to version'}
           </p>
+          {/* §11: which board references this image actually followed. Named
+              rather than counted, and taken from the server's own record of what
+              the prompt consumed — "did it use my reference?" is a question an
+              architect asks about a finished picture, not a checkbox. */}
+          {job.referencesUsed.length > 0 ? (
+            <p className="truncate text-2xs text-ink-subtle">
+              Followed {job.referencesUsed.map((r) => r.label).join(', ')}
+            </p>
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {job.status === 'succeeded' && job.outputUrl !== null ? (

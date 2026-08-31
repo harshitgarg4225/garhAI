@@ -608,6 +608,22 @@ export const renderJobSchema = z
     error: z.string().nullable().default(null),
     view: z.record(z.unknown()).default({}),
     params: z.record(z.unknown()).default({}),
+    /**
+     * §11: the board references this render actually followed, by id and the
+     * architect's own label. Distinct from `params.references`, which is what the
+     * job was SENT — a render can carry a reference it could not apply to its own
+     * view, and showing "sent" while claiming "followed" is a lie the render card
+     * would tell every time.
+     */
+    referencesUsed: z
+      .array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          intent: z.string(),
+        }),
+      )
+      .default([]),
     queueDepth: z.number().int().nullable().default(null),
     eventsUrl: z.string().nullable().default(null),
     createdAt: isoDateTime,

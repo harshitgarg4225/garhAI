@@ -620,6 +620,14 @@ class RenderJob(UuidPk, Timestamps, TenantOwned, Base):
     stale: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     progress: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    #: §11. The board references this render's prompt actually consumed, as
+    #: ``[{"id", "label", "intent"}, …]``. Distinct from ``params["references"]``,
+    #: which is the board as it stood when the job was enqueued: a render can carry
+    #: a reference it could not apply to its own view, and conflating "sent" with
+    #: "followed" is how the render card ends up claiming something untrue.
+    references_used: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
 
     __table_args__ = (
         CheckConstraint(_in_check("status", JOB_STATUSES), name="ck_render_jobs_status"),

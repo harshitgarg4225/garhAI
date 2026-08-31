@@ -179,6 +179,10 @@ class RenderJobOut(ResponseModel):
     error: StrictStr | None = None
     view: dict[str, Any] = Field(default_factory=dict)
     params: dict[str, Any] = Field(default_factory=dict)
+    #: §11. The board references this render followed, by id and the architect's own
+    #: label. Never prompt text (§13). Distinct from ``params["references"]``, which
+    #: is what the job was SENT — a render can carry a reference it could not apply.
+    references_used: list[dict[str, Any]] = Field(default_factory=list)
     queue_depth: StrictInt | None = None
     events_url: StrictStr | None = None
     created_at: datetime
@@ -206,6 +210,7 @@ class RenderJobOut(ResponseModel):
             error=job.error,
             view=dict(job.view),
             params=dict(job.params),
+            references_used=[dict(entry) for entry in getattr(job, "references_used", [])],
             queue_depth=queue_depth,
             events_url=events_url,
             created_at=job.created_at,

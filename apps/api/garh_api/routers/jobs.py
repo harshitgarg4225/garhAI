@@ -1299,7 +1299,17 @@ async def apply_lifecycle_record(session: AsyncSession, record: queue.LifecycleR
             if not output_url:
                 await repo_r.fail(job_id, "The render finished but produced no image. Try again.")
             else:
-                await repo_r.succeed(job_id, str(output_url))
+                # §11: the worker names the references its prompt actually
+                # consumed. Without carrying it here the credit is computed,
+                # logged and dropped one layer before the architect ever sees
+                # it — the board would look wired end to end and "did this
+                # render use my reference?" would still have no answer.
+                credited = event.data.get("references")
+                await repo_r.succeed(
+                    job_id,
+                    str(output_url),
+                    credited if isinstance(credited, list) else None,
+                )
         elif record.type in ("failed", "dead_lettered"):
             await repo_r.fail(job_id, _problem_message(event))
         elif record.type == "cancelled":

@@ -395,6 +395,10 @@ class RenderJob:
     params: dict[str, Any]
     stale: bool
     error: str | None
+    #: §11. The board references this render's prompt actually consumed. Empty for
+    #: every render made before the board existed, and for every render whose board
+    #: said nothing about its view.
+    references_used: list[dict[str, Any]]
     created_at: datetime
     updated_at: datetime
 
@@ -414,6 +418,7 @@ class RenderJob:
             params=_json_obj(row.params),
             stale=row.stale,
             error=row.error,
+            references_used=[dict(entry) for entry in (row.references_used or [])],
             created_at=row.created_at,
             updated_at=row.updated_at,
         )
