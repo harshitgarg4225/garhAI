@@ -107,6 +107,20 @@ log = get_logger("solver.stage_a")
 _BATH_TYPES = frozenset({"bath", "wc", "bath_wc"})
 #: Types the connectivity spine treats as distributors (doors lead FROM these).
 _DISTRIBUTOR_TYPES = frozenset(CIRCULATION_TYPES) | {"staircase"}
+
+#: Per-storey circulation bound used INSIDE the CP-SAT model, as a percent of that
+#: storey's net footprint.
+#:
+#: Deliberately looser than :data:`gates.MAX_CIRCULATION_PERCENT` (18), which is the
+#: real §5.6 gate and is measured across the WHOLE BUILDING. This is a pruning bound
+#: on ONE storey, and the two are not the same quantity: the staircase counts as
+#: circulation on every floor it serves and does not shrink with the floor, so a small
+#: storey spends most of an 18% budget on the stair alone. Setting this to the gate's
+#: own number made every sparse storey infeasible — see ``add_circulation``.
+#:
+#: Raise it and junk candidates waste search budget; lower it toward 18 and real
+#: layouts disappear. It must never be lowered to the gate's value.
+MODEL_CIRCULATION_PRUNE_PERCENT = 30
 #: Two rooms wished "apart" should keep centres ≥ this many cells of L1 distance.
 APART_MIN_CELLS = 6
 
@@ -1398,13 +1412,33 @@ def add_circulation(
     if not circulation_keys:
         return None
     circulation_area = sum(room_vars[key].area for key in circulation_keys)
-    # §5.6's circulation cap is a HARD gate — a candidate over it is dead on
-    # arrival, so spending the budget on one is waste. In-model it also stops
-    # the tiling slack from parking in the passage (execution find: 24% and
-    # 27% circulation candidates, every one gate-rejected).
-    from services.solver.gates import MAX_CIRCULATION_PERCENT
-
-    model.Add(100 * circulation_area <= MAX_CIRCULATION_PERCENT * footprint["net"])
+    # §5.6's circulation cap is a HARD gate, so pruning candidates that cannot pass
+    # it is worth doing here rather than spending search budget on them. What this
+    # bound must NOT do is prune a candidate the gate would have PASSED — a pruning
+    # rule stricter than the gate does not save time, it deletes real answers.
+    #
+    # It was doing exactly that. The gate measures the WHOLE BUILDING
+    # (``pipeline.py`` passes every storey's placements with `footprint = occupied`
+    # summed across storeys), while this constraint is built per storey against one
+    # storey's net. Those are different numbers, and the per-storey one is harsher
+    # wherever a storey is small: the staircase is counted as circulation on every
+    # floor it serves and it does not shrink, so on a 54 m² floor the stair alone is
+    # ~13% and almost the whole budget is gone before a passage exists.
+    #
+    # That is what made a SPARSE storey infeasible. Exact tiling (§5.2) forces
+    # Σ room areas == net footprint, the habitable rooms are capped at
+    # MAX_FRACTION_OF_TARGET, so the leftover has nowhere to go but the passage —
+    # and the passage is what this line caps. Measured on a 2BHK G+1, 50×80 ft:
+    # INFEASIBLE at 18%, and at 25% the solution CP-SAT then finds uses 9.3% and
+    # 3.3% circulation — comfortably inside the real gate. The constraint was
+    # rejecting a layout that passes §5.6.
+    #
+    # So the in-model bound is deliberately looser than the gate. It still prunes
+    # the junk the original note was written for (the 24% and 27% candidates), and
+    # the objective below keeps pulling circulation toward the target, so a storey
+    # only spends this headroom when tiling leaves it no choice. The 18% gate is
+    # unchanged and still decides what an architect is shown.
+    model.Add(100 * circulation_area <= MODEL_CIRCULATION_PRUNE_PERCENT * footprint["net"])
     excess = model.NewIntVar(0, problem.cols * problem.rows * 100, "circ.excess")
     model.Add(
         excess
@@ -1576,6 +1610,24 @@ def _solve_storey(
         status = solver.Solve(model)
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        # WHICH failure matters, and this line is the only place that knows.
+        # INFEASIBLE means the storey's program cannot be laid out in this
+        # envelope at all — no amount of time helps, and the caller should say
+        # so. UNKNOWN/MODEL_INVALID mean the budget ran out mid-search, where a
+        # bigger budget or a different anchor might well succeed. Collapsing both
+        # to a bare `return None` is why "Generate produced nothing" has never
+        # been answerable: the one bit of information that separates "impossible"
+        # from "slow" was discarded here.
+        log.info(
+            "solver.stage_a.no_layout",
+            storey=problem.storey_index,
+            status=solver.StatusName(status),
+            wall_time_s=round(solver.WallTime(), 2),
+            rooms=len(room_vars),
+            net_cap_cells=problem.net_cap_cells,
+            net_floor_cells=problem.net_floor_cells,
+            net_ceiling_cells=problem.net_ceiling_cells,
+        )
         return None
 
     ox, oy = grid_origin
@@ -2063,6 +2115,7 @@ def layouts_for(candidate: Candidate, envelope_polygon: Sequence[Pt]) -> tuple[C
 
 __all__ = [
     "APART_MIN_CELLS",
+    "MODEL_CIRCULATION_PRUNE_PERCENT",
     "DEFAULT_WEIGHTS",
     "RoomBounds",
     "StageAWeights",

@@ -284,11 +284,31 @@ def _on_segment(a: Pt, point: Pt, b: Pt) -> bool:
 
 
 def _segments_properly_intersect(a1: Pt, a2: Pt, b1: Pt, b2: Pt) -> bool:
-    """Crossing at an interior point of both segments (touching does not count)."""
+    """Crossing at an interior point of both segments (touching does not count).
+
+    A PROPER crossing needs all four orientation determinants strictly non-zero.
+    A zero means an endpoint lies exactly on the other segment's line — the segments
+    touch, or are collinear — which this predicate promises not to count.
+
+    Testing only the sign comparisons is the whole bug this guard now carries:
+    ``(d1 > 0) != (d2 > 0)`` reads a zero as "not positive", i.e. lumps it in with
+    negative, so an endpoint sitting ON the other line counted as a crossing whenever
+    the far endpoint was on the positive side.
+
+    It shipped, and it took a plot with a ZERO SETBACK to expose it. Offset the
+    envelope with one setback of 0 and its corner lands exactly on the plot boundary;
+    ``polygon_contains_polygon`` then reported the envelope as escaping its own plot,
+    and ``derive_envelope`` refused the plot with "We couldn't work out the buildable
+    area for this plot shape" — while its own detail line said zero vertices were
+    outside, because none were. Zero side setbacks are ordinary on small Indian plots,
+    so this failed generation outright for a whole class of real sites.
+    """
     d1 = _cross(b1, b2, a1)
     d2 = _cross(b1, b2, a2)
     d3 = _cross(a1, a2, b1)
     d4 = _cross(a1, a2, b2)
+    if d1 == 0 or d2 == 0 or d3 == 0 or d4 == 0:
+        return False
     return ((d1 > 0) != (d2 > 0)) and ((d3 > 0) != (d4 > 0))
 
 
