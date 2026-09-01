@@ -357,6 +357,7 @@ class SolverJob:
     progress: int
     options: list[Any] | None
     error: str | None
+    banner: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -371,6 +372,7 @@ class SolverJob:
             progress=row.progress,
             options=None if row.options is None else _json_arr(row.options),
             error=row.error,
+            banner=row.banner,
             created_at=row.created_at,
             updated_at=row.updated_at,
         )

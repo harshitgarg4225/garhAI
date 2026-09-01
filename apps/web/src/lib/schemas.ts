@@ -134,6 +134,15 @@ export const PROJECT_STATUSES = [
 export const projectProgressSchema = z.object({
   briefCompleteness: z.number().int().nullable().default(null),
   optionCount: z.number().int().nullable().default(null),
+  /**
+   * What the solver wants the architect to read, carried on the row itself.
+   *
+   * It is the ONLY thing there is to show when a solve succeeds with no options —
+   * "the ground floor is 8 m² short of the rooms you asked for" rather than an empty
+   * grid — so it must survive a plain `GET /solver-jobs/:id`, not only the terminal
+   * event that carries the full result.
+   */
+  banner: z.string().nullable().default(null),
   appliedOptionId: z.string().nullable().default(null),
   wallCount: z.number().int().nullable().default(null),
   sheetCount: z.number().int().nullable().default(null),

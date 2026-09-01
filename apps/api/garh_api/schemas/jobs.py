@@ -75,6 +75,9 @@ class SolverJobOut(ResponseModel):
     options: list[dict[str, Any]] | None = None
     option_count: StrictInt = 0
     error: StrictStr | None = None
+    #: What the solver wants the architect to read. Present on success too — and it is
+    #: the ONLY thing there is to show when ``options`` is empty.
+    banner: StrictStr | None = None
     params: dict[str, Any] = Field(default_factory=dict)
     queue_depth: StrictInt | None = None
     events_url: StrictStr | None = None
@@ -98,6 +101,7 @@ class SolverJobOut(ResponseModel):
             options=options,
             option_count=len(options) if options else 0,
             error=job.error,
+            banner=getattr(job, "banner", None),
             params=dict(job.params),
             queue_depth=queue_depth,
             events_url=events_url,

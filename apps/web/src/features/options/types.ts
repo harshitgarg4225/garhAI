@@ -207,7 +207,13 @@ export function readSolveOutcome(row: SolverJobDetail): SolveOutcome {
 
   const resultEnvelope = row.result?.envelope;
   const envelope = envelopeSchema.safeParse(resultEnvelope);
-  const banner = row.result?.banner;
+  // Two sources, and the fallback is the one that matters. `result.banner` is the
+  // worker's terminal payload, which only reaches here when the API relays the whole
+  // result; the solver row now also carries the sentence in its own `banner` column,
+  // and that is the path that survives a plain `GET /solver-jobs/:id`. Without the
+  // fallback an architect whose Generate produced nothing gets no reason at all —
+  // the blank screen this field exists to prevent.
+  const banner = row.result?.banner ?? (row as { banner?: unknown }).banner;
   const considered = row.result?.considered;
   const rejected = row.result?.rejectedByGates;
 

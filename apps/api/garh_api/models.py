@@ -577,6 +577,11 @@ class SolverJob(UuidPk, Timestamps, TenantOwned, Base):
     progress: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     options: Mapped[list[Any] | None] = mapped_column(JSONB, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: The sentence the solver wants the architect to read — most importantly when it
+    #: produced NOTHING, where it carries the stage-A shortfall ("the ground floor is
+    #: 8 m² short") instead of leaving a blank screen. Not ``error``: a succeeded job
+    #: carrying an error is how a normal outcome gets a red banner.
+    banner: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
         CheckConstraint(_in_check("status", JOB_STATUSES), name="ck_solver_jobs_status"),

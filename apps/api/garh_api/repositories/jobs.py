@@ -105,7 +105,15 @@ class SolverJobRepository(ProjectScopedRepository[models.SolverJob, SolverJob]):
         await self.flush()
         return self.to_domain(row)
 
-    async def succeed(self, job_id: uuid.UUID, options: list[Any]) -> SolverJob:
+    async def succeed(
+        self, job_id: uuid.UUID, options: list[Any], banner: str | None = None
+    ) -> SolverJob:
+        """Store the options and the sentence that goes with them.
+
+        ``banner`` matters most when ``options`` is EMPTY: it is the difference
+        between a blank screen after a two-minute wait and "the ground floor is 8 m²
+        short of the rooms you asked for".
+        """
         if not isinstance(options, list):
             raise RepositoryUsageError("options must be a list of PlanOption objects.")
         row = await self._require_row(job_id)
@@ -113,8 +121,15 @@ class SolverJobRepository(ProjectScopedRepository[models.SolverJob, SolverJob]):
         row.progress = 100
         row.options = options
         row.error = None
+        if banner is not None:
+            row.banner = banner[:2000]
         await self.flush()
-        self._log.info("solver_job.succeeded", entity_id=str(job_id), options=len(options))
+        self._log.info(
+            "solver_job.succeeded",
+            entity_id=str(job_id),
+            options=len(options),
+            has_banner=bool(row.banner),
+        )
         return self.to_domain(row)
 
     async def fail(self, job_id: uuid.UUID, error: str) -> SolverJob:

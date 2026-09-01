@@ -1281,7 +1281,14 @@ async def apply_lifecycle_record(session: AsyncSession, record: queue.LifecycleR
             await repo.mark_running(job_id)
         elif record.type == "succeeded":
             options = event.data.get("options")
-            await repo.succeed(job_id, list(options) if isinstance(options, list) else [])
+            # The worker's own sentence (`JobResult.message`, which for an empty
+            # result is the stage-A shortfall banner). Dropping it here is what made
+            # "Generate" answer with a blank screen and no reason.
+            await repo.succeed(
+                job_id,
+                list(options) if isinstance(options, list) else [],
+                event.message or record.event.message,
+            )
         elif record.type in ("failed", "dead_lettered"):
             await repo.fail(job_id, _problem_message(event))
         elif record.type == "cancelled":
