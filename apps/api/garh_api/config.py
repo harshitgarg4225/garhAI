@@ -98,6 +98,10 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = ""  # sender address, e.g. no-reply@garh.ai
     smtp_starttls: bool = True
+    #: Brevo v3 API key (``xkeysib-…``, NOT the ``xsmtpsib-…`` SMTP key). When set,
+    #: sign-in codes go out over HTTPS instead of SMTP — required on Railway Hobby,
+    #: where outbound SMTP is disabled on every port. SMTP_FROM is still the sender.
+    brevo_api_key: str = ""
 
     # -- object storage (minio in compose) --------------------------------
     s3_endpoint_url: str = Field(
@@ -327,6 +331,16 @@ class Settings(BaseSettings):
         return bool(self.smtp_host and self.smtp_from)
 
     @property
+    def brevo_configured(self) -> bool:
+        """True when codes can go out over Brevo's HTTPS API: a key and a sender."""
+        return bool(self.brevo_api_key and self.smtp_from)
+
+    @property
+    def mail_configured(self) -> bool:
+        """Any working transport at all — what ``build_mailer`` actually gates on."""
+        return self.brevo_configured or self.smtp_configured
+
+    @property
     def sentry_enabled(self) -> bool:
         return bool(self.sentry_dsn)
 
@@ -342,6 +356,7 @@ class Settings(BaseSettings):
             "s3_access_key_id",
             "sentry_dsn",
             "smtp_password",
+            "brevo_api_key",
         }
         out: dict[str, Any] = {}
         for name, value in self.model_dump().items():

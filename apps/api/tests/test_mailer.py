@@ -26,23 +26,33 @@ the wrong reason.
 
 from __future__ import annotations
 
+import json as _json
 import smtplib
 from collections.abc import Iterator
 from email.message import EmailMessage
 from typing import Any
 
+import httpx
 import pytest
 from garh_api import auth as auth_module
 from garh_api.auth import set_otp_mailer
 from garh_api.config import Settings
 from garh_api.errors import ServiceUnavailableError
-from garh_api.mailer import OTP_SUBJECT, SmtpMailer, build_mailer, build_otp_message
+from garh_api.mailer import (
+    BREVO_SEND_URL,
+    OTP_SUBJECT,
+    BrevoHttpMailer,
+    SmtpMailer,
+    build_mailer,
+    build_otp_message,
+)
 
 #: A code that appears nowhere else, so a containment assertion cannot pass by luck.
 CODE = "482913"
 
 #: Every variable these cases read. Cleared before each settings build.
 _ENV_KEYS: tuple[str, ...] = (
+    "BREVO_API_KEY",
     "SMTP_HOST",
     "SMTP_PORT",
     "SMTP_USER",
@@ -328,3 +338,118 @@ class TestEnablement:
         dump = settings.redacted()
         assert dump["smtp_password"] == "***"
         assert "hunter2-not-for-logs" not in repr(dump)
+
+
+# ---------------------------------------------------------------------------
+# The Brevo HTTPS mailer — the transport Railway Hobby can actually use
+# ---------------------------------------------------------------------------
+#
+# Railway disables outbound SMTP below the Pro plan on every port. The first live
+# sign-up on the deployed stack timed out on smtp-relay.brevo.com:587 after exactly
+# the SMTP mailer's 15 s, and Brevo never saw it. These cases pin the HTTPS path the
+# same way the Stability provider is pinned: a STRICT httpx.MockTransport that
+# rejects anything but the exact request we mean to send.
+
+
+def _brevo_transport(recorded: list[httpx.Request], *, status: int = 201, body=None):
+    def handler(request: httpx.Request) -> httpx.Response:
+        recorded.append(request)
+        if str(request.url) != BREVO_SEND_URL:
+            return httpx.Response(404, json={"code": "wrong_endpoint", "message": str(request.url)})
+        if request.headers.get("api-key") != "xkeysib-test":
+            return httpx.Response(401, json={"code": "unauthorized"})
+        if request.headers.get("content-type", "").split(";")[0] != "application/json":
+            return httpx.Response(415, json={"code": "not_json"})
+        return httpx.Response(status, json=body if body is not None else {"messageId": "<m@brevo>"})
+
+    return httpx.MockTransport(handler)
+
+
+async def test_brevo_sends_the_same_message_over_https() -> None:
+    """URL, auth header, and the exact fields Brevo's v3 endpoint reads."""
+    recorded: list[httpx.Request] = []
+    mailer = BrevoHttpMailer(
+        api_key="xkeysib-test",
+        from_addr="Garh AI <help@example.test>",
+        transport_override=_brevo_transport(recorded),
+    )
+    await mailer("arch@studio.test", "123456", 600)
+
+    assert len(recorded) == 1
+    sent = recorded[0]
+    assert sent.method == "POST"
+    assert str(sent.url) == BREVO_SEND_URL
+    assert sent.headers["api-key"] == "xkeysib-test"
+    payload = _json.loads(sent.content)
+    assert payload["sender"] == {"email": "help@example.test", "name": "Garh AI"}
+    assert payload["to"] == [{"email": "arch@studio.test"}]
+    assert payload["subject"] == OTP_SUBJECT
+    # Same body as the SMTP path: the code and the "didn't request this" line.
+    assert "123456" in payload["textContent"]
+    assert "Didn't request this code" in payload["textContent"]
+    # §13: the key travels in a header only — never in the URL or the body.
+    assert "xkeysib" not in str(sent.url) and b"xkeysib" not in sent.content
+
+
+async def test_brevo_rejection_raises_so_auth_can_503() -> None:
+    """A non-2xx must raise: `_deliver_code` turns any exception into the honest
+    "couldn't send" 503. Swallowing it would be a code the architect never gets and
+    a screen that says "Check your email"."""
+    recorded: list[httpx.Request] = []
+    mailer = BrevoHttpMailer(
+        api_key="xkeysib-test",
+        from_addr="help@example.test",
+        transport_override=_brevo_transport(
+            recorded,
+            status=400,
+            body={"code": "invalid_parameter", "message": "sender not verified"},
+        ),
+    )
+    with pytest.raises(RuntimeError, match="invalid_parameter"):
+        await mailer("arch@studio.test", "123456", 600)
+
+
+async def test_brevo_wrong_key_is_a_failure_not_a_send() -> None:
+    """NEGATIVE CONTROL for the strict transport: the wrong key must be refused by
+    the double, or the success test above proves nothing about authentication."""
+    recorded: list[httpx.Request] = []
+    mailer = BrevoHttpMailer(
+        api_key="xkeysib-WRONG",
+        from_addr="help@example.test",
+        transport_override=_brevo_transport(recorded),
+    )
+    with pytest.raises(RuntimeError, match="401"):
+        await mailer("arch@studio.test", "123456", 600)
+
+
+def test_build_mailer_prefers_brevo_when_both_are_configured(monkeypatch: Any) -> None:
+    """On a platform where SMTP is blocked, an operator who set BOTH must get the
+    one that works. Precedence is the whole point of the HTTP mailer existing."""
+    settings = _settings(
+        monkeypatch,
+        SMTP_HOST="smtp-relay.brevo.com",
+        SMTP_FROM="help@example.test",
+        BREVO_API_KEY="xkeysib-test",
+    )
+    mailer = build_mailer(settings)
+    assert isinstance(mailer, BrevoHttpMailer)
+    assert mailer.transport == "brevo-http"
+    assert mailer.from_domain == "example.test"
+
+
+def test_build_mailer_falls_back_to_smtp_without_a_brevo_key(monkeypatch: Any) -> None:
+    """NEGATIVE CONTROL for precedence: without the key it must NOT pick HTTP."""
+    settings = _settings(
+        monkeypatch, SMTP_HOST="smtp-relay.brevo.com", SMTP_FROM="help@example.test"
+    )
+    mailer = build_mailer(settings)
+    assert isinstance(mailer, SmtpMailer)
+    assert mailer.transport == "smtp"
+
+
+def test_brevo_key_alone_is_not_enough_it_needs_a_sender(monkeypatch: Any) -> None:
+    """A key with no SMTP_FROM has nothing to put in `sender` — mail stays off,
+    loudly, rather than sending from an empty address."""
+    settings = _settings(monkeypatch, BREVO_API_KEY="xkeysib-test")
+    assert settings.brevo_configured is False
+    assert build_mailer(settings) is None

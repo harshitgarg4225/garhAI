@@ -191,6 +191,7 @@ def _install_otp_mailer(settings: Settings) -> None:
         # Host and sender domain only — never the credentials, never an address.
         _log.info(
             "auth.mailer_installed",
+            transport=mailer.transport,
             smtp_host=mailer.host,
             from_domain=mailer.from_domain,
         )

@@ -127,7 +127,13 @@ Two smaller gaps found in passing:
 
 - **The 10-generation free quota.** Each trial account gets 10 solves per billing
   period; the fourth architect to explore will hit it mid-session.
-- **SMTP credentials** — sign-in is OTP by email. Without them, no one can log in.
+- **A Brevo v3 API key (`BREVO_API_KEY`)** — sign-in is OTP by email, and on
+  Railway's Hobby tier outbound SMTP is disabled on every port (_"SMTP is only
+  available on the Pro plan and above"_). The first live sign-up timed out on
+  `smtp-relay.brevo.com:587` after exactly the mailer's 15 s. Codes now go over
+  Brevo's HTTPS API, which needs the `xkeysib-…` key from the **API Keys** tab —
+  not the `xsmtpsib-…` SMTP key. The `SMTP_*` block is still honoured where SMTP
+  is reachable, and `SMTP_FROM` remains the (Brevo-verified) sender either way.
 - **Anthropic and Stability keys** if the trial is meant to exercise the copilot or
   real renders rather than mocks.
 - **Seed rule values.** Fine for a trial provided the UI's confidence/citation chips
