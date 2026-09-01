@@ -428,6 +428,31 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
                 <p className="mt-0.5 text-sm text-ink-muted">
                   We sent a six-digit code to <span className="font-medium text-ink">{email}</span>.
                 </p>
+                {/* Shown to EVERYONE on this screen, on purpose. The API answers "sent"
+                    for an address it has never seen (§13: it must not reveal which
+                    emails are registered), so a newcomer who typed their address into
+                    sign-in reaches this screen and waits for a code that is not
+                    coming. This line is the only way to tell them without telling an
+                    attacker anything — it says the same thing whether the address
+                    exists or not. Execution find on the first live trial sign-in. */}
+                <p className="mt-2 text-xs leading-5 text-ink-muted">
+                  Nothing after a minute? Sign-in only works for practices that already have an
+                  account. If you&apos;re new,{' '}
+                  <button
+                    type="button"
+                    className="garh-focus-ring rounded-sm text-brand-ink underline underline-offset-2 hover:text-brand"
+                    onClick={() => {
+                      setStep('signup');
+                      setCode('');
+                      setFieldError(undefined);
+                      setOtpMeta(null);
+                      setProblem(null);
+                    }}
+                  >
+                    create one first
+                  </button>
+                  .
+                </p>
               </div>
 
               {otpMeta?.devCode === undefined ? null : (
