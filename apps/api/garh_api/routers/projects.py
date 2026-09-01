@@ -28,7 +28,7 @@ from typing import Any
 from fastapi import APIRouter, Query, Response, status
 from pydantic import Field, StrictStr, field_validator
 
-from garh_api.billing.quotas import require_quota
+from garh_api.billing.quotas import require_quota, require_spend_budget
 from garh_api.compliance import (
     ComplianceUnavailable,
     cannot_evaluate_reason,
@@ -539,7 +539,7 @@ async def put_brief(
     responses={402: {"description": "The plan's LLM allowance for this period is spent."}},
     # This route spends provider budget and meters it into ``credit_events`` below, so
     # it carries the plan's LLM allowance the same way the copilot route does.
-    dependencies=[require_quota("llm")],
+    dependencies=[require_quota("llm"), require_spend_budget("llm")],
 )
 async def parse_brief(
     project_id: uuid.UUID,

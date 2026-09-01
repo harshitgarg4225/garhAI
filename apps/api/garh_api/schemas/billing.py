@@ -89,12 +89,38 @@ class UsageLineOut(ResponseModel):
     remaining: StrictInt | None = None
 
 
+class SpendBudgetOut(ResponseModel):
+    """This architect's generation budget — money, not call counts.
+
+    Separate from the ``lines`` below because it answers a different question and
+    fails for a different reason: the lines count CALLS against a plan's monthly
+    allowance, this counts DOLLARS against a one-off budget that never resets. An
+    architect can have plenty of one and none of the other.
+
+    US dollars, because that is what the providers charge; unrelated to the rupee plan
+    price. Strings like ``"$4.25"`` are for display — ``*Micros`` carry the exact
+    integers (millionths of a dollar) so a UI never has to parse currency text.
+    """
+
+    cap_usd: StrictStr
+    spent_usd: StrictStr
+    remaining_usd: StrictStr
+    cap_micros: StrictInt
+    spent_micros: StrictInt
+    remaining_micros: StrictInt
+    #: False when no budget is configured, so a UI can hide the meter rather than
+    #: render a confident "$0.00 of $0.00".
+    enforced: StrictBool = True
+
+
 class UsageOut(ResponseModel):
     plan_code: StrictStr
     effective_plan_code: StrictStr
     period_start: datetime
     period_end: datetime
     lines: list[UsageLineOut] = Field(default_factory=list)
+    #: Lifetime generation budget for the CALLER, not the firm. ``None`` when unset.
+    spend: SpendBudgetOut | None = None
 
 
 # ---------------------------------------------------------------------------

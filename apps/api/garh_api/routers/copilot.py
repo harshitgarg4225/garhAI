@@ -28,7 +28,7 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from garh_api.billing.quotas import require_quota
+from garh_api.billing.quotas import require_quota, require_spend_budget
 from garh_api.config import get_settings
 from garh_api.logging import get_logger
 from garh_api.ratelimit import enforce_rate_limit, llm_per_firm_rule
@@ -100,7 +100,7 @@ def _pipeline() -> Any:
     # 402 before a token is spent. The hourly rule below is a burst ceiling; this is the
     # plan's monthly allowance, counted over the same ``credit_events`` rows this
     # handler writes.
-    dependencies=[require_quota("llm")],
+    dependencies=[require_quota("llm"), require_spend_budget("llm")],
 )
 async def propose(
     project_id: uuid.UUID,

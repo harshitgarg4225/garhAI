@@ -706,6 +706,10 @@ class CreditEvent:
     kind: str
     qty: int
     meta: dict[str, Any]
+    #: What it cost, in micro-dollars. See ``billing/spend.py`` — not rupees.
+    cost_micros: int
+    #: Which architect spent it; ``None`` for rows written before attribution existed.
+    user_id: uuid.UUID | None
     created_at: datetime
 
     @classmethod
@@ -716,6 +720,8 @@ class CreditEvent:
             kind=row.kind,
             qty=row.qty,
             meta=_json_obj(row.meta),
+            cost_micros=int(row.cost_micros or 0),
+            user_id=row.user_id,
             created_at=row.created_at,
         )
 

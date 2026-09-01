@@ -67,9 +67,11 @@ from datetime import datetime
 from fastapi import Depends, params
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from garh_api.billing.errors import QuotaExceededError
+from garh_api.billing.errors import QuotaExceededError, SpendCapExceededError
 from garh_api.billing.plans import QUOTA_KINDS
+from garh_api.billing.spend import MICROS_PER_USD
 from garh_api.billing.subscriptions import Entitlement, entitlement
+from garh_api.config import get_settings
 from garh_api.logging import get_logger
 from garh_api.repositories import CreditEventRepository
 from garh_api.tenancy import TenantCtx
@@ -211,4 +213,75 @@ def require_quota(kind: str, *, qty: int = 1) -> params.Depends:
     return Depends(dependency)
 
 
-__all__ = ["QuotaLine", "check_quota", "require_quota", "usage_lines"]
+async def check_spend_budget(
+    session: AsyncSession, ctx: TenantCtx, kind: str, *, qty: int = 1
+) -> None:
+    """Refuse the call when this architect's generation budget is spent.
+
+    LIFETIME, not per period — the budget is a one-off allowance, so there is no window
+    to roll. Keyed on the USER, not the firm: one architect burning the budget must not
+    close a colleague's door.
+
+    Deliberately checks "already spent >= cap" rather than trying to price the call in
+    advance. An LLM call's cost is only known from the tokens it returns, so a
+    pre-flight estimate would be a guess — and a guess that refuses work is worse than
+    a small overshoot on the last call. The cap is therefore a floor on what gets
+    stopped, not a hard ceiling on what gets spent: the final call can cross it, and
+    nothing after it runs.
+
+    ``cap <= 0`` disables the budget entirely, which is what an unmetered deployment
+    wants and what every test that is not about spending gets.
+    """
+    settings = get_settings()
+    cap_micros = int(getattr(settings, "spend_cap_usd", 0)) * MICROS_PER_USD
+    if cap_micros <= 0:
+        return
+
+    spent = await CreditEventRepository(session, ctx).spent_micros()
+    if spent >= cap_micros:
+        _log.info(
+            "spend_cap.refused",
+            credit_kind=kind,
+            spent_micros=spent,
+            cap_micros=cap_micros,
+            user_id=str(ctx.user_id) if ctx.user_id else None,
+        )
+        raise SpendCapExceededError.for_spend(spent_micros=spent, cap_micros=cap_micros, kind=kind)
+
+
+def require_spend_budget(kind: str, *, qty: int = 1) -> params.Depends:
+    """FastAPI dependency: 402 before the handler runs if the budget is spent.
+
+    Mounted bare beside :func:`require_quota`, and the same import-time kind check::
+
+        dependencies=[require_quota("render"), require_spend_budget("render")]
+
+    Both, not either: they answer different questions ("does the plan include another
+    render?" and "is there money left?") and a deployment can care about one without
+    the other.
+    """
+    if kind not in QUOTA_KINDS:
+        raise ValueError(
+            "require_spend_budget(%r): not a metered kind. Expected one of: %s."
+            % (kind, ", ".join(QUOTA_KINDS))
+        )
+
+    from garh_api.deps import db_session, require_tenant
+
+    async def dependency(
+        session: AsyncSession = Depends(db_session),
+        ctx: TenantCtx = Depends(require_tenant),
+    ) -> None:
+        await check_spend_budget(session, ctx, kind, qty=qty)
+
+    return Depends(dependency)
+
+
+__all__ = [
+    "QuotaLine",
+    "check_quota",
+    "check_spend_budget",
+    "require_quota",
+    "require_spend_budget",
+    "usage_lines",
+]

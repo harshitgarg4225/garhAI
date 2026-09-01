@@ -125,6 +125,17 @@ class Settings(BaseSettings):
     # drift (services/llm/anthropic_provider.py), but the default should not
     # trail the model family the prompts were written against.
     anthropic_model: str = "claude-opus-5"
+
+    #: Lifetime generation budget per architect, in whole US dollars. 0 disables it.
+    #:
+    #: DOLLARS, not rupees: it caps what PROVIDERS charge us (Anthropic per token,
+    #: Stability per image), which is billed in USD. It is unrelated to the rupee plan
+    #: price a firm is invoiced, and the two must never be added — see
+    #: ``billing/spend.py``.
+    #:
+    #: Lifetime rather than monthly because this is a trial allowance: an architect
+    #: gets $5 of generation, once, and raising it is a deliberate act.
+    spend_cap_usd: int = 5
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
 

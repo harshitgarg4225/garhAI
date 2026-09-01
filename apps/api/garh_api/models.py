@@ -995,13 +995,22 @@ class CreditEvent(UuidPk, Timestamps, TenantOwned, Base):
     kind: Mapped[str] = mapped_column(Text, nullable=False)
     qty: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
     meta: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default=JSON_OBJ)
+    #: What this event COST, in micro-dollars (``billing/spend.py``). Not rupees — this
+    #: is what a provider charged us, and it never reaches an invoice. 0 for anything
+    #: served by a mock provider, which is most of a dev or trial stack.
+    cost_micros: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
+    #: Which architect spent it. Nullable and unconstrained on purpose: an attribution
+    #: label must never be able to take a billing row with it.
+    user_id: Mapped[uuid.UUID | None] = mapped_column(PgUUID(as_uuid=True), nullable=True)
 
     __table_args__ = (
         CheckConstraint(_in_check("kind", CREDIT_EVENT_KINDS), name="ck_credit_events_kind"),
         CheckConstraint("qty > 0", name="ck_credit_events_qty_positive"),
+        CheckConstraint("cost_micros >= 0", name="ck_credit_events_cost_non_negative"),
         Index("ix_credit_events_firm_id", "firm_id"),
         Index("ix_credit_events_firm_id_created_at", "firm_id", "created_at"),
         Index("ix_credit_events_firm_id_kind", "firm_id", "kind"),
+        Index("ix_credit_events_user_id_cost", "user_id"),
     )
 
 

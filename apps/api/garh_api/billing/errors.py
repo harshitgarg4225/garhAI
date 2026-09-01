@@ -22,6 +22,37 @@ from __future__ import annotations
 from garh_api.errors import ApiError
 
 
+class SpendCapExceededError(ApiError):
+    """This architect has spent their whole generation budget.
+
+    402, like :class:`QuotaExceededError`, and for the same reason — it is a billing
+    answer, not a fault. Separate from it because the two fail for different reasons
+    and an architect can hit either while the other has room: the quota counts CALLS
+    against a plan, this counts DOLLARS against a one-off budget.
+    """
+
+    http_status = 402
+    code = "spend_cap_exceeded"
+    default_message = "You've used your generation budget."
+    action = "Ask your administrator to raise the budget."
+
+    @classmethod
+    def for_spend(cls, *, spent_micros: int, cap_micros: int, kind: str) -> SpendCapExceededError:
+        from garh_api.billing.spend import format_usd
+
+        return cls(
+            "Generating uses a budget of %s, and %s of it is spent."
+            % (format_usd(cap_micros), format_usd(spent_micros)),
+            extra={
+                "kind": kind,
+                "spentUsd": format_usd(spent_micros),
+                "capUsd": format_usd(cap_micros),
+                "spentMicros": spent_micros,
+                "capMicros": cap_micros,
+            },
+        )
+
+
 class QuotaExceededError(ApiError):
     """The firm has used its monthly allowance for this metered kind."""
 
@@ -123,4 +154,5 @@ __all__ = [
     "PlanChangeError",
     "QuotaExceededError",
     "SeatLimitError",
+    "SpendCapExceededError",
 ]

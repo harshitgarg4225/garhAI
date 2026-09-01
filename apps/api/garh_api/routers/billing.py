@@ -84,6 +84,7 @@ from garh_api.schemas.billing import (
     SeatAssignIn,
     SeatListOut,
     SeatOut,
+    SpendBudgetOut,
     SubscriptionOut,
     SubscriptionUpdateIn,
     UsageLineOut,
@@ -245,6 +246,39 @@ async def update_subscription(
     return _subscription_out(await entitlement(session, ctx))
 
 
+async def _spend_budget(session: SessionDep, ctx: TenantDep) -> SpendBudgetOut | None:
+    """The caller's generation budget, or ``None`` when none is configured.
+
+    Read through the same repository method the gate uses, so the number an architect
+    is shown and the number that refuses their next Generate cannot disagree.
+    """
+    from garh_api.billing.spend import MICROS_PER_USD, format_usd
+    from garh_api.repositories import CreditEventRepository
+
+    cap_micros = int(get_settings().spend_cap_usd) * MICROS_PER_USD
+    spent = await CreditEventRepository(session, ctx).spent_micros()
+    if cap_micros <= 0:
+        return SpendBudgetOut(
+            cap_usd=format_usd(0),
+            spent_usd=format_usd(spent),
+            remaining_usd=format_usd(0),
+            cap_micros=0,
+            spent_micros=spent,
+            remaining_micros=0,
+            enforced=False,
+        )
+    remaining = max(0, cap_micros - spent)
+    return SpendBudgetOut(
+        cap_usd=format_usd(cap_micros),
+        spent_usd=format_usd(spent),
+        remaining_usd=format_usd(remaining),
+        cap_micros=cap_micros,
+        spent_micros=spent,
+        remaining_micros=remaining,
+        enforced=True,
+    )
+
+
 @router.get("/usage", response_model=UsageOut, summary="Usage against allowance")
 async def get_usage(session: SessionDep, ctx: TenantDep) -> UsageOut:
     """What the firm has spent this period, per metered kind.
@@ -256,6 +290,7 @@ async def get_usage(session: SessionDep, ctx: TenantDep) -> UsageOut:
     """
     ent, lines = await usage_lines(session, ctx)
     return UsageOut(
+        spend=await _spend_budget(session, ctx),
         plan_code=ent.plan.code,
         effective_plan_code=ent.effective_plan.code,
         period_start=ent.period_start,

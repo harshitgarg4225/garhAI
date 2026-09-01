@@ -9,6 +9,7 @@ double-charge is visible instead of baked into a counter.
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from typing import Any
 
@@ -30,12 +31,23 @@ class CreditEventRepository(Repository[models.CreditEvent, CreditEvent]):
 
     # -- writes --------------------------------------------------------
     async def record(
-        self, *, kind: str, qty: int = 1, meta: dict[str, Any] | None = None
+        self,
+        *,
+        kind: str,
+        qty: int = 1,
+        meta: dict[str, Any] | None = None,
+        cost_micros: int | None = None,
     ) -> CreditEvent:
-        """Record one usage event.
+        """Record one usage event, priced.
 
         ``meta`` should carry enough to reconcile a bill later: the job id, provider,
         model/preset, and for LLM calls the token counts.
+
+        ``cost_micros`` defaults to whatever :func:`billing.spend.cost_micros_for` reads
+        out of that same ``meta``, so a call site that already records honest metadata
+        is priced without touching it. Pass it explicitly only when the caller knows
+        something the meta does not. A mock provider prices at 0 — a stack running on
+        fixtures must not burn a real budget.
         """
         if kind not in models.CREDIT_EVENT_KINDS:
             raise RepositoryUsageError(
@@ -43,10 +55,44 @@ class CreditEventRepository(Repository[models.CreditEvent, CreditEvent]):
             )
         if isinstance(qty, bool) or not isinstance(qty, int) or qty <= 0:
             raise RepositoryUsageError("qty must be a positive integer.")
-        row = self._new_row(kind=kind, qty=qty, meta=meta or {})
+        facts = meta or {}
+        if cost_micros is None:
+            # Imported HERE, not at module scope. `garh_api.billing.__init__` pulls in
+            # `quotas`, which imports this very package — a module-level import makes
+            # `garh_api.repositories` un-importable. Same reason `quotas.require_quota`
+            # imports `garh_api.deps` inside its factory, and documented in both places
+            # so neither gets "tidied" back up to the top.
+            from garh_api.billing.spend import cost_micros_for
+
+            cost_micros = cost_micros_for(kind, qty=qty, meta=facts)
+        if isinstance(cost_micros, bool) or not isinstance(cost_micros, int) or cost_micros < 0:
+            raise RepositoryUsageError("cost_micros must be a non-negative integer of micro-USD.")
+        row = self._new_row(
+            kind=kind,
+            qty=qty,
+            meta=facts,
+            cost_micros=cost_micros,
+            user_id=self.ctx.user_id,
+        )
         await self._insert(row)
-        self._log.info("credit_event.recorded", credit_kind=kind, qty=qty)
+        self._log.info("credit_event.recorded", credit_kind=kind, qty=qty, cost_micros=cost_micros)
         return self.to_domain(row)
+
+    async def spent_micros(self, user_id: uuid.UUID | None = None) -> int:
+        """Everything this architect has ever spent, in micro-dollars.
+
+        Lifetime, not per period: the trial budget is a one-off allowance, so there is
+        no window to filter on. ``user_id`` defaults to the caller — a firm-wide total
+        would let one architect's spend close another's door.
+        """
+        target = user_id if user_id is not None else self.ctx.user_id
+        stmt = select(func.coalesce(func.sum(models.CreditEvent.cost_micros), 0)).where(
+            models.CreditEvent.firm_id == self.firm_id
+        )
+        if target is not None:
+            stmt = stmt.where(models.CreditEvent.user_id == target)
+        result = await self._session.execute(stmt)
+        return int(result.scalar_one() or 0)
 
     # -- reads ---------------------------------------------------------
     async def list_recent(

@@ -41,6 +41,7 @@ from fastapi import APIRouter, Query, Request, status
 from pydantic import Field, StrictInt, StrictStr, field_validator
 
 from garh_api import queue
+from garh_api.billing.quotas import require_spend_budget
 from garh_api.config import Settings, get_settings
 from garh_api.logging import get_logger
 from garh_api.ratelimit import enforce_rate_limit, render_jobs_per_firm_rule
@@ -414,6 +415,7 @@ async def render_history(
     response_model=RenderPackOut,
     status_code=status.HTTP_202_ACCEPTED,
     summary="One click: 6 exteriors + living + kitchen as one job group",
+    dependencies=[require_spend_budget("render")],
 )
 async def start_client_pack(
     project_id: uuid.UUID,
@@ -626,6 +628,7 @@ async def get_render_pack(
     "/projects/{project_id}/render-packs/{pack_id}/archive",
     response_model=ExportJobOut,
     summary="Zip the finished pack and hand back a signed download",
+    dependencies=[require_spend_budget("export")],
 )
 async def archive_render_pack(
     project_id: uuid.UUID,
