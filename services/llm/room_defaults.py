@@ -149,7 +149,13 @@ class RoomDefault:
 def _read_pack() -> Mapping[str, Any]:
     path = os.path.join(_REPO_ROOT, "rulepacks", "nbc-core.json")
     with open(path, encoding="utf-8") as handle:
-        return json.load(handle)
+        loaded: Any = json.load(handle)
+    # `json.load` is `Any`, so returning it directly silently widens this function's
+    # contract to "anything at all" — mypy --strict rejects it, and it is right to:
+    # a pack that parsed as a list would blow up in `legal_minimums` instead of here.
+    if not isinstance(loaded, dict):
+        raise ValueError("rulepacks/nbc-core.json must be a JSON object, got %s" % type(loaded))
+    return loaded
 
 
 @lru_cache(maxsize=1)
