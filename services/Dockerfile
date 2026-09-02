@@ -104,6 +104,13 @@ COPY ["services", "/app/services"]
 COPY ["apps/api", "/app/apps/api"]
 COPY ["packages/model", "/app/packages/model"]
 COPY ["rulepacks", "/app/rulepacks"]
+# The solver's furniture-fit stage opens fixtures/catalog/furniture.json from the
+# repo root (services/solver/furniture_fit.py:default_catalog_path). Without this
+# line every generate job on a deployed worker died with FileNotFoundError, four
+# attempts each, and the api image (which does copy fixtures) looked healthy —
+# found on the first trial architect's first Generate, 2026-09-02. Only the
+# catalogue: the rest of fixtures/ is test corpora.
+COPY ["fixtures/catalog", "/app/fixtures/catalog"]
 
 RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin garh \
     && mkdir -p /app/.cache/huggingface \

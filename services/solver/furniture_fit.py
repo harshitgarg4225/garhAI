@@ -32,6 +32,8 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from services.common.errors import PermanentError
+
 #: Rooms people live in. §5.6 gates furniture fit on these; a store room that
 #: cannot take a shelf is not a reason to discard an otherwise good plan.
 HABITABLE_TYPES = frozenset(
@@ -76,6 +78,26 @@ REQUIRED_SETS: Mapping[str, tuple[str, ...]] = {
 
 class CatalogError(ValueError):
     """The furniture catalogue is missing an id a required set names."""
+
+
+class CatalogUnavailableError(PermanentError):
+    """The catalogue file itself is not there — a deployment fault, not a brief fault.
+
+    Permanent on purpose. The first deployed worker image shipped without
+    ``fixtures/``: every generate job raised a bare ``FileNotFoundError``, which the
+    runtime treated as retryable, so each job burned four attempts and its credit
+    before dying with "something went wrong on our side". A missing data file will
+    not appear on the next attempt; say so once, fast, and without a path (§13).
+    """
+
+    code = "catalog_unavailable"
+
+    def __init__(self) -> None:
+        super().__init__(
+            "The furniture catalogue isn't available on this worker, so plans can't be "
+            "checked for fit.",
+            action="This is a fault on our side and has been logged — try again in a few minutes.",
+        )
 
 
 @dataclass(frozen=True)
@@ -156,8 +178,11 @@ def load_catalog(path: str | None = None) -> dict[str, CatalogItem]:
     silently-skipped requirement would turn the gate into decoration.
     """
     target = path or default_catalog_path()
-    with open(target, encoding="utf-8") as handle:
-        raw = json.load(handle)
+    try:
+        with open(target, encoding="utf-8") as handle:
+            raw = json.load(handle)
+    except FileNotFoundError as exc:
+        raise CatalogUnavailableError() from exc
     entries: Iterable[Mapping[str, Any]] = raw["items"] if isinstance(raw, dict) else raw
 
     catalog: dict[str, CatalogItem] = {}
@@ -182,8 +207,9 @@ def load_catalog(path: str | None = None) -> dict[str, CatalogItem]:
     )
     if missing:
         raise CatalogError(
-            "furniture catalogue %s is missing ids named by REQUIRED_SETS: %s"
-            % (target, ", ".join(missing))
+            "furniture catalogue {} is missing ids named by REQUIRED_SETS: {}".format(
+                target, ", ".join(missing)
+            )
         )
     return catalog
 
@@ -345,6 +371,7 @@ __all__ = [
     "failing_rooms",
     "fit_all",
     "fit_room",
+    "CatalogUnavailableError",
     "load_catalog",
     "pack_room",
     "required_items_for",
