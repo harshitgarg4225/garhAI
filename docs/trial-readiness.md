@@ -134,6 +134,12 @@ Two smaller gaps found in passing:
   Brevo's HTTPS API, which needs the `xkeysib-…` key from the **API Keys** tab —
   not the `xsmtpsib-…` SMTP key. The `SMTP_*` block is still honoured where SMTP
   is reachable, and `SMTP_FROM` remains the (Brevo-verified) sender either way.
+  **EXECUTED 2026-09-02 10:52 UTC on the live stack:** with `BREVO_API_KEY` set,
+  a real sign-up created a practice, Brevo answered `201 Created` to the HTTPS
+  send (`mailer.otp_sent transport=brevo-http`, 565 ms end to end), and the code
+  was verified fifteen seconds later (`otp.verified` → `auth.signed_in` → the new
+  firm's project list). The first architect account on the deployed stack exists
+  because of this send.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We
