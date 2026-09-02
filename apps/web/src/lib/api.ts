@@ -349,6 +349,42 @@ function projectPath(projectId: string, suffix = ''): string {
 const CURSOR_TIMEOUT_MS = 2_000;
 
 // ---------------------------------------------------------------------------
+// Usage against the trial allowance (GET /billing/usage)
+// ---------------------------------------------------------------------------
+// The same numbers the quota gate and the spend cap enforce — the API reads both
+// through one repository method, so what the architect sees is what refuses the
+// next Generate. Declared beside its binding like the templates schema above.
+
+export const usageLineSchema = z.object({
+  kind: z.string(),
+  used: z.number().int().nonnegative(),
+  /** `null` = unlimited on this plan. */
+  allowance: z.number().int().nonnegative().nullable().default(null),
+  remaining: z.number().int().nonnegative().nullable().default(null),
+});
+export const spendBudgetSchema = z.object({
+  capUsd: z.string(),
+  spentUsd: z.string(),
+  remainingUsd: z.string(),
+  capMicros: z.number().int(),
+  spentMicros: z.number().int(),
+  remainingMicros: z.number().int(),
+  /** False when the cap is 0 — the budget is reported but nothing refuses on it. */
+  enforced: z.boolean().default(true),
+});
+export const usageSchema = z.object({
+  planCode: z.string(),
+  effectivePlanCode: z.string(),
+  periodStart: z.string(),
+  periodEnd: z.string(),
+  lines: z.array(usageLineSchema).default([]),
+  spend: spendBudgetSchema.nullable().default(null),
+});
+export type Usage = z.infer<typeof usageSchema>;
+export type UsageLine = z.infer<typeof usageLineSchema>;
+export type SpendBudget = z.infer<typeof spendBudgetSchema>;
+
+// ---------------------------------------------------------------------------
 // Project templates (GET /templates → POST /projects {templateId})
 // ---------------------------------------------------------------------------
 // Declared here rather than in `lib/schemas.ts` deliberately: the registry card
@@ -763,6 +799,13 @@ export function createApiClient(client: HttpClient = http) {
           parse: parser(deletedSchema),
           ...opts,
         }),
+    },
+
+    // ── Trial usage: generations used, money left ────────────────────────
+    billing: {
+      /** Used vs allowed per metered kind, plus the spend budget, for the firm. */
+      usage: (opts: CallOptions = {}): Promise<Usage> =>
+        client.request({ path: '/billing/usage', parse: parser(usageSchema), ...opts }),
     },
 
     // ── Project templates (Rayon-parity starters, applied server-side) ─────

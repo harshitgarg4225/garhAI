@@ -1002,6 +1002,11 @@ class CreditEvent(UuidPk, Timestamps, TenantOwned, Base):
     #: Which architect spent it. Nullable and unconstrained on purpose: an attribution
     #: label must never be able to take a billing row with it.
     user_id: Mapped[uuid.UUID | None] = mapped_column(PgUUID(as_uuid=True), nullable=True)
+    #: The job this event paid for, when there is one — what a refund is keyed on.
+    job_id: Mapped[uuid.UUID | None] = mapped_column(PgUUID(as_uuid=True), nullable=True)
+    #: Set when the job never delivered (failed, dead-lettered, cancelled). The row
+    #: stays as the record of the attempt; every reader that counts or sums skips it.
+    refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         CheckConstraint(_in_check("kind", CREDIT_EVENT_KINDS), name="ck_credit_events_kind"),
@@ -1011,6 +1016,7 @@ class CreditEvent(UuidPk, Timestamps, TenantOwned, Base):
         Index("ix_credit_events_firm_id_created_at", "firm_id", "created_at"),
         Index("ix_credit_events_firm_id_kind", "firm_id", "kind"),
         Index("ix_credit_events_user_id_cost", "user_id"),
+        Index("ix_credit_events_firm_id_job_id", "firm_id", "job_id"),
     )
 
 

@@ -711,6 +711,10 @@ class CreditEvent:
     #: Which architect spent it; ``None`` for rows written before attribution existed.
     user_id: uuid.UUID | None
     created_at: datetime
+    #: The job this event paid for, and when it was given back because that job never
+    #: delivered. ``refunded_at`` set means every counting reader skips this row.
+    job_id: uuid.UUID | None = None
+    refunded_at: datetime | None = None
 
     @classmethod
     def from_row(cls, row: Any) -> CreditEvent:
@@ -722,6 +726,8 @@ class CreditEvent:
             meta=_json_obj(row.meta),
             cost_micros=int(row.cost_micros or 0),
             user_id=row.user_id,
+            job_id=getattr(row, "job_id", None),
+            refunded_at=getattr(row, "refunded_at", None),
             created_at=row.created_at,
         )
 

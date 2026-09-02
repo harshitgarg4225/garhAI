@@ -19,6 +19,8 @@ import { IconButton } from '@garh/ui';
 
 import type { PtMm } from './types';
 import { OptionsPanel } from './OptionsPanel';
+import { UsageInline, useUsage } from '../billing';
+import { useSolverJob } from './useOptions';
 
 export interface OptionsOverlayProps {
   readonly projectId: string;
@@ -33,6 +35,11 @@ export function OptionsOverlay({
   briefReady,
   onClose,
 }: OptionsOverlayProps): JSX.Element {
+  // Re-read the allowance whenever the current solver job settles: a success spent
+  // one, a failure or cancellation gave it back.
+  const { job } = useSolverJob(projectId);
+  const settledKey = job !== null ? `${job.id}:${job.status}` : null;
+  const { usage } = useUsage(settledKey);
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') onClose();
@@ -53,7 +60,10 @@ export function OptionsOverlay({
         <p className="hidden text-xs text-ink-muted sm:block">
           Apply one to put it on the canvas — it lands as a single undo step.
         </p>
-        <IconButton icon="x" label="Close options" onClick={onClose} className="ml-auto" />
+        <span className="ml-auto hidden md:inline">
+          <UsageInline usage={usage} />
+        </span>
+        <IconButton icon="x" label="Close options" onClick={onClose} />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <OptionsPanel projectId={projectId} plotOutline={plotOutline} briefReady={briefReady} />

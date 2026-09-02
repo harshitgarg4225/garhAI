@@ -1299,8 +1299,10 @@ async def apply_lifecycle_record(session: AsyncSession, record: queue.LifecycleR
             )
         elif record.type in ("failed", "dead_lettered"):
             await repo.fail(job_id, _problem_message(event))
+            await _refund_undelivered(session, ctx, job_id, record.type)
         elif record.type == "cancelled":
             await repo.cancel(job_id)
+            await _refund_undelivered(session, ctx, job_id, record.type)
         else:
             return False
         return True
@@ -1327,8 +1329,10 @@ async def apply_lifecycle_record(session: AsyncSession, record: queue.LifecycleR
                 )
         elif record.type in ("failed", "dead_lettered"):
             await repo_r.fail(job_id, _problem_message(event))
+            await _refund_undelivered(session, ctx, job_id, record.type)
         elif record.type == "cancelled":
             await repo_r.cancel(job_id)
+            await _refund_undelivered(session, ctx, job_id, record.type)
         else:
             return False
         return True
@@ -1337,6 +1341,53 @@ async def apply_lifecycle_record(session: AsyncSession, record: queue.LifecycleR
     # This is the only path from "the worker drew them" to "the sheets table says so",
     # for the same reason the solver's is: workers hold no database connection.
     return await _apply_drawings_lifecycle(session, record)
+
+
+async def _refund_undelivered(
+    session: AsyncSession, ctx: TenantCtx, job_id: uuid.UUID, outcome: str
+) -> int:
+    """Give the credit back: the job it paid for never delivered.
+
+    Credits are charged when a job is ENQUEUED, because that is when the quota and
+    the spend cap have to say yes or no. A job that then fails, is dead-lettered or is
+    cancelled has delivered nothing, and counting it would charge the architect for
+    our failure — the first trial architect lost two of ten free generations to a
+    worker image that could not open its own catalogue (2026-09-02). Idempotent: the
+    repository refunds a row once.
+    """
+    from garh_api.repositories import CreditEventRepository
+
+    return await CreditEventRepository(session, ctx).refund_for_job(job_id, reason=outcome)
+
+
+#: The `started` event can beat the enqueuing request's COMMIT to the consumer: the
+#: worker picks the job off Redis while the api's transaction that created the job
+#: row is still open, so the first apply sees no row. Seen on every live solve
+#: (`job_events.apply_failed … was not found` at the exact enqueue timestamp). The
+#: row exists a few hundred milliseconds later; wait for it rather than leave the
+#: entry pending and the job stuck on "queued" until the next event.
+STARTED_RACE_ATTEMPTS = 8
+STARTED_RACE_DELAY_SECONDS = 0.5
+
+
+async def apply_lifecycle_record_with_retry(
+    record: queue.LifecycleRecord,
+    *,
+    attempts: int = STARTED_RACE_ATTEMPTS,
+    delay_seconds: float = STARTED_RACE_DELAY_SECONDS,
+    apply: Any = None,
+) -> None:
+    """Apply one record, retrying only the not-yet-committed-row case."""
+    apply_fn = apply or apply_lifecycle_record
+    for attempt in range(1, max(1, attempts) + 1):
+        try:
+            async with session_scope() as session:
+                await apply_fn(session, record)
+            return
+        except EntityNotFoundError:
+            if attempt >= attempts:
+                raise
+            await asyncio.sleep(delay_seconds)
 
 
 def _problem_message(event: queue.ProgressEvent) -> str:
@@ -1395,6 +1446,13 @@ async def _apply_drawings_lifecycle(session: AsyncSession, record: queue.Lifecyc
             changes["download_url"] = str(url)
     if status_value == "failed":
         changes["error"] = _problem_message(event)
+    if status_value in ("failed", "cancelled"):
+        await _refund_undelivered(
+            session,
+            TenantCtx.for_system(uuid.UUID(record.firm_id)),
+            uuid.UUID(record.job_id),
+            status_value,
+        )
     await queue.put_export_job(existing.evolve(**changes))
     return wrote_rows
 
@@ -1426,8 +1484,7 @@ async def consume_job_events(consumer_name: str, *, stop: asyncio.Event | None =
 
         for record in records:
             try:
-                async with session_scope() as session:
-                    await apply_lifecycle_record(session, record)
+                await apply_lifecycle_record_with_retry(record)
                 await queue.ack_job_events([record.entry_id])
                 _log.info(
                     "job_events.applied",
