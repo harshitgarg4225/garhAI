@@ -76,6 +76,7 @@ from garh_api.ratelimit import (
     otp_per_email_rule,
     otp_resend_identity,
     otp_resend_rule,
+    reset_rate_limit,
     verify_ip_rule,
 )
 from garh_api.repositories.audit_log import (
@@ -741,7 +742,8 @@ class OtpIssueResult:
 
     expires_in_seconds: int
     resend_after_seconds: int
-    #: Populated only when :func:`dev_echo_otp_enabled` — always ``None`` in prod.
+    #: Populated only when the dev echo was the delivery channel — never when a
+    #: mailer is installed, and always ``None`` in prod.
     dev_code: str | None = None
 
 
@@ -903,7 +905,7 @@ class AuthService:
             _log.info("auth.otp_requested_unknown", email_domain=email_domain(clean))
             return self._otp_result()
 
-        return await self._send_code(principal, clean)
+        return await self._send_code(principal, clean, route="signin")
 
     async def _consume_email_budget(self, clean_email: str, *, route: OtpRoute) -> None:
         """Per-address limits: the 60s resend cooldown, then the hourly cap.
@@ -940,7 +942,9 @@ class AuthService:
             dev_code=dev_code,
         )
 
-    async def _send_code(self, principal: AuthPrincipal, clean_email: str) -> OtpIssueResult:
+    async def _send_code(
+        self, principal: AuthPrincipal, clean_email: str, *, route: OtpRoute
+    ) -> OtpIssueResult:
         """Generate, store and deliver a code for a known principal.
 
         Assumes the caller has already consumed the relevant rate-limit budget, so
@@ -954,7 +958,22 @@ class AuthService:
             ttl_seconds=ttl,
             meta=self._origin_meta(),
         )
-        channel = await _deliver_code(clean_email, code, ttl, settings=self._settings)
+        try:
+            channel = await _deliver_code(clean_email, code, ttl, settings=self._settings)
+        except ServiceUnavailableError:
+            # The 503 says "try again in a few seconds"; make that true. The resend
+            # cooldown was charged before delivery and Redis is outside the DB
+            # transaction, so without this the retry it invites is a 429 "we just
+            # sent a code" for a code that was never sent (execution find, 2026-09-01
+            # 18:35 on the deployed stack). Only the 60-second cooldown is refunded:
+            # the hourly and per-IP caps are what bound a mail-bombing loop, and a
+            # reset there would wipe legitimate earlier hits, not one slot.
+            await reset_rate_limit(
+                otp_resend_rule(self._settings),
+                otp_resend_identity(self._email_identity(clean_email), route),
+                settings=self._settings,
+            )
+            raise
 
         await self._audit(principal).record(
             ACTION_AUTH_OTP_REQUESTED,
@@ -969,7 +988,11 @@ class AuthService:
             otp_id=str(challenge.id),
             channel=channel,
         )
-        return self._otp_result(code if dev_echo_otp_enabled(self._settings) else None)
+        # The response mirrors the CHANNEL, not the setting. With a mailer installed the
+        # code went by mail and must not also come back in the body: on a dev-env
+        # deployment that would hand any caller any account's code (execution find,
+        # 2026-09-02 audit — masked only while the mailer itself was failing).
+        return self._otp_result(code if channel == "dev-echo" else None)
 
     # -- OTP verify ----------------------------------------------------
     async def verify_otp(self, email: str, code: str) -> IssuedSession:
@@ -1188,7 +1211,7 @@ class AuthService:
         # Same code path as sign-in, so there is one OTP policy rather than two — but
         # calling `_send_code` directly rather than `request_otp` avoids charging the
         # per-IP bucket twice for a single round trip.
-        return await self._send_code(principal, clean)
+        return await self._send_code(principal, clean, route="signup")
 
     # -- refresh -------------------------------------------------------
     async def refresh(self, raw_token: str) -> IssuedSession:

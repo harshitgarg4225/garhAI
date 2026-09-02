@@ -143,6 +143,23 @@ Two smaller gaps found in passing:
   addresses — was rejected because it opens an enumeration oracle, and
   `test_auth_resend_scope.py` pins both properties with a negative control in each
   direction (revert the fix → the live-defect test reds; over-fix → the oracle guard reds).
+- **Four more OTP findings closed the same day (from the delivery audit).** All
+  execution finds on the deployed stack, all invisible to a suite that had never run
+  with a mailer installed: (1) the response echoed the code whenever the dev echo was
+  _enabled_ rather than _used_ — with a mailer installed on a dev-env deployment the
+  code went by mail AND came back in the body, so any caller could sign in as any
+  address (masked only while SMTP itself was failing); the body now mirrors the
+  channel, and `DEV_ECHO_OTP=0` is set on the Railway api service as the belt to that
+  brace. (2) A delivery 503 said "try again in a few seconds" but the resend cooldown
+  had already been charged, so the retry it invited was a 429 for a code never sent;
+  the cooldown is refunded on a 503 (only the 60 s one — the hourly and per-IP caps
+  still bound a mail-bombing loop). (3) `SmtpMailer` upgraded with an UNVERIFIED TLS
+  context (Python's `starttls()` default); it now verifies the relay. (4) A
+  whitespace `SMTP_FROM` switched mail on with a blank sender. Every one carries a
+  test in `test_otp_delivery_channel.py` / `test_mailer.py` and a negative control.
+  Also set on the api service: `TRUSTED_PROXY_HOPS=1`, because behind Railway's edge
+  every browser shared ONE per-IP bucket of 20 sign-in requests an hour — the fourth
+  trial architect would have been throttled by the first three.
 - **Anthropic and Stability keys** if the trial is meant to exercise the copilot or
   real renders rather than mocks.
 - **Seed rule values.** Fine for a trial provided the UI's confidence/citation chips

@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json as _json
 import smtplib
+import ssl
 from collections.abc import Iterator
 from email.message import EmailMessage
 from typing import Any
@@ -109,6 +110,7 @@ def smtp(monkeypatch: Any) -> _Recorder:
             self.port = port
             self.timeout = timeout
             self.starttls_called = False
+            self.starttls_context: ssl.SSLContext | None = None
             self.login_args: tuple[str, str] | None = None
             self.sent: list[EmailMessage] = []
             self.closed = False
@@ -120,8 +122,9 @@ def smtp(monkeypatch: Any) -> _Recorder:
         def __exit__(self, *exc_info: Any) -> None:
             self.closed = True
 
-        def starttls(self) -> None:
+        def starttls(self, *, context: ssl.SSLContext | None = None) -> None:
             self.starttls_called = True
+            self.starttls_context = context
 
         def login(self, user: str, password: str) -> None:
             self.login_args = (user, password)
@@ -451,5 +454,39 @@ def test_brevo_key_alone_is_not_enough_it_needs_a_sender(monkeypatch: Any) -> No
     """A key with no SMTP_FROM has nothing to put in `sender` — mail stays off,
     loudly, rather than sending from an empty address."""
     settings = _settings(monkeypatch, BREVO_API_KEY="xkeysib-test")
+    assert settings.brevo_configured is False
+    assert build_mailer(settings) is None
+
+
+async def test_starttls_verifies_the_relay_certificate(smtp: _Recorder) -> None:
+    """The upgrade must carry a verifying context.
+
+    ``smtplib.SMTP.starttls()`` with no context uses an UNVERIFIED one (CERT_NONE, no
+    hostname check), so a MITM at SMTP_HOST would receive the relay login and every
+    sign-in code. Pinned here because nothing else in the suite can see the context.
+    """
+    await _mailer_under_test()("someone@studio.test", CODE, 600)
+    (conn,) = smtp.connections
+    ctx = conn.starttls_context
+    assert ctx is not None, "starttls() was called without an SSL context"
+    assert ctx.verify_mode == ssl.CERT_REQUIRED
+    assert ctx.check_hostname is True
+
+
+def test_a_whitespace_sender_is_not_a_sender(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``SMTP_FROM=' '`` must leave mail OFF, not install a mailer with a blank From.
+
+    pydantic-settings does not strip values (verified: the field holds ``'   '``), and
+    a blank sender fails at the relay (SMTP) or at Brevo (empty ``sender.email``) — a
+    503 on every sign-in that looks exactly like the transport being down.
+    """
+    for key in _ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.test")
+    monkeypatch.setenv("BREVO_API_KEY", "xkeysib-test")
+    monkeypatch.setenv("SMTP_FROM", "   ")
+    settings = Settings(_env_file=None)
+    assert settings.smtp_from == "   ", "the premise: pydantic-settings keeps the whitespace"
+    assert settings.smtp_configured is False
     assert settings.brevo_configured is False
     assert build_mailer(settings) is None

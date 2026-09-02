@@ -27,6 +27,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import smtplib
+import ssl
 from email.message import EmailMessage
 from email.utils import parseaddr
 from typing import Any, Final
@@ -141,7 +142,10 @@ class SmtpMailer:
         with smtplib.SMTP(self.host, self.port, timeout=self.timeout_seconds) as client:
             if self.starttls:
                 # starttls() EHLOs for us if needed, and re-EHLOs after the upgrade.
-                client.starttls()
+                # An explicit default context: without one, smtplib upgrades with an
+                # UNVERIFIED context (CERT_NONE, no hostname check), so the relay's
+                # credentials and the code would go to whoever answers at SMTP_HOST.
+                client.starttls(context=ssl.create_default_context())
             if self.user:
                 client.login(self.user, self.password)
             client.send_message(message)
@@ -187,7 +191,7 @@ class BrevoHttpMailer:
         api_key: str,
         from_addr: str,
         timeout_seconds: float = 15.0,
-        transport_override: httpx.BaseTransport | None = None,
+        transport_override: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self.api_key = api_key
         self.from_addr = from_addr

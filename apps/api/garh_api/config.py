@@ -328,12 +328,12 @@ class Settings(BaseSettings):
         ``SMTP_USER``/``SMTP_PASSWORD`` are deliberately not part of the gate — an
         IP-allowlisted internal relay legitimately needs neither.
         """
-        return bool(self.smtp_host and self.smtp_from)
+        return bool(self.smtp_host.strip() and self.smtp_from.strip())
 
     @property
     def brevo_configured(self) -> bool:
         """True when codes can go out over Brevo's HTTPS API: a key and a sender."""
-        return bool(self.brevo_api_key and self.smtp_from)
+        return bool(self.brevo_api_key.strip() and self.smtp_from.strip())
 
     @property
     def mail_configured(self) -> bool:
