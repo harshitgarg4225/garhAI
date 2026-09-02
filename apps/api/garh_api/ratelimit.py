@@ -68,7 +68,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Final, TypeVar
+from typing import Any, Final, Literal, TypeVar
 
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -438,6 +438,23 @@ def otp_per_email_rule(settings: Settings | None = None) -> RateLimitRule:
     )
 
 
+OtpRoute = Literal["signin", "signup"]
+
+
+def otp_resend_identity(identity: str, route: OtpRoute) -> str:
+    """The identity the 60-second resend cooldown is keyed on: per address AND per route.
+
+    Sign-in and sign-up must not share one cooldown. First live trial, 2026-09-02: a
+    sign-in for an address with no account (a 202 that sends nothing, by design) spent
+    the cooldown, so the sign-up thirty seconds later — the request that would actually
+    have sent a code — was refused with 429. The hourly per-address cap stays shared.
+
+    This is the ONE place the key shape lives: ``AuthService`` charges it and the tests
+    that legitimately sign the same user in twice reset it through the same function.
+    """
+    return "%s:%s" % (identity, route)
+
+
 def otp_resend_rule(settings: Settings | None = None) -> RateLimitRule:
     return RateLimitRule(
         name="auth.otp_resend",
@@ -713,6 +730,8 @@ def rate_limited(
 
 
 __all__ = [
+    "OtpRoute",
+    "otp_resend_identity",
     "EXPORT_LIMIT_COPY",
     "KEY_PREFIX",
     "LLM_LIMIT_COPY",

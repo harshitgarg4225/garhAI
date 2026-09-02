@@ -21,7 +21,12 @@ from typing import Any
 import pytest
 from garh_api.auth import SessionStore, family_key, user_families_key
 from garh_api.errors import ServiceUnavailableError
-from garh_api.ratelimit import otp_per_email_rule, otp_resend_rule, reset_rate_limit
+from garh_api.ratelimit import (
+    otp_per_email_rule,
+    otp_resend_identity,
+    otp_resend_rule,
+    reset_rate_limit,
+)
 from garh_api.routers.sessions import describe_user_agent
 from garh_api.security import REFRESH_COOKIE_NAME, new_token_family, pseudonymise
 from redis.asyncio import Redis
@@ -50,7 +55,7 @@ async def clear_email_budget(email: str) -> None:
     limiter stays real for the tests that are about it.
     """
     identity = "email:%s" % pseudonymise(email)
-    await reset_rate_limit(otp_resend_rule(), identity)
+    await reset_rate_limit(otp_resend_rule(), otp_resend_identity(identity, "signin"))
     await reset_rate_limit(otp_per_email_rule(), identity)
 
 

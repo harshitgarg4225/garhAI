@@ -134,6 +134,15 @@ Two smaller gaps found in passing:
   Brevo's HTTPS API, which needs the `xkeysib-…` key from the **API Keys** tab —
   not the `xsmtpsib-…` SMTP key. The `SMTP_*` block is still honoured where SMTP
   is reachable, and `SMTP_FROM` remains the (Brevo-verified) sender either way.
+- **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
+  Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
+  anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We
+  just sent a code to that address". Both routes shared one 60-second resend key. The key
+  is now per route (`otp_resend_identity` in `ratelimit.py`, the only place its shape
+  lives); the hourly per-address cap stays shared. The naive fix — not charging unknown
+  addresses — was rejected because it opens an enumeration oracle, and
+  `test_auth_resend_scope.py` pins both properties with a negative control in each
+  direction (revert the fix → the live-defect test reds; over-fix → the oracle guard reds).
 - **Anthropic and Stability keys** if the trial is meant to exercise the copilot or
   real renders rather than mocks.
 - **Seed rule values.** Fine for a trial provided the UI's confidence/citation chips

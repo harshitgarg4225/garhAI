@@ -80,6 +80,12 @@ execution caught, and each will recur if you build fast without running things.
    meshes for hit-testing and documented itself as integrated, but never called
    the registry, so every placed item was invisible to clicks. There is no
    compile-time signal for this — any new canvas layer must be click-tested.
+5. **A limiter shared by two routes, and a fix that would have been worse.** The
+   60-second OTP resend cooldown was keyed on the address alone, so a sign-in for an
+   address with no account (a deliberate 202 that sends nothing) blocked the sign-up
+   thirty seconds later — the first thing the first trial architect did. The obvious
+   fix, "don't charge unknown addresses", opens an enumeration oracle. The key is now
+   per route, and the test file carries a negative control in each direction.
 
 The through-line: **a green check that cannot go red is worse than no check.**
 When you add a gate, negative-test it — break the thing deliberately and confirm

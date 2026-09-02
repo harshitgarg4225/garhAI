@@ -69,10 +69,12 @@ from garh_api.errors import (
 from garh_api.logging import get_logger
 from garh_api.ratelimit import (
     OTP_RESEND_COOLDOWN_SECONDS,
+    OtpRoute,
     auth_ip_rule,
     enforce_rate_limit,
     get_redis,
     otp_per_email_rule,
+    otp_resend_identity,
     otp_resend_rule,
     verify_ip_rule,
 )
@@ -892,7 +894,7 @@ class AuthService:
         """
         clean = normalise_email(email)
         await enforce_rate_limit(auth_ip_rule(self._settings), self._ip_identity())
-        await self._consume_email_budget(clean)
+        await self._consume_email_budget(clean, route="signin")
 
         principal = await self._directory.find_principal_by_email(clean)
         if principal is None:
@@ -903,10 +905,32 @@ class AuthService:
 
         return await self._send_code(principal, clean)
 
-    async def _consume_email_budget(self, clean_email: str) -> None:
-        """Per-address limits: the 60s resend cooldown, then the hourly cap."""
+    async def _consume_email_budget(self, clean_email: str, *, route: OtpRoute) -> None:
+        """Per-address limits: the 60s resend cooldown, then the hourly cap.
+
+        The resend cooldown is keyed per ROUTE (``signin`` / ``signup``); the hourly
+        cap is shared. Execution find, first live trial sign-in: an architect with no
+        account pressed Sign in (202, nothing sent — see ``request_otp``), read "Check
+        your email", then thirty seconds later pressed Create an account and was
+        refused with "We just sent a code to that address". The sign-in attempt for a
+        non-existent address had spent the one cooldown both routes shared, and the
+        sign-up that would actually have sent something was the call that paid for it.
+
+        Why per-route rather than "don't charge unknown addresses": on ``/auth/otp``
+        the charge MUST be identical for known and unknown addresses, or a second
+        request inside the window would 429 for a real account and 202 for a fake
+        one — the enumeration oracle the uniform 202 exists to prevent. Keying by
+        route keeps that property on sign-in and stops sign-in's cooldown reaching
+        sign-up. Sign-up has no enumeration property to protect: it already answers
+        409 for an existing address by design.
+
+        The hourly cap stays on the bare address, because it is the spam cap and a
+        spammer alternating routes must not get double the allowance.
+        """
         identity = self._email_identity(clean_email)
-        await enforce_rate_limit(otp_resend_rule(self._settings), identity)
+        await enforce_rate_limit(
+            otp_resend_rule(self._settings), otp_resend_identity(identity, route)
+        )
         await enforce_rate_limit(otp_per_email_rule(self._settings), identity)
 
     def _otp_result(self, dev_code: str | None = None) -> OtpIssueResult:
@@ -1131,7 +1155,7 @@ class AuthService:
         """
         clean = normalise_email(email)
         await enforce_rate_limit(auth_ip_rule(self._settings), self._ip_identity())
-        await self._consume_email_budget(clean)
+        await self._consume_email_budget(clean, route="signup")
 
         if await self._directory.email_exists(clean):
             raise EmailAlreadyRegisteredError()
