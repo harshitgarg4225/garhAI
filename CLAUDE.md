@@ -86,6 +86,14 @@ execution caught, and each will recur if you build fast without running things.
    thirty seconds later — the first thing the first trial architect did. The obvious
    fix, "don't charge unknown addresses", opens an enumeration oracle. The key is now
    per route, and the test file carries a negative control in each direction.
+6. **A production artifact nothing had ever executed.** The workers' Docker image
+   omitted `fixtures/`; the solver opens the furniture catalogue from there after
+   stage B. CI's compose e2e was green because it builds the `dev` stage and
+   bind-mounts the repo, so the prod stage's COPY list ran for the first time on the
+   first trial architect's first Generate — four retries, two credits burned, and an
+   error card blaming the brief. A test that exercises a substitute for the real
+   artifact proves the substitute. `test_catalog_in_image.py` now reads the
+   Dockerfile itself.
 
 The through-line: **a green check that cannot go red is worse than no check.**
 When you add a gate, negative-test it — break the thing deliberately and confirm

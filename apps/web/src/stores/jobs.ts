@@ -90,11 +90,24 @@ function jobFailure(kind: JobKind, message: string | null): ProblemDetail {
     code: `${kind}_job_failed`,
     message:
       message === null || message === '' ? `The ${KIND_NOUN[kind]} did not finish.` : message,
-    action:
-      kind === 'solver'
-        ? 'Try again — if it keeps failing, loosen a brief requirement and re-run.'
-        : `Try the ${KIND_NOUN[kind]} again. Nothing in your design was changed.`,
+    action: solverAdvice(kind, message),
   };
+}
+
+/**
+ * The next step, per kind — unless the worker already said what it is.
+ *
+ * A worker failure body carries its own action ("Try again — if it keeps
+ * happening, contact support"), which the API folds into `message`. Appending
+ * "loosen a brief requirement" under that told the first trial architect to edit
+ * their brief for a crash in our worker image (2026-09-02).
+ */
+export function solverAdvice(kind: JobKind, message: string | null): string {
+  const workerSpokeAlready = message !== null && /try again/i.test(message);
+  if (workerSpokeAlready) return 'Nothing in your design was changed.';
+  return kind === 'solver'
+    ? 'Try again — if it keeps failing, loosen a brief requirement and re-run.'
+    : `Try the ${KIND_NOUN[kind]} again. Nothing in your design was changed.`;
 }
 
 /** API job → row. */

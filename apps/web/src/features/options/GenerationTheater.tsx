@@ -15,6 +15,8 @@ import { Button, Icon, ProgressBar, Spinner, cn } from '@garh/ui';
 import { miniPlanFromEvent } from './planGeometry';
 import { MiniPlanSvg } from './MiniPlanSvg';
 import type { TheaterSilhouette, TheaterStage, TheaterState } from './theater';
+import { Link } from 'react-router-dom';
+import { READY_MADE_PLAN_HREF } from './readyMadePlan';
 
 export interface GenerationTheaterProps {
   readonly theater: TheaterState;
@@ -169,11 +171,30 @@ function FailureCard({
         {action ??
           'Try again — if it keeps failing, loosen a brief requirement (a room size or a must-face) and re-run.'}
       </p>
-      {onRetry !== undefined ? (
-        <Button size="sm" variant="secondary" onClick={onRetry}>
-          <Icon name="refresh" size={14} /> Try again
-        </Button>
-      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {onRetry !== undefined ? (
+          <Button size="sm" variant="secondary" onClick={onRetry}>
+            <Icon name="refresh" size={14} /> Try again
+          </Button>
+        ) : null}
+        <ReadyMadePlanLink />
+      </div>
     </div>
+  );
+}
+
+/**
+ * A link, not a button: it leaves the project for the dashboard's new-project
+ * dialog with the ready-made plan preselected. A plan template is a whole project
+ * (plot, brief, storeys, a solved plan), so it cannot be dropped into this one.
+ */
+export function ReadyMadePlanLink(): JSX.Element {
+  return (
+    <Link
+      to={READY_MADE_PLAN_HREF}
+      className="text-xs font-medium text-accent underline-offset-2 hover:underline"
+    >
+      Start from a ready-made plan instead
+    </Link>
   );
 }

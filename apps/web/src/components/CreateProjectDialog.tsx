@@ -74,6 +74,8 @@ export interface CreateProjectDialogProps {
    * exactly as before templates existed, which is the honest degraded state.
    */
   templates?: readonly TemplateOption[] | undefined;
+  /** Preselect this template when the dialog opens (a deep link from the Plan tab). */
+  initialTemplateId?: string | undefined;
 }
 
 export function CreateProjectDialog({
@@ -84,6 +86,7 @@ export function CreateProjectDialog({
   onTryDemo,
   error,
   templates,
+  initialTemplateId,
 }: CreateProjectDialogProps): JSX.Element {
   const [name, setName] = useState('');
   const [clientName, setClientName] = useState('');
@@ -92,7 +95,18 @@ export function CreateProjectDialog({
   const [widthMm, setWidthMm] = useState<number | null>(null);
   const [depthMm, setDepthMm] = useState<number | null>(null);
   const [touchedName, setTouchedName] = useState(false);
-  const [templateId, setTemplateId] = useState(BLANK_TEMPLATE_ID);
+  // A deep-linked template counts only once it is a real registry card: an unknown
+  // id must never be posted (422), and the registry can arrive after the dialog did.
+  const requestedTemplateId =
+    initialTemplateId !== undefined && (templates ?? []).some((t) => t.id === initialTemplateId)
+      ? initialTemplateId
+      : undefined;
+  const [templateId, setTemplateId] = useState(requestedTemplateId ?? BLANK_TEMPLATE_ID);
+  // The registry can arrive after the dialog opened; adopt the requested id once it
+  // is a real card, never before (an unknown id would post a 422).
+  useEffect(() => {
+    if (open && requestedTemplateId !== undefined) setTemplateId(requestedTemplateId);
+  }, [open, requestedTemplateId]);
 
   // Reset when the dialog is re-opened, so a cancelled draft does not linger.
   useEffect(() => {
@@ -104,7 +118,7 @@ export function CreateProjectDialog({
     setWidthMm(null);
     setDepthMm(null);
     setTouchedName(false);
-    setTemplateId(BLANK_TEMPLATE_ID);
+    setTemplateId(requestedTemplateId ?? BLANK_TEMPLATE_ID);
   }, [open]);
 
   const selectedTemplate = (templates ?? []).find((t) => t.id === templateId);

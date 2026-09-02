@@ -140,6 +140,38 @@ Two smaller gaps found in passing:
   was verified fifteen seconds later (`otp.verified` → `auth.signed_in` → the new
   firm's project list). The first architect account on the deployed stack exists
   because of this send.
+- **The first Generate on the deployed stack died in the worker image (fixed
+  2026-09-02).** Three execution finds from one afternoon, all invisible to the
+  suite:
+  1. `services/Dockerfile`'s prod stage copied `services`, `apps/api`,
+     `packages/model` and `rulepacks` but not `fixtures/`. The solver's furniture-fit
+     stage opens `fixtures/catalog/furniture.json` from the repo root after stage B,
+     so every generate job raised a bare `FileNotFoundError`, the runtime retried it
+     four times, and the architect saw "something went wrong on our side". CI's
+     compose e2e runs the `dev` stage with a bind mount, so the prod stage's COPY list
+     had never been executed anywhere before that click. The catalogue is now copied,
+     a missing catalogue is a permanent, path-free worker error (one attempt, honest
+     copy), and `test_catalog_in_image.py` checks the Dockerfile against the path the
+     loader opens.
+  2. Credits were charged at enqueue and never refunded, so both failed generates
+     counted against the ten free ones. `credit_events` now carries `job_id` and
+     `refunded_at` (migration 0012, which also refunds every historical failed or
+     cancelled job); the lifecycle consumer refunds on failed / dead-lettered /
+     cancelled for solver, render and export jobs; every reader — count quota, money
+     cap, `GET /billing/usage` — skips refunded rows. `test_credit_refund.py` pins it
+     with three negative controls (no refund → 6 red; readers count refunded rows → 7
+     red; refund on success would be a free trial forever → guarded).
+  3. The dashboard fetched `GET /templates` and never passed the result to the
+     new-project dialog, so no architect ever saw a template — the same class as the
+     furniture-layer bug in `CLAUDE.md`. Fixed, with a dialog test and a source
+     contract on the page. The Plan tab's failure card now offers "Start from a
+     ready-made plan instead", which deep-links the dialog to the solved-plan
+     template, and the failure copy no longer tells the architect to loosen the brief
+     for a fault of ours.
+     Also new: the trial allowance is visible — a card on the dashboard and a line in
+     the Plan options header, read from the same rows the gate enforces — and the
+     lifecycle consumer waits for the enqueue transaction to commit instead of dropping
+     the first `started` event.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

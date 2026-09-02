@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Button,
   EmptyState,
@@ -37,6 +37,7 @@ import {
   toProblem,
 } from '../components';
 import type { CreateProjectInput, ProjectStage } from '../components';
+import { TrialUsageCard, useUsage } from '../features/billing';
 import { api } from '../lib/api';
 import type { ProjectTemplate } from '../lib/api';
 import { useProjectStore } from '../stores/project';
@@ -78,6 +79,16 @@ export function DashboardPage(): JSX.Element {
   const [openingDemo, setOpeningDemo] = useState(false);
   /** Undefined until GET /templates answers; the dialog degrades to blank-only. */
   const [templates, setTemplates] = useState<ProjectTemplate[] | undefined>(undefined);
+  // `/?new=1&template=<id>` opens the dialog on that template — the Plan tab's
+  // "start from a ready-made plan" link lands here.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTemplate = searchParams.get('template');
+  useEffect(() => {
+    if (searchParams.get('new') === null) return;
+    setCreateOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
+  const { usage, loading: usageLoading, error: usageError } = useUsage();
 
   useEffect(() => {
     void load();
@@ -226,6 +237,8 @@ export function DashboardPage(): JSX.Element {
           }
         />
 
+        <TrialUsageCard usage={usage} loading={usageLoading} error={usageError} />
+
         {error !== null ? (
           <ProblemPanel
             problem={error}
@@ -327,6 +340,8 @@ export function DashboardPage(): JSX.Element {
       </PageBody>
 
       <CreateProjectDialog
+        templates={templates}
+        initialTemplateId={requestedTemplate ?? undefined}
         open={createOpen}
         onOpenChange={setCreateOpen}
         onCreate={(input) => void handleCreate(input)}
