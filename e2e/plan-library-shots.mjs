@@ -50,8 +50,9 @@ async function launch() {
   throw new Error('no launch option worked');
 }
 const browser = await launch();
+let page;
 async function main() {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.on('pageerror', (e) => console.log('  pageerror:', String(e).slice(0, 200)));
   const log = (m) => console.log('  ' + m);
 
@@ -121,7 +122,9 @@ try {
     const text = (await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 600);
     console.log('  url: ' + page.url());
     console.log('  page text: ' + text);
-  } catch {}
+  } catch (diagErr) {
+    console.log('  (no diagnostics: ' + String(diagErr).slice(0, 80) + ')');
+  }
 } finally {
   await browser.close();
 }
