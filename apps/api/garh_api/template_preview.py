@@ -17,10 +17,22 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-#: Layers that are noise at 200 px: dimension chains, section marks, hatch, clouds.
-#: Everything else — fabric, openings, stairs, room names and areas — is kept, so a
-#: new layer added to the sheets shows up here without a second list to maintain.
-_NOISE_LAYER_MARKERS: tuple[str, ...] = ("DIM", "SECT", "HATCH", "PATT", "CLOUD", "REVC", "GRID")
+#: Layers that are noise at 200 px: dimension chains, section marks, hatch, clouds,
+#: and text — a 2.5 mm room name is 2 px in the picker's 112 px box, grey fuzz that
+#: hides the walls (plan-library verification, 2026-09-03). The card already says what
+#: the plan is; the thumbnail shows its fabric: walls, openings, stairs.
+_NOISE_LAYER_MARKERS: tuple[str, ...] = (
+    "DIM",
+    "SECT",
+    "HATCH",
+    "PATT",
+    "CLOUD",
+    "REVC",
+    "GRID",
+    "TEXT",
+    "AREA",
+    "TITL",
+)
 
 
 def is_preview_layer(layer: str) -> bool:
@@ -29,7 +41,7 @@ def is_preview_layer(layer: str) -> bool:
 
 
 PREVIEW_SCALE = 100
-MARGIN_UM = 300_000  # 300 mm of paper, i.e. 30 m of building at 1:100 — generous edge
+MARGIN_UM = 15_000  # 15 mm of paper = 1.5 m of building at 1:100: a hairline of air around the plan
 
 
 class PreviewUnavailable(RuntimeError):
@@ -59,7 +71,10 @@ def preview_svg(ops: Sequence[Mapping[str, Any]], *, storey_index: int = 0) -> s
         raise ValueError("the recipe has no storeys, so there is nothing to draw")
     storey = storeys[min(storey_index, len(storeys) - 1)]
     primitives, _chains = plan_primitives(doc, storey.id, scale_denominator=PREVIEW_SCALE)
-    kept = tuple(p for p in primitives if is_preview_layer(p.layer))
+    # Hatch primitives are emitted inside a clip group whose <clipPath> the SHEET
+    # defines in its <defs>; a standalone fragment has no defs, so the clip dangled
+    # and every partition drew as a grey band (plan-library verification, 2026-09-03).
+    kept = tuple(p for p in primitives if is_preview_layer(p.layer) and type(p).__name__ != "Hatch")
     if not kept:
         raise ValueError("storey %r has no walls to draw" % storey.name)
     probe = DrawingGroup(id="preview", placement=Placement(PREVIEW_SCALE), primitives=kept)
@@ -77,10 +92,12 @@ def preview_svg(ops: Sequence[Mapping[str, Any]], *, storey_index: int = 0) -> s
     width_mm = (max_x - min_x) * 1000 // PREVIEW_SCALE // 1000 + 2 * MARGIN_UM // 1000
     height_mm = (max_y - min_y) * 1000 // PREVIEW_SCALE // 1000 + 2 * MARGIN_UM // 1000
     body = render_group_svg(group)
+    if "url(#" in body:
+        raise ValueError("the thumbnail references a definition the fragment does not carry")
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" width="%dmm" '
         'height="%dmm" version="1.1">\n<!-- garh-template-preview %s -->\n%s\n</svg>\n'
-        % (width_mm, height_mm, width_mm, height_mm, storey.name, body)
+        % (width_mm, height_mm, width_mm, height_mm, storey_index, body)
     )
 
 

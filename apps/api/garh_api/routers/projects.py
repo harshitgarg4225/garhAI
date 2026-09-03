@@ -502,15 +502,22 @@ async def put_brief(
     repo = BriefRepository(session, ctx)
 
     patch: dict[str, Any] = dict(body.data or {})
+    # The Vastu mode is the op's OWN field, not a key in the data patch: the fold
+    # reads `vastuMode` off the payload (garh_model.fold brief.update) and the
+    # compliance pack set reads brief.vastuMode. Writing it into the patch left
+    # brief.vastuMode at "off" and the vastu pack never loaded, for every brief saved
+    # from the form or a template (plan-library verification, 2026-09-03).
+    patch.pop("vastuMode", None)
+    payload: dict[str, Any] = {"patch": patch}
     if body.vastu_mode is not None:
-        patch["vastuMode"] = body.vastu_mode
+        payload["vastuMode"] = body.vastu_mode
 
-    if patch:
+    if patch or body.vastu_mode is not None:
         await dispatch_ops(
             session,
             ctx,
             project_id,
-            [OpIn(type="brief.update", payload={"patch": patch})],
+            [OpIn(type="brief.update", payload=payload)],
             source="manual",
         )
 

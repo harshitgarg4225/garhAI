@@ -88,7 +88,11 @@ from garh_api.schemas.ops import (
     OpsAppendOut,
     OpsSinceOut,
 )
-from garh_api.solver_apply import expand_solver_apply_ops, snapshot_after_solver_apply
+from garh_api.solver_apply import (
+    SOLVER_APPLY_OP_TYPE,
+    expand_solver_apply_ops,
+    snapshot_after_solver_apply,
+)
 
 _log = get_logger(__name__)
 
@@ -719,6 +723,18 @@ async def dispatch_ops(
     an explicit base precisely because it does.
     """
     ctx.require_write("editing this design")
+    # No side door: op 31 is expanded server-side from the stored solver job by
+    # POST /ops (expand_solver_apply_ops). A wrapper arriving here would be folded
+    # from whatever ops its payload carries — client-supplied geometry under a
+    # solver's name. Nothing legitimate sends one this way; refuse it.
+    for op_in in ops:
+        if op_in.type == SOLVER_APPLY_OP_TYPE:
+            raise ApiError(
+                "A plan option is applied through POST /ops, not through a form or template.",
+                status=422,
+                code="solver_apply_not_here",
+                action="Apply the option from the Plan options screen.",
+            )
     target_branch = branch or await active_branch(session, ctx, project_id)
     op_repo = OpRepository(session, ctx)
     await op_repo.acquire_branch_write_lock(project_id, target_branch)

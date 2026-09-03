@@ -131,6 +131,20 @@ def _polygon_area_mm2(ring: Sequence[Point]) -> int:
     return abs(doubled) // 2
 
 
+def _stair_centroid_mm(stair: Mapping[str, Any]) -> list[int] | None:
+    """Centroid of the stair's footprint polygon, or ``None`` if it cannot be built."""
+    try:
+        from garh_model.fold import stair_footprint_polygon
+        from garh_model.model import Stair
+
+        ring = [(int(p.x), int(p.y)) for p in stair_footprint_polygon(Stair.from_json(dict(stair)))]
+    except Exception:  # a malformed stair is the engine's to name, not ours to guess
+        return None
+    if len(ring) < 3:
+        return None
+    return list(_centroid_mm(ring))
+
+
 def _centroid_mm(ring: Sequence[Point]) -> Point:
     if not ring:
         return (0, 0)
@@ -551,7 +565,11 @@ def build_evaluation_context(
                 "headroomMm": int(storey_row["clearHeightMm"]) if storey_row else 0,
                 "kind": str(stair.get("kind")) if stair.get("kind") else None,
                 "risersCount": int(stair.get("risersCount") or 0) or None,
-                "centroidMm": None,
+                # The centroid of the stair's footprint. A Vastu zone rule refuses to
+                # classify a stair without one (garh_rules.checks), and it did — the
+                # moment a brief's Vastu mode first reached the fold, every Generate
+                # with a stair died in the solver's rules pass (2026-09-03).
+                "centroidMm": _stair_centroid_mm(stair),
             }
         )
 

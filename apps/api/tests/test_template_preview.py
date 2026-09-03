@@ -13,12 +13,15 @@ def _recipe() -> list[dict]:
     return ops_to_json([*two_room_plan_ops(), *opening_ops()])
 
 
-def test_a_plan_renders_to_a_standalone_svg_with_walls_and_names() -> None:
+def test_a_plan_renders_to_a_standalone_svg_of_its_fabric() -> None:
     svg = preview_svg(_recipe())
     assert svg.startswith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ')
     assert 'data-layer="A-WALL"' in svg
-    assert "<text" in svg, "room names are what make a thumbnail readable"
+    assert (
+        "<text" not in svg
+    ), "2 px room names are grey fuzz at picker size; the card names the plan"
     assert "A-DIM" not in svg, "dimensions are noise at thumbnail size"
+    assert "url(#" not in svg, "a fragment cannot reference the sheet's clip-path definitions"
     assert "<script" not in svg
 
 
