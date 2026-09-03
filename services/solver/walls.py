@@ -65,6 +65,12 @@ INSET_INTERNAL_LOW = 57
 INSET_INTERNAL_HIGH = 58
 #: Clear-face inset from a footprint boundary (full external wall thickness).
 INSET_EXTERNAL = EXTERNAL_WALL_MM
+#: What the MODEL's room detection insets on BOTH faces of an internal wall:
+#: ``thicknessMm // 2`` (garh_model.rooms), so a 115 wall leaves 57 + 57 and the
+#: room the compliance tab measures is 1 mm wider than the physical clear face on
+#: its HIGH side. Anything sized against the tab's floor area (window area per
+#: nbc.ventilation.habitable.min) must use this convention, not the physical one.
+INSET_INTERNAL_DETECTED = INTERNAL_WALL_MM // 2
 
 #: Compass name of an axis-aligned outward normal, +Y = plot north.
 _OUTWARD_BY_NORMAL: dict[tuple[int, int], str] = {
@@ -731,8 +737,14 @@ def _merge_external_spans(spans: Sequence[ExternalSpan]) -> list[ExternalSpan]:
 # ---------------------------------------------------------------------------
 
 
-def clear_polygon(layout: CellLayout, network: WallNetwork, room_key: str) -> Polygon:
+def clear_polygon(
+    layout: CellLayout, network: WallNetwork, room_key: str, *, as_detected: bool = False
+) -> Polygon:
     """The room's clear (inside-face) polygon, CCW, exact integer mm.
+
+    ``as_detected=True`` insets internal walls the way ``garh_model.rooms`` will
+    (``INSET_INTERNAL_DETECTED`` on both faces) — the polygon whose area the
+    compliance tab divides by. Size anything the tab checks against that one.
 
     Insets per side fragment: 230 where the fragment lies on the footprint
     boundary, else the fixed 57/58 internal split (top/right sides of the room
@@ -751,6 +763,8 @@ def clear_polygon(layout: CellLayout, network: WallNetwork, room_key: str) -> Po
         other = f_low if room_is_high else f_high
         if other == -1:
             return INSET_EXTERNAL
+        if as_detected:
+            return INSET_INTERNAL_DETECTED
         return INSET_INTERNAL_HIGH if room_is_high else INSET_INTERNAL_LOW
 
     def side_fragments(
@@ -844,6 +858,7 @@ def _interval_index(cuts: tuple[int, ...], lo: int) -> int:
 
 __all__ = [
     "INSET_EXTERNAL",
+    "INSET_INTERNAL_DETECTED",
     "INSET_INTERNAL_HIGH",
     "INSET_INTERNAL_LOW",
     "AdjacencySpan",

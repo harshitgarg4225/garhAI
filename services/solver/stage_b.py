@@ -469,10 +469,17 @@ def refine(
 
         clear_polys: dict[str, Polygon] = {}
         clear_areas: dict[str, int] = {}
+        # The floor area the compliance tab will divide windows by is the MODEL's
+        # detected polygon (57 + 57 on a 115 wall), not the physical 57 + 58 face.
+        # Sizing windows on the physical area left every plan 1-2 mm short of
+        # ceil(area / 10) on the tab — a fail the solver's own gate never saw.
+        detected_areas: dict[str, int] = {}
         for room in layout.rooms:
             poly = clear_polygon(layout, network, room.key)
             clear_polys[room.key] = poly
             clear_areas[room.key] = polygon_area_mm2([MPt(x, y) for x, y in poly])
+            detected = clear_polygon(layout, network, room.key, as_detected=True)
+            detected_areas[room.key] = polygon_area_mm2([MPt(x, y) for x, y in detected])
 
         doors, main_door, occupancy = place_doors(
             layout,
@@ -485,7 +492,7 @@ def refine(
             layout,
             network,
             occupancy,
-            clear_areas,
+            detected_areas,
             limits=opening_limits,
             sill_mm=DEFAULTS.sill_default_mm,
             lintel_mm=DEFAULTS.lintel_default_mm,

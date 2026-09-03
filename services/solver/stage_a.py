@@ -708,6 +708,11 @@ class _StoreyProblem:
     #: Minimum cells of the entry room's side ON the entry boundary — the main
     #: door (pack width + margins + snap) must fit that external span. 0 ⇒ off.
     entry_frontage_cells: int = 0
+    #: Floor on the span between two circulation rooms (passage-passage,
+    #: passage-stair): the internal door width + both end margins, snap-proofed.
+    #: Stage B places a door or archway there and discards the layout when it
+    #: does not fit; before this floor existed the arrival span could be 900 mm.
+    arrival_cells: int = 0
     #: Per-room CLEAR floors (room key → (min clear area mm², min clear width
     #: mm)) — the PACK's numbers, which are what the §5.4 critic hard-fails on.
     #: The brief's own min width/area stay GROSS domain floors (a brief's
@@ -1330,7 +1335,7 @@ def add_circulation(
     area expression (cells) for the caller to read back, or ``None`` when the storey
     has no circulation rooms at all (the program synthesises one, so this is a bug
     guard, not a normal path)."""
-    door_cells = max(1, _ceil_div(DOOR_FRONTAGE_MM, module_mm))
+    door_cells = max(1, _ceil_div(DOOR_FRONTAGE_MM, module_mm), problem.arrival_cells)
     per_room = problem.door_cells_by_key or {}
     distributors = {
         key for key, vars_ in room_vars.items() if vars_.bounds.room.room_type in _DISTRIBUTOR_TYPES
@@ -1345,14 +1350,19 @@ def add_circulation(
 
     for key in sorted(room_vars):
         vars_ = room_vars[key]
-        if key in distributors or vars_.bounds.room.room_type == "shaft":
+        room_type = vars_.bounds.room.room_type
+        # The stair's own arrival span is the passage<->stair constraint below;
+        # a second, wider floor on it here made small programs infeasible.
+        if room_type == "shaft" or room_type == "staircase":
             continue
         # The serving span must survive stage B: the room's own door width plus
         # end margins plus the 115mm snap, not the bare §5.2 frontage figure —
         # a 900mm coarse span snaps as low as 805mm, under ANY legal door.
         serve_cells = max(door_cells, per_room.get(key, 0))
         reachable: list[Any] = []
-        serving = sorted(distributors | (fallback - {key}))
+        # A passage is itself entered from another distributor or the living
+        # room by a door or archway — stage B's door walk needs that span too.
+        serving = sorted((distributors | fallback) - {key})
         for other in serving:
             reachable.extend(
                 _touch_literals(
@@ -1931,7 +1941,9 @@ def _stage_a_topology_once(
     opening_limits = load_nbc_limits(root=rulepack_root)
     door_cells_by_key: dict[str, int] = {}
     for room in program.rooms:
-        if not room.packed or room.is_circulation or room.room_type == "shaft":
+        # Circulation rooms too: stage B wants a door or archway INTO a passage
+        # or stair as much as into a bedroom, with the same end margins.
+        if not room.packed or room.room_type == "shaft":
             continue
         width = door_width_for(room.room_type, opening_limits)
         door_cells_by_key[room.key] = min_frontage_cells(
@@ -1939,6 +1951,9 @@ def _stage_a_topology_once(
         )
     entry_frontage_cells = min_frontage_cells(
         opening_limits.door_main_min_mm + 2 * WALL_END_MARGIN_MM, module_mm=module_mm
+    )
+    arrival_cells = min_frontage_cells(
+        opening_limits.door_internal_min_mm + 2 * WALL_END_MARGIN_MM, module_mm=module_mm
     )
 
     # CLEAR floors come from the PACK — the numbers the §5.4 critic hard-fails
@@ -2010,6 +2025,7 @@ def _stage_a_topology_once(
             north_deg=params.north_deg,
             door_cells_by_key=door_cells_by_key,
             entry_frontage_cells=entry_frontage_cells,
+            arrival_cells=arrival_cells,
             clear_floor_by_key=clear_floor_by_key,
             # The lead storey of a multi-storey solve is kept close to its own
             # minimum program (110%); see the field comment. Later storeys are

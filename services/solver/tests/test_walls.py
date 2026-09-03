@@ -82,9 +82,10 @@ _install_worker_dep_stubs()
 
 import random  # noqa: E402
 
-from services.solver.types import RoomPlacement  # noqa: E402
+from services.solver.types import INTERNAL_WALL_MM, RoomPlacement  # noqa: E402
 from services.solver.walls import (  # noqa: E402
     INSET_EXTERNAL,
+    INSET_INTERNAL_DETECTED,
     INSET_INTERNAL_HIGH,
     INSET_INTERNAL_LOW,
     CellLayout,
@@ -417,3 +418,72 @@ if __name__ == "__main__":  # pragma: no cover
                 print("FAIL %s" % name)
                 traceback.print_exc()
     sys.exit(1 if failures else 0)
+
+
+# ---------------------------------------------------------------------------
+# the detected convention: what the compliance tab measures
+# ---------------------------------------------------------------------------
+
+
+def _fold_two_rooms(net) -> dict[str, int]:
+    """Emit the network as wall.add ops (as stage B does), fold them through the
+    real model, and return every detected room's areaMm2 keyed by its polygon."""
+    from garh_model import replay
+    from garh_model.testing import fixed_id, make_empty_doc
+
+    storey_id = fixed_id("storey", "S0")
+    ops = [
+        {
+            "type": "storey.add",
+            "payload": {
+                "id": storey_id,
+                "index": 0,
+                "name": "Ground Floor",
+                "level": {
+                    "fflMm": 450,
+                    "slabThicknessMm": 150,
+                    "sillDefaultMm": None,
+                    "lintelDefaultMm": None,
+                },
+                "heightMm": 3000,
+            },
+        }
+    ]
+    for i, wall in enumerate(net.walls):
+        ops.append(
+            {
+                "type": "wall.add",
+                "payload": {
+                    "id": fixed_id("wall", "W%d" % i),
+                    "storeyId": storey_id,
+                    "a": {"x": wall.a[0], "y": wall.a[1]},
+                    "b": {"x": wall.b[0], "y": wall.b[1]},
+                    "thicknessMm": wall.thickness_mm,
+                    "kind": wall.kind,
+                    "loadBearing": wall.kind == "external",
+                },
+            }
+        )
+    doc = replay(ops, make_empty_doc())
+    return {frozenset((p.x, p.y) for p in room.polygon): room.area_mm2 for room in doc.house.rooms}
+
+
+def test_detected_convention_is_exactly_what_room_detection_measures() -> None:
+    """The area the compliance tab divides windows by is the MODEL's polygon, which
+    insets 57 on both faces of a 115 wall. `as_detected=True` must reproduce it to
+    the millimetre — and the physical 57/58 polygon must NOT (negative control),
+    otherwise this test could not tell the two conventions apart."""
+    from garh_model.geometry import Pt as MPt
+    from garh_model.geometry import polygon_area_mm2
+
+    layout = CellLayout.from_placements(TWO_ROOMS)
+    net = build_wall_network(layout)
+    detected = _fold_two_rooms(net)
+    assert len(detected) == 2, "room detection did not close both rooms"
+    for key in ("living", "kitchen"):
+        as_tab = clear_polygon(layout, net, key, as_detected=True)
+        assert frozenset(as_tab) in detected, "%s: detected polygon differs" % key
+        assert polygon_area_mm2([MPt(x, y) for x, y in as_tab]) == detected[frozenset(as_tab)]
+    # NEGATIVE CONTROL: the physical polygons are a different shape on the shared wall.
+    assert frozenset(clear_polygon(layout, net, "kitchen")) not in detected
+    assert INSET_INTERNAL_DETECTED == 57 == INTERNAL_WALL_MM // 2

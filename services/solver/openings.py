@@ -687,8 +687,10 @@ def place_windows(
 ) -> tuple[OpeningSpec, ...]:
     """Windows for habitable rooms + kitchens, ventilators for baths.
 
-    ``clear_areas`` maps room key → clear floor area (mm²) — the same number the
-    rules engine will divide by, so requirement and check cannot disagree.
+    ``clear_areas`` maps room key → the floor area the MODEL's room detection
+    will report (``clear_polygon(..., as_detected=True)``) — the number the rules
+    engine divides by, so requirement and check cannot disagree. The physical
+    57/58 polygon is 1 mm narrower and left windows a hair short on the tab.
     """
     out: list[OpeningSpec] = []
     for room in layout.rooms:  # already sorted by key — deterministic
