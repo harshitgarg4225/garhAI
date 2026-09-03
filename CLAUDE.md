@@ -102,6 +102,17 @@ execution caught, and each will recur if you build fast without running things.
    (`garh_model.circulation`, wired into the solver's own gates), and it was found
    only by an adversarial reader folding the recipe and walking it. When a check
    passes, ask what it does not look at.
+8. **A docstring that asserted agreement.** `place_windows` said its floor areas
+   were "the same number the rules engine will divide by, so requirement and check
+   cannot disagree." They were not: the solver insets a 115 mm wall 57/58 so the
+   faces sum exactly, while the model's room detection floors both faces to 57, so
+   the compliance tab measured every room 1 mm wider on one side and wanted a few
+   hundred mm² more window than the solver had given it. Two library plans failed
+   `nbc.ventilation.habitable.min` by 352 and 1,046 mm². The solver's gate blocks
+   only `hard` rules, so it shipped them green. The fix sizes windows against the
+   detected polygon, and `test_walls` folds real wall ops through the model and
+   requires the two conventions to agree to the millimetre — with the physical
+   polygon as the negative control that must NOT match.
 
 The through-line: **a green check that cannot go red is worse than no check.**
 When you add a gate, negative-test it — break the thing deliberately and confirm

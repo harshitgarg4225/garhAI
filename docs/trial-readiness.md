@@ -234,6 +234,22 @@ Two smaller gaps found in passing:
   room-detection threshold with ventilators credited into sealed cavities; the
   parking rule passing on a brief declaration while its message says spaces are
   shown; the solver gate blocking only `hard` rules while the tab shows every fail.
+- **Two re-captured plans failed the tab's ventilation rule by under 0.06% (fixed
+  2026-09-03).** `hyd-30x40-g1-3bhk` and `blr-30x50-g2-3bhk` came back from the fixed
+  solver with every room reachable and one `fail` each: a master bedroom with 1.9068 m²
+  of window against a 1.907152 m² requirement, a living-dining 1,046 mm² short. The
+  solver sizes windows on its physical clear polygon (a 115 mm wall split 57/58 so the
+  faces sum exactly); the model's room detection floors both faces to 57, so the tab
+  divides by a room 1 mm wider on one side. `nbc.ventilation.habitable.min` is not
+  `hard`, so the solver's own gate let both through. Windows are now sized against the
+  detected polygon (`clear_polygon(..., as_detected=True)`), and `test_walls` folds
+  real wall ops through the model and requires the two conventions to agree to the
+  millimetre, with the physical polygon as the control that must not. The library was
+  re-seeded under the fixed worker. Also found here: `scripts/sheet_goldens.py` takes
+  `fixtures/plans/*.json` as its corpus the moment the directory has content, so the
+  first library push turned the golden job red for want of goldens — the library plans
+  now ARE the sheet-golden corpus, every ready-made plan renders its nine municipal
+  sheets on every push.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

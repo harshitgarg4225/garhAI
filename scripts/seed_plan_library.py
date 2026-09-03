@@ -46,6 +46,10 @@ def rooms_for(beds: int, baths: int, extras: tuple[str, ...]) -> list[dict[str, 
 
 
 #: id, name, description, city pack, plot ft (w, d), storeys, beds, baths, extras, road m
+#: Not in the library: a 20 × 30 G+1 2BHK. Under the seeded BBMP setbacks the ground
+#: floor keeps 25.7 m² and the smallest two-bedroom program needs 28.0 m² once
+#: circulation is allowed for — stage A proves it infeasible. A reviewing architect
+#: may well lower the small-plot setbacks in the pack; until then no plan is honest.
 CELLS: list[dict[str, Any]] = [
     dict(
         id="blr-30x40-g1-2bhk",
@@ -54,7 +58,7 @@ CELLS: list[dict[str, Any]] = [
         plot=(30, 40),
         storeys=2,
         beds=2,
-        baths=2,
+        baths=1,
         extras=(),
         road=9000,
         description="Two bedrooms with generous living on the classic 30 × 40 site.",
@@ -79,10 +83,10 @@ CELLS: list[dict[str, Any]] = [
         plot=(25, 40),
         storeys=2,
         beds=2,
-        baths=2,
+        baths=1,
         extras=(),
         road=9000,
-        description="The everyday 25 × 40 site: two bedrooms and two baths over a living-kitchen ground floor.",
+        description="The everyday 25 × 40 site: two bedrooms over a living-kitchen ground floor.",
     ),
     dict(
         id="blr-40x60-g2-4bhk",
@@ -108,18 +112,6 @@ CELLS: list[dict[str, Any]] = [
         road=12000,
         parking=2,
         description="A 40 × 60 plot under the NCR pack at G+2: three bedrooms, three baths.",
-    ),
-    dict(
-        id="blr-20x30-g1-2bhk",
-        name="Bengaluru 20 × 30, G+1 2BHK",
-        city="blr",
-        plot=(20, 30),
-        storeys=2,
-        beds=2,
-        baths=1,
-        extras=(),
-        road=6000,
-        description="A compact infill plot: living-dining and kitchen below, two bedrooms above.",
     ),
     dict(
         id="blr-30x40-g1-3bhk",
@@ -220,9 +212,7 @@ def sign_in() -> None:
         raise SystemExit("signup failed: %s %s" % (status, body))
     code = body.get("devCode")
     if not code:
-        raise SystemExit(
-            "no devCode — the API must run with DEV_ECHO_OTP=1 and no mailer"
-        )
+        raise SystemExit("no devCode — the API must run with DEV_ECHO_OTP=1 and no mailer")
     status, body = call("POST", "/auth/verify", {"email": email, "code": code})
     _token = body.get("accessToken", "")
     if not _token:
@@ -234,9 +224,7 @@ def fetch_all_ops(pid: str) -> list[dict[str, Any]]:
     ops: list[dict[str, Any]] = []
     cursor: str | None = None
     for _ in range(50):
-        path = "/projects/%s/ops?limit=500" % pid + (
-            "&cursor=%s" % cursor if cursor else ""
-        )
+        path = "/projects/%s/ops?limit=500" % pid + ("&cursor=%s" % cursor if cursor else "")
         status, page = call("GET", path)
         if status != 200:
             raise RuntimeError("ops page %s: %s" % (status, str(page)[:200]))
@@ -270,9 +258,7 @@ def seed(cell: dict[str, Any]) -> dict[str, Any] | None:
         {"name": cell["name"], "units": "ft-in", "cityPack": cell["city"]},
     )
     if status not in (200, 201):
-        print(
-            "  %-22s project create failed %s %s" % (label, status, str(project)[:120])
-        )
+        print("  %-22s project create failed %s %s" % (label, status, str(project)[:120]))
         return None
     pid = project["id"]
     status, _ = call(
@@ -314,24 +300,39 @@ def seed(cell: dict[str, Any]) -> dict[str, Any] | None:
     if status not in (200, 201):
         print("  %-22s brief failed %s" % (label, status))
         return None
-    status, job = call("POST", "/projects/%s/solve" % pid, {"optionCount": 3})
-    if status not in (200, 202):
-        print("  %-22s solve refused %s %s" % (label, status, str(job)[:160]))
-        return None
-    jid = job["id"]
+    # CP-SAT under a wall-clock budget with eight workers is not deterministic run
+    # to run, and a cell that dies at the door gate on one search ordering often
+    # passes on another. Try a few distinct seeds; the one that produced the plan
+    # is recorded in the capture so the run can be repeated.
+    seeds = [int(x) for x in os.environ.get("SEED_PLAN_SEEDS", "0,1,2").split(",") if x.strip()]
+    options: list[dict[str, Any]] = []
     final: dict[str, Any] = {}
-    deadline = time.time() + 420
-    while time.time() < deadline:
-        _, final = call("GET", "/solver-jobs/%s" % jid)
-        if final.get("status") in ("succeeded", "failed", "cancelled"):
-            break
-        time.sleep(3)
-    options = final.get("options") or []
-    if final.get("status") != "succeeded" or not options:
-        print(
-            "  %-22s NO OPTIONS (%s) %s"
-            % (label, final.get("status"), (final.get("message") or "")[:120])
+    jid = ""
+    seed_used = seeds[0]
+    for seed_used in seeds:
+        status, job = call(
+            "POST", "/projects/%s/solve" % pid, {"optionCount": 3, "seed": seed_used}
         )
+        if status not in (200, 202):
+            print("  %-22s solve refused %s %s" % (label, status, str(job)[:160]))
+            return None
+        jid = job["id"]
+        final = {}
+        deadline = time.time() + 420
+        while time.time() < deadline:
+            _, final = call("GET", "/solver-jobs/%s" % jid)
+            if final.get("status") in ("succeeded", "failed", "cancelled"):
+                break
+            time.sleep(3)
+        options = final.get("options") or []
+        if final.get("status") == "succeeded" and options:
+            break
+        print(
+            "  %-22s no options with seed %d (%s) %s"
+            % (label, seed_used, final.get("status"), (final.get("message") or "")[:100])
+        )
+    if final.get("status") != "succeeded" or not options:
+        print("  %-22s NO OPTIONS after %d seed(s)" % (label, len(seeds)))
         return None
     index = best_option(options)
     option = options[index]
@@ -391,6 +392,7 @@ def seed(cell: dict[str, Any]) -> dict[str, Any] | None:
             "extras": list(cell["extras"]),
         },
         "solver": {
+            "seed": seed_used,
             "jobId": jid,
             "optionIndex": index,
             "scores": option.get("scores") or {},
