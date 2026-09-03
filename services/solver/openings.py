@@ -70,6 +70,11 @@ from services.solver.walls import (
 #: jamb (115). At 115 a door's edge landed exactly on the return wall's inner face —
 #: no pier for the frame (found by the plan-library verification, 2026-09-03).
 WALL_END_MARGIN_MM = 230
+#: A cased opening between two circulation rooms (living into a passage, passage
+#: into the stair hall) has no frame and no pier: its jambs ARE the return walls'
+#: faces, so only the model's §3 minimum applies. Without this a 1200 mm passage
+#: entered at its end could never be reached, and compact plans went infeasible.
+ARCHWAY_END_MARGIN_MM = 115
 #: Minimum solid pier kept between two openings on the same wall.
 OPENING_GAP_MM = 115
 #: One nudge step when resolving collisions — the brick module.
@@ -267,14 +272,18 @@ def _fit_opening(
     span_lo_local: int,
     span_hi_local: int,
     width_mm: int,
+    *,
+    end_margin_mm: int = WALL_END_MARGIN_MM,
 ) -> int | None:
     """Deterministic centre offset for an opening, or None when nothing fits.
 
     Preference order: hinge corner (span start) first, then +115 steps.
+    ``end_margin_mm`` is the solid wall kept at each end: a framed door needs a
+    pier (``WALL_END_MARGIN_MM``), a cased archway only the model's minimum.
     """
     length = _wall_length(wall)
-    lo = max(span_lo_local + WALL_END_MARGIN_MM, WALL_END_MARGIN_MM)
-    hi = min(span_hi_local - WALL_END_MARGIN_MM, length - WALL_END_MARGIN_MM)
+    lo = max(span_lo_local + end_margin_mm, end_margin_mm)
+    hi = min(span_hi_local - end_margin_mm, length - end_margin_mm)
     if hi - lo < width_mm:
         return None
     centre = lo + width_mm // 2
@@ -554,7 +563,9 @@ def _place_archway(
     lo_l, hi_l = _span_local(wall, span.lo, span.hi)
     widest = (hi_l - lo_l) - 2 * OPENING_GAP_MM
     width = max(limits.door_internal_min_mm, min(1200, widest))
-    offset = _fit_opening(wall, occ, span.wall_index, lo_l, hi_l, width)
+    offset = _fit_opening(
+        wall, occ, span.wall_index, lo_l, hi_l, width, end_margin_mm=ARCHWAY_END_MARGIN_MM
+    )
     if offset is None:
         return None
     occ.claim(span.wall_index, offset - width // 2, offset + (width - width // 2))
@@ -906,6 +917,7 @@ __all__ = [
     "SERVICE_VOID_TYPES",
     "VENT_HEIGHT_MM",
     "VENT_SILL_MM",
+    "ARCHWAY_END_MARGIN_MM",
     "WALL_END_MARGIN_MM",
     "door_width_for",
     "load_nbc_limits",

@@ -1933,6 +1933,7 @@ def _stage_a_topology_once(
     # reads — so the serving span this model guarantees is one a door provably
     # fits after the 115mm snap (width + 2×115 end margins, snap worst case).
     from services.solver.openings import (
+        ARCHWAY_END_MARGIN_MM,
         WALL_END_MARGIN_MM,
         door_width_for,
         load_nbc_limits,
@@ -1946,14 +1947,15 @@ def _stage_a_topology_once(
         if not room.packed or room.room_type == "shaft":
             continue
         width = door_width_for(room.room_type, opening_limits)
-        door_cells_by_key[room.key] = min_frontage_cells(
-            width + 2 * WALL_END_MARGIN_MM, module_mm=module_mm
-        )
+        # A framed door keeps a pier at each end; a cased archway into a
+        # circulation room keeps only the model's minimum (openings.py).
+        margin = ARCHWAY_END_MARGIN_MM if room.is_circulation else WALL_END_MARGIN_MM
+        door_cells_by_key[room.key] = min_frontage_cells(width + 2 * margin, module_mm=module_mm)
     entry_frontage_cells = min_frontage_cells(
         opening_limits.door_main_min_mm + 2 * WALL_END_MARGIN_MM, module_mm=module_mm
     )
     arrival_cells = min_frontage_cells(
-        opening_limits.door_internal_min_mm + 2 * WALL_END_MARGIN_MM, module_mm=module_mm
+        opening_limits.door_internal_min_mm + 2 * ARCHWAY_END_MARGIN_MM, module_mm=module_mm
     )
 
     # CLEAR floors come from the PACK — the numbers the §5.4 critic hard-fails
