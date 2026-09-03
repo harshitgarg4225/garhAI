@@ -250,6 +250,21 @@ Two smaller gaps found in passing:
   first library push turned the golden job red for want of goldens — the library plans
   now ARE the sheet-golden corpus, every ready-made plan renders its nine municipal
   sheets on every push.
+- **The 230 mm door pier made stage A and stage B disagree (fixed 2026-09-03).**
+  Raising the wall-end margin for doors left stage A floor-planning passages and
+  stair arrivals at a naive 900 mm and giving circulation rooms no frontage floor at
+  all, so the 40 × 60 and NCR cells produced layouts stage B then discarded at
+  `DOOR_DOES_NOT_FIT` (an 800 mm door into a 1035 mm span). Every served span,
+  passages included, is now floored at the door width plus both margins,
+  snap-proofed. The first version also put the stair in that loop and made the
+  30 × 40 Hyderabad program CP-infeasible; the cause was that a cased archway into a
+  1200 mm passage entered at its end can never keep a 230 mm pier at both jambs — its
+  jambs are the return walls. Archways keep the validator's 115 mm minimum
+  (`ARCHWAY_END_MARGIN_MM`), framed doors keep the pier, and stage A floors the two
+  kinds of span on the two figures (`test_archway_margin` pins both, with the span
+  where an archway fits and a door cannot). CP-SAT under a wall-clock budget with
+  eight workers is not deterministic, so the seed script tries three seeds per cell
+  and records the one that produced the plan.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

@@ -58,10 +58,14 @@ The two models:
   setback chains and the area statement's setback rows something true to print.
 
 `demo-02` is **hand-drawn, not solver output**, and is labelled as such in its own
-`provenance` field. `fixtures/plans/` — the solver's corpus — is still empty until Phase 3,
-and a fabricated solver golden would be worse than none. `scripts/sheet_goldens.py`
-switches to `fixtures/plans/` automatically the moment it has content
-(`discover_inputs()`); the goldens get regenerated in that same commit, with a note.
+`provenance` field. Both demo inputs stay under `inputs/` (regenerable, and `demo-01`
+is shared with `garh_model.testing`), but they are no longer what the goldens pin:
+on 2026-09-03 `fixtures/plans/` gained its first solver-captured plans and
+`discover_inputs()` switched to it, as designed. The goldens in this directory are
+now the ready-made plan library's sheets — every `fixtures/plans/<id>.json` renders
+its nine municipal sheets, a DXF audit and an area statement on every push — and the
+demo goldens were removed in that same commit rather than left as files nothing
+compares.
 
 ## Why SVG is byte-compared but DXF is not
 
