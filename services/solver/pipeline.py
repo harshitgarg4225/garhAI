@@ -746,6 +746,14 @@ async def _refine_and_score(
         footprint = occupied + max(0, candidate.circulation_area_mm2 - placed_circulation)
         breakdown = stage_set.critique(placements, params, envelope, footprint)
         ops = tuple(dict(op) for op in stage_set.build_ops(placements, params, model=model))
+        # Golden rule 2 lives here too: a plan nobody can walk through is not an
+        # option, however well it scores. The check folds the very ops the architect
+        # would apply, so it cannot disagree with the canvas.
+        problems = gates.circulation_problems(ops)
+        if problems:
+            discard(candidate.stair_anchor.id, "circulation", "; ".join(problems))
+            context.check_cancelled()
+            continue
         option_signature = signature(
             placements,
             envelope,

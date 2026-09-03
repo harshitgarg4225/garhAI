@@ -66,7 +66,10 @@ from services.solver.walls import (
 
 #: Section-3 invariant: openings keep this much solid wall at each end
 #: (mirrors ``garh_model.validate.WALL_END_MARGIN_MM``).
-WALL_END_MARGIN_MM = 115
+#: Clearance from a wall END: the returning wall's half thickness (230/2) plus a real
+#: jamb (115). At 115 a door's edge landed exactly on the return wall's inner face —
+#: no pier for the frame (found by the plan-library verification, 2026-09-03).
+WALL_END_MARGIN_MM = 230
 #: Minimum solid pier kept between two openings on the same wall.
 OPENING_GAP_MM = 115
 #: One nudge step when resolving collisions — the brick module.
@@ -343,22 +346,39 @@ def place_doors(
             )
         roots = {stair_keys[0]}
 
-    # Circulation rooms connect to each other openly (archways, stair arrivals).
+    # Circulation rooms connect to each other through an ARCHWAY on their shared
+    # span — an opening that is drawn, folded and walked through. Marking them
+    # "reached" without emitting one is how the first library plan came out with its
+    # front door opening into a dead-end vestibule: the wall between the entrance
+    # passage and the rest of the house was solid (plan-library verification,
+    # 2026-09-03). If no archway fits the span, the room is NOT reached here and takes
+    # an ordinary door in the passes below.
     reached = set(roots)
+    doors: list[OpeningSpec] = []
     changed = True
     while changed:
         changed = False
-        for span in network.adjacencies:
+        ordered = sorted(
+            network.adjacencies, key=lambda sp: (-(sp.hi - sp.lo), sp.wall_index, sp.lo)
+        )
+        for span in ordered:
             a, b = span.low_room, span.high_room
-            if a in circulation and b in circulation:
-                if a in reached and b not in reached:
-                    reached.add(b)
-                    changed = True
-                elif b in reached and a not in reached:
-                    reached.add(a)
-                    changed = True
-
-    doors: list[OpeningSpec] = []
+            if not (a in circulation and b in circulation):
+                continue
+            if a in reached and b not in reached:
+                target, source = b, a
+            elif b in reached and a not in reached:
+                target, source = a, b
+            else:
+                continue
+            arch = _place_archway(
+                layout, network, occ, target, source, span, limits, door_height_mm
+            )
+            if arch is None:
+                continue
+            doors.append(arch)
+            reached.add(target)
+            changed = True
     pending = sorted(
         k for k, r in rooms.items() if k not in reached and r.room_type not in SERVICE_VOID_TYPES
     )
@@ -497,6 +517,63 @@ def _place_main_door(
     )
 
 
+#: Who may be walked THROUGH to reach whom. A bath is a destination, never a
+#: corridor; a bedroom serves only what is private to it (its bath, dress, balcony);
+#: a kitchen serves its utility/store. Everything else is reached from circulation
+#: or the living space. Before this table a kitchen was entered via the bath.
+_BEDROOM_TYPES = frozenset({"bedroom", "bedroom_master", "master_bedroom", "guest_bedroom"})
+_BEDROOM_PRIVATE_TYPES = frozenset({"bath", "wc", "bath_wc", "dress", "balcony"})
+_KITCHEN_SERVED_TYPES = frozenset({"utility", "store", "pantry"})
+
+
+def _may_serve(from_type: str, to_type: str, *, from_is_circulation: bool) -> bool:
+    if from_is_circulation or from_type in FALLBACK_CIRCULATION_TYPES:
+        return True
+    if from_type in _BATH_TYPES:
+        return False
+    if from_type in _BEDROOM_TYPES:
+        return to_type in _BEDROOM_PRIVATE_TYPES
+    if from_type in _KITCHEN_TYPES:
+        return to_type in _KITCHEN_SERVED_TYPES
+    return to_type in _BATH_TYPES  # a bath may hang off any habitable room
+
+
+def _place_archway(
+    layout: CellLayout,
+    network: WallNetwork,
+    occ: _WallOccupancy,
+    room_key: str,
+    from_key: str,
+    span: AdjacencySpan,
+    limits: NbcOpeningLimits,
+    door_height_mm: int,
+) -> OpeningSpec | None:
+    """A wide cased opening between two circulation rooms on their shared span."""
+    room = layout.room(room_key)
+    wall = network.wall(span.wall_index)
+    lo_l, hi_l = _span_local(wall, span.lo, span.hi)
+    widest = (hi_l - lo_l) - 2 * OPENING_GAP_MM
+    width = max(limits.door_internal_min_mm, min(1200, widest))
+    offset = _fit_opening(wall, occ, span.wall_index, lo_l, hi_l, width)
+    if offset is None:
+        return None
+    occ.claim(span.wall_index, offset - width // 2, offset + (width - width // 2))
+    centre = ((room.x1 + room.x2) // 2, (room.y1 + room.y2) // 2)
+    swing = "in-left" if _room_side_is_left(wall, centre) else "in-right"
+    return OpeningSpec(
+        wall_index=span.wall_index,
+        kind="door",
+        width_mm=width,
+        height_mm=door_height_mm,
+        sill_mm=0,
+        offset_mm=offset,
+        swing=swing,
+        room_key=room_key,
+        role="internal",
+        from_key=from_key,
+    )
+
+
 def _serving_spans(
     network: WallNetwork,
     room_key: str,
@@ -513,9 +590,14 @@ def _serving_spans(
     of the pipeline showed exactly that failure.
     """
 
+    room_type = network.layout.room(room_key).room_type
+
     def usable(span: AdjacencySpan) -> tuple[int, AdjacencySpan] | None:
         other = span.high_room if span.low_room == room_key else span.low_room
         if other not in reached:
+            return None
+        other_type = network.layout.room(other).room_type
+        if not _may_serve(other_type, room_type, from_is_circulation=other in circulation):
             return None
         rank = 0 if other in circulation else 1
         return (rank, span)

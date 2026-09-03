@@ -635,7 +635,7 @@ def stage_b_refine(
         log.info(
             "solver.stage_b_discard",
             anchor=candidate.stair_anchor.id,
-            code=exc.code,
+            discard_code=exc.code,
             reason=exc.message,
             detail=getattr(exc, "detail", None),
         )

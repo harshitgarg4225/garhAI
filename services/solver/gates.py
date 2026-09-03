@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from services.solver.types import PlanOption
 
@@ -38,6 +39,42 @@ class GateResult:
 
     def to_json(self) -> dict[str, object]:
         return {"passed": self.passed, "reasons": list(self.reasons)}
+
+
+def circulation_problems(ops: Sequence[Mapping[str, Any]]) -> list[str]:
+    """Fold an option's ops with the real model core and walk its doors.
+
+    Empty when every room on every storey can be reached from the entrance (ground)
+    or the stair (above) through openings, and no habitable room is reached only
+    through a bath. The rules engine has no rule for this, so a plan with a walled-off
+    kitchen was gate-clean — this is the gate. Import is lazy: the worker image carries
+    ``apps/api`` on its path; a unit test without it gets an honest ImportError.
+    """
+    from garh_model import replay
+    from garh_model.circulation import reachability_problems
+    from garh_model.validate import OpRejectedError
+
+    # Only the fabric matters here: storeys, walls, openings, stairs, and the room
+    # assignments that name types (a bath is a destination, not a corridor). Anything
+    # else an option carries is irrelevant to whether a person can walk through it,
+    # and a room op with no room id (test stubs emit those) is skipped, not fatal.
+    fabric = []
+    for op in ops:
+        kind = str(op["type"])
+        payload = dict(op["payload"])
+        if (
+            kind in ("storey.add", "wall.add", "opening.add", "stair.add")
+            or kind == "room.assign"
+            and payload.get("roomId")
+        ):
+            fabric.append({"type": kind, "payload": payload})
+    try:
+        house = replay(fabric).house
+    except OpRejectedError as exc:
+        # An option whose geometry the model core refuses could never be applied
+        # either; naming that here is more honest than a silent green.
+        return ["the option's geometry could not be folded: %s" % exc]
+    return reachability_problems(house)
 
 
 def check_option(
