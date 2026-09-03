@@ -1,8 +1,8 @@
 {
-  "id": "blr-30x40-g1-3bhk",
-  "name": "Bengaluru 30 \u00d7 40, G+1 3BHK",
-  "description": "The most common Bengaluru site: 3BHK with utility and pooja on a 9 m road.",
-  "cityPack": "blr",
+  "id": "hyd-30x40-g1-3bhk",
+  "name": "Hyderabad 30 \u00d7 40, G+1 3BHK",
+  "description": "The 30 \u00d7 40 plan under the Hyderabad (GHMC) rule pack.",
+  "cityPack": "hyd",
   "plotFt": [
     30,
     40
@@ -12,33 +12,32 @@
     "beds": 3,
     "baths": 2,
     "extras": [
-      "utility",
-      "pooja"
+      "utility"
     ]
   },
   "solver": {
     "seed": 0,
-    "jobId": "94011caf-7588-4597-8ea5-83c98ddde64d",
+    "jobId": "70780fa3-aa16-471c-ac52-19a8d5a29b86",
     "optionIndex": 0,
     "scores": {
-      "vastu": 39,
+      "vastu": 60,
       "privacy": 100,
-      "daylight": 69,
+      "daylight": 61,
       "adjacency": 100,
-      "composite": 73,
+      "composite": 76,
       "circulation": 0,
       "compactness": 100,
       "furnitureFit": 100,
       "plumbingStack": 100,
-      "targetAreaFit": 88,
+      "targetAreaFit": 93,
       "circulationPercent": 18
     },
     "optionsOffered": 3
   },
   "model": {
-    "walls": 21,
-    "rooms": 13,
-    "openings": 19,
+    "walls": 20,
+    "rooms": 12,
+    "openings": 18,
     "stairs": 1
   },
   "ops": [
@@ -81,7 +80,7 @@
     {
       "type": "plot.set_reg_profile",
       "payload": {
-        "cityPack": "blr",
+        "cityPack": "hyd",
         "overrides": {}
       }
     },
@@ -103,10 +102,6 @@
               "count": 1
             },
             {
-              "type": "pooja",
-              "count": 1
-            },
-            {
               "type": "bedroom_master",
               "count": 1
             },
@@ -120,7 +115,7 @@
             }
           ],
           "storeys": 2,
-          "cityPack": "blr",
+          "cityPack": "hyd",
           "carParking": 1
         },
         "vastuMode": "advisory"
@@ -129,7 +124,7 @@
     {
       "type": "storey.add",
       "payload": {
-        "id": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "id": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "name": "Ground Floor",
         "index": 0,
         "heightMm": 3000
@@ -138,7 +133,7 @@
     {
       "type": "storey.add",
       "payload": {
-        "id": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
+        "id": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
         "name": "First Floor",
         "index": 1,
         "heightMm": 3000
@@ -152,12 +147,12 @@
           "y": 3115
         },
         "b": {
-          "x": 7440,
+          "x": 7210,
           "y": 3115
         },
-        "id": "wall_01M1KF6VSBZ4TSC9XEGERSKZYA",
+        "id": "wall_01M1KFK7XX1GRWKEYJ0DWSKQCS",
         "kind": "external",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": true,
         "thicknessMm": 230
       }
@@ -166,16 +161,16 @@
       "type": "wall.add",
       "payload": {
         "a": {
-          "x": 7440,
+          "x": 7210,
           "y": 3115
         },
         "b": {
-          "x": 7440,
+          "x": 7210,
           "y": 10705
         },
-        "id": "wall_01M1KF6VSB0Z43YZBKRPY7REGC",
+        "id": "wall_01M1KFK7XXSE9N370Z1XXW7705",
         "kind": "external",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": true,
         "thicknessMm": 230
       }
@@ -184,16 +179,16 @@
       "type": "wall.add",
       "payload": {
         "a": {
-          "x": 7440,
+          "x": 7210,
           "y": 10705
         },
         "b": {
           "x": 1115,
           "y": 10705
         },
-        "id": "wall_01M1KF6VSBM03RRSKE3PG8QJZ6",
+        "id": "wall_01M1KFK7XX8VWK0SNMDH3VE9CG",
         "kind": "external",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": true,
         "thicknessMm": 230
       }
@@ -209,29 +204,11 @@
           "x": 1115,
           "y": 3115
         },
-        "id": "wall_01M1KF6VSBAQZPMBGY4B764QX1",
+        "id": "wall_01M1KFK7XXHB83W26DGAQDDMKC",
         "kind": "external",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": true,
         "thicknessMm": 230
-      }
-    },
-    {
-      "type": "wall.add",
-      "payload": {
-        "a": {
-          "x": 6060,
-          "y": 3345
-        },
-        "b": {
-          "x": 7440,
-          "y": 3345
-        },
-        "id": "wall_01M1KF6VSBHYF3HA39MYKH974A",
-        "kind": "internal",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
-        "loadBearing": false,
-        "thicknessMm": 115
       }
     },
     {
@@ -239,15 +216,15 @@
       "payload": {
         "a": {
           "x": 3415,
-          "y": 4495
+          "y": 4150
         },
         "b": {
-          "x": 7440,
-          "y": 4495
+          "x": 7210,
+          "y": 4150
         },
-        "id": "wall_01M1KF6VSBDHGY2C9Q9N3HZGY4",
+        "id": "wall_01M1KFK7XXXWKSX73N2ZXV2BZJ",
         "kind": "internal",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": false,
         "thicknessMm": 115
       }
@@ -263,9 +240,9 @@
           "x": 3415,
           "y": 5990
         },
-        "id": "wall_01M1KF6VSB10C7PC4TB9RHEQZZ",
+        "id": "wall_01M1KFK7XXFYAQH0QW6GXKWTKY",
         "kind": "internal",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": false,
         "thicknessMm": 115
       }
@@ -278,12 +255,12 @@
           "y": 7830
         },
         "b": {
-          "x": 7440,
+          "x": 7210,
           "y": 7830
         },
-        "id": "wall_01M1KF6VSBNTQ60ZWCR0XBRV7P",
+        "id": "wall_01M1KFK7XXT4DDQDM7KHMKTHTJ",
         "kind": "internal",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": false,
         "thicknessMm": 115
       }
@@ -299,9 +276,9 @@
           "x": 3415,
           "y": 7830
         },
-        "id": "wall_01M1KF6VSBQRNBJCMR2Y8KND6C",
+        "id": "wall_01M1KFK7XXE6ZB13ZHZJGGHE5V",
         "kind": "internal",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": false,
         "thicknessMm": 115
       }
@@ -315,11 +292,11 @@
         },
         "b": {
           "x": 4910,
-          "y": 4495
+          "y": 4150
         },
-        "id": "wall_01M1KF6VSBT3D41RPV8VZ7HKAE",
+        "id": "wall_01M1KFK7XXS5B39C7PF1TKGGD2",
         "kind": "internal",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": false,
         "thicknessMm": 115
       }
@@ -335,9 +312,9 @@
           "x": 4910,
           "y": 10705
         },
-        "id": "wall_01M1KF6VSBW86S61MJV0AM051C",
+        "id": "wall_01M1KFK7XXBPMJDTJBY83Y2HRC",
         "kind": "internal",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": false,
         "thicknessMm": 115
       }
@@ -346,16 +323,16 @@
       "type": "wall.add",
       "payload": {
         "a": {
-          "x": 6060,
+          "x": 5255,
           "y": 3115
         },
         "b": {
-          "x": 6060,
-          "y": 4495
+          "x": 5255,
+          "y": 4150
         },
-        "id": "wall_01M1KF6VSBKK1S3R7R4VE1CH0R",
+        "id": "wall_01M1KFK7XXKEF8W4RBXZFYDZP5",
         "kind": "internal",
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "loadBearing": false,
         "thicknessMm": 115
       }
@@ -368,12 +345,12 @@
           "y": 3115
         },
         "b": {
-          "x": 7440,
+          "x": 7210,
           "y": 3115
         },
-        "id": "wall_01M1KF6VSDYJDQG9HFDYPS904A",
+        "id": "wall_01M1KFK7XYVNN9B911Z8SYRB3X",
         "kind": "external",
-        "storeyId": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
+        "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
         "loadBearing": true,
         "thicknessMm": 230
       }
@@ -382,16 +359,16 @@
       "type": "wall.add",
       "payload": {
         "a": {
-          "x": 7440,
+          "x": 7210,
           "y": 3115
         },
         "b": {
-          "x": 7440,
-          "y": 10360
+          "x": 7210,
+          "y": 10705
         },
-        "id": "wall_01M1KF6VSDK6PZSHXD9KPF03D3",
+        "id": "wall_01M1KFK7XY3KBVZAYK5Y11QX4G",
         "kind": "external",
-        "storeyId": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
+        "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
         "loadBearing": true,
         "thicknessMm": 230
       }
@@ -400,16 +377,16 @@
       "type": "wall.add",
       "payload": {
         "a": {
-          "x": 7440,
-          "y": 10360
+          "x": 7210,
+          "y": 10705
         },
         "b": {
           "x": 1115,
-          "y": 10360
+          "y": 10705
         },
-        "id": "wall_01M1KF6VSDTED83AT68Q5PGREB",
+        "id": "wall_01M1KFK7XYD26F8K6B07VGVJNE",
         "kind": "external",
-        "storeyId": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
+        "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
         "loadBearing": true,
         "thicknessMm": 230
       }
@@ -419,35 +396,17 @@
       "payload": {
         "a": {
           "x": 1115,
-          "y": 10360
+          "y": 10705
         },
         "b": {
           "x": 1115,
           "y": 3115
         },
-        "id": "wall_01M1KF6VSDVHBV2ACR2NVET714",
+        "id": "wall_01M1KFK7XYGK93VP8VAW457AXP",
         "kind": "external",
-        "storeyId": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
+        "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
         "loadBearing": true,
         "thicknessMm": 230
-      }
-    },
-    {
-      "type": "wall.add",
-      "payload": {
-        "a": {
-          "x": 3415,
-          "y": 4495
-        },
-        "b": {
-          "x": 7440,
-          "y": 4495
-        },
-        "id": "wall_01M1KF6VSD8B7RYYD7K5R1SE6Y",
-        "kind": "internal",
-        "storeyId": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
-        "loadBearing": false,
-        "thicknessMm": 115
       }
     },
     {
@@ -458,12 +417,66 @@
           "y": 5990
         },
         "b": {
-          "x": 4565,
+          "x": 7210,
           "y": 5990
         },
-        "id": "wall_01M1KF6VSD4YSN8QB2RVYV83BH",
+        "id": "wall_01M1KFK7XYBTCXCEJ655G8NKM1",
         "kind": "internal",
-        "storeyId": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
+        "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
+        "loadBearing": false,
+        "thicknessMm": 115
+      }
+    },
+    {
+      "type": "wall.add",
+      "payload": {
+        "a": {
+          "x": 1115,
+          "y": 7485
+        },
+        "b": {
+          "x": 2840,
+          "y": 7485
+        },
+        "id": "wall_01M1KFK7XYEQ5WCCFXJX0438Q5",
+        "kind": "internal",
+        "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
+        "loadBearing": false,
+        "thicknessMm": 115
+      }
+    },
+    {
+      "type": "wall.add",
+      "payload": {
+        "a": {
+          "x": 1345,
+          "y": 5990
+        },
+        "b": {
+          "x": 1345,
+          "y": 7485
+        },
+        "id": "wall_01M1KFK7XY3T6KCGZJDXTPBEFP",
+        "kind": "internal",
+        "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
+        "loadBearing": false,
+        "thicknessMm": 115
+      }
+    },
+    {
+      "type": "wall.add",
+      "payload": {
+        "a": {
+          "x": 2840,
+          "y": 5990
+        },
+        "b": {
+          "x": 2840,
+          "y": 10705
+        },
+        "id": "wall_01M1KFK7XY8BEG3GXB97ZSS8D9",
+        "kind": "internal",
+        "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
         "loadBearing": false,
         "thicknessMm": 115
       }
@@ -479,45 +492,9 @@
           "x": 3415,
           "y": 5990
         },
-        "id": "wall_01M1KF6VSDY64TRXJ3G7RB2R87",
+        "id": "wall_01M1KFK7XY6N7JXNSBA3MPTATV",
         "kind": "internal",
-        "storeyId": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
-        "loadBearing": false,
-        "thicknessMm": 115
-      }
-    },
-    {
-      "type": "wall.add",
-      "payload": {
-        "a": {
-          "x": 4565,
-          "y": 4495
-        },
-        "b": {
-          "x": 4565,
-          "y": 10360
-        },
-        "id": "wall_01M1KF6VSDW2HRNTY1FEGR59PR",
-        "kind": "internal",
-        "storeyId": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
-        "loadBearing": false,
-        "thicknessMm": 115
-      }
-    },
-    {
-      "type": "wall.add",
-      "payload": {
-        "a": {
-          "x": 6980,
-          "y": 3115
-        },
-        "b": {
-          "x": 6980,
-          "y": 4495
-        },
-        "id": "wall_01M1KF6VSD15F40VGYMA3VN25Z",
-        "kind": "internal",
-        "storeyId": "storey_01M1KF6VSDSGC3RN5BKNX68X51",
+        "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
         "loadBearing": false,
         "thicknessMm": 115
       }
@@ -525,11 +502,11 @@
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSCWPF87TBXXYXWJJ6C",
+        "id": "opening_01M1KFK7XYXC3P83R4FF7TBNN1",
         "kind": "door",
         "swing": "in-left",
         "sillMm": 0,
-        "wallId": "wall_01M1KF6VSBZ4TSC9XEGERSKZYA",
+        "wallId": "wall_01M1KFK7XX1GRWKEYJ0DWSKQCS",
         "widthMm": 900,
         "heightMm": 2100,
         "offsetMm": 2980
@@ -538,24 +515,24 @@
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSCK6V3KFKWP1P8AFNB",
+        "id": "opening_01M1KFK7XY7MHTXHHT29D2XZ3D",
         "kind": "door",
         "swing": "in-left",
         "sillMm": 0,
-        "wallId": "wall_01M1KF6VSBQRNBJCMR2Y8KND6C",
-        "widthMm": 1150,
+        "wallId": "wall_01M1KFK7XXE6ZB13ZHZJGGHE5V",
+        "widthMm": 805,
         "heightMm": 2100,
-        "offsetMm": 690
+        "offsetMm": 517
       }
     },
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSDMANCHP32YKBPJSMW",
+        "id": "opening_01M1KFK7XY9JATWPGV6QDE4XX5",
         "kind": "door",
         "swing": "in-left",
         "sillMm": 0,
-        "wallId": "wall_01M1KF6VSB10C7PC4TB9RHEQZZ",
+        "wallId": "wall_01M1KFK7XXFYAQH0QW6GXKWTKY",
         "widthMm": 750,
         "heightMm": 2100,
         "offsetMm": 605
@@ -564,50 +541,37 @@
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSDD1ATW62MEW3642C1",
+        "id": "opening_01M1KFK7XY3J5ECJSKB51E1W3T",
         "kind": "door",
-        "swing": "in-left",
+        "swing": "in-right",
         "sillMm": 0,
-        "wallId": "wall_01M1KF6VSBDHGY2C9Q9N3HZGY4",
+        "wallId": "wall_01M1KFK7XXE6ZB13ZHZJGGHE5V",
         "widthMm": 900,
         "heightMm": 2100,
-        "offsetMm": 680
+        "offsetMm": 1715
       }
     },
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSD6538JYDZM1R0S45T",
+        "id": "opening_01M1KFK7XYF42FS92RB9QG2QHV",
         "kind": "door",
         "swing": "in-right",
         "sillMm": 0,
-        "wallId": "wall_01M1KF6VSBT3D41RPV8VZ7HKAE",
+        "wallId": "wall_01M1KFK7XXXWKSX73N2ZXV2BZJ",
         "widthMm": 800,
         "heightMm": 2100,
-        "offsetMm": 630
+        "offsetMm": 2470
       }
     },
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSDSSSQ06WDECRFTJ92",
-        "kind": "door",
-        "swing": "in-right",
-        "sillMm": 0,
-        "wallId": "wall_01M1KF6VSBDHGY2C9Q9N3HZGY4",
-        "widthMm": 800,
-        "heightMm": 2100,
-        "offsetMm": 3275
-      }
-    },
-    {
-      "type": "opening.add",
-      "payload": {
-        "id": "opening_01M1KF6VSDB3ATDT88SSY7VWTB",
+        "id": "opening_01M1KFK7XYRT2EB5BH9FB1TQ3R",
         "kind": "door",
         "swing": "in-left",
         "sillMm": 0,
-        "wallId": "wall_01M1KF6VSBNTQ60ZWCR0XBRV7P",
+        "wallId": "wall_01M1KFK7XXT4DDQDM7KHMKTHTJ",
         "widthMm": 900,
         "heightMm": 2100,
         "offsetMm": 2980
@@ -616,11 +580,11 @@
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSDA541DFVQFN5BDNZZ",
+        "id": "opening_01M1KFK7XYHEQRFES5JNVABDKR",
         "kind": "door",
         "swing": "in-left",
         "sillMm": 0,
-        "wallId": "wall_01M1KF6VSBNTQ60ZWCR0XBRV7P",
+        "wallId": "wall_01M1KFK7XXT4DDQDM7KHMKTHTJ",
         "widthMm": 800,
         "heightMm": 2100,
         "offsetMm": 4425
@@ -629,11 +593,11 @@
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSDBZ4HBKFDDVHTXFD4",
+        "id": "opening_01M1KFK7XYGVVMEEXB6X36TZND",
         "kind": "ventilator",
         "swing": "in-left",
         "sillMm": 1800,
-        "wallId": "wall_01M1KF6VSBAQZPMBGY4B764QX1",
+        "wallId": "wall_01M1KFK7XXHB83W26DGAQDDMKC",
         "widthMm": 667,
         "heightMm": 450,
         "offsetMm": 3438
@@ -642,24 +606,24 @@
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSDPCZFARQ5CYHBV5QF",
+        "id": "opening_01M1KFK7XYPG056NGWY58BEJRJ",
         "kind": "window",
         "swing": "in-left",
         "sillMm": 900,
-        "wallId": "wall_01M1KF6VSBM03RRSKE3PG8QJZ6",
+        "wallId": "wall_01M1KFK7XX8VWK0SNMDH3VE9CG",
         "widthMm": 1200,
         "heightMm": 1200,
-        "offsetMm": 3360
+        "offsetMm": 3130
       }
     },
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSDAJVCTZ2636502A1N",
+        "id": "opening_01M1KFK7XYGP088MKZ53GW2J4Z",
         "kind": "window",
         "swing": "in-left",
         "sillMm": 900,
-        "wallId": "wall_01M1KF6VSB0Z43YZBKRPY7REGC",
+        "wallId": "wall_01M1KFK7XXSE9N370Z1XXW7705",
         "widthMm": 1200,
         "heightMm": 1200,
         "offsetMm": 5545
@@ -668,63 +632,50 @@
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSDE97594ZDG4RNVEAX",
+        "id": "opening_01M1KFK7XYHKFEWMFRXJA5AGEV",
         "kind": "window",
         "swing": "in-left",
         "sillMm": 900,
-        "wallId": "wall_01M1KF6VSB0Z43YZBKRPY7REGC",
+        "wallId": "wall_01M1KFK7XXSE9N370Z1XXW7705",
         "widthMm": 1200,
         "heightMm": 1200,
-        "offsetMm": 2210
+        "offsetMm": 1865
       }
     },
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSEASEM5KBNQDSQJ7AH",
-        "kind": "door",
-        "swing": "in-right",
-        "sillMm": 0,
-        "wallId": "wall_01M1KF6VSDY64TRXJ3G7RB2R87",
-        "widthMm": 1200,
-        "heightMm": 2100,
-        "offsetMm": 2095
-      }
-    },
-    {
-      "type": "opening.add",
-      "payload": {
-        "id": "opening_01M1KF6VSECSMG46YYN99DFAW3",
-        "kind": "door",
-        "swing": "in-right",
-        "sillMm": 0,
-        "wallId": "wall_01M1KF6VSDY64TRXJ3G7RB2R87",
-        "widthMm": 750,
-        "heightMm": 2100,
-        "offsetMm": 605
-      }
-    },
-    {
-      "type": "opening.add",
-      "payload": {
-        "id": "opening_01M1KF6VSEDRXCS9J8H0ME23HQ",
-        "kind": "door",
-        "swing": "in-right",
-        "sillMm": 0,
-        "wallId": "wall_01M1KF6VSDW2HRNTY1FEGR59PR",
-        "widthMm": 900,
-        "heightMm": 2100,
-        "offsetMm": 680
-      }
-    },
-    {
-      "type": "opening.add",
-      "payload": {
-        "id": "opening_01M1KF6VSET4VSN13H9RK586RY",
+        "id": "opening_01M1KFK7XZ56HN7PJEG4T0V5NS",
         "kind": "door",
         "swing": "in-left",
         "sillMm": 0,
-        "wallId": "wall_01M1KF6VSD4YSN8QB2RVYV83BH",
+        "wallId": "wall_01M1KFK7XYBTCXCEJ655G8NKM1",
+        "widthMm": 1200,
+        "heightMm": 2100,
+        "offsetMm": 945
+      }
+    },
+    {
+      "type": "opening.add",
+      "payload": {
+        "id": "opening_01M1KFK7XZWQHNP55Q8ZKYHW0W",
+        "kind": "door",
+        "swing": "in-left",
+        "sillMm": 0,
+        "wallId": "wall_01M1KFK7XYEQ5WCCFXJX0438Q5",
+        "widthMm": 750,
+        "heightMm": 2100,
+        "offsetMm": 835
+      }
+    },
+    {
+      "type": "opening.add",
+      "payload": {
+        "id": "opening_01M1KFK7XZSY6D0GVQJ3Y2C9DV",
+        "kind": "door",
+        "swing": "in-right",
+        "sillMm": 0,
+        "wallId": "wall_01M1KFK7XY6N7JXNSBA3MPTATV",
         "widthMm": 900,
         "heightMm": 2100,
         "offsetMm": 680
@@ -733,11 +684,24 @@
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSEV9R4H7FKVRV1ZJXB",
+        "id": "opening_01M1KFK7XZ2YVJHNVDT1RCQX1Y",
+        "kind": "door",
+        "swing": "in-right",
+        "sillMm": 0,
+        "wallId": "wall_01M1KFK7XY8BEG3GXB97ZSS8D9",
+        "widthMm": 900,
+        "heightMm": 2100,
+        "offsetMm": 680
+      }
+    },
+    {
+      "type": "opening.add",
+      "payload": {
+        "id": "opening_01M1KFK7XZVYFTSPKKJRCNR692",
         "kind": "ventilator",
         "swing": "in-left",
         "sillMm": 1800,
-        "wallId": "wall_01M1KF6VSD15F40VGYMA3VN25Z",
+        "wallId": "wall_01M1KFK7XYGK93VP8VAW457AXP",
         "widthMm": 667,
         "heightMm": 450,
         "offsetMm": 563
@@ -746,33 +710,33 @@
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSEZCKM405T4VKH20F2",
+        "id": "opening_01M1KFK7XZJED0J30YV4FPNCSH",
         "kind": "window",
         "swing": "in-left",
         "sillMm": 900,
-        "wallId": "wall_01M1KF6VSDK6PZSHXD9KPF03D3",
-        "widthMm": 1283,
+        "wallId": "wall_01M1KFK7XYVNN9B911Z8SYRB3X",
+        "widthMm": 1200,
         "heightMm": 1200,
-        "offsetMm": 2251
+        "offsetMm": 3130
       }
     },
     {
       "type": "opening.add",
       "payload": {
-        "id": "opening_01M1KF6VSEM49AESS5PVDTCE6A",
+        "id": "opening_01M1KFK7XZMTXMJ9C9TFNWK3NG",
         "kind": "window",
         "swing": "in-left",
         "sillMm": 900,
-        "wallId": "wall_01M1KF6VSDVHBV2ACR2NVET714",
-        "widthMm": 1200,
+        "wallId": "wall_01M1KFK7XY3KBVZAYK5Y11QX4G",
+        "widthMm": 1590,
         "heightMm": 1200,
-        "offsetMm": 830
+        "offsetMm": 3900
       }
     },
     {
       "type": "stair.add",
       "payload": {
-        "id": "stair_01M1KF6VSD7MYATT3VJHAF262J",
+        "id": "stair_01M1KFK7XYJH15XWNT3TBWGT5Q",
         "kind": "dogleg",
         "origin": {
           "x": 1230,
@@ -785,7 +749,7 @@
         "riserMm": 188,
         "treadMm": 250,
         "widthMm": 900,
-        "storeyId": "storey_01M1KF6VSBCAP0VCRFPMD4A2XC",
+        "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN",
         "direction": "N",
         "risersCount": 16
       }
@@ -793,155 +757,141 @@
     {
       "type": "room.assign",
       "payload": {
+        "type": "kitchen",
+        "roomId": "room_0V7FNK12V76JAFVS3G123CWPR5"
+      }
+    },
+    {
+      "type": "room.assign",
+      "payload": {
         "type": "passage",
-        "roomId": "room_1MA5Q9Z7SDEN69N1C9JYP6DQJS"
+        "roomId": "room_0XQDNNV58K1KB9TG7M3W3AZN8P"
+      }
+    },
+    {
+      "type": "room.assign",
+      "payload": {
+        "type": "bath_wc",
+        "roomId": "room_2MTC15TDK06CHWV8S0K1T5C7YA"
       }
     },
     {
       "type": "room.assign",
       "payload": {
         "type": "utility",
-        "roomId": "room_2Q8DZ0370ZJBQ6PY87V462VMH9"
+        "roomId": "room_3MXWR0WQ7FD4QT3EVYM8K9AGDW"
       }
     },
     {
       "type": "room.assign",
       "payload": {
         "type": "staircase",
-        "roomId": "room_2Z210N3N8J0TB739HYKM4MA5H6"
+        "roomId": "room_490DEMJ62PAYK8RE1TJVHMT8ZE"
       }
     },
     {
       "type": "room.assign",
       "payload": {
         "type": "bedroom",
-        "roomId": "room_2Z2BW9SGC2DT2ES6H85MN529R7"
-      }
-    },
-    {
-      "type": "room.assign",
-      "payload": {
-        "type": "bath_wc",
-        "roomId": "room_38PVM0TYEDPGV9EHHATK1414RY"
+        "roomId": "room_4TNNYAQG0TTF8CAFSPYJ59XERX"
       }
     },
     {
       "type": "room.assign",
       "payload": {
         "type": "living_dining",
-        "roomId": "room_39VWGFFF0DYM9WZX37NK64D7J6"
-      }
-    },
-    {
-      "type": "room.assign",
-      "payload": {
-        "type": "pooja",
-        "roomId": "room_3SNW44KY0QPF7FCCG8S6GEC22Y"
-      }
-    },
-    {
-      "type": "room.assign",
-      "payload": {
-        "type": "kitchen",
-        "roomId": "room_4EJKF3RDR5D5REHW2E8WAWPA4G"
-      }
-    },
-    {
-      "type": "room.assign",
-      "payload": {
-        "type": "bath_wc",
-        "roomId": "room_2G7QBRXD2KWB2RP308RSXXFA40"
-      }
-    },
-    {
-      "type": "room.assign",
-      "payload": {
-        "type": "staircase",
-        "roomId": "room_2TK2BR2F5M57PFHBSEKCPV9Z33"
+        "roomId": "room_5SH7GP85E9S9B2A2FQ68EMB441"
       }
     },
     {
       "type": "room.assign",
       "payload": {
         "type": "bedroom_master",
-        "roomId": "room_57P8HVMAT30XVWQB6BKBCWZ4SF"
-      }
-    },
-    {
-      "type": "room.assign",
-      "payload": {
-        "type": "passage",
-        "roomId": "room_75M8S8T7RBGG3Q9KVPMDKD6Y31"
+        "roomId": "room_0B5JBX32J8BR5MSA9VMNANKKXJ"
       }
     },
     {
       "type": "room.assign",
       "payload": {
         "type": "bedroom",
-        "roomId": "room_7DEWM2CMXEG6D5W2GTSH1VMAV9"
+        "roomId": "room_0C8G3CKZGT2FAEY51YF6X0VHFP"
+      }
+    },
+    {
+      "type": "room.assign",
+      "payload": {
+        "type": "passage",
+        "roomId": "room_2H038N08FMQ2KNJEZBKZA8PFKA"
+      }
+    },
+    {
+      "type": "room.assign",
+      "payload": {
+        "type": "staircase",
+        "roomId": "room_2QTWFF17YKKH14FMFPDNPDTMJG"
+      }
+    },
+    {
+      "type": "room.assign",
+      "payload": {
+        "type": "bath_wc",
+        "roomId": "room_5KHQ1F8G1R6HZWD6NFQ5H02T1E"
       }
     },
     {
       "type": "room.set_target",
       "payload": {
-        "roomId": "room_2Q8DZ0370ZJBQ6PY87V462VMH9",
-        "targetAreaMm2": 3200000
-      }
-    },
-    {
-      "type": "room.set_target",
-      "payload": {
-        "roomId": "room_2Z2BW9SGC2DT2ES6H85MN529R7",
-        "targetAreaMm2": 11500000
-      }
-    },
-    {
-      "type": "room.set_target",
-      "payload": {
-        "roomId": "room_38PVM0TYEDPGV9EHHATK1414RY",
-        "targetAreaMm2": 4200000
-      }
-    },
-    {
-      "type": "room.set_target",
-      "payload": {
-        "roomId": "room_39VWGFFF0DYM9WZX37NK64D7J6",
-        "targetAreaMm2": 20000000
-      }
-    },
-    {
-      "type": "room.set_target",
-      "payload": {
-        "roomId": "room_3SNW44KY0QPF7FCCG8S6GEC22Y",
-        "targetAreaMm2": 3000000
-      }
-    },
-    {
-      "type": "room.set_target",
-      "payload": {
-        "roomId": "room_4EJKF3RDR5D5REHW2E8WAWPA4G",
+        "roomId": "room_0V7FNK12V76JAFVS3G123CWPR5",
         "targetAreaMm2": 8000000
       }
     },
     {
       "type": "room.set_target",
       "payload": {
-        "roomId": "room_2G7QBRXD2KWB2RP308RSXXFA40",
+        "roomId": "room_2MTC15TDK06CHWV8S0K1T5C7YA",
         "targetAreaMm2": 4200000
       }
     },
     {
       "type": "room.set_target",
       "payload": {
-        "roomId": "room_57P8HVMAT30XVWQB6BKBCWZ4SF",
+        "roomId": "room_3MXWR0WQ7FD4QT3EVYM8K9AGDW",
+        "targetAreaMm2": 3200000
+      }
+    },
+    {
+      "type": "room.set_target",
+      "payload": {
+        "roomId": "room_4TNNYAQG0TTF8CAFSPYJ59XERX",
+        "targetAreaMm2": 11500000
+      }
+    },
+    {
+      "type": "room.set_target",
+      "payload": {
+        "roomId": "room_5SH7GP85E9S9B2A2FQ68EMB441",
+        "targetAreaMm2": 20000000
+      }
+    },
+    {
+      "type": "room.set_target",
+      "payload": {
+        "roomId": "room_0B5JBX32J8BR5MSA9VMNANKKXJ",
         "targetAreaMm2": 13500000
       }
     },
     {
       "type": "room.set_target",
       "payload": {
-        "roomId": "room_7DEWM2CMXEG6D5W2GTSH1VMAV9",
+        "roomId": "room_0C8G3CKZGT2FAEY51YF6X0VHFP",
         "targetAreaMm2": 11500000
+      }
+    },
+    {
+      "type": "room.set_target",
+      "payload": {
+        "roomId": "room_5KHQ1F8G1R6HZWD6NFQ5H02T1E",
+        "targetAreaMm2": 4200000
       }
     }
   ]

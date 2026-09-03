@@ -1,0 +1,219 @@
+{
+  "buildingHeightMm": 7600,
+  "coverageAllowedMm2": 83612736,
+  "farAllowedMm2": 278709120,
+  "farCountableAreaMm2": 98923000,
+  "footprintAreaMm2": 49461500,
+  "perStorey": [
+    {
+      "builtUpAreaMm2": 49461500,
+      "index": 0,
+      "label": "Ground floor",
+      "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN"
+    },
+    {
+      "builtUpAreaMm2": 49461500,
+      "index": 1,
+      "label": "First floor",
+      "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA"
+    }
+  ],
+  "plotAreaMm2": 111483648,
+  "projectId": "hyd-30x40-g1-3bhk",
+  "rows": [
+    {
+      "key": "plot_area",
+      "kind": "informational",
+      "label": "Plot area",
+      "unit": "mm2",
+      "value": 111483648
+    },
+    {
+      "allowed": 83612736,
+      "key": "coverage",
+      "kind": "allowance",
+      "label": "Ground coverage",
+      "limitLabel": "Permissible",
+      "note": "0.44 achieved against 0.75 allowed",
+      "ruleIds": [
+        "hyd.coverage.plot.le200"
+      ],
+      "unit": "mm2",
+      "value": 49461500
+    },
+    {
+      "key": "built_up.storey_01M1KFK7XXA9VRZ3373V9JECDN",
+      "kind": "informational",
+      "label": "Ground floor built-up",
+      "unit": "mm2",
+      "value": 49461500
+    },
+    {
+      "key": "built_up.storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
+      "kind": "informational",
+      "label": "First floor built-up",
+      "unit": "mm2",
+      "value": 49461500
+    },
+    {
+      "key": "built_up_total",
+      "kind": "informational",
+      "label": "Total built-up",
+      "unit": "mm2",
+      "value": 98923000
+    },
+    {
+      "allowed": 278709120,
+      "key": "far",
+      "kind": "allowance",
+      "label": "FAR-countable area",
+      "limitLabel": "Permissible",
+      "note": "0.89 achieved against 2.50 allowed",
+      "ruleIds": [
+        "hyd.far.road.9-18m"
+      ],
+      "unit": "mm2",
+      "value": 98923000
+    },
+    {
+      "allowed": 3000,
+      "key": "setback.front",
+      "kind": "requirement",
+      "label": "Front setback",
+      "limitLabel": "Required",
+      "ruleIds": [
+        "hyd.setback.front.plot.101-200",
+        "hyd.setback.front.road.9-18m"
+      ],
+      "unit": "mm",
+      "value": 3000
+    },
+    {
+      "allowed": 1000,
+      "key": "setback.side-a",
+      "kind": "requirement",
+      "label": "Side A setback",
+      "limitLabel": "Required",
+      "ruleIds": [
+        "hyd.setback.side.plot.101-200"
+      ],
+      "unit": "mm",
+      "value": 1819
+    },
+    {
+      "allowed": 1000,
+      "key": "setback.rear",
+      "kind": "requirement",
+      "label": "Rear setback",
+      "limitLabel": "Required",
+      "ruleIds": [
+        "hyd.setback.rear.plot.101-200"
+      ],
+      "unit": "mm",
+      "value": 1372
+    },
+    {
+      "allowed": 1000,
+      "key": "setback.side-b",
+      "kind": "requirement",
+      "label": "Side B setback",
+      "limitLabel": "Required",
+      "ruleIds": [
+        "hyd.setback.side.plot.101-200"
+      ],
+      "unit": "mm",
+      "value": 1000
+    },
+    {
+      "allowed": 4,
+      "key": "floors",
+      "kind": "allowance",
+      "label": "Floors above ground",
+      "limitLabel": "Permissible",
+      "ruleIds": [
+        "hyd.floors.road.9-12m"
+      ],
+      "unit": "count",
+      "value": 2
+    },
+    {
+      "allowed": 15000,
+      "key": "height",
+      "kind": "allowance",
+      "label": "Building height",
+      "limitLabel": "Permissible",
+      "note": "Height as counted by the governing rule; excluded components are not included.",
+      "ruleIds": [
+        "hyd.height.road.9-12m"
+      ],
+      "unit": "mm",
+      "value": 6600
+    },
+    {
+      "allowed": 1,
+      "key": "parking",
+      "kind": "requirement",
+      "label": "Car parking spaces",
+      "limitLabel": "Required",
+      "ruleIds": [
+        "hyd.parking.plot.le200"
+      ],
+      "unit": "count",
+      "value": 1
+    }
+  ],
+  "setbacks": [
+    {
+      "edgeIndex": 0,
+      "elementId": "plot.edge.front",
+      "providedMm": 3000,
+      "requiredMm": 3000,
+      "role": "front",
+      "ruleIds": [
+        "hyd.setback.front.plot.101-200",
+        "hyd.setback.front.road.9-18m"
+      ],
+      "shortfallMm": 0,
+      "status": "ok"
+    },
+    {
+      "edgeIndex": 1,
+      "elementId": "plot.edge.side-a",
+      "providedMm": 1819,
+      "requiredMm": 1000,
+      "role": "side-a",
+      "ruleIds": [
+        "hyd.setback.side.plot.101-200"
+      ],
+      "shortfallMm": 0,
+      "status": "ok"
+    },
+    {
+      "edgeIndex": 2,
+      "elementId": "plot.edge.rear",
+      "providedMm": 1372,
+      "requiredMm": 1000,
+      "role": "rear",
+      "ruleIds": [
+        "hyd.setback.rear.plot.101-200"
+      ],
+      "shortfallMm": 0,
+      "status": "ok"
+    },
+    {
+      "edgeIndex": 3,
+      "elementId": "plot.edge.side-b",
+      "providedMm": 1000,
+      "requiredMm": 1000,
+      "role": "side-b",
+      "ruleIds": [
+        "hyd.setback.side.plot.101-200"
+      ],
+      "shortfallMm": 0,
+      "status": "ok"
+    }
+  ],
+  "storeyCount": 2,
+  "totalBuiltUpAreaMm2": 98923000,
+  "warnings": []
+}

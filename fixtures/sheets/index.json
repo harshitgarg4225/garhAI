@@ -17,15 +17,15 @@
   },
   "projects": [
     {
-      "chainCount": 17,
+      "chainCount": 50,
       "handChecked": false,
-      "input": "fixtures/sheets/inputs/demo-01-two-room.json",
+      "input": "fixtures/plans/blr-30x40-g1-3bhk.json",
       "labelCollisions": 0,
-      "name": "Two-room fixture (shared with garh_model.testing)",
-      "projectId": "demo-01-two-room",
+      "name": "Bengaluru 30 \u00d7 40, G+1 3BHK",
+      "projectId": "blr-30x40-g1-3bhk",
       "sheets": [
         {
-          "chains": 2,
+          "chains": 4,
           "kind": "site-plan",
           "layersUsed": [
             "A-WALL",
@@ -36,11 +36,29 @@
             "A-TITL"
           ],
           "number": "A-01",
-          "primitives": 55,
+          "primitives": 45,
           "scale": 100
         },
         {
-          "chains": 10,
+          "chains": 24,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-STAIR",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02A",
+          "primitives": 198,
+          "scale": 100
+        },
+        {
+          "chains": 17,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -52,8 +70,8 @@
             "A-AREA",
             "A-TITL"
           ],
-          "number": "A-02A",
-          "primitives": 90,
+          "number": "A-02B",
+          "primitives": 134,
           "scale": 100
         },
         {
@@ -62,12 +80,13 @@
           "layersUsed": [
             "A-WALL",
             "A-WALL-PART",
+            "A-WIND",
             "A-DIM",
             "A-TEXT",
             "A-TITL"
           ],
           "number": "A-03A",
-          "primitives": 59,
+          "primitives": 54,
           "scale": 100
         },
         {
@@ -76,12 +95,13 @@
           "layersUsed": [
             "A-WALL",
             "A-WALL-PART",
+            "A-WIND",
             "A-DIM",
             "A-TEXT",
             "A-TITL"
           ],
           "number": "A-03B",
-          "primitives": 59,
+          "primitives": 58,
           "scale": 100
         },
         {
@@ -96,7 +116,359 @@
             "A-TITL"
           ],
           "number": "A-03C",
-          "primitives": 60,
+          "primitives": 53,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03D",
+          "primitives": 56,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "section",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-04",
+          "primitives": 58,
+          "scale": 100
+        },
+        {
+          "chains": 0,
+          "kind": "door-window-schedule",
+          "layersUsed": [
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-05",
+          "primitives": 130,
+          "scale": 100
+        },
+        {
+          "chains": 0,
+          "kind": "area-statement",
+          "layersUsed": [
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-06",
+          "primitives": 185,
+          "scale": 100
+        }
+      ],
+      "stateHash": "c3f7f3d41a3b621e4c6d3097a2def36929a7c31e33f38ba2fb51b2fbdc2149c7"
+    },
+    {
+      "chainCount": 64,
+      "handChecked": false,
+      "input": "fixtures/plans/blr-30x50-g2-3bhk.json",
+      "labelCollisions": 0,
+      "name": "Bengaluru 30 \u00d7 50, G+2 3BHK",
+      "projectId": "blr-30x50-g2-3bhk",
+      "sheets": [
+        {
+          "chains": 4,
+          "kind": "site-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-01",
+          "primitives": 45,
+          "scale": 100
+        },
+        {
+          "chains": 19,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-STAIR",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02A",
+          "primitives": 157,
+          "scale": 100
+        },
+        {
+          "chains": 17,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-STAIR",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02B",
+          "primitives": 145,
+          "scale": 100
+        },
+        {
+          "chains": 19,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02C",
+          "primitives": 139,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03A",
+          "primitives": 57,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03B",
+          "primitives": 65,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03C",
+          "primitives": 58,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03D",
+          "primitives": 63,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "section",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-04",
+          "primitives": 68,
+          "scale": 100
+        },
+        {
+          "chains": 0,
+          "kind": "door-window-schedule",
+          "layersUsed": [
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-05",
+          "primitives": 162,
+          "scale": 100
+        },
+        {
+          "chains": 0,
+          "kind": "area-statement",
+          "layersUsed": [
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-06",
+          "primitives": 197,
+          "scale": 100
+        }
+      ],
+      "stateHash": "f61599f69586af7f6076e1a38f45fefcfd65c98c1a8104721efa2407c3966d9e"
+    },
+    {
+      "chainCount": 69,
+      "handChecked": false,
+      "input": "fixtures/plans/blr-40x60-g2-4bhk.json",
+      "labelCollisions": 0,
+      "name": "Bengaluru 40 \u00d7 60, G+2 4BHK",
+      "projectId": "blr-40x60-g2-4bhk",
+      "sheets": [
+        {
+          "chains": 4,
+          "kind": "site-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-01",
+          "primitives": 45,
+          "scale": 100
+        },
+        {
+          "chains": 19,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-STAIR",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02A",
+          "primitives": 157,
+          "scale": 100
+        },
+        {
+          "chains": 21,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-STAIR",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02B",
+          "primitives": 170,
+          "scale": 100
+        },
+        {
+          "chains": 20,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02C",
+          "primitives": 140,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03A",
+          "primitives": 63,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03B",
+          "primitives": 61,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03C",
+          "primitives": 62,
           "scale": 100
         },
         {
@@ -125,7 +497,7 @@
             "A-TITL"
           ],
           "number": "A-04",
-          "primitives": 60,
+          "primitives": 68,
           "scale": 100
         },
         {
@@ -136,166 +508,7 @@
             "A-TITL"
           ],
           "number": "A-05",
-          "primitives": 78,
-          "scale": 100
-        },
-        {
-          "chains": 0,
-          "kind": "area-statement",
-          "layersUsed": [
-            "A-TEXT",
-            "A-AREA",
-            "A-TITL"
-          ],
-          "number": "A-06",
-          "primitives": 187,
-          "scale": 100
-        }
-      ],
-      "stateHash": "a632cbad3b6137e65180df95d54c938400c3aa7fe67832290cba5fe146213d2c"
-    },
-    {
-      "chainCount": 41,
-      "handChecked": false,
-      "input": "fixtures/sheets/inputs/demo-02-blr-30x40-g1.json",
-      "labelCollisions": 0,
-      "name": "Sharma Residence - 30x40 ft Bengaluru, G+1",
-      "projectId": "demo-02-blr-30x40-g1",
-      "sheets": [
-        {
-          "chains": 4,
-          "kind": "site-plan",
-          "layersUsed": [
-            "A-WALL",
-            "A-WALL-PART",
-            "A-DIM",
-            "A-TEXT",
-            "A-AREA",
-            "A-TITL"
-          ],
-          "number": "A-01",
-          "primitives": 57,
-          "scale": 100
-        },
-        {
-          "chains": 16,
-          "kind": "floor-plan",
-          "layersUsed": [
-            "A-WALL",
-            "A-WALL-PART",
-            "A-DOOR",
-            "A-WIND",
-            "A-STAIR",
-            "A-DIM",
-            "A-TEXT",
-            "A-AREA",
-            "A-TITL"
-          ],
-          "number": "A-02A",
-          "primitives": 176,
-          "scale": 100
-        },
-        {
-          "chains": 16,
-          "kind": "floor-plan",
-          "layersUsed": [
-            "A-WALL",
-            "A-WALL-PART",
-            "A-DOOR",
-            "A-WIND",
-            "A-DIM",
-            "A-TEXT",
-            "A-AREA",
-            "A-TITL"
-          ],
-          "number": "A-02B",
-          "primitives": 164,
-          "scale": 100
-        },
-        {
-          "chains": 1,
-          "kind": "elevation",
-          "layersUsed": [
-            "A-WALL",
-            "A-WALL-PART",
-            "A-WIND",
-            "A-DIM",
-            "A-TEXT",
-            "A-TITL"
-          ],
-          "number": "A-03A",
-          "primitives": 72,
-          "scale": 100
-        },
-        {
-          "chains": 1,
-          "kind": "elevation",
-          "layersUsed": [
-            "A-WALL",
-            "A-WALL-PART",
-            "A-WIND",
-            "A-DIM",
-            "A-TEXT",
-            "A-TITL"
-          ],
-          "number": "A-03B",
-          "primitives": 72,
-          "scale": 100
-        },
-        {
-          "chains": 1,
-          "kind": "elevation",
-          "layersUsed": [
-            "A-WALL",
-            "A-WALL-PART",
-            "A-DOOR",
-            "A-WIND",
-            "A-DIM",
-            "A-TEXT",
-            "A-TITL"
-          ],
-          "number": "A-03C",
-          "primitives": 70,
-          "scale": 100
-        },
-        {
-          "chains": 1,
-          "kind": "elevation",
-          "layersUsed": [
-            "A-WALL",
-            "A-WALL-PART",
-            "A-WIND",
-            "A-DIM",
-            "A-TEXT",
-            "A-TITL"
-          ],
-          "number": "A-03D",
-          "primitives": 72,
-          "scale": 100
-        },
-        {
-          "chains": 1,
-          "kind": "section",
-          "layersUsed": [
-            "A-WALL",
-            "A-WALL-PART",
-            "A-DIM",
-            "A-TEXT",
-            "A-TITL"
-          ],
-          "number": "A-04",
-          "primitives": 70,
-          "scale": 100
-        },
-        {
-          "chains": 0,
-          "kind": "door-window-schedule",
-          "layersUsed": [
-            "A-TEXT",
-            "A-TITL"
-          ],
-          "number": "A-05",
-          "primitives": 122,
+          "primitives": 173,
           "scale": 100
         },
         {
@@ -311,8 +524,167 @@
           "scale": 100
         }
       ],
-      "stateHash": "d390fe09f71da0bcfb41bbdb68410e15c8c80f7d6a2bcfb8491b8bad1d73b284"
+      "stateHash": "80e3d372ee8defd2787bf6fc73b31a056230070f64bc5143ea1e8f7fc848b468"
+    },
+    {
+      "chainCount": 48,
+      "handChecked": false,
+      "input": "fixtures/plans/hyd-30x40-g1-3bhk.json",
+      "labelCollisions": 0,
+      "name": "Hyderabad 30 \u00d7 40, G+1 3BHK",
+      "projectId": "hyd-30x40-g1-3bhk",
+      "sheets": [
+        {
+          "chains": 4,
+          "kind": "site-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-01",
+          "primitives": 45,
+          "scale": 100
+        },
+        {
+          "chains": 22,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-STAIR",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02A",
+          "primitives": 185,
+          "scale": 100
+        },
+        {
+          "chains": 17,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02B",
+          "primitives": 134,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03A",
+          "primitives": 54,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03B",
+          "primitives": 58,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03C",
+          "primitives": 55,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03D",
+          "primitives": 56,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "section",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-04",
+          "primitives": 58,
+          "scale": 100
+        },
+        {
+          "chains": 0,
+          "kind": "door-window-schedule",
+          "layersUsed": [
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-05",
+          "primitives": 130,
+          "scale": 100
+        },
+        {
+          "chains": 0,
+          "kind": "area-statement",
+          "layersUsed": [
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-06",
+          "primitives": 185,
+          "scale": 100
+        }
+      ],
+      "stateHash": "af7c2c0986aee299387eb9658f7d7db07c686a4df6fb60511ee8e84bec5ebd1a"
     }
   ],
-  "source": "fixtures/sheets/inputs"
+  "source": "fixtures/plans"
 }

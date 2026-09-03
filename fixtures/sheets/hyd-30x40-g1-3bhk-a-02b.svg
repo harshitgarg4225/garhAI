@@ -1,0 +1,294 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="594mm" height="420mm" viewBox="0 0 594 420" version="1.1">
+<!-- garh-sheet sheet-plan-first-floor floor-plan 1:100 -->
+<title>A-02B First Floor Plan</title>
+<rect x="0" y="0" width="594" height="420" fill="#ffffff" stroke="none"/>
+<defs>
+<clipPath id="hc-02e2aecf7d58b880" clip-rule="evenodd">
+<path d="M 179.525 219.770 L 182.975 219.770 L 182.975 218.630 L 179.525 218.630 Z"/>
+</clipPath>
+<clipPath id="hc-03ec064bcb64642f" clip-rule="evenodd">
+<path d="M 194.975 219.770 L 240.475 219.770 L 240.475 218.630 L 194.975 218.630 Z"/>
+</clipPath>
+<clipPath id="hc-328d15620842dbb8" clip-rule="evenodd">
+<path d="M 191.625 204.820 L 196.775 204.820 L 196.775 203.680 L 191.625 203.680 Z"/>
+</clipPath>
+<clipPath id="hc-5a76fa1350d3654e" clip-rule="evenodd">
+<path d="M 179.525 204.820 L 184.125 204.820 L 184.125 203.680 L 179.525 203.680 Z"/>
+</clipPath>
+<clipPath id="hc-6161d35e49994068" clip-rule="evenodd">
+<path d="M 196.205 219.200 L 196.205 216.900 L 197.345 216.900 L 197.345 219.200 Z"/>
+</clipPath>
+<clipPath id="hc-836ccc73bb1bcad6" clip-rule="evenodd">
+<path d="M 201.955 247.950 L 201.955 245.650 L 203.095 245.650 L 203.095 247.950 Z"/>
+</clipPath>
+<clipPath id="hc-98cc889cf0760d0c" clip-rule="evenodd">
+<path d="M 181.255 219.200 L 181.255 204.250 L 182.395 204.250 L 182.395 219.200 Z"/>
+</clipPath>
+<clipPath id="hc-c571aab393e7611a" clip-rule="evenodd">
+<path d="M 196.205 207.900 L 196.205 172.050 L 197.345 172.050 L 197.345 207.900 Z"/>
+</clipPath>
+<clipPath id="hc-fc0e06944cdb5dfb" clip-rule="evenodd">
+<path d="M 201.955 236.650 L 201.955 219.200 L 203.095 219.200 L 203.095 236.650 Z"/>
+</clipPath>
+</defs>
+<g id="g-frame">
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="407.000" y="359.000" font-size="5.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">First Floor Plan</text>
+<text x="564.000" y="356.000" font-size="5.000" text-anchor="middle" dominant-baseline="alphabetic" font-weight="600">A-02B</text>
+<text x="564.000" y="361.000" font-size="1.800" text-anchor="middle" dominant-baseline="alphabetic">SHEET</text>
+<text x="406.000" y="365.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">PROJECT</text>
+<text x="406.000" y="374.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Hyderabad 30 × 40, G+1 3BHK</text>
+<text x="406.000" y="376.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">CLIENT</text>
+<text x="406.000" y="385.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="406.000" y="387.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">ARCHITECT</text>
+<text x="406.000" y="396.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Studio Demo</text>
+<text x="406.000" y="398.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">SCALE</text>
+<text x="406.000" y="407.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">1:100</text>
+<text x="496.000" y="365.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">DATE</text>
+<text x="496.000" y="374.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">01-01-2026</text>
+<text x="496.000" y="376.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">DRAWN</text>
+<text x="496.000" y="385.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="496.000" y="387.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">CHECKED</text>
+<text x="496.000" y="396.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="496.000" y="398.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">REV</text>
+<text x="496.000" y="407.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">A</text>
+</g>
+</g>
+<g class="layer" data-layer="A-TITL" stroke="#000000" stroke-width="0.350" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="2.000,2.000 592.000,2.000 592.000,418.000 2.000,418.000" fill="none"/>
+<polygon points="20.000,10.000 584.000,10.000 584.000,410.000 20.000,410.000" fill="none"/>
+<polygon points="404.000,350.000 584.000,350.000 584.000,410.000 404.000,410.000" fill="none"/>
+<line x1="404.000" y1="364.000" x2="584.000" y2="364.000"/>
+<line x1="544.000" y1="350.000" x2="544.000" y2="364.000"/>
+<line x1="494.000" y1="364.000" x2="494.000" y2="410.000"/>
+<line x1="404.000" y1="375.000" x2="494.000" y2="375.000"/>
+<line x1="404.000" y1="386.000" x2="494.000" y2="386.000"/>
+<line x1="404.000" y1="397.000" x2="494.000" y2="397.000"/>
+<line x1="494.000" y1="375.000" x2="584.000" y2="375.000"/>
+<line x1="494.000" y1="386.000" x2="584.000" y2="386.000"/>
+<line x1="494.000" y1="397.000" x2="584.000" y2="397.000"/>
+</g>
+</g>
+<g id="g-plan-storey_01M1KFK7XYQYDAHNSX9BWGTTGA">
+<g class="layer" data-layer="A-WALL" stroke="#000000" stroke-width="0.500" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<path d="M 239.325 247.950 L 239.325 216.900 L 241.625 216.900 L 241.625 247.950 Z" fill="#000000" fill-rule="evenodd" stroke="none"/>
+<polygon points="239.325,247.950 239.325,216.900 241.625,216.900 241.625,247.950" fill="none"/>
+<path d="M 239.325 201.000 L 239.325 172.050 L 241.625 172.050 L 241.625 201.000 Z" fill="#000000" fill-rule="evenodd" stroke="none"/>
+<polygon points="239.325,201.000 239.325,172.050 241.625,172.050 241.625,201.000" fill="none"/>
+<path d="M 179.525 173.200 L 240.475 173.200 L 240.475 170.900 L 179.525 170.900 Z" fill="#000000" fill-rule="evenodd" stroke="none"/>
+<polygon points="179.525,173.200 240.475,173.200 240.475,170.900 179.525,170.900" fill="none"/>
+<path d="M 178.375 247.950 L 178.375 181.010 L 180.675 181.010 L 180.675 247.950 Z" fill="#000000" fill-rule="evenodd" stroke="none"/>
+<polygon points="178.375,247.950 178.375,181.010 180.675,181.010 180.675,247.950" fill="none"/>
+<path d="M 178.375 174.350 L 178.375 172.050 L 180.675 172.050 L 180.675 174.350 Z" fill="#000000" fill-rule="evenodd" stroke="none"/>
+<polygon points="178.375,174.350 178.375,172.050 180.675,172.050 180.675,174.350" fill="none"/>
+<path d="M 179.525 249.100 L 204.825 249.100 L 204.825 246.800 L 179.525 246.800 Z" fill="#000000" fill-rule="evenodd" stroke="none"/>
+<polygon points="179.525,249.100 204.825,249.100 204.825,246.800 179.525,246.800" fill="none"/>
+<path d="M 216.825 249.100 L 240.475 249.100 L 240.475 246.800 L 216.825 246.800 Z" fill="#000000" fill-rule="evenodd" stroke="none"/>
+<polygon points="216.825,249.100 240.475,249.100 240.475,246.800 216.825,246.800" fill="none"/>
+</g>
+<g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g clip-path="url(#hc-98cc889cf0760d0c)">
+<path d="M 182.495 220.440 L 190.535 212.390 M 181.435 219.380 L 189.475 211.330 M 180.365 218.310 L 188.415 210.270 M 179.305 217.250 L 187.355 209.210 M 178.245 216.190 L 186.295 208.150 M 177.185 215.130 L 185.235 207.090 M 176.125 214.070 L 184.175 206.030 M 175.065 213.010 L 183.115 204.970 M 174.005 211.950 L 182.055 203.910 M 172.945 210.890 L 180.995 202.850" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
+<polygon points="181.255,219.200 181.255,204.250 182.395,204.250 182.395,219.200" fill="none"/>
+<g clip-path="url(#hc-836ccc73bb1bcad6)">
+<path d="M 202.865 248.860 L 204.585 247.140 M 201.805 247.800 L 203.525 246.080 M 200.745 246.740 L 202.465 245.020" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
+<polygon points="201.955,247.950 201.955,245.650 203.095,245.650 203.095,247.950" fill="none"/>
+<g clip-path="url(#hc-fc0e06944cdb5dfb)">
+<path d="M 203.205 237.900 L 212.505 228.610 M 202.145 236.840 L 211.445 227.550 M 201.085 235.780 L 210.385 226.490 M 200.025 234.720 L 209.325 225.430 M 198.965 233.660 L 208.265 224.370 M 197.905 232.600 L 207.195 223.300 M 196.845 231.540 L 206.135 222.240 M 195.785 230.480 L 205.075 221.180 M 194.725 229.420 L 204.015 220.120 M 193.665 228.360 L 202.955 219.060 M 192.605 227.300 L 201.895 218.000" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
+<polygon points="201.955,236.650 201.955,219.200 203.095,219.200 203.095,236.650" fill="none"/>
+<g clip-path="url(#hc-6161d35e49994068)">
+<path d="M 197.395 220.390 L 199.115 218.670 M 196.335 219.330 L 198.055 217.610 M 195.265 218.260 L 196.985 216.540 M 194.205 217.200 L 195.925 215.480" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
+<polygon points="196.205,219.200 196.205,216.900 197.345,216.900 197.345,219.200" fill="none"/>
+<g clip-path="url(#hc-c571aab393e7611a)">
+<path d="M 197.735 209.430 L 216.235 190.940 M 196.675 208.370 L 215.175 189.880 M 195.615 207.310 L 214.115 188.820 M 194.555 206.250 L 213.055 187.760 M 193.495 205.190 L 211.985 186.690 M 192.435 204.130 L 210.925 185.630 M 191.375 203.070 L 209.865 184.570 M 190.315 202.010 L 208.805 183.510 M 189.255 200.950 L 207.745 182.450 M 188.195 199.890 L 206.685 181.390 M 187.135 198.830 L 205.625 180.330 M 186.075 197.770 L 204.565 179.270 M 185.005 196.700 L 203.505 178.210 M 183.945 195.640 L 202.445 177.150 M 182.885 194.580 L 201.385 176.090 M 181.825 193.520 L 200.325 175.030 M 180.765 192.460 L 199.265 173.970 M 179.705 191.400 L 198.205 172.910 M 178.645 190.340 L 197.145 171.850 M 177.585 189.280 L 196.075 170.780" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
+<polygon points="196.205,207.900 196.205,172.050 197.345,172.050 197.345,207.900" fill="none"/>
+<g clip-path="url(#hc-02e2aecf7d58b880)">
+<path d="M 181.345 221.590 L 183.635 219.290 M 180.285 220.530 L 182.575 218.230 M 179.215 219.460 L 181.515 217.170 M 178.155 218.400 L 180.455 216.110" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
+<polygon points="179.525,219.770 182.975,219.770 182.975,218.630 179.525,218.630" fill="none"/>
+<g clip-path="url(#hc-03ec064bcb64642f)">
+<path d="M 218.765 243.560 L 242.085 220.240 M 217.705 242.500 L 241.025 219.180 M 216.645 241.440 L 239.965 218.120 M 215.585 240.380 L 238.905 217.060 M 214.525 239.320 L 237.845 216.000 M 213.465 238.260 L 236.785 214.940 M 212.405 237.200 L 235.725 213.880 M 211.345 236.130 L 234.665 212.810 M 210.275 235.070 L 233.595 211.750 M 209.215 234.010 L 232.535 210.690 M 208.155 232.950 L 231.475 209.630 M 207.095 231.890 L 230.415 208.570 M 206.035 230.830 L 229.355 207.510 M 204.975 229.770 L 228.295 206.450 M 203.915 228.710 L 227.235 205.390 M 202.855 227.650 L 226.175 204.330 M 201.795 226.590 L 225.115 203.270 M 200.735 225.530 L 224.055 202.210 M 199.675 224.470 L 222.995 201.150 M 198.615 223.410 L 221.935 200.090 M 197.555 222.350 L 220.875 199.030 M 196.495 221.290 L 219.815 197.970 M 195.435 220.230 L 218.755 196.910 M 194.365 219.160 L 217.685 195.840" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
+<polygon points="194.975,219.770 240.475,219.770 240.475,218.630 194.975,218.630" fill="none"/>
+<g clip-path="url(#hc-5a76fa1350d3654e)">
+<path d="M 182.455 207.750 L 185.325 204.880 M 181.395 206.690 L 184.265 203.820 M 180.335 205.630 L 183.205 202.760 M 179.275 204.570 L 182.145 201.700 M 178.205 203.500 L 181.075 200.630" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
+<polygon points="179.525,204.820 184.125,204.820 184.125,203.680 179.525,203.680" fill="none"/>
+<g clip-path="url(#hc-328d15620842dbb8)">
+<path d="M 194.865 208.060 L 198.015 204.920 M 193.805 207.000 L 196.955 203.860 M 192.745 205.940 L 195.885 202.790 M 191.685 204.880 L 194.825 201.730 M 190.625 203.820 L 193.765 200.670" stroke="#555555" stroke-width="0.080" fill="none"/>
+</g>
+<polygon points="191.625,204.820 196.775,204.820 196.775,203.680 191.625,203.680" fill="none"/>
+</g>
+<g class="layer" data-layer="A-DOOR" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<line x1="202.525" y1="236.650" x2="211.525" y2="236.650"/>
+<path d="M 211.525 236.650 A 9.000 9.000 0 0 0 202.525 227.650" fill="none"/>
+<line x1="201.955" y1="245.650" x2="203.095" y2="245.650"/>
+<line x1="201.955" y1="236.650" x2="203.095" y2="236.650"/>
+<line x1="196.775" y1="207.900" x2="205.775" y2="207.900"/>
+<path d="M 205.775 207.900 A 9.000 9.000 0 0 0 196.775 198.900" fill="none"/>
+<line x1="196.205" y1="216.900" x2="197.345" y2="216.900"/>
+<line x1="196.205" y1="207.900" x2="197.345" y2="207.900"/>
+<line x1="182.975" y1="219.200" x2="182.975" y2="207.200"/>
+<path d="M 182.975 207.200 A 12.000 12.000 0 0 0 170.975 219.200" fill="none"/>
+<line x1="182.975" y1="219.770" x2="182.975" y2="218.630"/>
+<line x1="194.975" y1="219.770" x2="194.975" y2="218.630"/>
+<line x1="184.125" y1="204.250" x2="184.125" y2="196.750"/>
+<path d="M 184.125 196.750 A 7.500 7.500 0 0 0 176.625 204.250" fill="none"/>
+<line x1="184.125" y1="204.820" x2="184.125" y2="203.680"/>
+<line x1="191.625" y1="204.820" x2="191.625" y2="203.680"/>
+</g>
+<g class="layer" data-layer="A-WIND" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<line x1="239.325" y1="216.900" x2="239.325" y2="201.000"/>
+<line x1="240.475" y1="216.900" x2="240.475" y2="201.000"/>
+<line x1="241.625" y1="216.900" x2="241.625" y2="201.000"/>
+<line x1="239.325" y1="216.900" x2="241.625" y2="216.900"/>
+<line x1="239.325" y1="201.000" x2="241.625" y2="201.000"/>
+<line x1="178.375" y1="181.010" x2="178.375" y2="174.350"/>
+<line x1="179.525" y1="181.010" x2="179.525" y2="174.350"/>
+<line x1="180.675" y1="181.010" x2="180.675" y2="174.350"/>
+<line x1="178.375" y1="181.010" x2="180.675" y2="181.010"/>
+<line x1="178.375" y1="174.350" x2="180.675" y2="174.350"/>
+<line x1="204.825" y1="249.100" x2="216.825" y2="249.100"/>
+<line x1="204.825" y1="247.950" x2="216.825" y2="247.950"/>
+<line x1="204.825" y1="246.800" x2="216.825" y2="246.800"/>
+<line x1="204.825" y1="249.100" x2="204.825" y2="246.800"/>
+<line x1="216.825" y1="249.100" x2="216.825" y2="246.800"/>
+</g>
+<g class="layer" data-layer="A-DIM" stroke="#1a1a1a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<line x1="178.375" y1="273.100" x2="241.625" y2="273.100"/>
+<line x1="178.375" y1="273.100" x2="178.375" y2="271.850"/>
+<line x1="241.625" y1="273.100" x2="241.625" y2="271.850"/>
+<text x="209.995" y="272.100" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">6325</text>
+<line x1="178.375" y1="267.100" x2="241.625" y2="267.100"/>
+<line x1="178.375" y1="267.100" x2="178.375" y2="265.850"/>
+<line x1="179.525" y1="267.100" x2="179.525" y2="265.850"/>
+<line x1="181.825" y1="267.100" x2="181.825" y2="265.850"/>
+<line x1="196.775" y1="267.100" x2="196.775" y2="265.850"/>
+<line x1="202.525" y1="267.100" x2="202.525" y2="265.850"/>
+<line x1="240.475" y1="267.100" x2="240.475" y2="265.850"/>
+<line x1="241.625" y1="267.100" x2="241.625" y2="265.850"/>
+<text x="178.945" y="266.100" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">115</text>
+<text x="180.675" y="266.100" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">230</text>
+<text x="189.295" y="266.100" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">1495</text>
+<text x="199.645" y="266.100" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">575</text>
+<text x="221.495" y="266.100" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">3795</text>
+<text x="241.045" y="266.100" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">115</text>
+<line x1="178.375" y1="261.100" x2="241.625" y2="261.100"/>
+<line x1="178.375" y1="261.100" x2="178.375" y2="259.850"/>
+<line x1="210.825" y1="261.100" x2="210.825" y2="259.850"/>
+<line x1="241.625" y1="261.100" x2="241.625" y2="259.850"/>
+<text x="194.595" y="260.100" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">3245</text>
+<text x="226.225" y="260.100" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">3080</text>
+<line x1="154.375" y1="249.100" x2="154.375" y2="170.900"/>
+<line x1="154.375" y1="249.100" x2="155.625" y2="249.100"/>
+<line x1="154.375" y1="170.900" x2="155.625" y2="170.900"/>
+<text x="155.375" y="210.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 155.375 210.000)">7820</text>
+<line x1="160.375" y1="249.100" x2="160.375" y2="170.900"/>
+<line x1="160.375" y1="249.100" x2="161.625" y2="249.100"/>
+<line x1="160.375" y1="247.950" x2="161.625" y2="247.950"/>
+<line x1="160.375" y1="219.200" x2="161.625" y2="219.200"/>
+<line x1="160.375" y1="204.250" x2="161.625" y2="204.250"/>
+<line x1="160.375" y1="172.050" x2="161.625" y2="172.050"/>
+<line x1="160.375" y1="170.900" x2="161.625" y2="170.900"/>
+<text x="161.375" y="248.530" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 161.375 248.530)">115</text>
+<text x="161.375" y="233.580" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 161.375 233.580)">2875</text>
+<text x="161.375" y="211.730" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 161.375 211.730)">1495</text>
+<text x="161.375" y="188.150" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 161.375 188.150)">3220</text>
+<text x="161.375" y="171.480" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 161.375 171.480)">115</text>
+<line x1="166.375" y1="249.100" x2="166.375" y2="170.900"/>
+<line x1="166.375" y1="249.100" x2="167.625" y2="249.100"/>
+<line x1="166.375" y1="177.680" x2="167.625" y2="177.680"/>
+<line x1="166.375" y1="170.900" x2="167.625" y2="170.900"/>
+<text x="167.375" y="213.390" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 167.375 213.390)">7142</text>
+<text x="167.375" y="174.290" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 167.375 174.290)">678</text>
+<line x1="253.625" y1="249.100" x2="253.625" y2="170.900"/>
+<line x1="253.625" y1="249.100" x2="254.875" y2="249.100"/>
+<line x1="253.625" y1="208.950" x2="254.875" y2="208.950"/>
+<line x1="253.625" y1="170.900" x2="254.875" y2="170.900"/>
+<text x="254.625" y="229.030" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 254.625 229.030)">4015</text>
+<text x="254.625" y="189.930" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 254.625 189.930)">3805</text>
+<line x1="197.345" y1="195.920" x2="239.325" y2="195.920"/>
+<line x1="197.345" y1="195.920" x2="197.345" y2="194.670"/>
+<line x1="239.325" y1="195.920" x2="239.325" y2="194.670"/>
+<text x="218.335" y="194.920" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">4198</text>
+<line x1="218.335" y1="218.630" x2="218.335" y2="173.200"/>
+<line x1="218.335" y1="218.630" x2="219.585" y2="218.630"/>
+<line x1="218.335" y1="173.200" x2="219.585" y2="173.200"/>
+<text x="219.335" y="195.920" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 219.335 195.920)">4543</text>
+<line x1="203.095" y1="233.290" x2="239.325" y2="233.290"/>
+<line x1="203.095" y1="233.290" x2="203.095" y2="232.040"/>
+<line x1="239.325" y1="233.290" x2="239.325" y2="232.040"/>
+<text x="221.205" y="232.290" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">3623</text>
+<line x1="221.205" y1="246.800" x2="221.205" y2="219.770"/>
+<line x1="221.205" y1="246.800" x2="222.455" y2="246.800"/>
+<line x1="221.205" y1="219.770" x2="222.455" y2="219.770"/>
+<text x="222.205" y="233.290" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 222.205 233.290)">2703</text>
+<line x1="182.395" y1="211.730" x2="196.205" y2="211.730"/>
+<line x1="182.395" y1="211.730" x2="182.395" y2="210.480"/>
+<line x1="196.205" y1="211.730" x2="196.205" y2="210.480"/>
+<text x="189.295" y="210.730" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">1381</text>
+<line x1="189.295" y1="218.630" x2="189.295" y2="204.820"/>
+<line x1="189.295" y1="218.630" x2="190.545" y2="218.630"/>
+<line x1="189.295" y1="204.820" x2="190.545" y2="204.820"/>
+<text x="190.295" y="211.730" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 190.295 211.730)">1381</text>
+<line x1="180.675" y1="233.290" x2="201.955" y2="233.290"/>
+<line x1="180.675" y1="233.290" x2="180.675" y2="232.040"/>
+<line x1="201.955" y1="233.290" x2="201.955" y2="232.040"/>
+<text x="191.315" y="232.290" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">2128</text>
+<line x1="191.315" y1="246.800" x2="191.315" y2="219.770"/>
+<line x1="191.315" y1="246.800" x2="192.565" y2="246.800"/>
+<line x1="191.315" y1="219.770" x2="192.565" y2="219.770"/>
+<text x="192.315" y="233.290" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 192.315 233.290)">2703</text>
+<line x1="180.675" y1="188.440" x2="196.205" y2="188.440"/>
+<line x1="180.675" y1="188.440" x2="180.675" y2="187.190"/>
+<line x1="196.205" y1="188.440" x2="196.205" y2="187.190"/>
+<text x="188.435" y="187.440" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">1553</text>
+<line x1="188.435" y1="203.680" x2="188.435" y2="173.200"/>
+<line x1="188.435" y1="203.680" x2="189.685" y2="203.680"/>
+<line x1="188.435" y1="173.200" x2="189.685" y2="173.200"/>
+<text x="189.435" y="188.440" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 189.435 188.440)">3048</text>
+</g>
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="256.625,173.900 254.375,185.150 256.625,187.400 258.875,185.150" fill="none"/>
+<line x1="185.175" y1="258.100" x2="185.175" y2="161.900" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<circle cx="185.175" cy="258.100" r="4.500" fill="none"/>
+<circle cx="185.175" cy="161.900" r="4.500" fill="none"/>
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="218.335" y="193.920" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">BEDROOM MASTER</text>
+<text x="218.335" y="198.920" font-size="2.000" text-anchor="middle" dominant-baseline="central">205.3 sq ft</text>
+<text x="221.205" y="231.290" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">BEDROOM</text>
+<text x="221.205" y="236.290" font-size="2.000" text-anchor="middle" dominant-baseline="central">105.4 sq ft</text>
+<text x="189.295" y="209.730" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">PASSAGE</text>
+<text x="189.295" y="214.730" font-size="2.000" text-anchor="middle" dominant-baseline="central">20.5 sq ft</text>
+<text x="191.315" y="231.290" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">STAIRCASE</text>
+<text x="191.315" y="236.290" font-size="2.000" text-anchor="middle" dominant-baseline="central">61.9 sq ft</text>
+<text x="188.435" y="186.440" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">BATH WC</text>
+<text x="188.435" y="191.440" font-size="2.000" text-anchor="middle" dominant-baseline="central">51.0 sq ft</text>
+<text x="256.625" y="193.900" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">FFL +3600</text>
+<text x="256.625" y="170.900" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">N</text>
+<text x="185.175" y="258.100" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
+<text x="185.175" y="161.900" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
+</g>
+</g>
+<g class="layer" data-layer="A-AREA" stroke="#3a3a3a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="197.345,218.630 239.325,218.630 239.325,173.200 197.345,173.200" fill="none" stroke-dasharray="3.000 1.500"/>
+<polygon points="203.095,246.800 239.325,246.800 239.325,219.770 203.095,219.770" fill="none" stroke-dasharray="3.000 1.500"/>
+<polygon points="182.395,218.630 196.205,218.630 196.205,204.820 182.395,204.820" fill="none" stroke-dasharray="3.000 1.500"/>
+<polygon points="180.675,246.800 201.955,246.800 201.955,219.770 180.675,219.770" fill="none" stroke-dasharray="3.000 1.500"/>
+<polygon points="180.675,203.680 196.205,203.680 196.205,173.200 180.675,173.200" fill="none" stroke-dasharray="3.000 1.500"/>
+</g>
+</g>
+<g id="g-plan-storey_01M1KFK7XYQYDAHNSX9BWGTTGA-label">
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="209.995" y="279.100" font-size="3.500" text-anchor="middle" dominant-baseline="hanging" font-weight="600">FIRST FLOOR PLAN - 1:100</text>
+</g>
+</g>
+</g>
+</svg>

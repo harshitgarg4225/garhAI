@@ -104,6 +104,14 @@ async function main() {
     await page.goto(`${APP}/projects/${projectId}/plan`);
     await page.locator('canvas').first().waitFor({ timeout: 30_000 });
     await page.waitForTimeout(2500);
+    // Frame the whole plot: the Views panel's built-in "Fit all" (a real button).
+    const fitAll = page.getByRole('button', { name: /^fit all$/i }).first();
+    if (await fitAll.count()) {
+      await fitAll.click();
+      await page.waitForTimeout(1500);
+    } else {
+      log('no Fit all button on the plan page');
+    }
     await page.screenshot({ path: `${OUT}/${String(n).padStart(2, '0')}-${id}-plan.png` });
     await page.goto(`${APP}/projects/${projectId}/3d`);
     await page.locator('canvas').first().waitFor({ timeout: 30_000 });

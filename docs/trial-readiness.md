@@ -265,6 +265,20 @@ Two smaller gaps found in passing:
   where an archway fits and a door cannot). CP-SAT under a wall-clock budget with
   eight workers is not deterministic, so the seed script tries three seeds per cell
   and records the one that produced the plan.
+- **The library, as shipped (2026-09-03).** Four plans, every one captured from a
+  real solver run under the final code and passing all five gates: Bengaluru 30 × 40
+  G+1 3BHK, Hyderabad 30 × 40 G+1 3BHK, Bengaluru 30 × 50 G+2 3BHK, Bengaluru 40 × 60
+  G+2 4BHK. The picker shows them with their thumbnails; the drawings pipeline renders
+  their 42 sheets as the golden corpus. Six cells produced no plan and are not in the
+  library: the 25 × 40 and 30 × 40 two-bedroom programs and the 40 × 60 G+1 four-bedroom
+  are CP-infeasible under the seeded packs ("no arrangement satisfied every constraint"),
+  and the three NCR cells lose every candidate to `BATH_VENTILATION` — a third bath
+  with no non-road external wall and no shaft, which is the shaft finding above. Those
+  are solver coverage work, not library work; a plan that is not here is one the
+  product could not generate today. Found while regenerating the goldens: the plan
+  sheets put the FFL marker 300 mm inside the building's top-left corner, on top of
+  whatever room lived there — two label collisions on the 40 × 60 plan's upper-floor
+  sheets. It now sits outside the footprint beside the north arrow, on every plan.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

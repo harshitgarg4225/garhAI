@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="594mm" height="420mm" viewBox="0 0 594 420" version="1.1">
+<!-- garh-sheet sheet-elev-e elevation 1:100 -->
+<title>A-03B East Elevation</title>
+<rect x="0" y="0" width="594" height="420" fill="#ffffff" stroke="none"/>
+<g id="g-frame">
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="407.000" y="359.000" font-size="5.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">East Elevation</text>
+<text x="564.000" y="356.000" font-size="5.000" text-anchor="middle" dominant-baseline="alphabetic" font-weight="600">A-03B</text>
+<text x="564.000" y="361.000" font-size="1.800" text-anchor="middle" dominant-baseline="alphabetic">SHEET</text>
+<text x="406.000" y="365.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">PROJECT</text>
+<text x="406.000" y="374.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Bengaluru 30 × 50, G+2 3BHK</text>
+<text x="406.000" y="376.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">CLIENT</text>
+<text x="406.000" y="385.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="406.000" y="387.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">ARCHITECT</text>
+<text x="406.000" y="396.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Studio Demo</text>
+<text x="406.000" y="398.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">SCALE</text>
+<text x="406.000" y="407.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">1:100</text>
+<text x="496.000" y="365.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">DATE</text>
+<text x="496.000" y="374.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">01-01-2026</text>
+<text x="496.000" y="376.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">DRAWN</text>
+<text x="496.000" y="385.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="496.000" y="387.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">CHECKED</text>
+<text x="496.000" y="396.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
+<text x="496.000" y="398.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">REV</text>
+<text x="496.000" y="407.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">A</text>
+</g>
+</g>
+<g class="layer" data-layer="A-TITL" stroke="#000000" stroke-width="0.350" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="2.000,2.000 592.000,2.000 592.000,418.000 2.000,418.000" fill="none"/>
+<polygon points="20.000,10.000 584.000,10.000 584.000,410.000 20.000,410.000" fill="none"/>
+<polygon points="404.000,350.000 584.000,350.000 584.000,410.000 404.000,410.000" fill="none"/>
+<line x1="404.000" y1="364.000" x2="584.000" y2="364.000"/>
+<line x1="544.000" y1="350.000" x2="544.000" y2="364.000"/>
+<line x1="494.000" y1="364.000" x2="494.000" y2="410.000"/>
+<line x1="404.000" y1="375.000" x2="494.000" y2="375.000"/>
+<line x1="404.000" y1="386.000" x2="494.000" y2="386.000"/>
+<line x1="404.000" y1="397.000" x2="494.000" y2="397.000"/>
+<line x1="494.000" y1="375.000" x2="584.000" y2="375.000"/>
+<line x1="494.000" y1="386.000" x2="584.000" y2="386.000"/>
+<line x1="494.000" y1="397.000" x2="584.000" y2="397.000"/>
+</g>
+</g>
+<g id="g-elev-E">
+<g class="layer" data-layer="A-WALL" stroke="#000000" stroke-width="0.500" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<line x1="165.800" y1="263.600" x2="265.200" y2="263.600"/>
+<polygon points="171.800,257.600 259.200,257.600 259.200,157.600 171.800,157.600" fill="none"/>
+</g>
+<g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="171.800,263.600 259.200,263.600 259.200,257.600 171.800,257.600" fill="none"/>
+<line x1="171.800" y1="257.600" x2="259.200" y2="257.600" stroke-dasharray="1.500 1.000"/>
+<line x1="171.800" y1="227.600" x2="259.200" y2="227.600" stroke-dasharray="1.500 1.000"/>
+<line x1="171.800" y1="197.600" x2="259.200" y2="197.600" stroke-dasharray="1.500 1.000"/>
+<line x1="171.800" y1="167.600" x2="259.200" y2="167.600"/>
+</g>
+<g class="layer" data-layer="A-WIND" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="185.600,248.600 209.040,248.600 209.040,236.600 185.600,236.600" fill="none"/>
+<line x1="185.600" y1="242.600" x2="209.040" y2="242.600"/>
+<polygon points="189.050,218.600 201.350,218.600 201.350,206.600 189.050,206.600" fill="none"/>
+<line x1="189.050" y1="212.600" x2="201.350" y2="212.600"/>
+<polygon points="175.250,179.600 181.910,179.600 181.910,175.100 175.250,175.100" fill="none"/>
+<line x1="175.250" y1="177.350" x2="181.910" y2="177.350"/>
+<polygon points="189.050,188.600 202.050,188.600 202.050,176.600 189.050,176.600" fill="none"/>
+<line x1="189.050" y1="182.600" x2="202.050" y2="182.600"/>
+</g>
+<g class="layer" data-layer="A-DIM" stroke="#1a1a1a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<line x1="259.200" y1="263.600" x2="272.200" y2="263.600" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<line x1="259.200" y1="257.600" x2="272.200" y2="257.600" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<line x1="259.200" y1="236.600" x2="272.200" y2="236.600" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<line x1="259.200" y1="227.600" x2="272.200" y2="227.600" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<line x1="259.200" y1="206.600" x2="272.200" y2="206.600" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<line x1="259.200" y1="197.600" x2="272.200" y2="197.600" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<line x1="259.200" y1="176.600" x2="272.200" y2="176.600" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<line x1="259.200" y1="167.600" x2="272.200" y2="167.600" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<line x1="259.200" y1="157.600" x2="272.200" y2="157.600" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<line x1="147.800" y1="263.600" x2="147.800" y2="157.600"/>
+<line x1="147.800" y1="263.600" x2="149.050" y2="263.600"/>
+<line x1="147.800" y1="257.600" x2="149.050" y2="257.600"/>
+<line x1="147.800" y1="227.600" x2="149.050" y2="227.600"/>
+<line x1="147.800" y1="197.600" x2="149.050" y2="197.600"/>
+<line x1="147.800" y1="167.600" x2="149.050" y2="167.600"/>
+<line x1="147.800" y1="157.600" x2="149.050" y2="157.600"/>
+<text x="148.800" y="260.600" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 148.800 260.600)">600</text>
+<text x="148.800" y="242.600" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 148.800 242.600)">3000</text>
+<text x="148.800" y="212.600" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 148.800 212.600)">3000</text>
+<text x="148.800" y="182.600" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 148.800 182.600)">3000</text>
+<text x="148.800" y="162.600" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic" transform="rotate(-90 148.800 162.600)">1000</text>
+</g>
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="265.200" y="262.400" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">GL +0</text>
+<text x="265.200" y="256.400" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">PLINTH +600</text>
+<text x="265.200" y="235.400" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">LINTEL 0 +2700</text>
+<text x="265.200" y="226.400" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">FFL 1 +3600</text>
+<text x="265.200" y="205.400" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">LINTEL 1 +5700</text>
+<text x="265.200" y="196.400" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">FFL 2 +6600</text>
+<text x="265.200" y="175.400" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">LINTEL 2 +8700</text>
+<text x="265.200" y="166.400" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">ROOF +9600</text>
+<text x="265.200" y="156.400" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">PARAPET +10600</text>
+</g>
+</g>
+</g>
+<g id="g-elev-E-label">
+<g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
+<text x="210.000" y="274.600" font-size="3.500" text-anchor="middle" dominant-baseline="hanging" font-weight="600">EAST ELEVATION - 1:100</text>
+</g>
+</g>
+</g>
+</svg>
