@@ -251,6 +251,10 @@ def best_option(options: list[dict[str, Any]]) -> int:
 
 def seed(cell: dict[str, Any]) -> dict[str, Any] | None:
     label = cell["id"]
+    # A fresh practice per cell: /solve is rate-limited PER FIRM (playbook §11), and
+    # three seeds across ten cells tripped it mid-run — six cells were refused with
+    # 429 before they ever reached the solver.
+    sign_in()
     w, d = int(cell["plot"][0] * FT), int(cell["plot"][1] * FT)
     status, project = call(
         "POST",
@@ -431,7 +435,6 @@ def seed(cell: dict[str, Any]) -> dict[str, Any] | None:
 def main(argv: list[str]) -> int:
     wanted = set(argv) or {c["id"] for c in CELLS}
     print("Seeding the plan library against %s\n" % API)
-    sign_in()
     failures = 0
     for cell in CELLS:
         if cell["id"] not in wanted:
