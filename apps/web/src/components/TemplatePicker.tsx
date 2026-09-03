@@ -20,7 +20,17 @@ export interface TemplateOption {
   /** "30 × 40 ft"; empty for the blank template (no chip rendered). */
   plotSizeLabel: string;
   tags: string[];
+  /** 'plan' = a solved, compliant plan you can move around; 'starter' = plot + brief only. */
+  kind?: 'blank' | 'starter' | 'plan' | undefined;
+  /** The plan drawn through the sheet renderer, as a data: URL for an <img>. */
+  previewUrl?: string | null | undefined;
 }
+
+const KIND_LABEL: Record<NonNullable<TemplateOption['kind']>, string> = {
+  blank: '',
+  starter: 'Plot + brief',
+  plan: 'Ready-made plan',
+};
 
 export interface TemplatePickerProps {
   templates: readonly TemplateOption[];
@@ -79,6 +89,26 @@ export function TemplatePicker({
                 </span>
               )}
             </span>
+            {template.previewUrl ? (
+              <img
+                src={template.previewUrl}
+                alt=""
+                aria-hidden="true"
+                className="mt-2 h-28 w-full rounded border border-line bg-white object-contain"
+              />
+            ) : null}
+            {template.kind !== undefined && KIND_LABEL[template.kind] !== '' ? (
+              <span
+                className={cn(
+                  'mt-2 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide',
+                  template.kind === 'plan'
+                    ? 'bg-brand-soft text-brand-ink'
+                    : 'bg-surface-muted text-ink-muted',
+                )}
+              >
+                {KIND_LABEL[template.kind]}
+              </span>
+            ) : null}
             <span className="mt-1 block text-xs leading-snug text-ink-muted">
               {template.description}
             </span>

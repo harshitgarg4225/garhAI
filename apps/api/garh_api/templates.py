@@ -37,6 +37,8 @@ Design decisions, so they are not re-litigated:
 
 from __future__ import annotations
 
+import json
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -370,9 +372,111 @@ class ProjectTemplate:
     tags: tuple[str, ...]
     #: Returns a FRESH list of wire ops on every call — callers may mutate.
     build: Callable[[], list[WireOp]]
+    #: ``blank`` (nothing), ``starter`` (plot + brief, the architect generates) or
+    #: ``plan`` (a solved, compliant plan captured from a real solver run).
+    kind: str = "starter"
+    #: For ``plan`` templates: the picker thumbnail, rendered through the sheets'
+    #: own primitives at seed time (``scripts/render_plan_previews.py``).
+    preview: Callable[[], str | None] = lambda: None
 
 
 BLANK_TEMPLATE_ID = "blank"
+
+
+# ---------------------------------------------------------------------------
+# Ready-made plans — captured from real solver runs, never typed by hand
+# ---------------------------------------------------------------------------
+#: Each ``fixtures/plans/<id>.json`` is the WHOLE op log of a project after the
+#: Options screen applied the solver's best option: plot, brief, storeys, and the
+#: server-built wall/opening/stair/room expansion, flattened (see
+#: ``scripts/seed_plan_library.py`` and ``scripts/flatten_plan_recipes.py``). The
+#: sibling ``.svg`` is the picker thumbnail drawn by the sheet renderer. Registering
+#: is data-driven: drop a recipe in, and it is a template.
+
+PLAN_KIND = "plan"
+STARTER_KIND = "starter"
+BLANK_KIND = "blank"
+
+
+def plans_dir() -> str:
+    from garh_api.seed.catalog import repo_root
+
+    return os.path.join(repo_root(), "fixtures", "plans")
+
+
+def _read_plan(path: str) -> dict[str, Any]:
+    with open(path, encoding="utf-8") as handle:
+        record = json.load(handle)
+    if not isinstance(record, dict) or not isinstance(record.get("ops"), list):
+        raise ValueError("%s is not a plan recipe (no ops list)" % path)
+    for op in record["ops"]:
+        if op.get("type") == "solver.apply_option":
+            raise ValueError(
+                "%s still wraps its plan in solver.apply_option; run "
+                "scripts/flatten_plan_recipes.py" % path
+            )
+    return record
+
+
+def _plan_template(record: dict[str, Any], svg_path: str) -> ProjectTemplate:
+    plot_ft = record.get("plotFt") or []
+    label = "%s × %s ft" % (plot_ft[0], plot_ft[1]) if len(plot_ft) == 2 else ""
+    storeys = int(record.get("storeys") or 0)
+    brief = record.get("brief") or {}
+    tags = tuple(
+        t
+        for t in (
+            str(record.get("cityPack") or ""),
+            "g+%d" % (storeys - 1) if storeys else "",
+            "%dbhk" % int(brief.get("beds") or 0) if brief.get("beds") else "",
+        )
+        if t
+    )
+    ops: list[WireOp] = [
+        {"type": str(op["type"]), "payload": dict(op.get("payload") or {})} for op in record["ops"]
+    ]
+
+    def build() -> list[WireOp]:
+        return [dict(op) for op in ops]
+
+    def preview() -> str | None:
+        if not os.path.isfile(svg_path):
+            return None
+        with open(svg_path, encoding="utf-8") as handle:
+            return handle.read()
+
+    return ProjectTemplate(
+        id=str(record["id"]),
+        name=str(record.get("name") or record["id"]),
+        description=str(record.get("description") or ""),
+        plot_size_label=label,
+        tags=tags,
+        build=build,
+        kind=PLAN_KIND,
+        preview=preview,
+    )
+
+
+def load_plan_templates() -> tuple[ProjectTemplate, ...]:
+    """Every recipe in ``fixtures/plans``, smallest plot first. Empty if the directory
+    is absent — an image without fixtures still serves the blank and starter cards."""
+    directory = plans_dir()
+    if not os.path.isdir(directory):
+        return ()
+    found: list[tuple[int, ProjectTemplate]] = []
+    for name in sorted(os.listdir(directory)):
+        if not name.endswith(".json"):
+            continue
+        path = os.path.join(directory, name)
+        record = _read_plan(path)
+        plot_ft = record.get("plotFt") or [0, 0]
+        area = int(plot_ft[0]) * int(plot_ft[1]) if len(plot_ft) == 2 else 0
+        found.append((area, _plan_template(record, path[: -len(".json")] + ".svg")))
+    found.sort(key=lambda pair: (pair[0], pair[1].id))
+    return tuple(template for _area, template in found)
+
+
+PLAN_TEMPLATES: tuple[ProjectTemplate, ...] = load_plan_templates()
 
 #: Ordered as the picker shows them: Blank first (and the default).
 TEMPLATES: tuple[ProjectTemplate, ...] = (
@@ -383,15 +487,22 @@ TEMPLATES: tuple[ProjectTemplate, ...] = (
         plot_size_label="",
         tags=(),
         build=_blank_ops,
+        kind=BLANK_KIND,
     ),
-    ProjectTemplate(
-        id="blr-30x40-g1-3bhk",
-        name="30 × 40 Bengaluru 3BHK",
-        description="The proven demo house: a 30 × 40 ft BBMP plot, 9 m south road, "
-        "and a G+1 3BHK brief that generates plan options first try.",
-        plot_size_label="30 × 40 ft",
-        tags=("blr", "g+1", "3bhk"),
-        build=_blr_30x40_g1_3bhk_ops,
+    *PLAN_TEMPLATES,
+    *(
+        ProjectTemplate(
+            id="blr-30x40-g1-3bhk",
+            name="30 × 40 Bengaluru 3BHK",
+            description="The proven demo house: a 30 × 40 ft BBMP plot, 9 m south road, "
+            "and a G+1 3BHK brief that generates plan options first try.",
+            plot_size_label="30 × 40 ft",
+            tags=("blr", "g+1", "3bhk"),
+            build=_blr_30x40_g1_3bhk_ops,
+        )
+        # Superseded by the ready-made plan of the same id once it is seeded; kept as
+        # the starter for an image that ships no recipes.
+        for _ in ([None] if not any(t.id == "blr-30x40-g1-3bhk" for t in PLAN_TEMPLATES) else [])
     ),
     ProjectTemplate(
         id="plot-40x60-empty-brief",
@@ -438,15 +549,28 @@ class TemplateOut(ResponseModel):
     description: StrictStr
     plot_size_label: StrictStr = ""
     tags: list[StrictStr] = Field(default_factory=list)
+    #: ``blank`` | ``starter`` | ``plan`` — a plan carries solved geometry.
+    kind: StrictStr = STARTER_KIND
+    #: ``data:image/svg+xml`` URL of the plan thumbnail; ``None`` for non-plans. Served
+    #: as an image (``<img src>``), never as an SVG document — §13.
+    preview_url: StrictStr | None = None
 
     @classmethod
     def of(cls, template: ProjectTemplate) -> TemplateOut:
+        svg = template.preview() if template.kind == PLAN_KIND else None
+        preview_url = None
+        if svg:
+            from garh_api.template_preview import preview_data_url
+
+            preview_url = preview_data_url(svg)
         return cls(
             id=template.id,
             name=template.name,
             description=template.description,
             plot_size_label=template.plot_size_label,
             tags=list(template.tags),
+            kind=template.kind,
+            preview_url=preview_url,
         )
 
 

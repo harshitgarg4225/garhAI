@@ -172,6 +172,26 @@ Two smaller gaps found in passing:
      the Plan options header, read from the same rows the gate enforces — and the
      lifecycle consumer waits for the enqueue transaction to commit instead of dropping
      the first `started` event.
+- **A ready-made plan library exists (2026-09-03), and every plan in it is the
+  solver's own work.** No commercially usable, plug-and-play dataset of Indian
+  two-storey house plans exists (research sets are single-storey apartments under
+  non-commercial licences), so the library is seeded from real solver runs:
+  `scripts/seed_plan_library.py` draws a plot, writes a brief, Generates, applies the
+  best option exactly as the Options screen does, and captures the project's whole op
+  log as `fixtures/plans/<id>.json` (flattened past the `solver.apply_option` wrapper,
+  which would otherwise look up a job in another firm). `scripts/render_plan_previews.py`
+  draws each plan through the sheet renderer's own primitives into `<id>.svg`, and the
+  picker shows that as an `<img>`. Registration is data-driven: a recipe on disk is a
+  template. Four plans ship: Bengaluru 30 × 40 G+1 3BHK, Hyderabad 30 × 40 G+1 3BHK,
+  Bengaluru 30 × 50 G+2 3BHK, Bengaluru 40 × 60 G+2 4BHK. `test_plan_library.py` pins
+  that each is flat, folds to the captured counts, renders to the stored thumbnail, and
+  creates a project whose compliance report has no `fail`. That last gate dropped a
+  30 × 40 2BHK that passed the solver's hard-rule gate but fails
+  `nbc.ventilation.habitable.min` on the tab (the gate blocks only on `hard: true`; the
+  tab shows every `fail`), and no NCR-pack brief cleared `ncr.parking.ecs`. Both are
+  open items. Seeding lesson: a brief that declares no `carParking` fails every city
+  pack's parking rule, so the seeder declares it — the same trap `solver_enqueue.py`
+  documents for the web app's `parkingCount`.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

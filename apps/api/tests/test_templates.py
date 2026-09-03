@@ -22,6 +22,8 @@ from typing import Any
 import pytest
 from garh_api.templates import (
     BLANK_TEMPLATE_ID,
+    PLAN_KIND,
+    PLAN_TEMPLATES,
     PLOT_20X30_DEPTH_MM,
     PLOT_20X30_WIDTH_MM,
     PLOT_40X60_DEPTH_MM,
@@ -30,7 +32,7 @@ from garh_api.templates import (
     get_template,
     template_ids,
 )
-from garh_model import ROOM_TYPES, OpRejectedError
+from garh_model import ROOM_TYPES, OpRejectedError, ProjectDoc
 from garh_model.fold import replay
 
 from tests.helpers import problem
@@ -39,7 +41,9 @@ from tests.helpers import problem
 # Registry + fold proofs (no datastore — these always run)
 # ---------------------------------------------------------------------------
 
-EXPECTED_IDS = ("blank", "blr-30x40-g1-3bhk", "plot-40x60-empty-brief", "plot-20x30-compact")
+STARTER_IDS = ("plot-40x60-empty-brief", "plot-20x30-compact")
+#: Blank first, then every ready-made plan (smallest plot first), then the starters.
+EXPECTED_IDS = ("blank", *(t.id for t in PLAN_TEMPLATES), *STARTER_IDS)
 
 
 def _fold(ops: list[dict[str, Any]]) -> dict[str, Any]:
@@ -47,8 +51,12 @@ def _fold(ops: list[dict[str, Any]]) -> dict[str, Any]:
     return replay([{"type": op["type"], "payload": op["payload"]} for op in ops]).to_json()
 
 
-def test_registry_lists_four_templates_blank_first() -> None:
+def test_registry_is_blank_first_then_plans_then_starters() -> None:
     assert template_ids() == EXPECTED_IDS
+    kinds = [t.kind for t in TEMPLATES]
+    assert kinds[0] == "blank"
+    order = {PLAN_KIND: 0, "starter": 1}
+    assert kinds[1:] == sorted(kinds[1:], key=lambda k: order[k]), "plans before starters"
     assert TEMPLATES[0].id == BLANK_TEMPLATE_ID, "Blank is first and the picker default"
     assert len({t.id for t in TEMPLATES}) == len(TEMPLATES)
     for template in TEMPLATES:
@@ -59,18 +67,29 @@ def test_registry_lists_four_templates_blank_first() -> None:
     assert get_template("no-such-template") is None
 
 
-def test_the_demo_template_reuses_the_seeds_own_builders() -> None:
-    """The 30×40 template must BE the seed's op log, not a copy that can drift."""
-    from garh_api.seed import demo as demo_data
+def test_the_30x40_plan_sits_on_the_demo_plot_and_carries_walls() -> None:
+    """The ready-made 30 × 40 plan supersedes the plot-only starter of the same id.
 
+    Continuity with §17: the same plot polygon as the seed's demo project — but now
+    with the solver's own walls, captured from a real run (never typed by hand, per
+    ``solved_plan_ops``' docstring). The fallback starter builder is still the seed's
+    op log, so an image that ships no recipes degrades to exactly the demo project.
+    """
+    from garh_api.seed import demo as demo_data
+    from garh_api.templates import _blr_30x40_g1_3bhk_ops
+
+    template = get_template("blr-30x40-g1-3bhk")
+    assert template is not None
+    assert template.kind == PLAN_KIND, "the 30×40 template must be the solved plan"
+    document = _fold(template.build())
+    boundary = (document.get("plot") or {}).get("boundary") or []
+    assert boundary == demo_data.demo_plot_polygon()
+    assert (document.get("house") or {}).get("walls"), "a plan without walls is a starter"
     authored = demo_data.demo_op_log(demo_data.load_demo_brief())
     storey_ids = list(demo_data.demo_storey_ids())
     authored.extend(demo_data.solved_plan_ops(storey_ids=storey_ids))
     authored.extend(demo_data.facade_ops(storey_ids=storey_ids))
-
-    template = get_template("blr-30x40-g1-3bhk")
-    assert template is not None
-    assert template.build() == authored
+    assert _blr_30x40_g1_3bhk_ops() == authored
 
 
 @pytest.mark.parametrize("template", TEMPLATES, ids=lambda t: t.id)
@@ -96,11 +115,16 @@ def test_every_template_folds(template: Any) -> None:
         assert room["type"] in ROOM_TYPES, (template.id, room["type"])
 
     storeys = (document.get("house") or {}).get("storeys") or []
-    assert len(storeys) == 2, "%s must fold to G+1 (two storeys)" % template.id
-
-    # The starter-plot templates ship NO solved plan — the user Generates.
     walls = (document.get("house") or {}).get("walls") or []
-    assert walls == [], "%s must not invent walls (that is the solver's output)" % template.id
+    if template.kind == PLAN_KIND:
+        # A ready-made plan carries the solver's geometry: G+1 or more, walls, rooms.
+        assert len(storeys) >= 2, "%s must fold to at least G+1" % template.id
+        assert walls, "%s is a plan with no walls" % template.id
+        assert (document.get("house") or {}).get("rooms"), "%s detected no rooms" % template.id
+    else:
+        assert len(storeys) == 2, "%s must fold to G+1 (two storeys)" % template.id
+        # The starter-plot templates ship NO solved plan — the user Generates.
+        assert walls == [], "%s must not invent walls (that is the solver's output)" % template.id
 
 
 def test_starter_plots_fold_the_advertised_geometry_and_programs() -> None:
@@ -185,6 +209,15 @@ async def test_get_templates_lists_the_registry_in_picker_order(
     by_id = {card["id"]: card for card in cards}
     assert by_id["blr-30x40-g1-3bhk"]["plotSizeLabel"] == "30 × 40 ft"
     assert by_id["blank"]["plotSizeLabel"] == ""
+    assert by_id["blank"]["kind"] == "blank" and by_id["blank"]["previewUrl"] is None
+    for template in PLAN_TEMPLATES:
+        card = by_id[template.id]
+        assert card["kind"] == "plan"
+        assert (card["previewUrl"] or "").startswith("data:image/svg+xml;charset=utf-8,%3Csvg"), (
+            "%s has no thumbnail — run scripts/render_plan_previews.py" % template.id
+        )
+    for starter in STARTER_IDS:
+        assert by_id[starter]["kind"] == "starter" and by_id[starter]["previewUrl"] is None
 
 
 @pytest.mark.integration
@@ -227,8 +260,26 @@ async def test_create_from_template_reflects_it_in_the_model(
     assert detail["plot"] is not None, "the plot projection must be mirrored"
     assert detail["plot"]["boundary"] == plot_doc["boundary"]
     assert detail["brief"] is not None, "the brief projection must be mirrored"
-    assert detail["brief"]["data"]["bedrooms"] == brief_data["bedrooms"]
+    assert detail["brief"]["data"].get("bedrooms") == brief_data.get("bedrooms")
     assert len(detail["brief"]["data"]["rooms"]) == len(brief_data["rooms"])
+    if template.kind == PLAN_KIND:
+        # `/model` is a snapshot plus tail ops; the web folds the tail on top of the
+        # snapshot (stores/model.ts). Do the same here, with the same model core.
+        model = await client.get(
+            "%s/projects/%s/model" % (api, project["id"]), headers=firm_a.headers
+        )
+        assert model.status_code == 200, model.text
+        state = model.json()
+        initial = (
+            ProjectDoc.from_json(state["snapshot"]) if state.get("snapshot") is not None else None
+        )
+        tail = state.get("ops") or []  # the ops after the snapshot, folded client-side
+        folded = replay(
+            [{"type": op["type"], "payload": op["payload"]} for op in tail], initial=initial
+        ).to_json()
+        house = folded.get("house") or {}
+        assert house.get("walls"), "%s created a project with no walls" % template.id
+        assert house.get("rooms"), "%s created a project with no rooms" % template.id
 
 
 @pytest.mark.integration

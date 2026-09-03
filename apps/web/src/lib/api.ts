@@ -398,6 +398,10 @@ const projectTemplateSchema = z.object({
   /** Human chip for the picker card ("30 × 40 ft"); empty for the blank template. */
   plotSizeLabel: z.string().default(''),
   tags: z.array(z.string()).default([]),
+  /** 'plan' carries a solved, compliant two-floor plan; 'starter' only a plot + brief. */
+  kind: z.enum(['blank', 'starter', 'plan']).default('starter'),
+  /** A data: URL of the plan drawn through the sheet renderer — an <img>, never a document. */
+  previewUrl: z.string().nullable().default(null),
 });
 const projectTemplatesSchema = z.object({
   templates: z.array(projectTemplateSchema).default([]),

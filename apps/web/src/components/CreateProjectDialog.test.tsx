@@ -21,14 +21,25 @@ import { CreateProjectDialog } from './CreateProjectDialog';
 
 const noop = (): void => undefined;
 
+const PREVIEW =
+  'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E';
 const TEMPLATES = [
-  { id: 'blank', name: 'Blank', description: '', plotSizeLabel: '', tags: [] },
+  {
+    id: 'blank',
+    name: 'Blank',
+    description: '',
+    plotSizeLabel: '',
+    tags: [],
+    kind: 'blank' as const,
+  },
   {
     id: 'blr-30x40-g1-3bhk',
     name: 'Bengaluru 30 × 40, G+1 3BHK',
     description: 'A solved plan.',
     plotSizeLabel: '30 × 40 ft',
     tags: ['plan'],
+    kind: 'plan' as const,
+    previewUrl: PREVIEW,
   },
 ];
 
@@ -62,6 +73,20 @@ describe('CreateProjectDialog templates', () => {
     );
     expect(group).not.toBeNull();
     expect(radios()).toHaveLength(2);
+  });
+
+  it('draws the ready-made plan as an image and labels it as one', () => {
+    act(() =>
+      root.render(
+        <CreateProjectDialog open onOpenChange={noop} onCreate={noop} templates={TEMPLATES} />,
+      ),
+    );
+    const images = Array.from(
+      document.body.querySelectorAll<HTMLImageElement>('[role="radio"] img'),
+    );
+    expect(images).toHaveLength(1);
+    expect(images[0]?.getAttribute('src')).toBe(PREVIEW);
+    expect(document.body.textContent).toContain('Ready-made plan');
   });
 
   it('shows no picker without a registry — the honest degraded state', () => {

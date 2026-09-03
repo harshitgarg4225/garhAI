@@ -157,6 +157,27 @@ asset-audit` runs clean with zero known gaps for the first time. Canvas and
 4. **Phases 8–9 may be incomplete.** Check `docs/phases.md` and the newest
    `docs/phase-*-verification.md` for the true edge.
 
+## The ready-made plan library, and how a plan gets in
+
+`fixtures/plans/<id>.json` is a template the New-project dialog offers as a
+**ready-made plan**: a solved, compliant house captured from a REAL solver run, never
+typed by hand (the demo seed's `solved_plan_ops` docstring is the rule). To add one:
+
+```bash
+# local stack up (api + solver worker), then:
+GARH_API=http://127.0.0.1:8000/api/v1 python scripts/seed_plan_library.py <cell-id>
+python scripts/flatten_plan_recipes.py          # idempotent: unwraps solver.apply_option, adds the reg profile
+PYTHONPATH=.:apps/api python scripts/render_plan_previews.py   # <id>.svg through the sheet renderer
+```
+
+Add the cell (plot, city pack, storeys, rooms, **carParking**) to `CELLS` in the seed
+script first. `test_plan_library.py` then requires: no `solver.apply_option` wrapper,
+fold counts equal to what was captured, the stored SVG byte-equal to a fresh render,
+and a project created from it with no `fail` on the compliance tab. That last gate is
+stricter than the solver's own (which blocks only on `hard: true` rules) — a plan can
+pass Generate and still fail here, and that is the point: nobody should pick a
+"ready-made" plan and see red.
+
 ## The inspiration board, and what it does not claim
 
 A client sends pictures. Each one on the board carries four answers the **architect**
