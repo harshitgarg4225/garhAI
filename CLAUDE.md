@@ -94,6 +94,14 @@ execution caught, and each will recur if you build fast without running things.
    error card blaming the brief. A test that exercises a substitute for the real
    artifact proves the substitute. `test_catalog_in_image.py` now reads the
    Dockerfile itself.
+7. **A green report over an unlivable plan.** The first library plan's front door
+   opened into a dead-end vestibule and its kitchen was entered through the bath;
+   the compliance report was 0 fail because no loaded rule looks at doors. The solver
+   had marked circulation rooms "reached" across a solid wall without emitting an
+   opening, for every plan it had ever produced. The gate had to be written
+   (`garh_model.circulation`, wired into the solver's own gates), and it was found
+   only by an adversarial reader folding the recipe and walking it. When a check
+   passes, ask what it does not look at.
 
 The through-line: **a green check that cannot go red is worse than no check.**
 When you add a gate, negative-test it — break the thing deliberately and confirm

@@ -220,7 +220,9 @@ def sign_in() -> None:
         raise SystemExit("signup failed: %s %s" % (status, body))
     code = body.get("devCode")
     if not code:
-        raise SystemExit("no devCode — the API must run with DEV_ECHO_OTP=1 and no mailer")
+        raise SystemExit(
+            "no devCode — the API must run with DEV_ECHO_OTP=1 and no mailer"
+        )
     status, body = call("POST", "/auth/verify", {"email": email, "code": code})
     _token = body.get("accessToken", "")
     if not _token:
@@ -232,7 +234,9 @@ def fetch_all_ops(pid: str) -> list[dict[str, Any]]:
     ops: list[dict[str, Any]] = []
     cursor: str | None = None
     for _ in range(50):
-        path = "/projects/%s/ops?limit=500" % pid + ("&cursor=%s" % cursor if cursor else "")
+        path = "/projects/%s/ops?limit=500" % pid + (
+            "&cursor=%s" % cursor if cursor else ""
+        )
         status, page = call("GET", path)
         if status != 200:
             raise RuntimeError("ops page %s: %s" % (status, str(page)[:200]))
@@ -266,7 +270,9 @@ def seed(cell: dict[str, Any]) -> dict[str, Any] | None:
         {"name": cell["name"], "units": "ft-in", "cityPack": cell["city"]},
     )
     if status not in (200, 201):
-        print("  %-22s project create failed %s %s" % (label, status, str(project)[:120]))
+        print(
+            "  %-22s project create failed %s %s" % (label, status, str(project)[:120])
+        )
         return None
     pid = project["id"]
     status, _ = call(
@@ -291,16 +297,18 @@ def seed(cell: dict[str, Any]) -> dict[str, Any] | None:
         "PUT",
         "/projects/%s/brief" % pid,
         {
+            # The mode is the op's own field (the fold and the pack set read it there),
+            # not a key in data — see put_brief.
+            "vastuMode": "advisory",
             "data": {
                 "storeys": cell["storeys"],
                 "rooms": rooms_for(cell["beds"], cell["baths"], cell["extras"]),
                 "cityPack": cell["city"],
-                "vastuMode": "advisory",
                 # Every city pack makes car parking a HARD rule (blr.parking.plot.le240,
                 # hyd.parking.plot.le200, ncr.parking.ecs). A brief that declares none is a
                 # brief every candidate fails — the first seeding pass lost all six cells to it.
                 "carParking": cell.get("parking", 1),
-            }
+            },
         },
     )
     if status not in (200, 201):

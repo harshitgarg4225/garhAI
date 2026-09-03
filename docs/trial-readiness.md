@@ -192,6 +192,48 @@ Two smaller gaps found in passing:
   open items. Seeding lesson: a brief that declares no `carParking` fails every city
   pack's parking rule, so the seeder declares it — the same trap `solver_enqueue.py`
   documents for the web app's `parkingCount`.
+- **The first library plans could not be walked through, and neither could any
+  generated plan (found 2026-09-03, fixed the same day).** An adversarial review of
+  the seeded plans found the flagship 30 × 40's front door opening into a 0.89 m²
+  dead-end vestibule, seven of eight ground-floor rooms unreachable from the entrance,
+  the kitchen entered only through the bath, and the first-floor bedroom an island.
+  No loaded rule looks at doors, so the compliance report was green. Root cause in
+  `services/solver/openings.py`: `place_doors` marked circulation rooms as reached
+  across a shared wall without emitting an opening, and en-suite chaining let any
+  reached room serve any other. Every plan the solver had ever produced carried this.
+  Fixes: an archway is now placed on every circulation↔circulation span that carries
+  reachability; a serving table says who may be walked through to reach whom (a bath
+  never, a bedroom only to its own bath/dress/balcony, a kitchen only to its
+  utility/store); door edges keep a 230 mm pier off a return wall (was 115, which put
+  the frame flush with the corner). And the gate the rules engine never had:
+  `garh_model.circulation` walks the door graph of a folded house (BFS from the
+  entrance on the ground floor, from the stair above, doors only, baths never as
+  corridors), `services/solver/gates.circulation_problems` folds every candidate's
+  own ops through it before scoring, and `test_plan_library.py` requires every
+  library plan to pass it. Negative controls: the two-room fixture with its solid
+  partition is named unreachable until one door is added; the pipeline test stubs
+  fold cleanly. The library was re-seeded under the fixed solver.
+- **`PUT /brief` wrote the Vastu mode into the data patch (fixed 2026-09-03).** The fold
+  reads `vastuMode` off the op's own field and the compliance pack set reads
+  `brief.vastuMode`, so every brief saved from the form or a template kept the mode
+  at "off" and never loaded the vastu pack — while the solver read the stray data key
+  and optimised for advisory. One writer now, `test_brief_vastu_mode.py` pins both
+  readers. Fixing that exposed the next one: the compliance projection sent every
+  stair with `centroidMm: None`, and the engine refuses to classify a stair's Vastu
+  zone without a centroid, so the first Generate with the mode actually on died in the
+  solver's rules pass with `ComplianceUnavailable` (four retries, no options). Stair
+  rows now carry the centroid of their footprint; `test_compliance_vastu_stair.py`
+  evaluates a stair under the vastu pack end to end. Same review, also fixed: picker thumbnails drew a 300 mm paper margin
+  around an 80 mm plan (unrecognisable at 112 px), carried hatch clip-paths the
+  standalone fragment never defined (partitions as grey bands), and 2 px text —
+  thumbnails are now the fabric only, walls, openings and stairs; and
+  `dispatch_ops` refuses a `solver.apply_option` wrapper outright, so no template or
+  form path can fold client-supplied geometry under a solver's name (the loader
+  already refused it; the create-time claim in the test was untested and is now a
+  control). Still open from the same review, as tasks: shafts sized under the
+  room-detection threshold with ventilators credited into sealed cavities; the
+  parking rule passing on a brief declaration while its message says spaces are
+  shown; the solver gate blocking only `hard` rules while the tab shows every fail.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

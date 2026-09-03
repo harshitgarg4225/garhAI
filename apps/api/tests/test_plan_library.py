@@ -6,8 +6,10 @@ original solver job (``scripts/seed_plan_library.py``, ``scripts/flatten_plan_re
 ``<id>.svg`` beside it is the picker thumbnail, drawn through the sheet renderer's own
 primitives. This file pins that every one of them:
 
-* carries no ``solver.apply_option`` wrapper (a wrapper looks up a job in another
-  firm and fails at create time — the negative control below shows what that looks like);
+* carries no ``solver.apply_option`` wrapper — the loader refuses one at import, and
+  ``dispatch_ops`` (the template/form append path) refuses one at create time, so a
+  wrapper can neither reach the registry nor be folded from client-supplied ops
+  (both negative controls below);
 * folds through the real model core to the counts recorded at capture;
 * creates a project whose live rules report has no hard failure (it is the solver's
   own gated output, so a failure here means the packs or the fold drifted);
@@ -24,6 +26,7 @@ from typing import Any
 import pytest
 from garh_api.templates import PLAN_KIND, PLAN_TEMPLATES, _read_plan, plans_dir
 from garh_model import replay
+from garh_model.circulation import reachability_problems
 
 pytestmark = pytest.mark.skipif(not PLAN_TEMPLATES, reason="no recipes in fixtures/plans")
 
@@ -62,6 +65,16 @@ def test_the_recipe_folds_to_what_was_captured(template: Any) -> None:
     assert (
         len(named) >= record["brief"]["beds"] + 2
     ), "bedrooms, living and kitchen must carry names"
+
+
+@pytest.mark.parametrize("template", PLAN_TEMPLATES, ids=lambda t: t.id)
+def test_every_room_can_be_walked_to(template: Any) -> None:
+    """The first library plan had a front door into a dead-end vestibule and a kitchen
+    entered through the bath; no rule caught it, so this gate exists (garh_model.circulation)."""
+    house = replay(
+        [{"type": op["type"], "payload": op["payload"]} for op in template.build()]
+    ).house
+    assert reachability_problems(house) == []
 
 
 @pytest.mark.parametrize("template", PLAN_TEMPLATES, ids=lambda t: t.id)
@@ -117,3 +130,23 @@ def test_a_wrapped_recipe_is_refused_at_load_time(tmp_path: Path) -> None:
 def test_every_recipe_on_disk_is_registered() -> None:
     on_disk = sorted(p[: -len(".json")] for p in os.listdir(plans_dir()) if p.endswith(".json"))
     assert sorted(t.id for t in PLAN_TEMPLATES) == on_disk
+
+
+@pytest.mark.integration
+async def test_the_form_append_path_refuses_a_wrapper_too(session: Any, firm_a: Any) -> None:
+    """NEGATIVE CONTROL at create time: no side door for op 31 through dispatch_ops."""
+    from garh_api.errors import ApiError
+    from garh_api.routers.ops import dispatch_ops
+    from garh_api.schemas.ops import OpIn
+
+    from tests.factories import create_project
+
+    project = await create_project(session, firm_a)
+    wrapper = OpIn(
+        type="solver.apply_option",
+        payload={"solverJobId": str(project.id), "optionIndex": 0, "ops": []},
+    )
+    with pytest.raises(ApiError) as excinfo:
+        await dispatch_ops(session, firm_a.ctx(), project.id, [wrapper], source="system")
+    assert excinfo.value.http_status == 422
+    assert excinfo.value.code == "solver_apply_not_here"
