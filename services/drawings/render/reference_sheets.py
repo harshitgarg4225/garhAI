@@ -950,10 +950,12 @@ def plan_primitives(
     extent = building_extent(house, storey_id)
     if extent is not None:
         min_x, min_y, max_x, max_y = extent
-        # FFL marker (§7 "FFL markers").
+        # FFL marker (§7 "FFL markers"), OUTSIDE the building beside the north
+        # arrow. Inside the top-left corner it sat on whatever room lived there —
+        # the 40 x 60 library plan's first-floor bedroom label, on two sheets.
         out.append(
             Text(
-                at=(min_x + 300, max_y - 400),
+                at=(max_x + 1500, max_y - 2300),
                 text="FFL +%d" % _storey_ffl_mm(house, storey_index),
                 layer=A_TEXT,
                 height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM,
