@@ -756,6 +756,25 @@ export const copilotDecisionSchema = z.object({
  * `pack: null` on every row and never offered a "Fix it" button for a rule that
  * had a computable auto-fix.
  */
+/**
+ * What a rule measured and what it measured against. Scalars for almost every
+ * rule; the vastu zone rules report a LIST of compass zones and an `{allow}`
+ * object (unit `zone`). A schema that admitted only scalars threw the whole
+ * report away whenever vastu was on, and the checks strip fell back to
+ * "nothing to check yet" over a fully evaluated plan.
+ */
+export const complianceValueSchema = z
+  .union([
+    z.number(),
+    z.string(),
+    z.boolean(),
+    z.null(),
+    z.array(z.unknown()),
+    z.record(z.unknown()),
+  ])
+  .default(null);
+export type ComplianceValue = z.infer<typeof complianceValueSchema>;
+
 export const complianceResultSchema = z.object({
   ruleId: z.string(),
   packId: z.string().nullable().default(null),
@@ -763,8 +782,8 @@ export const complianceResultSchema = z.object({
   severity: z.string().nullable().default(null),
   title: z.string().nullable().default(null),
   message: z.string().nullable().default(null),
-  actual: z.union([z.number(), z.string(), z.boolean(), z.null()]).default(null),
-  limit: z.union([z.number(), z.string(), z.boolean(), z.null()]).default(null),
+  actual: complianceValueSchema,
+  limit: complianceValueSchema,
   unit: z.string().nullable().default(null),
   cite: z.string().nullable().default(null),
   citeShort: z.string().nullable().default(null),

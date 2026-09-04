@@ -279,6 +279,16 @@ Two smaller gaps found in passing:
   sheets put the FFL marker 300 mm inside the building's top-left corner, on top of
   whatever room lived there — two label collisions on the 40 × 60 plan's upper-floor
   sheets. It now sits outside the footprint beside the north arrow, on every plan.
+- **The checks strip said "Nothing to check yet" over a fully evaluated plan (fixed
+  2026-09-03).** Seen in the library screenshots and traced in the browser: the API
+  answered the plan page's compliance request with 65 evaluated results, and the strip
+  still read "nothing to check yet" ten seconds later. The web schema admitted only
+  scalar `actual`/`limit` values, the seven vastu zone rules report a list of zones and
+  an `{allow}` object, zod rejected the WHOLE report, and the hook's catch kept the
+  strip on its "not run" text. Any project with vastu mode on — every library plan,
+  and the demo — was affected, on the strip and on the Compliance tab, which parse the
+  same response. The schema now takes lists and objects, the options vastu map reads a
+  one-zone list as the zone, and `schemas.compliance.test.ts` pins the row shape.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

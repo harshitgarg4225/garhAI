@@ -168,7 +168,16 @@ export function vastuWheel(option: PlanOption): VastuWheel {
       status: row.status,
       zones,
       message: row.message ?? null,
-      actual: typeof row.actual === 'string' ? row.actual : null,
+      // Zone rules report the room's zones as a list; a single zone is the
+      // one to colour, several is not one sector.
+      actual:
+        typeof row.actual === 'string'
+          ? row.actual
+          : Array.isArray(row.actual) &&
+              row.actual.length === 1 &&
+              typeof row.actual[0] === 'string'
+            ? row.actual[0]
+            : null,
     };
     if (zones.length === 0) {
       unplaced.push(rule);
