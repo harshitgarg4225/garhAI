@@ -39,7 +39,9 @@ export function describeSpend(usage: Usage): string | null {
 export function describeFee(usage: Usage): string | null {
   const spend = usage.spend;
   if (!spend) return null;
-  const percent = spend.markupPercent.trim();
+  // Tolerate an api that predates the fee (a rolling deploy, a stale dev bundle):
+  // no field means no fee, never a crash on the dashboard.
+  const percent = (spend.markupPercent ?? '').trim();
   if (percent === '' || percent === '0') return null;
   return `${percent}% platform fee`;
 }

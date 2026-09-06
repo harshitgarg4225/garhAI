@@ -87,6 +87,10 @@ NON_TENANT_REPOSITORIES: dict[str, str] = {
     "OtpCodeRepository": "otp_codes is not tenant-owned (a code is issued pre-auth)",
     "FlagRepository": "flags is global; per-firm overrides live in firms.settings",
     "ShareTokenResolver": "resolves an anonymous token to the firm it belongs to",
+    "PlatformSettingRepository": (
+        "deployment-wide owner settings (the platform fee) — no firm_id exists; written only "
+        "through the platform-owner endpoint, see repositories/platform_settings.py"
+    ),
 }
 
 
@@ -228,6 +232,9 @@ def test_routers_do_not_import_the_non_tenant_repositories() -> None:
         "garh_api/deps.py",
         # Re-exports them.
         "garh_api/repositories/__init__.py",
+        # The platform-fee service layer: the ONE reader/writer of the owner's setting
+        # row, which has no tenant to scope to (see repositories/platform_settings.py).
+        "garh_api/billing/markup.py",
         # Bootstraps the demo tenant through the same signup path a user takes.
         "garh_api/seed/runner.py",
         # §18: "feature flags table read at boot". `flags` is global by design
@@ -325,7 +332,7 @@ def test_every_tenant_owned_table_has_an_indexed_firm_id() -> None:
 
 def test_non_tenant_tables_are_the_documented_two() -> None:
     """A new global table is a tenancy decision, not an implementation detail."""
-    assert set(NON_TENANT_TABLES) == {"flags", "otp_codes"}, NON_TENANT_TABLES
+    assert set(NON_TENANT_TABLES) == {"flags", "otp_codes", "platform_settings"}, NON_TENANT_TABLES
     for name in NON_TENANT_TABLES:
         assert "firm_id" not in Base.metadata.tables[name].columns, (
             "%s is in NON_TENANT_TABLES but carries firm_id — pick one" % name

@@ -20,6 +20,8 @@ quietly be a smaller fee than the owner set.
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Final
 
@@ -99,6 +101,32 @@ async def current_markup_bps(session: AsyncSession) -> int:
     return percent_to_bps(get_settings().billing_markup_percent)
 
 
+@dataclass(frozen=True, slots=True)
+class MarkupState:
+    """The fee as it stands, for the endpoint and the usage card."""
+
+    bps: int
+    percent: str
+    source: str  # "setting" | "default"
+    updated_at: datetime | None
+    updated_by: uuid.UUID | None
+
+
+async def describe_markup(session: AsyncSession) -> MarkupState:
+    """The fee in force plus where it came from — the owner's row or the boot default."""
+    from garh_api.repositories.platform_settings import PlatformSettingRepository
+
+    bps = await current_markup_bps(session)
+    stored = await PlatformSettingRepository(session).describe(MARKUP_KEY)
+    return MarkupState(
+        bps=bps,
+        percent=bps_to_percent(bps),
+        source="setting" if stored is not None else "default",
+        updated_at=stored.updated_at if stored is not None else None,
+        updated_by=stored.updated_by if stored is not None else None,
+    )
+
+
 async def set_markup_bps(session: AsyncSession, bps: int, *, updated_by: uuid.UUID | None) -> int:
     """Persist a new fee for every charge from now on. Old rows keep theirs."""
     from garh_api.repositories.platform_settings import PlatformSettingRepository
@@ -113,10 +141,12 @@ __all__ = [
     "BPS_PER_PERCENT",
     "MARKUP_KEY",
     "MAX_MARKUP_BPS",
+    "MarkupState",
     "MarkupValueError",
     "bps_to_percent",
     "charged_micros",
     "current_markup_bps",
+    "describe_markup",
     "markup_micros",
     "percent_to_bps",
     "set_markup_bps",

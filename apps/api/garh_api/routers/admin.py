@@ -18,10 +18,9 @@ from fastapi import APIRouter, Depends
 from pydantic import Field
 
 from garh_api.billing.markup import (
-    MARKUP_KEY,
     MarkupValueError,
-    bps_to_percent,
     current_markup_bps,
+    describe_markup,
     percent_to_bps,
     set_markup_bps,
 )
@@ -82,16 +81,13 @@ OwnerDep = Annotated[TenantCtx, Depends(require_platform_owner)]
 
 
 async def _describe(session: SessionDep) -> MarkupOut:
-    from garh_api.repositories import PlatformSettingRepository
-
-    bps = await current_markup_bps(session)
-    stored = await PlatformSettingRepository(session).describe(MARKUP_KEY)
+    state = await describe_markup(session)
     return MarkupOut(
-        percent=bps_to_percent(bps),
-        bps=bps,
-        source="setting" if stored is not None else "default",
-        updated_at=stored.updated_at.isoformat() if stored is not None else None,
-        updated_by=str(stored.updated_by) if stored is not None and stored.updated_by else None,
+        percent=state.percent,
+        bps=state.bps,
+        source=state.source,
+        updated_at=state.updated_at.isoformat() if state.updated_at is not None else None,
+        updated_by=str(state.updated_by) if state.updated_by is not None else None,
     )
 
 
