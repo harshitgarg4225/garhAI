@@ -1292,11 +1292,13 @@ async def apply_lifecycle_record(session: AsyncSession, record: queue.LifecycleR
             # The worker's own sentence (`JobResult.message`, which for an empty
             # result is the stage-A shortfall banner). Dropping it here is what made
             # "Generate" answer with a blank screen and no reason.
-            await repo.succeed(
-                job_id,
-                list(options) if isinstance(options, list) else [],
-                event.message or record.event.message,
-            )
+            delivered = list(options) if isinstance(options, list) else []
+            await repo.succeed(job_id, delivered, event.message or record.event.message)
+            if not delivered:
+                # A run that cleared nothing delivered nothing. The architect read
+                # "No plan cleared the quality checks" and still paid for it — the
+                # first trial architect's exact complaint. Charge only for plans.
+                await _refund_undelivered(session, ctx, job_id, "no_options")
         elif record.type in ("failed", "dead_lettered"):
             await repo.fail(job_id, _problem_message(event))
             await _refund_undelivered(session, ctx, job_id, record.type)

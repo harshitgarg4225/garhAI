@@ -456,6 +456,63 @@ def test_relax_skipped_when_stage_a_cannot_honour_it() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Fresh seeds when nothing cleared
+# ---------------------------------------------------------------------------
+
+
+def _seed_gated_stage_set(fake: FakeSolver, *, opens_on_round: int) -> Any:
+    """A stage A that finds nothing until the driver has tried ``opens_on_round`` seeds.
+
+    Every seed the driver hands over is recorded so the test can show they differ.
+    """
+    from dataclasses import replace as dc_replace
+
+    seeds_seen: list[int | None] = []
+
+    def stage_a(grid: Any, params: Any, anchor: Any, *, profile: Any, relaxed: bool = False) -> Any:
+        if profile.random_seed not in seeds_seen:
+            seeds_seen.append(profile.random_seed)
+        if len(seeds_seen) < opens_on_round:
+            return None
+        return fake._solve(grid, params, anchor, profile, relaxed)
+
+    return dc_replace(fake.stage_set(), stage_a=stage_a), seeds_seen
+
+
+def test_a_fresh_seed_finds_what_the_first_search_missed() -> None:
+    fake = FakeSolver()
+    stages, seeds = _seed_gated_stage_set(fake, opens_on_round=2)
+    context, recorder = make_context(fake, stages=stages, seed_rounds=3)
+    result = solve(context)
+    assert len(result.options) == 3, "round two cleared every anchor"
+    assert len(seeds) == 2 and seeds[0] != seeds[1], "the second round used a different seed"
+    rounds = [e for e in recorder.events if e["data"].get("seedRound")]
+    assert [e["data"]["seedRound"] for e in rounds] == [2], "one extra round, announced once"
+    assert result.banner is None
+
+
+def test_seed_rounds_stop_at_the_cap_and_stay_honest() -> None:
+    """NEGATIVE CONTROL: a single-round context is the historical behaviour."""
+    fake = FakeSolver()
+    stages, seeds = _seed_gated_stage_set(fake, opens_on_round=2)
+    context, recorder = make_context(fake, stages=stages, seed_rounds=1)
+    result = solve(context)
+    assert result.options == ()
+    assert len(seeds) == 1, "no second seed without a second round"
+    assert not [e for e in recorder.events if e["data"].get("seedRound")]
+
+
+def test_seed_rounds_do_not_run_when_the_first_search_clears() -> None:
+    fake = FakeSolver()
+    context, recorder = make_context(fake, seed_rounds=3)
+    result = solve(context)
+    assert len(result.options) == 3
+    assert not [
+        e for e in recorder.events if e.get("seedRound")
+    ], "no retry when nothing is missing"
+
+
+# ---------------------------------------------------------------------------
 # Resumability (golden rule 9)
 # ---------------------------------------------------------------------------
 

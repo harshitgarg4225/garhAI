@@ -96,7 +96,14 @@ async def test_a_delivered_generate_keeps_its_credit(session: Any, firm_a: Any) 
     await apply_lifecycle_record(
         session,
         _lifecycle(
-            job, firm_a.firm_id, queue.JOB_SOLVER_GENERATE, "succeeded", options=[], message=""
+            job,
+            firm_a.firm_id,
+            queue.JOB_SOLVER_GENERATE,
+            "succeeded",
+            # One real option: a delivered plan. The empty list beside it (below) is
+            # the run that delivered nothing and is refunded.
+            options=[{"id": "opt-1", "rank": 1}],
+            message="",
         ),
     )
     await session.commit()
@@ -104,6 +111,33 @@ async def test_a_delivered_generate_keeps_its_credit(session: Any, firm_a: Any) 
     assert (await repo.usage_by_kind()).get("solver", 0) == 1
     (event,) = (await repo.list_recent()).items
     assert event.refunded_at is None
+
+
+@pytest.mark.integration
+async def test_a_solve_that_cleared_nothing_is_refunded(session: Any, firm_a: Any) -> None:
+    """``succeeded`` with zero options delivered nothing, so it costs nothing.
+
+    NEGATIVE CONTROL beside it: the same lifecycle with one option keeps its charge
+    (see test_a_delivered_solve_keeps_its_charge above).
+    """
+    job = await _charged_solver_job(session, firm_a)
+    await apply_lifecycle_record(
+        session,
+        _lifecycle(
+            job,
+            firm_a.firm_id,
+            queue.JOB_SOLVER_GENERATE,
+            "succeeded",
+            options=[],
+            message="No plan cleared the quality checks",
+        ),
+    )
+    await session.commit()
+    repo = CreditEventRepository(session, firm_a.ctx())
+    (event,) = (await repo.list_recent()).items
+    assert event.refunded_at is not None, "a run that delivered nothing must not charge"
+    assert event.meta.get("refund") == "no_options"
+    assert (await repo.usage_by_kind()).get("solver", 0) == 0
 
 
 @pytest.mark.integration

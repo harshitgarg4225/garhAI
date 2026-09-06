@@ -424,6 +424,10 @@ class SolveContext:
     )
     #: Cap on stair candidates (§5.7 budget); ``None`` = stage's own 3–6.
     max_stair_candidates: int | None = None
+    #: How many CP-SAT seeds to try before answering with nothing. Round 1 is the
+    #: request's own seed; each further round re-solves every anchor with a fresh
+    #: ``random_seed`` and the same budget. 1 = the historical single attempt.
+    seed_rounds: int = 1
 
     def effective_profile(self) -> SolverProfile:
         if self.profile is not None:
@@ -577,6 +581,54 @@ async def run_solver(context: SolveContext) -> SolveResult:
                 "skipped and the honest banner stands",
             )
 
+    # -- fresh seeds: the search is not deterministic under a wall-clock budget ----
+    # A brief that dies at the door gate on one ordering often passes on the next;
+    # the plan library was seeded with exactly this retry. Bounded by seed_rounds,
+    # never checkpointed (a resumed job starts its rounds over), and every round's
+    # discards stay in the same list so the diversity event tells the whole story.
+    seed_round = 1
+    while not result.options and seed_round < max(1, context.seed_rounds):
+        seed_round += 1
+        context.check_cancelled()
+        fresh = replace(profile, random_seed=profile.seed_for(params) + seed_round * 7919)
+        log.info("solver.seed_round", round=seed_round, random_seed=fresh.random_seed)
+        await context.progress(
+            "topology",
+            "Nothing cleared on the first search — trying a fresh search order (%d of %d)…"
+            % (seed_round, context.seed_rounds),
+            percent=30,
+            seedRound=seed_round,
+            seedRounds=context.seed_rounds,
+        )
+        round_candidates = await _solve_candidates(
+            context,
+            grid,
+            anchors,
+            profile=fresh,
+            stage_set=stage_set,
+            relaxed=False,
+            checkpoint=None,
+            discard=discard,
+            shortfalls=shortfalls,
+        )
+        round_scored = await _refine_and_score(
+            context,
+            round_candidates,
+            envelope,
+            program,
+            profile=fresh,
+            stage_set=stage_set,
+            announce=announce,
+            discard=discard,
+            relaxed=False,
+        )
+        result = finalise(
+            _dedupe_by_id(tuple(round_scored)),
+            envelope,
+            target=params.target_option_count,
+            shortfalls=shortfalls,
+        )
+
     # §15: "plan silhouettes appearing as they pass gates" — one artifact per option
     # that actually cleared, published as it is chosen rather than at the end.
     for option in result.options:
@@ -595,6 +647,7 @@ async def run_solver(context: SolveContext) -> SolveResult:
         considered=result.considered,
         rejected=result.rejected_by_gates,
         discarded=len(discards),
+        seed_rounds_used=seed_round,
     )
     return result
 

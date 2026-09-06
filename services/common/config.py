@@ -163,6 +163,12 @@ class WorkerSettings(BaseSettings):
     # -- solver (§5.2) -------------------------------------------------------
     solver_num_search_workers: int = Field(default=8, ge=1, le=64)
     solver_time_budget_seconds: int = Field(default=15, ge=1, le=600)
+    #: How many CP-SAT seeds a generate tries before answering "no plan cleared".
+    #: With eight search workers under a wall-clock budget the search is not
+    #: deterministic, and a brief that dies at the door gate on one ordering often
+    #: passes on the next; the plan library was seeded with exactly this retry. Each
+    #: round costs up to another ``solver_time_budget_seconds`` per stair candidate.
+    solver_seed_rounds: int = Field(default=3, ge=1, le=6)
 
     # -- drawings / uploads (§13) -------------------------------------------
     #: The SAME cap the API enforces at the edge — ``Settings.max_dxf_upload_bytes``,

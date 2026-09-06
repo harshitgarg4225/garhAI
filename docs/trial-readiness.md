@@ -298,6 +298,16 @@ Two smaller gaps found in passing:
   reads cost. `test_markup.py`: the arithmetic (half-up, once), the next-charge /
   never-the-last-row negative control, the owner gate (a firm admin is not an owner, an
   empty allowlist refuses everyone), and the usage card showing the percentage.
+- **Generate on a plan the solver itself had produced answered "No plan cleared the
+  quality checks" twice, and charged for both (found by the browser UAT, 2026-09-06).**
+  CP-SAT under a wall-clock budget with eight workers is not deterministic; the plan
+  library needed up to three seeds per cell and the product tried one. The solver now
+  runs up to `SOLVER_SEED_ROUNDS` (3) fresh-seed rounds when nothing cleared — each
+  announced on the progress stream, bounded, never checkpointed — and a run that
+  delivers zero options refunds its credit (`no_options`), with the delivered-plan
+  control beside it in `test_credit_refund`. `test_pipeline` holds the round
+  behaviour: a seed-gated fake stage A that opens on round two, the single-round
+  negative control, and no retry when the first search clears.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

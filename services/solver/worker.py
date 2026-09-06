@@ -115,6 +115,7 @@ class SolverQueueHandler(SolverJobHandler):
             progress_from_thread=progress_from_thread,
             profile=profile,
             save_state=save_state,
+            seed_rounds=ctx.settings.solver_seed_rounds,
         )
 
         extra: dict[str, Any] = {}
@@ -168,6 +169,7 @@ def main() -> int:
         "solver.worker.boot",
         num_search_workers=settings.solver_num_search_workers,
         time_budget_seconds=settings.solver_time_budget_seconds,
+        seed_rounds=settings.solver_seed_rounds,
         generate_timeout_seconds=DEFAULT_TIMEOUT_SECONDS,
         resolve_timeout_seconds=RESOLVE_TIMEOUT_SECONDS,
     )
