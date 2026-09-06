@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     jwt_issuer: str = "garh-ai"
     access_token_ttl_seconds: int = Field(default=900, ge=60)  # 15 min (§11)
     refresh_token_ttl_seconds: int = Field(default=60 * 60 * 24 * 30, ge=3600)
+    #: How long after a rotation the spent refresh token may be presented once more and
+    #: chain forward instead of revoking the family. A reload that races an in-flight
+    #: refresh never receives the rotated cookie; 0 disables the leeway (strict rotation).
+    refresh_reuse_leeway_seconds: int = Field(default=30, ge=0, le=300)
     otp_ttl_seconds: int = Field(default=600, ge=60)  # 10 min (§13)
     otp_max_attempts: int = Field(default=5, ge=1, le=10)  # 5 attempts (§13)
     otp_code_length: int = Field(default=6, ge=4, le=10)

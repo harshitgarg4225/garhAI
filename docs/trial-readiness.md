@@ -308,6 +308,16 @@ Two smaller gaps found in passing:
   control beside it in `test_credit_refund`. `test_pipeline` holds the round
   behaviour: a seed-gated fake stage A that opens on round two, the single-round
   negative control, and no retry when the first search clears.
+- **A reload during a refresh signed the architect out (found by the browser UAT,
+  2026-09-06).** The journey landed on the login page from the 3D tab onward. The API
+  log showed one `refresh_token_reused` then "no session to refresh" on every boot: a
+  full navigation aborted an in-flight refresh after the server had rotated, the
+  browser never received the new cookie, its next boot presented the token just
+  spent, and strict rotation revoked the family. Rotation now carries a 30-second
+  reuse leeway (`REFRESH_REUSE_LEEWAY_SECONDS`, 0 = strict): inside it a spent token
+  chains forward once, the abandoned successor dies, and a third presentation — or
+  anyone presenting the abandoned token — still revokes the family. Tests: the raced
+  reload chains once, the abandoned successor is theft, the leeway off is strict.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

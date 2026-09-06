@@ -276,6 +276,8 @@ FAMILY_STATE_REVOKED: Final = "revoked"
 #: Rotation outcomes returned by :meth:`SessionStore.rotate`.
 ROTATE_OK: Final = "ok"
 ROTATE_REUSE: Final = "reuse"
+#: The spent token was presented again inside the reuse leeway and chained forward.
+ROTATE_REPLAYED: Final = "replayed"
 ROTATE_UNKNOWN: Final = "unknown"
 ROTATE_FAMILY_REVOKED: Final = "family_revoked"
 ROTATE_FAMILY_UNKNOWN: Final = "family_unknown"
@@ -320,7 +322,17 @@ def refresh_key(user_id: uuid.UUID | str, token_id: str) -> str:
 #: token cannot both succeed: the first HSET flips the state inside the script.
 #:
 #: KEYS[1] = refresh record, KEYS[2] = family record
-#: ARGV[1] = now (epoch s), ARGV[2] = successor jti, ARGV[3] = record ttl (s)
+#: ARGV[1] = now (epoch s), ARGV[2] = successor jti, ARGV[3] = record ttl (s),
+#: ARGV[4] = reuse leeway (s), ARGV[5] = refresh-record key prefix for this user
+#: (same hash tag as KEYS[1], so building the successor's key here is cluster-safe)
+#:
+#: The leeway: a browser that reloads while a refresh is in flight never receives the
+#: rotated cookie (the navigation aborts the response), so its next boot presents the
+#: token that was just spent. That is a double-submit, not theft, and killing the
+#: session for it signed the first browser UAT out mid-journey. Within the leeway the
+#: spent token chains forward ONCE: the abandoned successor is spent in its place and a
+#: new successor issued, so single-use holds beyond the window and a third presentation
+#: still revokes the family.
 _ROTATE_LUA: Final = """
 local family_state = redis.call('HGET', KEYS[2], 'state')
 if not family_state then return {0, 'family_unknown'} end
@@ -339,6 +351,24 @@ if state == 'active' then
   return {1, 'ok'}
 end
 
+if state == 'rotated' then
+  local rotated_at = tonumber(redis.call('HGET', KEYS[1], 'rotated_at') or '0')
+  local successor = redis.call('HGET', KEYS[1], 'successor')
+  local leeway = tonumber(ARGV[4]) or 0
+  if successor and leeway > 0 and (tonumber(ARGV[1]) - rotated_at) <= leeway then
+    local skey = ARGV[5] .. successor
+    if redis.call('HGET', skey, 'state') == 'active' then
+      -- The abandoned successor is dead, not merely rotated: nobody ever received it,
+      -- so anyone presenting it is not the browser that reloaded.
+      redis.call('HSET', skey, 'state', 'replayed', 'rotated_at', ARGV[1], 'successor', ARGV[2])
+      redis.call('EXPIRE', skey, ARGV[3])
+      -- One replay per token: a third presentation is reuse, whatever the clock says.
+      redis.call('HSET', KEYS[1], 'state', 'replayed', 'successor', ARGV[2])
+      redis.call('HSET', KEYS[2], 'last_used_at', ARGV[1])
+      return {1, 'replayed'}
+    end
+  end
+end
 redis.call('HSET', KEYS[2],
   'state', 'revoked', 'revoked_at', ARGV[1], 'revoked_reason', 'refresh_token_reuse')
 return {0, 'reuse'}
@@ -565,7 +595,13 @@ class SessionStore:
         try:
             raw = await rotate(
                 keys=[refresh_key(user_id, token_id), family_key(user_id, family)],
-                args=[_now(), successor_token_id, ttl],
+                args=[
+                    _now(),
+                    successor_token_id,
+                    ttl,
+                    int(getattr(self._settings, "refresh_reuse_leeway_seconds", 0)),
+                    refresh_key(user_id, ""),
+                ],
             )
         except (RedisError, OSError, TimeoutError) as exc:
             # Fail closed: we cannot prove this token has not been used before.
@@ -1263,7 +1299,14 @@ class AuthService:
             await self._persist_failure_record("refresh_reuse_detected")
             raise RefreshTokenReuseError()
 
-        if outcome != ROTATE_OK:
+        if outcome == ROTATE_REPLAYED:
+            _log.info(
+                "auth.refresh_replayed_within_leeway",
+                user_id=str(claims.user_id),
+                token_family=family,
+                hint="a reload raced the previous rotation; chained forward once",
+            )
+        elif outcome != ROTATE_OK:
             _log.info(
                 "auth.refresh_rejected",
                 user_id=str(claims.user_id),

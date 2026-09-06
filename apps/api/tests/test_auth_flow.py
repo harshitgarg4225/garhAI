@@ -154,15 +154,23 @@ async def test_refresh_rotates_the_token(client: Any, api: str, firm_a: Any) -> 
 
 
 async def test_refresh_reuse_is_detected_and_kills_the_family(
-    client: Any, api: str, firm_a: Any
+    client: Any, api: str, firm_a: Any, monkeypatch: Any
 ) -> None:
     """Presenting a spent refresh token is treated as theft (§13 refresh rotation).
+
+    Strict rotation: the reuse leeway is off here. With it on (the default), ONE
+    presentation inside the window chains forward instead — see
+    test_a_reload_that_raced_a_refresh_chains_forward_once — and the family still dies
+    the moment the honest browser presents the successor that was spent in its place.
 
     The stolen token is dead *and* so is its successor: a thief who replays the token they
     copied must not be able to keep the session alive, and neither must the victim's
     browser silently keep using the successor as if nothing happened. Both are logged out;
     signing in again is the recovery.
     """
+    from garh_api.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "refresh_reuse_leeway_seconds", 0, raising=False)
     await _sign_in(client, api, firm_a.email)
     stolen = _refresh_cookie(client)
 
@@ -337,3 +345,90 @@ async def test_verify_for_an_unknown_address_is_the_generic_failure(
     )
     assert response.status_code == 400, response.text
     assert problem(response)["code"] == "otp_invalid"
+
+
+async def test_a_reload_that_raced_a_refresh_chains_forward_once(
+    client: Any, api: str, firm_a: Any
+) -> None:
+    """A spent token presented again inside the leeway is a double-submit, not theft.
+
+    The browser that reloads while a refresh is in flight never receives the rotated
+    cookie, so its next boot presents the token just spent. Within the leeway that
+    chains forward once: a NEW successor, the abandoned one dead. The third
+    presentation is reuse and kills the family — the guarantee holds beyond one replay.
+    """
+    await _sign_in(client, api, firm_a.email)
+    original = _refresh_cookie(client)
+
+    rotated = await client.post("%s/auth/refresh" % api)
+    assert rotated.status_code == 200, rotated.text
+    abandoned = _refresh_cookie(client)  # the browser that reloaded never stored this
+
+    client.cookies.clear()
+    replay = await client.post(
+        "%s/auth/refresh" % api, headers={"Cookie": "%s=%s" % (REFRESH_COOKIE_NAME, original)}
+    )
+    assert replay.status_code == 200, replay.text
+    chained = _refresh_cookie(client)
+    assert chained not in (original, abandoned), "the replay minted a fresh successor"
+
+    # NEGATIVE CONTROL: one replay per token. The original, presented a third time,
+    # is reuse — and it kills the family, the chained token included.
+    client.cookies.clear()
+    third = await client.post(
+        "%s/auth/refresh" % api, headers={"Cookie": "%s=%s" % (REFRESH_COOKIE_NAME, original)}
+    )
+    assert third.status_code == 401, third.text
+    assert problem(third)["code"] == "refresh_token_reused"
+    for token in (chained, abandoned):
+        client.cookies.clear()
+        dead = await client.post(
+            "%s/auth/refresh" % api, headers={"Cookie": "%s=%s" % (REFRESH_COOKIE_NAME, token)}
+        )
+        assert dead.status_code == 401, dead.text
+
+
+async def test_the_abandoned_successor_is_dead_after_a_replay(
+    client: Any, api: str, firm_a: Any
+) -> None:
+    """Nobody ever received the token the replay spent; presenting it is theft."""
+    await _sign_in(client, api, firm_a.email)
+    original = _refresh_cookie(client)
+    assert (await client.post("%s/auth/refresh" % api)).status_code == 200
+    abandoned = _refresh_cookie(client)
+    client.cookies.clear()
+    replay = await client.post(
+        "%s/auth/refresh" % api, headers={"Cookie": "%s=%s" % (REFRESH_COOKIE_NAME, original)}
+    )
+    assert replay.status_code == 200, replay.text
+    chained = _refresh_cookie(client)
+
+    client.cookies.clear()
+    stale = await client.post(
+        "%s/auth/refresh" % api, headers={"Cookie": "%s=%s" % (REFRESH_COOKIE_NAME, abandoned)}
+    )
+    assert stale.status_code == 401, stale.text
+    assert problem(stale)["code"] == "refresh_token_reused"
+    # ...and that theft signal kills the family, the chained token with it.
+    client.cookies.clear()
+    dead = await client.post(
+        "%s/auth/refresh" % api, headers={"Cookie": "%s=%s" % (REFRESH_COOKIE_NAME, chained)}
+    )
+    assert dead.status_code == 401, dead.text
+
+
+async def test_the_leeway_can_be_switched_off_for_strict_rotation(
+    client: Any, api: str, firm_a: Any, monkeypatch: Any
+) -> None:
+    from garh_api.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "refresh_reuse_leeway_seconds", 0, raising=False)
+    await _sign_in(client, api, firm_a.email)
+    original = _refresh_cookie(client)
+    assert (await client.post("%s/auth/refresh" % api)).status_code == 200
+    client.cookies.clear()
+    replay = await client.post(
+        "%s/auth/refresh" % api, headers={"Cookie": "%s=%s" % (REFRESH_COOKIE_NAME, original)}
+    )
+    assert replay.status_code == 401, replay.text
+    assert problem(replay)["code"] == "refresh_token_reused"
