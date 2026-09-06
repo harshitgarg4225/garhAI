@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { usageSchema } from '../../lib/api';
-import { describeLine, describeSpend, lineFor } from './usage';
+import { describeFee, describeLine, describeSpend, lineFor } from './usage';
 
 const WIRE = {
   planCode: 'free',
@@ -75,5 +75,29 @@ describe('usage copy', () => {
 
   it('returns null for a kind the plan does not meter', () => {
     expect(lineFor(usage, 'export')).toBeNull();
+  });
+});
+
+describe('the platform fee', () => {
+  it('is absent from the wire until the api sends it, and then reads as words', () => {
+    // An older api (no fee fields) parses: the schema defaults to no fee.
+    expect(describeFee(usageSchema.parse(WIRE))).toBeNull();
+    const withFee = usageSchema.parse({
+      ...WIRE,
+      spend: {
+        ...WIRE.spend,
+        markupPercent: '5',
+        providerCostUsd: '$0.04',
+        providerCostMicros: 38_095,
+      },
+    });
+    expect(describeFee(withFee)).toBe('5% platform fee');
+    expect(describeSpend(withFee)).toBe('Budget: $4.96 of $5.00 left (5% platform fee)');
+  });
+
+  it('says nothing for a zero fee', () => {
+    const zero = usageSchema.parse({ ...WIRE, spend: { ...WIRE.spend, markupPercent: '0' } });
+    expect(describeFee(zero)).toBeNull();
+    expect(describeSpend(zero)).toBe('Budget: $4.96 of $5.00 left');
   });
 });

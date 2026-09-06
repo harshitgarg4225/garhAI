@@ -108,6 +108,12 @@ class SpendBudgetOut(ResponseModel):
     cap_micros: StrictInt
     spent_micros: StrictInt
     remaining_micros: StrictInt
+    #: The platform fee applied to every charge above, as a percentage string
+    #: (``"5"``, ``"7.25"``) so a UI never parses a float, and what the same work
+    #: actually cost before the fee.
+    markup_percent: StrictStr = "0"
+    provider_cost_usd: StrictStr = "$0.00"
+    provider_cost_micros: StrictInt = 0
     #: False when no budget is configured, so a UI can hide the meter rather than
     #: render a confident "$0.00 of $0.00".
     enforced: StrictBool = True

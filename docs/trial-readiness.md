@@ -289,6 +289,15 @@ Two smaller gaps found in passing:
   and the demo — was affected, on the strip and on the Compliance tab, which parse the
   same response. The schema now takes lists and objects, the options vastu map reads a
   one-zone list as the zone, and `schemas.compliance.test.ts` pins the row shape.
+- **The platform fee (2026-09-06).** The owner's rule — 5 % on every dollar of credit,
+  changeable tomorrow — is a percentage of provider cost in basis points, booted from
+  `BILLING_MARKUP_PERCENT` and thereafter read from `platform_settings` on every charge,
+  so `PUT /admin/billing/markup` (platform-owner emails only) changes the next charge
+  without a redeploy. Each credit event records the fee it was charged at and what was
+  charged beside the honest provider cost; budgets are spent in charges, reconciliation
+  reads cost. `test_markup.py`: the arithmetic (half-up, once), the next-charge /
+  never-the-last-row negative control, the owner gate (a firm admin is not an owner, an
+  empty allowlist refuses everyone), and the usage card showing the percentage.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

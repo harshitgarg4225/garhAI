@@ -999,6 +999,14 @@ class CreditEvent(UuidPk, Timestamps, TenantOwned, Base):
     #: is what a provider charged us, and it never reaches an invoice. 0 for anything
     #: served by a mock provider, which is most of a dev or trial stack.
     cost_micros: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
+    #: The platform fee in force when this row was written, in basis points, and what
+    #: the architect was CHARGED (cost plus that fee). ``cost_micros`` is the honest
+    #: provider ledger; ``charged_micros`` is what counts against a budget. The owner
+    #: changing the fee later never rewrites either — see ``billing/markup.py``.
+    markup_bps: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    charged_micros: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, server_default=text("0")
+    )
     #: Which architect spent it. Nullable and unconstrained on purpose: an attribution
     #: label must never be able to take a billing row with it.
     user_id: Mapped[uuid.UUID | None] = mapped_column(PgUUID(as_uuid=True), nullable=True)
@@ -1012,6 +1020,10 @@ class CreditEvent(UuidPk, Timestamps, TenantOwned, Base):
         CheckConstraint(_in_check("kind", CREDIT_EVENT_KINDS), name="ck_credit_events_kind"),
         CheckConstraint("qty > 0", name="ck_credit_events_qty_positive"),
         CheckConstraint("cost_micros >= 0", name="ck_credit_events_cost_non_negative"),
+        CheckConstraint("markup_bps >= 0", name="ck_credit_events_markup_non_negative"),
+        CheckConstraint(
+            "charged_micros >= cost_micros", name="ck_credit_events_charged_covers_cost"
+        ),
         Index("ix_credit_events_firm_id", "firm_id"),
         Index("ix_credit_events_firm_id_created_at", "firm_id", "created_at"),
         Index("ix_credit_events_firm_id_kind", "firm_id", "kind"),
@@ -1076,6 +1088,27 @@ class Flag(UuidPk, Timestamps, Base):
     )
 
 
+class PlatformSetting(UuidPk, Timestamps, Base):
+    """The owner's runtime knobs: one row per key, deployment-wide (no ``firm_id``).
+
+    First key: ``billing.markup_bps`` — the platform fee added to every metered charge.
+    Served by :class:`garh_api.repositories.platform_settings.PlatformSettingRepository`;
+    written only through the platform-owner endpoint, never by a firm role.
+    """
+
+    __tablename__ = "platform_settings"
+
+    key: Mapped[str] = mapped_column(Text, nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(PgUUID(as_uuid=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("key", name="uq_platform_settings_key"),
+        CheckConstraint("key = lower(key)", name="ck_platform_settings_key_lowercase"),
+        CheckConstraint("length(btrim(key)) > 0", name="ck_platform_settings_key_not_blank"),
+    )
+
+
 class OtpCode(UuidPk, Timestamps, Base):
     """Email OTP challenge (§13: 10 min expiry, 5 attempts).
 
@@ -1123,6 +1156,7 @@ ALL_TABLES: tuple[str, ...] = (
     "credit_events",
     "audit_log",
     "flags",
+    "platform_settings",
     "otp_codes",
 )
 
@@ -1152,6 +1186,7 @@ __all__ = [
     "OP_SOURCES",
     "Op",
     "OtpCode",
+    "PlatformSetting",
     "PLOT_SOURCES",
     "PROJECT_STATUSES",
     "PROJECT_UNITS",

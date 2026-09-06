@@ -715,6 +715,10 @@ class CreditEvent:
     #: delivered. ``refunded_at`` set means every counting reader skips this row.
     job_id: uuid.UUID | None = None
     refunded_at: datetime | None = None
+    #: The platform fee applied to this row (basis points) and what was charged with it.
+    #: Rows from before the fee existed carry 0 and ``charged_micros == cost_micros``.
+    markup_bps: int = 0
+    charged_micros: int = 0
 
     @classmethod
     def from_row(cls, row: Any) -> CreditEvent:
@@ -728,6 +732,8 @@ class CreditEvent:
             user_id=row.user_id,
             job_id=getattr(row, "job_id", None),
             refunded_at=getattr(row, "refunded_at", None),
+            markup_bps=int(getattr(row, "markup_bps", 0) or 0),
+            charged_micros=int(getattr(row, "charged_micros", None) or row.cost_micros or 0),
             created_at=row.created_at,
         )
 

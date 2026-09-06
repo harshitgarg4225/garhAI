@@ -531,6 +531,7 @@ def api_router() -> APIRouter:
     their dependencies, and a top-level import would be a cycle.
     """
     from garh_api.routers import (
+        admin,
         billing,
         catalog,
         collab,
@@ -558,6 +559,7 @@ def api_router() -> APIRouter:
     #: G-1..G-4: plans, quotas, GST invoices, payments and seats. Every route is
     #: ``TenantDep``/``AdminDep``; none is reachable by a share viewer.
     router.include_router(billing.router)
+    router.include_router(admin.router)
     router.include_router(share.router)
     #: The public viewer surface — separate router, read-only, no write deps (§13).
     router.include_router(share.public_router)

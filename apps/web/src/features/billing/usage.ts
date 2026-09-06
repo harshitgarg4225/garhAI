@@ -27,5 +27,19 @@ export function describeLine(line: UsageLine): string {
 export function describeSpend(usage: Usage): string | null {
   const spend = usage.spend;
   if (!spend?.enforced) return null;
-  return `Budget: ${spend.remainingUsd} of ${spend.capUsd} left`;
+  const fee = describeFee(usage);
+  return `Budget: ${spend.remainingUsd} of ${spend.capUsd} left${fee ? ` (${fee})` : ''}`;
+}
+
+/**
+ * The platform fee, in words, or null when there is none. "5% platform fee" — every
+ * charge on the budget carries it, so an architect reading "$4.20 left" knows what
+ * a dollar of generation actually buys.
+ */
+export function describeFee(usage: Usage): string | null {
+  const spend = usage.spend;
+  if (!spend) return null;
+  const percent = spend.markupPercent.trim();
+  if (percent === '' || percent === '0') return null;
+  return `${percent}% platform fee`;
 }

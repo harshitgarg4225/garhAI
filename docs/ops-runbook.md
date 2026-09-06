@@ -66,3 +66,27 @@ hour. All knobs are `RATE_LIMIT_*` env vars on the api service — see
 - `python -m garh_api.seed` is idempotent and safe to re-run on deploy.
 - Workers probe their external tools (rsvg-convert, qpdf) at boot; a missing
   tool fails the boot loudly rather than the hundredth job quietly.
+
+## Changing the platform fee (the owner's markup)
+
+Every metered charge (an LLM call, a render, a solver run, an export) is recorded twice
+on `credit_events`: `cost_micros`, what the provider charged us, and `charged_micros`,
+what the architect's budget was debited — cost plus the platform fee in force at that
+moment, whose basis points sit beside it in `markup_bps`. Budgets are spent in
+`charged_micros`; reconciliation against a provider bill uses `cost_micros`.
+
+The fee is a percentage of cost. It boots from `BILLING_MARKUP_PERCENT` (default 5) and
+the owner changes it at runtime, no redeploy:
+
+```bash
+# who may: sign-in emails on PLATFORM_OWNER_EMAILS (comma-separated; empty = nobody)
+curl -X PUT "$APP_URL/api/v1/admin/billing/markup" \
+  -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
+  -d '{"percent": "7.5"}'
+# anyone signed in may read it — the usage card shows it to every architect
+curl "$APP_URL/api/v1/admin/billing/markup" -H "authorization: Bearer $TOKEN"
+```
+
+Applies to the next charge and every one after; rows already written keep the fee they
+were charged at (`test_markup.py` holds that as a negative control). 0–100, at most two
+decimals. The value lives in `platform_settings` under `billing.markup_bps`.

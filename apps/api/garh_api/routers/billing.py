@@ -252,11 +252,19 @@ async def _spend_budget(session: SessionDep, ctx: TenantDep) -> SpendBudgetOut |
     Read through the same repository method the gate uses, so the number an architect
     is shown and the number that refuses their next Generate cannot disagree.
     """
+    from garh_api.billing.markup import bps_to_percent, current_markup_bps
     from garh_api.billing.spend import MICROS_PER_USD, format_usd
     from garh_api.repositories import CreditEventRepository
 
     cap_micros = int(get_settings().spend_cap_usd) * MICROS_PER_USD
-    spent = await CreditEventRepository(session, ctx).spent_micros()
+    repo = CreditEventRepository(session, ctx)
+    spent = await repo.spent_micros()
+    cost = await repo.cost_micros_total()
+    fee = {
+        "markup_percent": bps_to_percent(await current_markup_bps(session)),
+        "provider_cost_usd": format_usd(cost),
+        "provider_cost_micros": cost,
+    }
     if cap_micros <= 0:
         return SpendBudgetOut(
             cap_usd=format_usd(0),
@@ -266,6 +274,7 @@ async def _spend_budget(session: SessionDep, ctx: TenantDep) -> SpendBudgetOut |
             spent_micros=spent,
             remaining_micros=0,
             enforced=False,
+            **fee,
         )
     remaining = max(0, cap_micros - spent)
     return SpendBudgetOut(
@@ -276,6 +285,7 @@ async def _spend_budget(session: SessionDep, ctx: TenantDep) -> SpendBudgetOut |
         spent_micros=spent,
         remaining_micros=remaining,
         enforced=True,
+        **fee,
     )
 
 

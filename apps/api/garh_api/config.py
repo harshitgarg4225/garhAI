@@ -140,6 +140,15 @@ class Settings(BaseSettings):
     #: Lifetime rather than monthly because this is a trial allowance: an architect
     #: gets $5 of generation, once, and raising it is a deliberate act.
     spend_cap_usd: int = 5
+    #: The platform fee added on top of provider cost before a charge counts against a
+    #: budget, in percent (``5`` = 5 %). The BOOT default only: the owner changes the
+    #: live value through ``PUT /admin/billing/markup`` and it is stored in
+    #: ``platform_settings``, so this number is what a fresh deployment charges until
+    #: the owner says otherwise. See ``billing/markup.py``.
+    billing_markup_percent: float = 5
+    #: Who may change platform-wide settings such as the fee: a comma-separated list of
+    #: sign-in emails. Empty means nobody — the endpoint refuses everyone, on purpose.
+    platform_owner_emails: str = ""
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
 
@@ -343,6 +352,12 @@ class Settings(BaseSettings):
     @property
     def sentry_enabled(self) -> bool:
         return bool(self.sentry_dsn)
+
+    def platform_owners(self) -> frozenset[str]:
+        """The normalised owner allowlist. Case-insensitive, whitespace-tolerant."""
+        return frozenset(
+            part.strip().lower() for part in self.platform_owner_emails.split(",") if part.strip()
+        )
 
     def redacted(self) -> dict[str, Any]:
         """Config dump safe to log at boot: secrets replaced with ``***``."""

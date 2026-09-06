@@ -16,6 +16,7 @@ Three separate things get tested, because three separate things can silently fai
 from __future__ import annotations
 
 import pytest
+from garh_api.billing.markup import charged_micros
 from garh_api.billing.spend import (
     FREE_PROVIDERS,
     LLM_PRICES,
@@ -167,7 +168,11 @@ async def test_spent_micros_is_the_architects_lifetime_total(session, firm_a) ->
     await repo.record(kind="render", meta={"provider": "stability"})
     await repo.record(kind="llm", meta={"provider": "mock", "inputTokens": 10_000_000})
     total = await repo.spent_micros()
-    assert total == 2 * cost_micros_for("render", meta={"provider": "stability"})
+    # The budget is spent in CHARGES: cost plus the platform fee (5 % by default).
+    # The cost ledger beside it still says exactly what the two renders cost.
+    cost = 2 * cost_micros_for("render", meta={"provider": "stability"})
+    assert total == charged_micros(cost, 500)
+    assert await repo.cost_micros_total() == cost
     assert total > 0, "the mock row contributed nothing, the two real ones did"
 
 
@@ -388,8 +393,12 @@ async def test_the_budget_shown_is_the_budget_enforced(
 
     shown = (await client.get("%s/billing/usage" % api, headers=firm_a.headers)).json()["spend"]
     assert shown["capUsd"] == "$5.00"
-    assert shown["spentUsd"] == "$1.00"
-    assert shown["remainingUsd"] == "$4.00"
+    # $1.00 of provider cost is CHARGED at $1.05 — the 5 % platform fee — and the
+    # card says both, so "$3.95 left" and "5% platform fee" are read together.
+    assert shown["spentUsd"] == "$1.05"
+    assert shown["providerCostUsd"] == "$1.00"
+    assert shown["markupPercent"] == "5"
+    assert shown["remainingUsd"] == "$3.95"
     assert shown["enforced"] is True
     await check_spend_budget(session, firm_a.ctx(), "llm")  # agrees: still allowed
 

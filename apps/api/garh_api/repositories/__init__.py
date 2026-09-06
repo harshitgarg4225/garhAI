@@ -92,6 +92,10 @@ from garh_api.repositories.otp import (
     generate_otp_code,
     hash_otp_code,
 )
+from garh_api.repositories.platform_settings import (
+    PlatformSetting,
+    PlatformSettingRepository,
+)
 from garh_api.repositories.plots import PlotRepository
 from garh_api.repositories.projects import ProjectPatch, ProjectRepository
 from garh_api.repositories.references import (
@@ -133,6 +137,8 @@ __all__ = [
     "CommentRepository",
     "ComplianceReportRepository",
     "CreditEventRepository",
+    "PlatformSetting",
+    "PlatformSettingRepository",
     "DesignVersionRepository",
     "FirmRepository",
     "OpRepository",

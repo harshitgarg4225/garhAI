@@ -371,6 +371,11 @@ export const spendBudgetSchema = z.object({
   remainingMicros: z.number().int(),
   /** False when the cap is 0 — the budget is reported but nothing refuses on it. */
   enforced: z.boolean().default(true),
+  /** The platform fee on every charge, as a percentage string ("5", "7.25"). */
+  markupPercent: z.string().default('0'),
+  /** What the same work cost before the fee — the provider ledger. */
+  providerCostUsd: z.string().default('$0.00'),
+  providerCostMicros: z.number().int().default(0),
 });
 export const usageSchema = z.object({
   planCode: z.string(),

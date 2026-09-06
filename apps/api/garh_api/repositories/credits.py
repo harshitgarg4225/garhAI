@@ -83,28 +83,54 @@ class CreditEventRepository(Repository[models.CreditEvent, CreditEvent]):
             # Every charge site already writes the job id into meta; lift it so the
             # refund has a column to find, without touching those call sites.
             job_id = _job_id_from_meta(facts)
+        # The platform fee in force NOW, recorded on the row so a later change by the
+        # owner never rewrites this charge. Read from the DB every time: a fee the
+        # owner set a minute ago must apply to the next charge, not the next deploy.
+        from garh_api.billing.markup import charged_micros as charged_for
+        from garh_api.billing.markup import current_markup_bps
+
+        markup_bps = await current_markup_bps(self._session)
+        charged_micros = charged_for(cost_micros, markup_bps)
         row = self._new_row(
             kind=kind,
             qty=qty,
             meta=facts,
             cost_micros=cost_micros,
+            markup_bps=markup_bps,
+            charged_micros=charged_micros,
             user_id=self.ctx.user_id,
             job_id=job_id,
         )
         await self._insert(row)
-        self._log.info("credit_event.recorded", credit_kind=kind, qty=qty, cost_micros=cost_micros)
+        self._log.info(
+            "credit_event.recorded",
+            credit_kind=kind,
+            qty=qty,
+            cost_micros=cost_micros,
+            markup_bps=markup_bps,
+            charged_micros=charged_micros,
+        )
         return self.to_domain(row)
 
     async def spent_micros(self, user_id: uuid.UUID | None = None) -> int:
-        """Everything this architect has ever spent, in micro-dollars.
+        """Everything this architect has ever been CHARGED, in micro-dollars.
 
         Lifetime, not per period: the trial budget is a one-off allowance, so there is
         no window to filter on. ``user_id`` defaults to the caller — a firm-wide total
-        would let one architect's spend close another's door.
+        would let one architect's spend close another's door. Sums ``charged_micros``
+        (cost plus the platform fee), which is what a budget is spent in; the provider
+        ledger is :meth:`cost_micros_total`.
         """
+        return await self._sum(models.CreditEvent.charged_micros, user_id)
+
+    async def cost_micros_total(self, user_id: uuid.UUID | None = None) -> int:
+        """What the same rows actually COST us — the honest provider ledger, no fee."""
+        return await self._sum(models.CreditEvent.cost_micros, user_id)
+
+    async def _sum(self, column: Any, user_id: uuid.UUID | None) -> int:
         target = user_id if user_id is not None else self.ctx.user_id
         stmt = (
-            select(func.coalesce(func.sum(models.CreditEvent.cost_micros), 0))
+            select(func.coalesce(func.sum(column), 0))
             .where(models.CreditEvent.firm_id == self.firm_id)
             .where(models.CreditEvent.refunded_at.is_(None))
         )

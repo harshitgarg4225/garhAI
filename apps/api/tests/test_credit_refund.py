@@ -123,7 +123,9 @@ async def test_the_money_cap_reopens_after_a_refund(session: Any, firm_a: Any) -
     """The lifetime spend the $5 cap reads must not include money we never delivered."""
     job = await _charged_solver_job(session, firm_a, cost_micros=5_000_000)
     repo = CreditEventRepository(session, firm_a.ctx())
-    assert await repo.spent_micros() == 5_000_000
+    # Spent in charges: $5.00 of cost carries the 5 % platform fee.
+    assert await repo.spent_micros() == 5_250_000
+    assert await repo.cost_micros_total() == 5_000_000
     await apply_lifecycle_record(
         session, _lifecycle(job, firm_a.firm_id, queue.JOB_SOLVER_GENERATE, "failed", **FAILED)
     )
