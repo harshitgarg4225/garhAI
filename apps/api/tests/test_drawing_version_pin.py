@@ -16,9 +16,9 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-
 from garh_api.repositories import DesignVersionRepository, OpRepository
 from garh_api.repositories.ops import NewOp
+
 from tests import factories
 from tests.helpers import main_branch, problem
 
