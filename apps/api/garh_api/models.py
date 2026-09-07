@@ -57,6 +57,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 #: users.role — playbook §2 / product spec "admin/member roles".
 USER_ROLES: tuple[str, ...] = ("admin", "member")
+#: Seat an invite promises its invitee. Mirrors ``garh_api.billing.models.SEAT_TYPES``
+#: without importing it (models must not depend on the billing package);
+#: ``tests/test_team_invites.py`` pins the two tuples equal.
+INVITE_SEAT_TYPES: tuple[str, ...] = ("editor", "viewer")
 
 #: projects.status — dashboard status chips (Brief / Options / Design / Drawings).
 PROJECT_STATUSES: tuple[str, ...] = (
@@ -236,6 +240,10 @@ class User(UuidPk, Timestamps, TenantOwned, Base):
     role: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'member'"))
     #: Council of Architecture registration number (appears on municipal sheets).
     coa_number: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: Stamped by the auth service on every completed sign-in (OTP verified, or the
+    #: second factor after it). Null until the first one — the Team page shows that
+    #: as "never", which is the honest answer for an invitee who has not turned up.
+    last_sign_in_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("email", name="uq_users_email"),
@@ -299,6 +307,80 @@ class UserTwoFactor(UuidPk, Timestamps, TenantOwned, Base):
             name="ck_user_two_factor_recovery_hashes_array",
         ),
         Index("ix_user_two_factor_firm_id", "firm_id"),
+    )
+
+
+class FirmInvite(UuidPk, Timestamps, TenantOwned, Base):
+    """An admin's standing offer of a seat to an email address (J01 team setup).
+
+    Acceptance is the ordinary OTP sign-in: the invitee proves control of the address
+    at ``POST /auth/verify`` and :class:`~garh_api.auth.AuthService` turns the open
+    invite into a ``users`` row in *this* firm with *this* role. The token is therefore
+    NOT the credential — it is only what lets the pre-auth status page say "expired" or
+    "withdrawn" honestly to the person holding the link, and only its ``sha256`` is
+    stored (same discipline as ``share_links``).
+
+    ``users.email`` is globally unique, so an address that already belongs to another
+    firm can never accept. That row still exists and still looks pending: the admin
+    creating it must not be able to tell (anti-enumeration), and the invitee learns it
+    the moment they sign in and land in their own practice instead.
+
+    An invite is *pending* while ``accepted_at`` and ``revoked_at`` are both null and
+    ``expires_at`` is in the future; the partial unique index keeps one pending invite
+    per address per firm, which is what turns a double-click into a 409 instead of two
+    emails.
+    """
+
+    __tablename__ = "firm_invites"
+
+    firm_id: Mapped[uuid.UUID] = mapped_column(
+        PgUUID(as_uuid=True), _firm_fk("firm_invites"), nullable=False
+    )
+    email: Mapped[str] = mapped_column(Text, nullable=False)
+    #: The colleague's display name, typed by the admin; editable by them afterwards.
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    role: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'member'"))
+    seat_type: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'editor'"))
+    token_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    invited_by: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_firm_invites_invited_by_users"),
+        nullable=True,
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_sent_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    send_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    accepted_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        PgUUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL", name="fk_firm_invites_accepted_user_id_users"),
+        nullable=True,
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("token_hash", name="uq_firm_invites_token_hash"),
+        CheckConstraint(_in_check("role", USER_ROLES), name="ck_firm_invites_role"),
+        CheckConstraint(
+            _in_check("seat_type", INVITE_SEAT_TYPES), name="ck_firm_invites_seat_type"
+        ),
+        CheckConstraint("email = lower(email)", name="ck_firm_invites_email_lowercase"),
+        CheckConstraint("position('@' in email) > 1", name="ck_firm_invites_email_shape"),
+        CheckConstraint("length(btrim(name)) > 0", name="ck_firm_invites_name_not_blank"),
+        CheckConstraint("send_count >= 1", name="ck_firm_invites_send_count_min"),
+        Index("ix_firm_invites_firm_id", "firm_id"),
+        Index("ix_firm_invites_firm_id_created_at", "firm_id", "created_at"),
+        #: The pre-auth lookup at sign-in: "is there an open invite for this address?"
+        Index("ix_firm_invites_email", "email"),
+        Index(
+            "uq_firm_invites_pending",
+            "firm_id",
+            "email",
+            unique=True,
+            postgresql_where=text("accepted_at IS NULL AND revoked_at IS NULL"),
+        ),
     )
 
 
@@ -1139,6 +1221,7 @@ ALL_TABLES: tuple[str, ...] = (
     "firms",
     "users",
     "user_two_factor",
+    "firm_invites",
     "projects",
     "plots",
     "briefs",
@@ -1200,6 +1283,8 @@ __all__ = [
     "ShareLink",
     "SolverJob",
     "TENANT_OWNED_TABLES",
+    "INVITE_SEAT_TYPES",
+    "FirmInvite",
     "TenantOwned",
     "Timestamps",
     "USER_ROLES",

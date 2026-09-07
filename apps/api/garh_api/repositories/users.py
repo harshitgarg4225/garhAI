@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from garh_api import models
 from garh_api.repositories.domain import User
@@ -102,6 +103,18 @@ class UserRepository(Repository[models.User, User]):
         else:
             await self.flush()
         return self.to_domain(row)
+
+    async def mark_signed_in(self, user_id: uuid.UUID, *, at: datetime | None = None) -> None:
+        """Stamp ``last_sign_in_at``. Called by the auth service after a completed sign-in.
+
+        The caller is the person signing in (their own row) — or, right after an invite
+        is accepted, the row that was created a moment ago in the same transaction.
+        Not an admin action, so no role check; the scoping guarantees the row is in the
+        caller's firm.
+        """
+        row = await self._require_row(user_id)
+        row.last_sign_in_at = at or datetime.now(UTC)
+        await self.flush()
 
     async def set_role(self, user_id: uuid.UUID, role: str) -> User:
         """Promote/demote. Refuses to remove the firm's last admin."""

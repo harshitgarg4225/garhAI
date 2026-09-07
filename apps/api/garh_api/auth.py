@@ -47,6 +47,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from email.message import EmailMessage
 from typing import Any, Final, cast
 
 from redis.asyncio import Redis
@@ -88,16 +89,17 @@ from garh_api.repositories.audit_log import (
     ACTION_AUTH_REFRESH_REUSE,
     ACTION_AUTH_SIGNUP,
     ACTION_AUTH_TOKEN_REFRESHED,
+    ACTION_INVITE_ACCEPTED,
     AuditLogRepository,
 )
 from garh_api.repositories.auth_directory import AuthDirectoryRepository
-from garh_api.repositories.domain import AuthPrincipal
+from garh_api.repositories.domain import AuthPrincipal, InviteOffer
 from garh_api.repositories.otp import (
     OtpCodeRepository,
     generate_otp_code,
 )
 from garh_api.repositories.two_factor import TwoFactorRepository
-from garh_api.repositories.users import normalise_email
+from garh_api.repositories.users import UserRepository, normalise_email
 from garh_api.security import (
     TOKEN_TYPE_ACCESS,
     TOKEN_TYPE_REFRESH,
@@ -152,6 +154,7 @@ AUTH_AUDIT_ACTIONS: tuple[str, ...] = (
     ACTION_AUTH_LOGOUT_ALL,
     ACTION_AUTH_SIGNUP,
     ACTION_AUTH_REFRESH_REUSE,
+    ACTION_INVITE_ACCEPTED,
 )
 
 
@@ -256,6 +259,56 @@ async def _deliver_code(email: str, code: str, ttl_seconds: int, *, settings: Se
     raise ServiceUnavailableError(
         "We couldn't send your sign-in code just now. This server has no email "
         "transport configured — an operator must set SMTP_HOST and SMTP_FROM.",
+        dependency="email",
+        retry_after_seconds=30,
+    )
+
+
+async def deliver_message(
+    message: EmailMessage, *, kind: str, settings: Settings, dev_echo: dict[str, Any]
+) -> str:
+    """Deliver a non-OTP transactional message (the team invite). Returns the channel.
+
+    Same precedence as :func:`_deliver_code`: an installed mailer that can ``send`` a
+    built message wins; otherwise the dev echo logs ``dev_echo`` at WARNING (for an
+    invite that is its URL — a link, not a secret, since acceptance still needs a code
+    sent to the address); otherwise the 503 that names the fix. A mailer installed
+    without a ``send`` (the bare-callable form tests use for the OTP path) counts as
+    no transport for this message kind.
+    """
+    sender = getattr(_mailer, "send", None)
+    recipient = str(message["To"])
+    if sender is not None:
+        try:
+            await sender(message)
+        except Exception as exc:  # blanket on purpose - any transport failure means "not sent"
+            _log.error(
+                "auth.mail_failed",
+                kind=kind,
+                email_domain=email_domain(recipient),
+                error=type(exc).__name__,
+            )
+            raise ServiceUnavailableError(
+                "We couldn't send that email just now.",
+                dependency="email",
+                retry_after_seconds=30,
+            ) from exc
+        return "email"
+
+    if dev_echo_otp_enabled(settings):
+        _log.warning(
+            "auth.mail_dev_echo",
+            kind=kind,
+            email_domain=email_domain(recipient),
+            note="DEV ONLY — no mailer installed; set SMTP_HOST/SMTP_FROM or BREVO_API_KEY",
+            **dev_echo,
+        )
+        return "dev-echo"
+
+    _log.error("auth.mail_undeliverable", kind=kind, email_domain=email_domain(recipient))
+    raise ServiceUnavailableError(
+        "We couldn't send that email just now. This server has no email transport "
+        "configured — an operator must set SMTP_HOST and SMTP_FROM.",
         dependency="email",
         retry_after_seconds=30,
     )
@@ -773,6 +826,47 @@ class RequestOrigin:
 
 
 @dataclass(frozen=True)
+class CodeAudience:
+    """Who a sign-in code is being issued FOR, as far as the audit trail is concerned.
+
+    Two shapes reach :meth:`AuthService._send_code`: an existing member (the row the
+    code will sign in) and an invitee (no row yet — the code will *create* one in the
+    inviting firm). Both have a firm to file the audit row under; only one has a user.
+    """
+
+    firm_id: uuid.UUID
+    user_id: uuid.UUID | None
+    role: str
+    entity: str
+    entity_id: uuid.UUID
+
+    @classmethod
+    def for_principal(cls, principal: AuthPrincipal) -> CodeAudience:
+        return cls(
+            firm_id=principal.firm_id,
+            user_id=principal.user_id,
+            role=principal.role,
+            entity="user",
+            entity_id=principal.user_id,
+        )
+
+    @classmethod
+    def for_invite(cls, offer: InviteOffer) -> CodeAudience:
+        return cls(
+            firm_id=offer.invite.firm_id,
+            user_id=None,
+            role="system",
+            entity="firm_invite",
+            entity_id=offer.invite.id,
+        )
+
+    def ctx(self) -> TenantCtx:
+        if self.user_id is None:
+            return TenantCtx.for_system(self.firm_id)
+        return TenantCtx(firm_id=self.firm_id, user_id=self.user_id, role=self.role)
+
+
+@dataclass(frozen=True)
 class OtpIssueResult:
     """Outcome of ``POST /auth/otp``. Identical for known and unknown addresses."""
 
@@ -935,13 +1029,21 @@ class AuthService:
         await self._consume_email_budget(clean, route="signin")
 
         principal = await self._directory.find_principal_by_email(clean)
-        if principal is None:
-            # No row written, no mail sent, no audit entry (there is no firm to file it
-            # under) — but an identical response body and status.
-            _log.info("auth.otp_requested_unknown", email_domain=email_domain(clean))
-            return self._otp_result()
+        if principal is not None:
+            return await self._send_code(
+                CodeAudience.for_principal(principal), clean, route="signin"
+            )
 
-        return await self._send_code(principal, clean, route="signin")
+        # J01: an address with no account but an OPEN invite is a member-to-be. The
+        # code it gets is the acceptance — see `verify_otp`. Same response either way.
+        offer = await self._directory.find_open_invite_by_email(clean)
+        if offer is not None:
+            return await self._send_code(CodeAudience.for_invite(offer), clean, route="signin")
+
+        # No row written, no mail sent, no audit entry (there is no firm to file it
+        # under) — but an identical response body and status.
+        _log.info("auth.otp_requested_unknown", email_domain=email_domain(clean))
+        return self._otp_result()
 
     async def _consume_email_budget(self, clean_email: str, *, route: OtpRoute) -> None:
         """Per-address limits: the 60s resend cooldown, then the hourly cap.
@@ -979,9 +1081,9 @@ class AuthService:
         )
 
     async def _send_code(
-        self, principal: AuthPrincipal, clean_email: str, *, route: OtpRoute
+        self, audience: CodeAudience, clean_email: str, *, route: OtpRoute
     ) -> OtpIssueResult:
-        """Generate, store and deliver a code for a known principal.
+        """Generate, store and deliver a code for a known member or open invitee.
 
         Assumes the caller has already consumed the relevant rate-limit budget, so
         signup does not pay the per-IP toll twice for one round trip.
@@ -1011,16 +1113,17 @@ class AuthService:
             )
             raise
 
-        await self._audit(principal).record(
+        await AuditLogRepository(self._session, audience.ctx()).record(
             ACTION_AUTH_OTP_REQUESTED,
-            entity="user",
-            entity_id=principal.user_id,
+            entity=audience.entity,
+            entity_id=audience.entity_id,
             meta=self._origin_meta(channel=channel, emailDomain=email_domain(clean_email)),
         )
         _log.info(
             "auth.otp_requested",
-            user_id=str(principal.user_id),
-            firm_id=str(principal.firm_id),
+            user_id=str(audience.user_id) if audience.user_id else None,
+            firm_id=str(audience.firm_id),
+            audience=audience.entity,
             otp_id=str(challenge.id),
             channel=channel,
         )
@@ -1068,6 +1171,15 @@ class AuthService:
             raise OtpVerificationError()
 
         if principal is None:
+            # J01: control of the address is proven and there is no account — if an
+            # open invite names this address, this IS the acceptance. The user row
+            # is created here, in the inviting firm, with the invited role, and the
+            # session below is its first sign-in.
+            offer = await self._directory.find_open_invite_by_email(clean)
+            if offer is not None:
+                principal = await self._accept_invite(offer)
+
+        if principal is None:
             # The code was right, so control of the address is proven — the account
             # just vanished between issue and verify. Naming that is safe and useful.
             # Commit first: `verify` marked the challenge consumed, and a rollback would
@@ -1105,6 +1217,7 @@ class AuthService:
             entity_id=principal.user_id,
             meta=self._origin_meta(),
         )
+        await self._mark_signed_in(principal)
         _log.info(
             "auth.signed_in",
             user_id=str(principal.user_id),
@@ -1112,6 +1225,60 @@ class AuthService:
             user_role=principal.role,
         )
         return session
+
+    async def describe_invite(self, token: str) -> InviteOffer | None:
+        """The pre-auth status lookup behind ``GET /auth/invites/{token}``.
+
+        Per-IP limited like a verify attempt: a token is 256 random bits, so guessing
+        is hopeless, but an unmetered anonymous read is still an unmetered anonymous
+        read. Returns the offer in ANY state — expired and withdrawn included — so the
+        holder of a real link gets the real reason; an unknown token is ``None``.
+        """
+        from garh_api.invites import hash_invite_token
+
+        await enforce_rate_limit(verify_ip_rule(self._settings), self._ip_identity())
+        return await self._directory.find_invite_by_token_hash(hash_invite_token(token))
+
+    async def _mark_signed_in(self, principal: AuthPrincipal) -> None:
+        """Stamp ``users.last_sign_in_at`` — what the Team page prints as "last signed in"."""
+        ctx = TenantCtx(firm_id=principal.firm_id, user_id=principal.user_id, role=principal.role)
+        await UserRepository(self._session, ctx).mark_signed_in(principal.user_id)
+
+    async def _accept_invite(self, offer: InviteOffer) -> AuthPrincipal:
+        """Turn a verified invitee into a member: user row, seat, audit row.
+
+        The seat is best-effort by design. The gate that matters ran when the admin
+        created the invite (:mod:`garh_api.invites` counts open invites against the
+        entitlement); if the plan shrank in between, the honest outcome is a member
+        WITHOUT a seat — visible on the Team page, fixable by the admin — rather than
+        a sign-in refused with a billing error to someone who just proved their
+        address and has no way to act on it.
+        """
+        from garh_api.invites import assign_invited_seat
+
+        principal = await self._directory.accept_invite(offer)
+        seat = await assign_invited_seat(self._session, offer, principal)
+        ctx = TenantCtx(firm_id=principal.firm_id, user_id=principal.user_id, role=principal.role)
+        await AuditLogRepository(self._session, ctx).record(
+            ACTION_INVITE_ACCEPTED,
+            entity="firm_invite",
+            entity_id=offer.invite.id,
+            meta=self._origin_meta(
+                role=principal.role,
+                seatType=offer.invite.seat_type,
+                seatAssigned=seat is not None,
+                invitedBy=str(offer.invite.invited_by) if offer.invite.invited_by else None,
+            ),
+        )
+        _log.info(
+            "auth.invite_accepted",
+            invite_id=str(offer.invite.id),
+            user_id=str(principal.user_id),
+            firm_id=str(principal.firm_id),
+            user_role=principal.role,
+            seat_assigned=seat is not None,
+        )
+        return principal
 
     # -- second factor -------------------------------------------------
     def two_factor(self, principal: AuthPrincipal) -> TwoFactorService:
@@ -1188,6 +1355,7 @@ class AuthService:
                 entity_id=principal.user_id,
                 meta=self._origin_meta(remaining=result.recovery_codes_remaining),
             )
+        await self._mark_signed_in(principal)
         _log.info(
             "auth.signed_in",
             user_id=str(principal.user_id),
@@ -1247,7 +1415,7 @@ class AuthService:
         # Same code path as sign-in, so there is one OTP policy rather than two — but
         # calling `_send_code` directly rather than `request_otp` avoids charging the
         # per-IP bucket twice for a single round trip.
-        return await self._send_code(principal, clean, route="signup")
+        return await self._send_code(CodeAudience.for_principal(principal), clean, route="signup")
 
     # -- refresh -------------------------------------------------------
     async def refresh(self, raw_token: str) -> IssuedSession:
@@ -1493,6 +1661,7 @@ __all__ = [
     "ROTATE_REUSE",
     "ROTATE_UNKNOWN",
     "AuthService",
+    "CodeAudience",
     "IssuedSession",
     "LiveSession",
     "OtpIssueResult",
@@ -1500,6 +1669,7 @@ __all__ = [
     "RequestOrigin",
     "SessionStore",
     "authenticate_access_token",
+    "deliver_message",
     "dev_echo_otp_enabled",
     "family_key",
     "generation_key",

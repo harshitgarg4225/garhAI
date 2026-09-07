@@ -13,6 +13,8 @@ route                         auth  purpose
 ``POST /auth/logout``         cookie  end this session
 ``POST /auth/logout-all``     bearer  end every session (§13 "logout-all")
 ``GET  /auth/me``             bearer  who am I
+``PATCH /auth/me``            bearer  edit my name / CoA number
+``GET  /auth/invites/{token}`` no     what an invite link points at (J01)
 ============================  ====  =========================================
 
 The handlers are deliberately thin: every decision — rate limits, enumeration
@@ -30,14 +32,15 @@ POSTs, so another origin cannot silently mint an access token for a signed-in vi
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Annotated
 
-from fastapi import APIRouter, Request, Response, status
+from fastapi import APIRouter, Path, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from garh_api.auth import IssuedSession
 from garh_api.config import Settings
 from garh_api.deps import Auth, DbSession, Tenant
-from garh_api.errors import PROBLEM_RESPONSES, AuthenticationError
+from garh_api.errors import PROBLEM_RESPONSES, AuthenticationError, InviteInvalidError
 from garh_api.logging import current_request_id
 from garh_api.repositories.firms import FirmRepository
 from garh_api.repositories.users import UserRepository
@@ -47,11 +50,13 @@ from garh_api.schemas.auth import (
     MeResponse,
     OtpIssuedResponse,
     OtpRequest,
+    ProfilePatch,
     SessionResponse,
     SignupRequest,
     UserProfile,
     VerifyRequest,
 )
+from garh_api.schemas.team import InviteStatusOut
 from garh_api.security import (
     REFRESH_COOKIE_NAME,
     clear_refresh_cookie,
@@ -283,6 +288,64 @@ async def me(session: DbSession, ctx: Tenant) -> MeResponse:
     return MeResponse(
         user=UserProfile.from_user(user),
         firm=FirmSummary(id=firm.id, name=firm.name),
+    )
+
+
+@router.patch(
+    "/me",
+    response_model=MeResponse,
+    summary="Edit your own name or CoA number",
+)
+async def patch_me(payload: ProfilePatch, session: DbSession, ctx: Tenant) -> MeResponse:
+    """Self-service: the row is the caller's own, so no admin gate.
+
+    ``coaNumber: ""`` clears the number; an omitted field is left alone.
+    """
+    if ctx.user_id is None:  # pragma: no cover - require_tenant guarantees a user
+        raise AuthenticationError()
+    user = await UserRepository(session, ctx).update_profile(
+        ctx.user_id, name=payload.name, coa_number=payload.coa_number
+    )
+    firm = await FirmRepository(session, ctx).get_current()
+    return MeResponse(
+        user=UserProfile.from_user(user),
+        firm=FirmSummary(id=firm.id, name=firm.name),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Invites — the invitee's pre-auth view (J01)
+# ---------------------------------------------------------------------------
+
+
+InviteToken = Annotated[str, Path(min_length=16, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")]
+
+
+@router.get(
+    "/invites/{token}",
+    response_model=InviteStatusOut,
+    summary="What an invite link points at",
+)
+async def invite_status(token: InviteToken, auth: Auth) -> InviteStatusOut:
+    """Anonymous, per-IP limited. Honest in every state.
+
+    The sign-in screen calls this when opened from an invite email: ``pending``
+    pre-fills the address and names the practice; ``expired`` / ``revoked`` /
+    ``accepted`` explain themselves. An unknown token is a 404 ``invite_invalid``.
+    Nothing here says whether the address has an account anywhere — accepting is
+    still the ordinary OTP sign-in, and that is where the answer lives.
+    """
+    offer = await auth.describe_invite(token)
+    if offer is None:
+        raise InviteInvalidError()
+    invite = offer.invite
+    return InviteStatusOut(
+        status=invite.status(),
+        firm_name=offer.firm_name,
+        invited_by_name=offer.invited_by_name,
+        role=invite.role,
+        email=invite.email,
+        expires_at=invite.expires_at,
     )
 
 

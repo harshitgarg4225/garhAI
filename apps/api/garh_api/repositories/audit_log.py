@@ -42,6 +42,12 @@ ACTION_COMPLIANCE_OVERRIDDEN = "compliance.overridden"
 ACTION_USER_ROLE_CHANGED = "user.role_changed"
 ACTION_USER_REMOVED = "user.removed"
 ACTION_FIRM_SETTINGS_CHANGED = "firm.settings_changed"
+#: J01 team setup. An invite is an offer of a seat; creating, resending and
+#: withdrawing it are admin actions on the firm, acceptance is the invitee's sign-in.
+ACTION_INVITE_CREATED = "invite.created"
+ACTION_INVITE_RESENT = "invite.resent"
+ACTION_INVITE_REVOKED = "invite.revoked"
+ACTION_INVITE_ACCEPTED = "invite.accepted"
 
 AUDIT_ACTIONS: tuple[str, ...] = (
     ACTION_AUTH_OTP_REQUESTED,
@@ -63,6 +69,10 @@ AUDIT_ACTIONS: tuple[str, ...] = (
     ACTION_USER_ROLE_CHANGED,
     ACTION_USER_REMOVED,
     ACTION_FIRM_SETTINGS_CHANGED,
+    ACTION_INVITE_CREATED,
+    ACTION_INVITE_RESENT,
+    ACTION_INVITE_REVOKED,
+    ACTION_INVITE_ACCEPTED,
 )
 
 

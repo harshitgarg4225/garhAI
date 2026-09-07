@@ -1,7 +1,11 @@
-"""Transactional email: the OTP sign-in code, over SMTP (§13 sign-in, §18 config).
+"""Transactional email: the OTP sign-in code and the team invite (§13, §18 config).
 
-One message type lives here — the sign-in code — and one transport: plain SMTP out
-of the stdlib. That is a deliberate zero-new-dependency choice, the same reasoning
+Two message types live here — the sign-in code and the invite to join a practice —
+and two transports: plain SMTP out of the stdlib, and Brevo's HTTPS API. Both
+messages are built by one function each and delivered through the transport's
+``send``, so the OTP and the invite cannot drift between transports.
+
+SMTP is a deliberate zero-new-dependency choice, the same reasoning
 as the rules engine: every transactional-mail service worth using (SES, Postmark,
 Resend, a Gmail relay) speaks SMTP submission on port 587 with STARTTLS, so
 ``smtplib`` covers all of them without a vendor client library each. ``smtplib``
@@ -58,6 +62,61 @@ continue.
 
 Didn't request this code? Ignore this email — nobody can sign in without it.
 """
+
+
+#: Subject of the team invite. ``%s`` is the practice name — the one thing the
+#: invitee scans an inbox for.
+INVITE_SUBJECT_TEMPLATE: Final = "%s invited you to Garh"
+
+_INVITE_BODY_TEMPLATE: Final = """\
+%(inviter)s has invited you to join %(firm)s on Garh as %(role_article)s %(role)s.
+
+Open this link to accept — you will be asked for a sign-in code, which we email to
+this address:
+
+    %(url)s
+
+The link is valid for %(days)d day%(plural)s. If it has lapsed, ask %(inviter)s to
+send a new one from the Team page.
+
+Didn't expect this? Ignore this email — nobody can join a practice without a code
+sent to this address.
+"""
+
+
+def build_invite_message(
+    *,
+    to_email: str,
+    from_addr: str,
+    firm_name: str,
+    inviter_name: str,
+    role: str,
+    url: str,
+    ttl_days: int,
+) -> EmailMessage:
+    """The team-invite email. Same split as :func:`build_otp_message`, same reasons.
+
+    The link carries an opaque token that resolves to an honest status page; it is
+    NOT the credential. Acceptance is the sign-in code sent to this same address,
+    which is why the body says so twice — a forwarded invite must not read as a key.
+    """
+    message = EmailMessage()
+    message["From"] = from_addr
+    message["To"] = to_email
+    message["Subject"] = INVITE_SUBJECT_TEMPLATE % firm_name
+    message.set_content(
+        _INVITE_BODY_TEMPLATE
+        % {
+            "inviter": inviter_name,
+            "firm": firm_name,
+            "role": role,
+            "role_article": "an" if role[:1].lower() in "aeiou" else "a",
+            "url": url,
+            "days": ttl_days,
+            "plural": "" if ttl_days == 1 else "s",
+        }
+    )
+    return message
 
 
 def build_otp_message(
@@ -130,12 +189,20 @@ class SmtpMailer:
         message = build_otp_message(
             to_email=email, from_addr=self.from_addr, code=code, ttl_seconds=ttl_seconds
         )
-        await asyncio.to_thread(self._send_sync, message)
+        await self.send(message)
         _log.info(
             "mailer.otp_sent",
             email_domain=email_domain(email),
             smtp_host=self.host,
         )
+
+    async def send(self, message: EmailMessage) -> None:
+        """Deliver an already-built message (the invite path). Raises on failure.
+
+        The message's ``From`` is whatever the builder stamped; the builders all take
+        ``from_addr`` from this mailer, so the two cannot disagree.
+        """
+        await asyncio.to_thread(self._send_sync, message)
 
     def _send_sync(self, message: EmailMessage) -> None:
         """The blocking SMTP conversation. Runs on a thread, never on the loop."""
@@ -225,6 +292,17 @@ class BrevoHttpMailer:
         message = build_otp_message(
             to_email=email, from_addr=self.from_addr, code=code, ttl_seconds=ttl_seconds
         )
+        await self.send(message)
+        _log.info(
+            "mailer.otp_sent",
+            email_domain=email_domain(email),
+            transport=self.transport,
+            host=self.host,
+        )
+
+    async def send(self, message: EmailMessage) -> None:
+        """Deliver an already-built message. Raises on any non-2xx."""
+        recipient = str(message["To"])
         response = await self._client.post(
             BREVO_SEND_URL,
             json=self._payload(message),
@@ -241,17 +319,11 @@ class BrevoHttpMailer:
                 "mailer.otp_http_rejected",
                 status=response.status_code,
                 brevo_code=detail,
-                email_domain=email_domain(email),
+                email_domain=email_domain(recipient),
             )
             raise RuntimeError(
                 "Brevo rejected the send: HTTP %d %s" % (response.status_code, detail)
             )
-        _log.info(
-            "mailer.otp_sent",
-            email_domain=email_domain(email),
-            transport=self.transport,
-            host=self.host,
-        )
 
 
 def build_mailer(settings: Settings) -> SmtpMailer | BrevoHttpMailer | None:
@@ -278,8 +350,10 @@ def build_mailer(settings: Settings) -> SmtpMailer | BrevoHttpMailer | None:
 
 
 __all__ = [
+    "INVITE_SUBJECT_TEMPLATE",
     "OTP_SUBJECT",
     "SmtpMailer",
+    "build_invite_message",
     "build_mailer",
     "build_otp_message",
 ]

@@ -438,7 +438,7 @@ def otp_per_email_rule(settings: Settings | None = None) -> RateLimitRule:
     )
 
 
-OtpRoute = Literal["signin", "signup"]
+OtpRoute = Literal["signin", "signup", "invite"]
 
 
 def otp_resend_identity(identity: str, route: OtpRoute) -> str:
@@ -448,6 +448,12 @@ def otp_resend_identity(identity: str, route: OtpRoute) -> str:
     sign-in for an address with no account (a 202 that sends nothing, by design) spent
     the cooldown, so the sign-up thirty seconds later — the request that would actually
     have sent a code — was refused with 429. The hourly per-address cap stays shared.
+
+    ``invite`` is the third route: an admin sending (or resending) an invite email to an
+    address. It gets its own cooldown for the same reason — an admin who invites a
+    colleague must not thereby block that colleague's own sign-in request thirty
+    seconds later — while the hourly per-address cap stays shared, because an
+    invite email is still an email to that address.
 
     This is the ONE place the key shape lives: ``AuthService`` charges it and the tests
     that legitimately sign the same user in twice reset it through the same function.

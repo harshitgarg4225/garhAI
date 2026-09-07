@@ -169,6 +169,19 @@ class SignupRequest(AuthModel):
 # ---------------------------------------------------------------------------
 
 
+class ProfilePatch(AuthModel):
+    """``PATCH /auth/me`` — the signed-in person edits their own profile."""
+
+    name: PersonName | None = None
+    #: Not :data:`CoaNumber`: that type's minimum length would refuse the empty string,
+    #: and ``""`` here is a deliberate "remove my CoA number". A non-empty value is
+    #: held to the same ceiling as signup.
+    coa_number: Annotated[str, StringConstraints(max_length=40)] | None = Field(
+        default=None,
+        description="Council of Architecture registration. An empty string clears it.",
+    )
+
+
 class OtpIssuedResponse(AuthModel):
     """Deliberately says nothing about whether the address exists.
 
@@ -273,6 +286,7 @@ __all__ = [
     "OtpIssuedResponse",
     "OtpRequest",
     "PersonName",
+    "ProfilePatch",
     "SessionResponse",
     "SignupRequest",
     "UserProfile",
