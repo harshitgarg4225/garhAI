@@ -1,9 +1,21 @@
 export { TrialUsageCard, UsageInline } from './TrialUsageCard';
 export type { TrialUsageCardProps, UsageInlineProps } from './TrialUsageCard';
-export { describeFee, describeLine, describeSpend, describeSpendBreakdown, lineFor } from './usage';
+export { MoneyText } from './TrialUsageCard';
+export {
+  describeFee,
+  describeLine,
+  describeSpend,
+  describeSpendBreakdown,
+  describeSpendBreakdownSource,
+  describeSpendSource,
+  hasRate,
+  kindLabel,
+  lineFor,
+  splitCharge,
+} from './usage';
 export { useUsage } from './useUsage';
 export type { UsageState } from './useUsage';
-export { formatUsd } from './money';
+export { describeRate, formatInr, formatUsd, inrFor, microsToPaise, parseRate } from './money';
 export {
   bpsToPercent,
   describeChange,

@@ -256,7 +256,8 @@ async def _spend_budget(session: SessionDep, ctx: TenantDep) -> SpendBudgetOut |
     from garh_api.billing.spend import MICROS_PER_USD, format_usd
     from garh_api.repositories import CreditEventRepository
 
-    cap_micros = int(get_settings().spend_cap_usd) * MICROS_PER_USD
+    settings = get_settings()
+    cap_micros = int(settings.spend_cap_usd) * MICROS_PER_USD
     repo = CreditEventRepository(session, ctx)
     spent = await repo.spent_micros()
     cost = await repo.cost_micros_total()
@@ -264,6 +265,9 @@ async def _spend_budget(session: SessionDep, ctx: TenantDep) -> SpendBudgetOut |
         "markup_percent": bps_to_percent(await current_markup_bps(session)),
         "provider_cost_usd": format_usd(cost),
         "provider_cost_micros": cost,
+        # Display rate for the rupee view; the ledger above stays micro-USD.
+        "usd_inr_rate": settings.billing_usd_inr_rate,
+        "usd_inr_rate_as_of": settings.billing_usd_inr_rate_as_of,
     }
     if cap_micros <= 0:
         return SpendBudgetOut(

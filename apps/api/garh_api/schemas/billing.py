@@ -114,6 +114,11 @@ class SpendBudgetOut(ResponseModel):
     markup_percent: StrictStr = "0"
     provider_cost_usd: StrictStr = "$0.00"
     provider_cost_micros: StrictInt = 0
+    #: One dollar in rupees, and the date that number was taken — the web derives every
+    #: rupee it shows from the ``*Micros`` above at this rate and names the date beside
+    #: it. Hand-set (``BILLING_USD_INR_RATE``), never fetched; see ``billing/fx.py``.
+    usd_inr_rate: StrictStr = ""
+    usd_inr_rate_as_of: StrictStr = ""
     #: False when no budget is configured, so a UI can hide the meter rather than
     #: render a confident "$0.00 of $0.00".
     enforced: StrictBool = True

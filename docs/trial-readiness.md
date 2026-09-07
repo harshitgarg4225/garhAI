@@ -298,6 +298,20 @@ Two smaller gaps found in passing:
   reads cost. `test_markup.py`: the arithmetic (half-up, once), the next-charge /
   never-the-last-row negative control, the owner gate (a firm admin is not an owner, an
   empty allowlist refuses everyone), and the usage card showing the percentage.
+- **The fee has a page, and money reads in rupees (2026-09-07).** An owner signed in
+  with an address on `PLATFORM_OWNER_EMAILS` gets a **Platform fee** link on the dashboard
+  (`/platform/fee`): the fee in force, who set it and when (`billing.markup_set_by` beside
+  the value), a field held to the server's own 0–100 / two-decimal contract before any
+  round trip, and a confirm that states the next-charge rule. The link is a courtesy from
+  `GET /admin/billing/markup`'s `canSet`; the PUT's 403 is the gate, and another firm's
+  admin reads everything and changes nothing (`test_markup.py`, 27). Budgets and charges
+  now show in rupees at ONE dated, hand-set rate (`BILLING_USD_INR_RATE` /
+  `_AS_OF`, refused at boot if malformed, never fetched live) with the dollar source and
+  the rate's date on hover; the fee is a separate line from provider cost and the three
+  figures add up because the fee is derived as their difference. The ledger stays
+  micro-USD — `test_inr_display.py` asserts nothing rupee-shaped leaves the API, and it
+  pins the same conversion table `money.test.ts` pins, so the two implementations
+  cannot drift by a paisa without one going red.
 - **Generate on a plan the solver itself had produced answered "No plan cleared the
   quality checks" twice, and charged for both (found by the browser UAT, 2026-09-06).**
   CP-SAT under a wall-clock budget with eight workers is not deterministic; the plan

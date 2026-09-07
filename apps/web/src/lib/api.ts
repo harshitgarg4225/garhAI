@@ -376,6 +376,13 @@ export const spendBudgetSchema = z.object({
   /** What the same work cost before the fee — the provider ledger. */
   providerCostUsd: z.string().default('$0.00'),
   providerCostMicros: z.number().int().default(0),
+  /**
+   * One dollar in rupees and the date that number was taken — hand-set on the
+   * server, never fetched. Empty from an older api, in which case the UI shows
+   * dollars rather than inventing a rate. Every rupee on screen derives from this.
+   */
+  usdInrRate: z.string().default(''),
+  usdInrRateAsOf: z.string().default(''),
 });
 export const usageSchema = z.object({
   planCode: z.string(),

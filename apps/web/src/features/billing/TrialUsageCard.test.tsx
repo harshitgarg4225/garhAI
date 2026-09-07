@@ -24,6 +24,11 @@ const USAGE = usageSchema.parse({
     spentMicros: 40_000,
     remainingMicros: 4_960_000,
     enforced: true,
+    markupPercent: '5',
+    providerCostUsd: '$0.03',
+    providerCostMicros: 38_095,
+    usdInrRate: '84.00',
+    usdInrRateAsOf: '2026-09-01',
   },
 });
 
@@ -42,13 +47,37 @@ afterEach(() => {
 });
 
 describe('TrialUsageCard', () => {
-  it('shows generations used, money left and the reset date', () => {
+  it('shows generations used, money left in rupees and the reset date', () => {
     act(() => root.render(<TrialUsageCard usage={USAGE} />));
     const text = container.textContent ?? '';
     expect(text).toContain('Generations: 2 of 10 used this period');
-    expect(text).toContain('Budget: $4.96 of $5.00 left');
+    expect(text).toContain('Budget: ₹416.64 of ₹420.00 left (5% platform fee)');
     expect(text).toContain('resets on 01-10-2026');
     expect(text).toContain('refunded automatically');
+  });
+
+  it('keeps the dollar source on hover and separates the fee from provider cost', () => {
+    act(() => root.render(<TrialUsageCard usage={USAGE} />));
+    // Collected rather than selected by `[title*=…]`: jsdom's selector engine trips
+    // on the `+`/`=` inside the breakdown source.
+    const titles = Array.from(container.querySelectorAll('[title]')).map((el) =>
+      el.getAttribute('title'),
+    );
+    expect(titles).toContain('$4.96 of $5.00 at ₹84.00 per $ (rate of 2026-09-01)');
+    expect(container.textContent).toContain(
+      'Provider cost ₹3.20 + platform fee ₹0.16 = ₹3.36 charged',
+    );
+    expect(titles).toContain('$0.03 + $0.00 = $0.04 at ₹84.00 per $ (rate of 2026-09-01)');
+  });
+
+  it('shows dollars, with nothing to hover, when the api sends no rate', () => {
+    const old = {
+      ...USAGE,
+      spend: { ...USAGE.spend!, usdInrRate: '', usdInrRateAsOf: '' },
+    };
+    act(() => root.render(<TrialUsageCard usage={old} />));
+    expect(container.textContent).toContain('Budget: $4.96 of $5.00 left (5% platform fee)');
+    expect(container.querySelector('[title]')).toBeNull();
   });
 
   it('turns red and says so when the allowance is used up', () => {
@@ -72,11 +101,12 @@ describe('TrialUsageCard', () => {
 });
 
 describe('UsageInline', () => {
-  it('is one line for a toolbar', () => {
+  it('is one line for a toolbar, in rupees, with the dollars on hover', () => {
     act(() => root.render(<UsageInline usage={USAGE} />));
     expect(container.textContent).toBe(
-      'Generations: 2 of 10 used this period · Budget: $4.96 of $5.00 left',
+      'Generations: 2 of 10 used this period · Budget: ₹416.64 of ₹420.00 left (5% platform fee)',
     );
+    expect(container.querySelector('span')?.getAttribute('title')).toContain('$4.96 of $5.00');
   });
 
   it('renders nothing while there is nothing to say', () => {

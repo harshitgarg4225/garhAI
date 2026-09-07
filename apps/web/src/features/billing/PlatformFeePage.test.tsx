@@ -79,6 +79,8 @@ const USAGE = {
     markupPercent: '5',
     providerCostUsd: '$1.00',
     providerCostMicros: 1_000_000,
+    usdInrRate: '84.00',
+    usdInrRateAsOf: '2026-09-01',
   },
 };
 
@@ -193,7 +195,7 @@ describe('PlatformFeePage', () => {
     expect(container.querySelector('[data-testid="usage-fee"]')?.textContent).toBe(
       '5% platform fee',
     );
-    expect(text).toContain('Provider cost $1.00 + platform fee $0.05 = $1.05 charged');
+    expect(text).toContain('Provider cost ₹84.00 + platform fee ₹4.20 = ₹88.20 charged');
     expect(container.querySelector('form')).not.toBeNull();
   });
 
