@@ -163,12 +163,23 @@ export function OptionsPanel({
 
   const showEmptyState = job === null;
   const failed = job !== null && job.status === 'failed';
+  const unreadable = outcome?.unreadable ?? 0;
+  // "No plan cleared" is the solver's verdict and only the solver's: a succeeded job
+  // whose delivered options this build could not parse is a client defect, shown as
+  // one, never as advice to loosen the brief.
   const succeededEmpty =
     job !== null &&
     job.status === 'succeeded' &&
     !loading &&
     outcome !== null &&
-    options.length === 0;
+    options.length === 0 &&
+    unreadable === 0;
+  const deliveredButUnreadable =
+    job !== null &&
+    job.status === 'succeeded' &&
+    !loading &&
+    options.length === 0 &&
+    unreadable > 0;
 
   return (
     <div className={className}>
@@ -214,6 +225,24 @@ export function OptionsPanel({
           </div>
         ) : null}
 
+        {deliveredButUnreadable ? (
+          <div role="alert" className="rounded-md border border-fail-line bg-fail-soft p-3">
+            <p className="text-sm font-medium text-fail-ink">
+              {unreadable === 1
+                ? 'A plan option arrived, but this screen could not read it.'
+                : `${unreadable} plan options arrived, but this screen could not read them.`}
+            </p>
+            <p className="mt-1 text-xs text-fail-ink">
+              The generator delivered plans in a shape this version of the app does not understand.
+              Reload; if it persists, the app needs an update — the plans are saved and nothing was
+              charged twice.
+            </p>
+            <Button className="mt-2" size="sm" variant="secondary" onClick={reload}>
+              <Icon name="refresh" size={14} /> Reload options
+            </Button>
+          </div>
+        ) : null}
+
         {succeededEmpty ? (
           <EmptyState
             icon="info"
@@ -230,6 +259,13 @@ export function OptionsPanel({
 
         {options.length > 0 ? (
           <>
+            {unreadable > 0 ? (
+              <p role="status" className="text-xs text-fail-ink">
+                {unreadable === 1
+                  ? 'One more option arrived that this screen could not read.'
+                  : `${unreadable} more options arrived that this screen could not read.`}
+              </p>
+            ) : null}
             {banner !== null ? (
               <p
                 role="status"

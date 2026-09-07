@@ -23,6 +23,8 @@
 
 import { z } from 'zod';
 
+import { complianceValueSchema } from '../../lib/schemas';
+
 // ---------------------------------------------------------------------------
 // Shared primitives
 // ---------------------------------------------------------------------------
@@ -83,8 +85,15 @@ export const optionComplianceRowSchema = z.object({
   status: z.enum(['pass', 'warn', 'fail', 'not_applicable']).catch('not_applicable'),
   title: z.string().nullish(),
   message: z.string().nullish(),
-  actual: z.union([z.number(), z.string(), z.boolean(), z.null()]).optional(),
-  limit: z.union([z.number(), z.string(), z.boolean(), z.null()]).optional(),
+  /**
+   * The same value shape the Compliance tab reads (`lib/schemas.complianceValueSchema`):
+   * the seven vastu zone rules report a LIST of zones and an `{allow}` object. A
+   * scalar-only union here made every option with vastu rows fail this schema, and
+   * `readSolveOutcome` dropped them one by one — three delivered plans rendered as
+   * "No plan cleared the quality checks".
+   */
+  actual: complianceValueSchema.optional(),
+  limit: complianceValueSchema.optional(),
   cite: z.string().nullish(),
   /** A hard rule is a §5.6 gate; presentable options always pass these. */
   hard: z.boolean().catch(false).default(false),
@@ -164,6 +173,13 @@ export const solverJobDetailSchema = z.object({
   /** SolverJobOut shape: options at the top level. */
   options: z.array(z.unknown()).nullish(),
   optionCount: z.number().int().catch(0).default(0),
+  /**
+   * The solver's own sentence for the row (`SolverJobOut.banner`). It has to be
+   * DECLARED here: zod strips unknown keys on parse, so the fallback read in
+   * `readSolveOutcome` saw `undefined` for every plain `GET /solver-jobs/:id` and
+   * the "why nothing cleared" banner never reached the screen.
+   */
+  banner: z.string().nullish(),
   /** Queue envelope shape: options under result. */
   result: z.record(z.unknown()).nullish(),
   queueDepth: z.number().int().nullish(),
@@ -184,12 +200,20 @@ export interface SolveOutcome {
   readonly error: string | null;
   /** The params the job ran with — seed family, locked rooms (for re-runs). */
   readonly params: Readonly<Record<string, unknown>>;
+  /**
+   * Options the API delivered that this build could not parse. Never silently
+   * zero: a delivered plan that the screen cannot show is a client defect, and
+   * the panel says so instead of blaming the plot.
+   */
+  readonly unreadable: number;
 }
 
 /**
  * Normalise the two row shapes into one outcome. Options that fail to parse
- * individually are dropped (never rendered half-formed) rather than sinking
- * the ones that did parse.
+ * individually are not rendered half-formed and do not sink the ones that did
+ * parse — but they are COUNTED (`unreadable`) and logged with the failing path,
+ * because a plan the worker delivered and the screen dropped is a client bug,
+ * and the old silent drop presented it as "no plan cleared the checks".
  */
 export function readSolveOutcome(row: SolverJobDetail): SolveOutcome {
   const rawList: unknown[] = Array.isArray(row.options)
@@ -199,9 +223,20 @@ export function readSolveOutcome(row: SolverJobDetail): SolveOutcome {
       : [];
 
   const options: PlanOption[] = [];
+  let unreadable = 0;
   for (const raw of rawList) {
     const parsed = planOptionSchema.safeParse(raw);
-    if (parsed.success) options.push(parsed.data);
+    if (parsed.success) {
+      options.push(parsed.data);
+      continue;
+    }
+    unreadable += 1;
+    const first = parsed.error.issues[0];
+    console.warn(
+      '[options] a delivered plan option failed the client schema at %s: %s',
+      first !== undefined ? first.path.join('.') : '?',
+      first !== undefined ? first.message : 'unknown issue',
+    );
   }
   options.sort((a, b) => a.rank - b.rank);
 
@@ -213,7 +248,7 @@ export function readSolveOutcome(row: SolverJobDetail): SolveOutcome {
   // and that is the path that survives a plain `GET /solver-jobs/:id`. Without the
   // fallback an architect whose Generate produced nothing gets no reason at all —
   // the blank screen this field exists to prevent.
-  const banner = row.result?.banner ?? (row as { banner?: unknown }).banner;
+  const banner = row.result?.banner ?? row.banner;
   const considered = row.result?.considered;
   const rejected = row.result?.rejectedByGates;
 
@@ -227,6 +262,7 @@ export function readSolveOutcome(row: SolverJobDetail): SolveOutcome {
     rejectedByGates: typeof rejected === 'number' ? rejected : 0,
     error: row.error ?? null,
     params: row.params,
+    unreadable,
   };
 }
 
