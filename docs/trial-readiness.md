@@ -380,7 +380,24 @@ Two smaller gaps found in passing:
   Also set on the api service: `TRUSTED_PROXY_HOPS=1`, because behind Railway's edge
   every browser shared ONE per-IP bucket of 20 sign-in requests an hour — the fourth
   trial architect would have been throttled by the first three.
-- **Anthropic and Stability keys** if the trial is meant to exercise the copilot or
-  real renders rather than mocks.
+- **Production connections, as read from the deployed stack's own boot lines
+  (2026-09-07, Railway project `garhai`, environment `production`).** Live: the
+  copilot provider is `anthropic` (key set on the api service), the render provider is
+  `stability` on the render worker (key set; `render.provider.selected
+  base_url=https://api.stability.ai`), sign-in mail goes through Brevo's HTTP transport
+  (`auth.mailer_installed transport=brevo-http`), object storage is the project's
+  MinIO with a public endpoint for browser downloads, Alembic runs on boot
+  (`API_MIGRATE_ON_BOOT`), the solver worker boots with `seed_rounds=3`, and the
+  platform fee reads `BILLING_MARKUP_PERCENT` with `PLATFORM_OWNER_EMAILS` naming the
+  owner. Not live, and needing the owner's accounts rather than code: billing is the
+  `mock` provider (no `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET`), so plans and
+  checkout exercise the mock; Sentry is wired but off (no `SENTRY_DSN` on any
+  service); there is no custom domain, the web serves at the Railway-generated
+  hostname and proxies the api over the private network. One setting to change with
+  a rollback plan: the api boots with `APP_ENV=dev`, which leaves `/docs` open and
+  skips the production readiness validator in `config.py`; `APP_ENV=production`
+  turns both on and will refuse to boot until every variable the validator names is
+  set (the S3 credentials must not be the MinIO defaults). The keys pasted into chat
+  during this work (Brevo, Anthropic, Stability) must be rotated.
 - **Seed rule values.** Fine for a trial provided the UI's confidence/citation chips
   are visible and no one submits to a municipality on them.
