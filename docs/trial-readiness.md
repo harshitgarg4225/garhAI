@@ -341,6 +341,19 @@ Two smaller gaps found in passing:
   is refused, and the message says to generate or draw a plan.
   `test_drawing_version_pin.py`: minted at the head, re-minted after an edit and
   reused without one (the negative control), the export path, and the honest refusal.
+- **The drawn set never appeared: the Sheets tab was listening on the wrong stream
+  (found by the browser UAT, 2026-09-07).** The worker drew ten sheets in one second
+  and the API persisted them, but the tab stayed on "No drawings yet" for four
+  minutes. Two client faults stacked: the export-job row's `kind` is the export kind
+  ("sheets", "dxf", …), and the generic job schema's `catch('solver')` relabelled
+  every sheet job a solver job — the same trap the render row had already fallen
+  into and been pulled out of; and the SSE path table guessed `/drawings-jobs/…`
+  "until the drawings router lands", while the router had landed as
+  `/export-jobs/:id/events`. The export row is now mirrored as sent and stamped
+  (`kind: drawings`, `type: sheets | export.<kind>`), the table names the route the
+  API mounts, and `schemas.jobs.test.ts` pins both — including that no drawings-worker
+  row can ever parse as a solver job, and that the table agrees with the `eventsUrl`
+  the server sends on the row.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

@@ -936,11 +936,40 @@ export const sheetSchema = z.object({
 });
 export type Sheet = z.infer<typeof sheetSchema>;
 
-export const exportJobSchema = jobSchema.extend({
-  /** Short-lived signed URL (§13: ≤10 min). Absent until the job succeeds. */
-  downloadUrl: z.string().nullable().default(null),
-  expiresAt: isoDateTime.nullable().default(null),
-});
+/**
+ * `ExportJobOut` (apps/api/garh_api/schemas/jobs.py) — the row for a sheet set OR an
+ * export, both run by the drawings worker — and the same trap the render row fell
+ * into above. Its `kind` is the export kind (`sheets`, `pdf-set`, `dxf`, `gltf`,
+ * `png-pack`), not a worker kind, so parsed through `jobSchema`'s
+ * `z.enum(JOB_KINDS).catch('solver')` every sheet job came back labelled `solver`:
+ * the jobs store opened its progress stream against `/solver-jobs/:id/events` (404,
+ * silent), never saw the job finish, and the Sheets tab sat on "No drawings yet" over
+ * a set the worker had drawn in one second. Found by the browser UAT.
+ *
+ * So the row is mirrored as the server sends it and then stamped: `kind` is the
+ * worker (`drawings`) and `type` carries the export kind (`sheets`, `export.dxf`, …),
+ * which is the discriminator `toUiKind` already reads.
+ */
+export const EXPORT_JOB_KINDS = ['sheets', 'pdf-set', 'dxf', 'gltf', 'png-pack'] as const;
+export type ExportJobKind = (typeof EXPORT_JOB_KINDS)[number];
+
+export const exportJobSchema = jobSchema
+  .omit({ kind: true, type: true })
+  .extend({
+    /** The export kind as the server names it — never a worker kind. */
+    kind: z.string(),
+    /** Short-lived signed URL (§13: ≤10 min). Absent until the job succeeds. */
+    downloadUrl: z.string().nullable().default(null),
+    expiresAt: isoDateTime.nullable().default(null),
+    /** Where the server says this job streams from — declared so it survives parsing. */
+    eventsUrl: z.string().nullable().default(null),
+  })
+  .transform((row) => ({
+    ...row,
+    kind: 'drawings' as const,
+    exportKind: row.kind,
+    type: row.kind === 'sheets' ? 'sheets' : `export.${row.kind}`,
+  }));
 export type ExportJob = z.infer<typeof exportJobSchema>;
 
 export const SHARE_SECTIONS = ['plan', 'three_d', 'renders', 'sheets', 'compliance'] as const;

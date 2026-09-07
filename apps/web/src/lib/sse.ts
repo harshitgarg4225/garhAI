@@ -32,15 +32,25 @@ import {
   type ProgressEvent,
 } from './schemas';
 
-/** Path of the SSE endpoint for each job kind (§11). */
+/**
+ * Path of the SSE endpoint for each job kind (§11).
+ *
+ * The drawings worker's jobs — sheet sets and exports alike — stream from
+ * `/export-jobs/:id/events` (`garh_api.routers.jobs.export_job_events`, the one
+ * route the API mounts for them). This table once guessed `/drawings-jobs/…`
+ * "until the drawings router lands"; the router had landed under the other
+ * name, and the guess was never checked against it.
+ */
 const EVENT_PATHS: Readonly<Record<JobKind, (jobId: string) => string>> = {
   solver: (jobId) => `/solver-jobs/${encodeURIComponent(jobId)}/events`,
   render: (jobId) => `/render-jobs/${encodeURIComponent(jobId)}/events`,
-  // §11 lists SSE for solver and render explicitly. Sheet/export generation is
-  // the same worker machinery (queue.py: JOB_KIND_DRAWINGS), so it gets the
-  // matching path; confirm when the drawings router lands.
-  drawings: (jobId) => `/drawings-jobs/${encodeURIComponent(jobId)}/events`,
+  drawings: (jobId) => `/export-jobs/${encodeURIComponent(jobId)}/events`,
 };
+
+/** The server-relative SSE path for a job — exported so a test can pin the table. */
+export function eventPathFor(kind: JobKind, jobId: string): string {
+  return EVENT_PATHS[kind](jobId);
+}
 
 export interface JobEventHandlers {
   /** Every event, in `seq` order, duplicates already removed. */
