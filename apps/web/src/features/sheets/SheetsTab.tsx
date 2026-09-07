@@ -121,6 +121,38 @@ export function SheetsTab(): JSX.Element {
     }
   }, [reload, reloadTray, sheetJobs]);
 
+  // An export the architect started on THIS visit downloads on its own the moment it
+  // succeeds — once. Jobs that were already finished when the tab opened are not
+  // re-fired (that would rain files on every visit); their Download link is in the
+  // job list. A popup blocker may swallow the automatic open; the link remains.
+  const seenActive = useRef<Set<string>>(new Set());
+  const autoOpened = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const job of sheetJobs) {
+      if (job.kind !== 'export') continue;
+      if (job.status === 'queued' || job.status === 'running') {
+        seenActive.current.add(job.id);
+        continue;
+      }
+      if (
+        job.status === 'succeeded' &&
+        job.resultHref !== undefined &&
+        seenActive.current.has(job.id) &&
+        !autoOpened.current.has(job.id)
+      ) {
+        autoOpened.current.add(job.id);
+        const anchor = document.createElement('a');
+        anchor.href = job.resultHref;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        anchor.download = '';
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+      }
+    }
+  }, [sheetJobs]);
+
   // -- actions ------------------------------------------------------------
   const generate = useCallback(async () => {
     setGenerating(true);
@@ -159,7 +191,8 @@ export function SheetsTab(): JSX.Element {
         toast({
           severity: 'info',
           title: 'Preparing your download',
-          description: 'It appears in the jobs list below, then downloads on its own.',
+          description:
+            'It appears in the jobs list below and downloads on its own when it is ready; the Download link stays there for ten minutes.',
         });
       } catch (cause: unknown) {
         toast({

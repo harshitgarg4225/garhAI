@@ -394,6 +394,23 @@ Two smaller gaps found in passing:
   Also set on the api service: `TRUSTED_PROXY_HOPS=1`, because behind Railway's edge
   every browser shared ONE per-IP bucket of 20 sign-in requests an hour — the fourth
   trial architect would have been throttled by the first three.
+- **"PDF set" and "DXF" produced a job and never a file (found by the browser UAT,
+  2026-09-07).** The export ran, the job row carried a signed link, and the view-model
+  mapping dropped it, so the Sheets tab's job list showed a green tick and nothing to
+  click; the toast promised the file would "download on its own" from code that never
+  opened anything. Two more faults behind that one: the signed link redirected to the
+  object store with a Content-Disposition on the redirect, which browsers discard —
+  a PDF would have rendered in a tab rather than saved — and a 307 to an unsigned
+  header override would not verify. Now the row's link reaches the job card as a real
+  download link (right-click save works, popup blockers do not matter), an export
+  started on this visit opens once on success, and both export and per-sheet
+  redemptions presign S3's `response-content-disposition` so the FINAL response is an
+  attachment with the file's name. `test_download_disposition.py`: the override rides
+  in the signed query and changes the signature, the plain link carries none (the
+  negative control), only `response-*` overrides may be signed, the filename is
+  sanitised, and a round trip through the local object store answers with the
+  attachment header. `JobCard.test.tsx`: a finished export renders the link, a
+  running one does not, and `toJobVM` names the kind.
 - **Production connections, as read from the deployed stack's own boot lines
   (2026-09-07, Railway project `garhai`, environment `production`).** Live: the
   copilot provider is `anthropic` (key set on the api service), the render provider is

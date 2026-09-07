@@ -173,6 +173,10 @@ export interface JobDTO {
   queuePosition?: number | null | undefined;
   createdAt?: string | null | undefined;
   error?: Problem | null | undefined;
+  /** Signed, short-lived link to the artefact once an export has succeeded (§13). */
+  downloadUrl?: string | null | undefined;
+  /** The export kind as the server names it (`pdf-set`, `dxf`, …) for export jobs. */
+  exportKind?: string | null | undefined;
 }
 
 export interface JobsSlice {
@@ -270,7 +274,22 @@ export function toProjectSummary(dto: ProjectDTO): ProjectSummaryVM {
   };
 }
 
+const EXPORT_KIND_LABEL: Readonly<Record<string, string>> = {
+  'pdf-set': 'PDF set',
+  dxf: 'DXF',
+  gltf: '3D model',
+  'png-pack': 'PNG pack',
+};
+
 export function toJobVM(dto: JobDTO): JobVM {
+  // A finished export's whole point is the file. The signed link the row carries used
+  // to be dropped here, so the Sheets tab's job list showed a green tick and nothing
+  // to click — found by the browser UAT.
+  const href = dto.status === 'succeeded' && dto.downloadUrl ? dto.downloadUrl : undefined;
+  const exportLabel =
+    dto.kind === 'export'
+      ? `Download ${EXPORT_KIND_LABEL[dto.exportKind ?? ''] ?? 'file'}`
+      : undefined;
   return {
     id: dto.id,
     kind: dto.kind,
@@ -280,6 +299,8 @@ export function toJobVM(dto: JobDTO): JobVM {
     queuePosition: dto.queuePosition ?? null,
     startedAt: dto.createdAt ?? undefined,
     error: dto.error ?? undefined,
+    resultHref: href,
+    resultLabel: href !== undefined ? exportLabel : undefined,
   };
 }
 

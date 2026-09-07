@@ -235,7 +235,7 @@ def s_sheets(page):
     deadline = time.time() + 240
     while time.time() < deadline:
         body = page.locator("body").inner_text()
-        numbers = sorted(set(re.findall(r"\bA-0\d[a-d]?\b", body)))
+        numbers = sorted(set(re.findall(r"\bA-0\d[A-Da-d]?\b", body)))
         if len(numbers) >= 5 and not re.search(
             r"drawing the set|generating|queued|in progress", body, re.I
         ):
@@ -248,22 +248,40 @@ def s_sheets(page):
 
 @step("Download the PDF set and the DXF through the app")
 def s_downloads(page):
+    """Each export is a background job whose card grows a Download link; the link is
+    the signed URL itself, so the bytes are checked by following it — the way a
+    right-click "save link as" would — rather than trusting a browser download event
+    that a popup blocker can swallow."""
     section = page.locator("section[aria-label=Downloads]")
     assert section.count(), "no Downloads section on the sheets tab"
     hits = []
-    for label in ("PDF", "DXF"):
-        btn = section.get_by_role("button", name=re.compile(label, re.I))
+    for kind, label in (("pdf-set", "PDF set"), ("dxf", "DXF")):
+        btn = page.locator("[data-testid=export-%s]" % kind)
         if not btn.count():
             hits.append(label + ": no control")
             continue
+        btn.first.click()
+        link = page.get_by_role("link", name=re.compile("Download " + re.escape(label), re.I))
         try:
-            with page.expect_download(timeout=180_000) as dl:
-                btn.first.click()
-            path = dl.value.path()
-            size = os.path.getsize(path) if path else -1
-            hits.append("%s: %s (%d bytes)" % (label, dl.value.suggested_filename, size))
+            link.first.wait_for(timeout=180_000)
         except PWTimeout:
-            hits.append(label + ": no download within 180 s")
+            hits.append(label + ": no download link within 180 s")
+            continue
+        href = link.first.get_attribute("href") or ""
+        resp = httpx.get(href, follow_redirects=True, timeout=60)
+        disposition = resp.headers.get("content-disposition", "")
+        hits.append(
+            "%s: %s %d bytes, %s, %s"
+            % (
+                label,
+                resp.status_code,
+                len(resp.content),
+                resp.headers.get("content-type", "?"),
+                disposition or "no disposition",
+            )
+        )
+        assert resp.status_code == 200 and len(resp.content) > 1000, hits[-1]
+        assert disposition.startswith("attachment"), "not served as an attachment: " + hits[-1]
     assert all("bytes" in h for h in hits), "; ".join(hits)
     return "; ".join(hits)
 

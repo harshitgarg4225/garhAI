@@ -181,7 +181,12 @@ def areas_object_key(firm_id: Any, job_id: str) -> str:
 
 
 def fresh_sheet_url(
-    sheet: Any, fmt: str, firm_id: Any, settings: Settings | None = None
+    sheet: Any,
+    fmt: str,
+    firm_id: Any,
+    settings: Settings | None = None,
+    *,
+    attachment_filename: str | None = None,
 ) -> str | None:
     """A working link for one sheet artefact, signed now.
 
@@ -199,7 +204,21 @@ def fresh_sheet_url(
     if value.startswith(("http://", "https://", "file://")):
         return value
     cfg = settings or get_settings()
-    return _sigv4_presign("GET", value, ttl_seconds=cfg.s3_signed_url_ttl_seconds, settings=cfg)
+    return _sigv4_presign(
+        "GET",
+        value,
+        ttl_seconds=cfg.s3_signed_url_ttl_seconds,
+        settings=cfg,
+        response_headers=attachment_headers(attachment_filename),
+    )
+
+
+def attachment_headers(filename: str | None) -> dict[str, str] | None:
+    """The S3 response override that makes a presigned GET download rather than display."""
+    if not filename:
+        return None
+    safe = "".join(ch for ch in filename if ch.isalnum() or ch in "-_. ").strip() or "download"
+    return {"response-content-disposition": 'attachment; filename="%s"' % safe}
 
 
 def sheet_formats_available(sheet: Any) -> list[str]:

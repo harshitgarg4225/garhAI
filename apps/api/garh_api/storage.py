@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from urllib.parse import quote, urlparse
 
@@ -55,8 +56,17 @@ def sigv4_presign(
     ttl_seconds: int,
     settings: Settings | None = None,
     now: datetime | None = None,
+    response_headers: Mapping[str, str] | None = None,
 ) -> str:
-    """AWS Signature V4 presigned URL (query auth, UNSIGNED-PAYLOAD), path-style."""
+    """AWS Signature V4 presigned URL (query auth, UNSIGNED-PAYLOAD), path-style.
+
+    ``response_headers`` are S3's ``response-*`` overrides (``response-content-disposition``
+    and friends): they ride in the signed query string, so the object store answers the
+    GET with the header the caller asked for. That is how a download link makes the
+    browser SAVE a PDF instead of rendering it in a tab — a 307 that carries its own
+    Content-Disposition is discarded by the browser, which only honours the final
+    response's.
+    """
     cfg = settings or get_settings()
     endpoint = urlparse(cfg.s3_endpoint_url)
     host = endpoint.netloc
@@ -73,6 +83,10 @@ def sigv4_presign(
         "X-Amz-Expires": str(int(ttl_seconds)),
         "X-Amz-SignedHeaders": "host",
     }
+    for name, value in (response_headers or {}).items():
+        if not name.startswith("response-"):
+            raise ValueError("only S3 response-* overrides may be presigned: %r" % name)
+        params[name] = value
     canonical_query = "&".join(
         "%s=%s" % (quote(name, safe="-_.~"), quote(value, safe="-_.~"))
         for name, value in sorted(params.items())

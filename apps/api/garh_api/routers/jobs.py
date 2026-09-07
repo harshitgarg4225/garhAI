@@ -1188,24 +1188,32 @@ async def redeem_download(token: str, request: Request) -> Response:
         # (§13), so a link opened fifteen minutes later landed on an S3 "Request has
         # expired" page. Same fix, same reason, as the sheet and render branches below.
         from garh_api.routers.imports import _sigv4_presign
-        from garh_api.routers.sheets import EXPORT_ARTEFACTS, export_object_key
+        from garh_api.routers.sheets import (
+            EXPORT_ARTEFACTS,
+            attachment_headers,
+            export_object_key,
+        )
 
         settings = get_settings()
+        filename = "garh-export.%s" % _EXPORT_EXTENSIONS.get(record.kind, "bin")
         # The render client pack also lands as a `png-pack` export record, but it built
         # its own zip under `renders/{firm}/packs/{pack}.zip` — re-signing the drawings
         # key for it would 404. Its `packId` param is the discriminator.
         is_render_pack = bool(dict(record.params or {}).get("packId"))
         if record.kind in EXPORT_ARTEFACTS and not is_render_pack:
+            # Signed as an attachment: the 307 below carries a Content-Disposition too,
+            # but browsers only honour the header on the FINAL response, so a PDF set
+            # opened in a tab instead of saving. Found by the browser UAT.
             target = _sigv4_presign(
                 "GET",
                 export_object_key(firm_id, record.id, record.kind),
                 ttl_seconds=settings.s3_signed_url_ttl_seconds,
                 settings=settings,
+                response_headers=attachment_headers(filename),
             )
         else:
             # Kinds minted elsewhere (the render pack builds its own zip key).
             target = record.download_url
-        filename = "garh-export.%s" % _EXPORT_EXTENSIONS.get(record.kind, "bin")
     else:
         # Sheet and render artifacts are rows, so redemption re-reads them through a
         # firm-scoped repository. The token's firm id is only a lookup hint — the
@@ -1226,8 +1234,10 @@ async def redeem_download(token: str, request: Request) -> Response:
                 # exactly what `renders.fresh_image_url` does for the same reason.
                 from garh_api.routers.sheets import fresh_sheet_url
 
-                target = fresh_sheet_url(sheet, fmt, firm_id, get_settings())
                 filename = "%s.%s" % (sheet.number or sheet.kind, fmt)
+                target = fresh_sheet_url(
+                    sheet, fmt, firm_id, get_settings(), attachment_filename=filename
+                )
             elif kind == "render":
                 job = await RenderJobRepository(session, ctx).require(
                     uuid.UUID(str(payload.get("j")))

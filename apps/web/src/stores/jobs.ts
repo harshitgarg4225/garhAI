@@ -126,6 +126,7 @@ export function toJobDTO(job: Job | ExportJob): JobDTO {
     error: job.status === 'failed' ? jobFailure(kind, job.error) : null,
     downloadUrl: download?.downloadUrl ?? null,
     downloadExpiresAt: download?.expiresAt ?? null,
+    exportKind: 'exportKind' in job ? job.exportKind : null,
   };
 }
 

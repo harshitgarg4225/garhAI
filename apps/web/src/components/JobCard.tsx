@@ -167,7 +167,21 @@ export function JobCard({
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          {job.status === 'succeeded' && onOpenResult !== undefined ? (
+          {job.status === 'succeeded' && job.resultHref !== undefined ? (
+            // A real link, not a click handler: it survives popup blockers, it can be
+            // saved with a right-click, and the URL is the signed download itself.
+            <a
+              href={job.resultHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              data-testid="job-download"
+              className="inline-flex items-center gap-1 rounded-md border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink transition hover:border-ink-muted"
+            >
+              <Icon name="download" size={13} />
+              {job.resultLabel ?? 'Download'}
+            </a>
+          ) : job.status === 'succeeded' && onOpenResult !== undefined ? (
             <Button size="sm" variant="primary" onClick={() => onOpenResult(job)}>
               {job.resultLabel ?? 'Open'}
             </Button>
