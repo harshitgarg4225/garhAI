@@ -116,8 +116,7 @@ ANNOTATION_ANCHOR_KINDS: tuple[str, ...] = ("element", "dimension", "point", "sh
 CREDIT_EVENT_KINDS: tuple[str, ...] = ("render", "solver", "llm", "export")
 
 #: Tables that are NOT tenant-owned, by design. CI may assert this list is exhaustive.
-NON_TENANT_TABLES: tuple[str, ...] = ("flags", "otp_codes",
-    "platform_settings")
+NON_TENANT_TABLES: tuple[str, ...] = ("flags", "otp_codes", "platform_settings")
 
 
 # ---------------------------------------------------------------------------
