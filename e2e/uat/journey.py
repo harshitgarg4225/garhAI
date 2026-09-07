@@ -9,6 +9,7 @@ Usage: APP_URL=http://localhost:5173 API_URL=http://localhost:8000/api/v1 python
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -17,7 +18,8 @@ import time
 import uuid
 
 import httpx
-from playwright.sync_api import TimeoutError as PWTimeout, sync_playwright
+from playwright.sync_api import TimeoutError as PWTimeout
+from playwright.sync_api import sync_playwright
 
 APP = os.environ.get("APP_URL", "http://localhost:5173")
 API = os.environ.get("API_URL", "http://localhost:8000/api/v1")
@@ -43,7 +45,7 @@ def step(name):
             except AssertionError as exc:
                 entry["status"] = "fail"
                 entry["note"] = "assert: " + str(exc)[:300]
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 entry["status"] = "fail"
                 entry["note"] = type(exc).__name__ + ": " + str(exc)[:300]
             entry["ms"] = int((time.time() - t0) * 1000)
@@ -55,7 +57,7 @@ def step(name):
             try:
                 page.screenshot(path=shot)
                 entry["screenshot"] = os.path.basename(shot)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
             report.append(entry)
             print(
@@ -71,10 +73,8 @@ def step(name):
 
 
 def settle(page, ms=800):
-    try:
+    with contextlib.suppress(PWTimeout):
         page.wait_for_load_state("networkidle", timeout=15_000)
-    except PWTimeout:
-        pass
     page.wait_for_timeout(ms)
 
 
@@ -201,7 +201,7 @@ def s_generate(page):
             try:
                 btn.first.click(timeout=3000)
                 break
-            except Exception:  # noqa: BLE001
+            except Exception:
                 continue
     # wait up to 150 s for options or an error card
     deadline = time.time() + 240
@@ -342,9 +342,16 @@ with sync_playwright() as p:
     browser.close()
 
 passed = sum(1 for r in report if r["status"] == "pass")
-json.dump(
-    {"app": APP, "steps": report, "console": console[:80], "passed": passed, "total": len(report)},
-    open(os.path.join(OUT, "report.json"), "w"),
-    indent=2,
-)
+with open(os.path.join(OUT, "report.json"), "w") as fh:
+    json.dump(
+        {
+            "app": APP,
+            "steps": report,
+            "console": console[:80],
+            "passed": passed,
+            "total": len(report),
+        },
+        fh,
+        indent=2,
+    )
 print("\n%d/%d steps passed; %d console errors/warnings" % (passed, len(report), len(console)))

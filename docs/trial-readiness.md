@@ -354,6 +354,20 @@ Two smaller gaps found in passing:
   API mounts, and `schemas.jobs.test.ts` pins both — including that no drawings-worker
   row can ever parse as a solver job, and that the table agrees with the `eventsUrl`
   the server sends on the row.
+- **A finished job could still read as "still generating": the terminal frame outran
+  the row (found by the browser UAT on a rebooted box, 2026-09-07).** The worker
+  publishes its last event on pub/sub and appends the lifecycle record in the same
+  breath; the API's consumer writes the row a few tens of milliseconds later. The
+  store re-read the row on the terminal frame, saw `running`, overwrote `succeeded`
+  with it, and — the stream having closed — waited forever; the same race stalled the
+  sheet set. It is timing-dependent, which is why the run before had passed. Two
+  fixes: the API's event stream now holds a terminal frame until the row agrees
+  (bounded at five seconds, then logged and sent anyway — a down consumer must not
+  hide the worker's last word), and the store never lets a non-terminal row overwrite
+  a terminal frame, re-reading up to eight times before keeping the frame's status.
+  `test_sse_terminal_settles.py` (the frame waits for the third read; no reader, no
+  wait; a stuck row still yields the outcome) and `jobs.refetch.test.ts` (kept
+  through two running reads, settled on the third; the cap never downgrades).
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

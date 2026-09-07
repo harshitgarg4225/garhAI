@@ -55,7 +55,7 @@ import asyncio
 import contextlib
 import json
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -507,7 +507,15 @@ async def solver_job_events(
     async with session_scope() as session:
         job = await SolverJobRepository(session, ctx).require(job_id)
         initial = SolverJobOut.of(job)
-    return _stream_job(request, job_id, initial, last_event_id)
+
+    async def row_status() -> str | None:
+        async with session_scope() as session:
+            try:
+                return (await SolverJobRepository(session, ctx).require(job_id)).status
+            except EntityNotFoundError:
+                return None
+
+    return _stream_job(request, job_id, initial, last_event_id, row_status=row_status)
 
 
 # ---------------------------------------------------------------------------
@@ -756,7 +764,15 @@ async def render_job_events(
     async with session_scope() as session:
         job = await RenderJobRepository(session, ctx).require(job_id)
         initial = RenderJobOut.of(job)
-    return _stream_job(request, job_id, initial, last_event_id)
+
+    async def row_status() -> str | None:
+        async with session_scope() as session:
+            try:
+                return (await RenderJobRepository(session, ctx).require(job_id)).status
+            except EntityNotFoundError:
+                return None
+
+    return _stream_job(request, job_id, initial, last_event_id, row_status=row_status)
 
 
 # ---------------------------------------------------------------------------
@@ -1108,7 +1124,14 @@ async def export_job_events(
     record = await queue.get_export_job(ctx.firm_id, job_id)
     if record is None:
         raise EntityNotFoundError("export_job", job_id)
-    return _stream_job(request, job_id, ExportJobOut.of(record), last_event_id)
+
+    async def row_status() -> str | None:
+        current = await queue.get_export_job(ctx.firm_id, job_id)
+        return None if current is None else current.status
+
+    return _stream_job(
+        request, job_id, ExportJobOut.of(record), last_event_id, row_status=row_status
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1294,54 +1317,119 @@ def _parse_last_event_id(raw: str | None) -> int:
         return 0
 
 
+#: How long a terminal SSE frame may wait for the job row to agree with it, and how
+#: often the row is re-read meanwhile. Worker → browser is one Redis publish; worker →
+#: row is a stream record the API's lifecycle consumer applies a few tens of
+#: milliseconds later. Five seconds covers a consumer that is busy; a consumer that is
+#: down is reported and the frame goes out anyway.
+TERMINAL_ROW_SETTLE_SECONDS = 5.0
+TERMINAL_ROW_POLL_SECONDS = 0.05
+
+RowStatusReader = Callable[[], Awaitable[str | None]]
+
+
+async def _row_has_settled(
+    read_status: RowStatusReader,
+    *,
+    settle_seconds: float = TERMINAL_ROW_SETTLE_SECONDS,
+    poll: float = TERMINAL_ROW_POLL_SECONDS,
+) -> bool:
+    """True once the job row reports a terminal status; False if it has not by ``settle_seconds``.
+
+    The contract this buys: a client that receives a terminal frame and immediately
+    re-reads the row sees the outcome, not a row still marked running. Without it the
+    browser's refetch outran the lifecycle consumer, overwrote "succeeded" with
+    "running", and — the stream having closed on the terminal frame — waited forever.
+    Found by the browser UAT on a rebooted box; it is timing-dependent, so it passed
+    the run before.
+    """
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + settle_seconds
+    while True:
+        try:
+            status = await read_status()
+        except Exception as exc:  # a transient read failure must not end the stream
+            _log.warning("sse.row_status_failed", error="%s: %s" % (type(exc).__name__, exc))
+            status = None
+        if status in queue.JOB_TERMINAL_STATUSES:
+            return True
+        if loop.time() >= deadline:
+            return False
+        await asyncio.sleep(poll)
+
+
+async def job_event_frames(
+    request: Request,
+    job_id: Any,
+    initial: Any,
+    after_seq: int,
+    row_status: RowStatusReader | None = None,
+    *,
+    settle_timeout: float = TERMINAL_ROW_SETTLE_SECONDS,
+) -> AsyncIterator[dict[str, Any]]:
+    """The SSE frames for one job: the row state, then the worker's events.
+
+    A terminal frame is held until the row agrees with it (see
+    :func:`_row_has_settled`) when the caller supplies ``row_status``.
+    """
+    # The row state first: a client that connects after the job finished must still
+    # learn the outcome, and the backlog may have expired.
+    yield {
+        "event": "state",
+        "data": initial.model_dump_json(by_alias=True),
+    }
+    if getattr(initial, "status", "") in queue.JOB_TERMINAL_STATUSES:
+        return
+    try:
+        async for event in queue.progress_stream(job_id, after_seq=after_seq):
+            if await request.is_disconnected():
+                break
+            if event.terminal and row_status is not None:
+                settled = await _row_has_settled(row_status, settle_seconds=settle_timeout)
+                if not settled:
+                    _log.warning(
+                        "sse.terminal_row_unsettled",
+                        job_id=str(job_id),
+                        event_type=event.type,
+                        waited_seconds=settle_timeout,
+                    )
+            yield {
+                "id": str(event.seq),
+                "event": event.sse_event_name(),
+                "data": event.encode(),
+            }
+    except asyncio.CancelledError:  # pragma: no cover - client went away
+        raise
+    except Exception as exc:
+        _log.warning(
+            "sse.stream_failed",
+            job_id=str(job_id),
+            error="%s: %s" % (type(exc).__name__, exc),
+        )
+        yield {
+            "event": "error",
+            "data": json.dumps(
+                {
+                    "code": "stream_interrupted",
+                    "message": "The live updates stopped.",
+                    "action": "Refresh to see the job's current state.",
+                }
+            ),
+        }
+
+
 def _stream_job(
     request: Request,
     job_id: Any,
     initial: Any,
     last_event_id: str | None,
+    row_status: RowStatusReader | None = None,
 ) -> EventSourceResponse:
     """Wrap :func:`queue.progress_stream` as SSE, opening with the current row state."""
     after_seq = _parse_last_event_id(last_event_id)
 
-    async def publisher() -> AsyncIterator[dict[str, Any]]:
-        # The row state first: a client that connects after the job finished must still
-        # learn the outcome, and the backlog may have expired.
-        yield {
-            "event": "state",
-            "data": initial.model_dump_json(by_alias=True),
-        }
-        if getattr(initial, "status", "") in queue.JOB_TERMINAL_STATUSES:
-            return
-        try:
-            async for event in queue.progress_stream(job_id, after_seq=after_seq):
-                if await request.is_disconnected():
-                    break
-                yield {
-                    "id": str(event.seq),
-                    "event": event.sse_event_name(),
-                    "data": event.encode(),
-                }
-        except asyncio.CancelledError:  # pragma: no cover - client went away
-            raise
-        except Exception as exc:
-            _log.warning(
-                "sse.stream_failed",
-                job_id=str(job_id),
-                error="%s: %s" % (type(exc).__name__, exc),
-            )
-            yield {
-                "event": "error",
-                "data": json.dumps(
-                    {
-                        "code": "stream_interrupted",
-                        "message": "The live updates stopped.",
-                        "action": "Refresh to see the job's current state.",
-                    }
-                ),
-            }
-
     return EventSourceResponse(
-        publisher(),
+        job_event_frames(request, job_id, initial, after_seq, row_status),
         ping=SSE_PING_SECONDS,
         headers={
             "cache-control": "no-store",

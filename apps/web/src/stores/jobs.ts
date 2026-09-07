@@ -419,11 +419,25 @@ function applyJob(set: SetState, projectId: string | null, job: Job): void {
 }
 
 /** Re-read a finished job so the row carries its result, not just its status. */
+/**
+ * How many times, and how far apart, the terminal refetch re-reads a row that still
+ * says running. The worker's terminal frame reaches the browser over pub/sub a few
+ * tens of milliseconds before the API's lifecycle consumer writes the row; the API
+ * now holds the frame until the row agrees, and this is the belt to that brace.
+ */
+export const TERMINAL_REFETCH_ATTEMPTS = 8;
+export const TERMINAL_REFETCH_DELAY_MS = 400;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function refetch(
   projectId: string,
   jobId: string,
   kind: JobKind,
   set: SetState,
+  attempt = 0,
 ): Promise<void> {
   try {
     const job =
@@ -432,6 +446,17 @@ async function refetch(
         : kind === 'render'
           ? await api.renders.get(jobId)
           : await api.exports.get(jobId);
+    if (!isTerminal(job.status)) {
+      // A terminal frame just arrived, so a running row is a row the consumer has not
+      // written yet — never let it overwrite the outcome. Re-read; if it never settles,
+      // keep the frame's status and go without the row's extras (options count, the
+      // download URL), which the next visit to the tab re-reads anyway.
+      if (attempt < TERMINAL_REFETCH_ATTEMPTS) {
+        await delay(TERMINAL_REFETCH_DELAY_MS);
+        return refetch(projectId, jobId, kind, set, attempt + 1);
+      }
+      return;
+    }
     set((s) => ({ byProject: upsert(s.byProject, projectId, toJobDTO(job)) }));
   } catch {
     // The terminal event already told us how it ended; the extra detail is a
