@@ -4,9 +4,128 @@
     {
       "chains": [
         {
+          "id": "site-road-0",
+          "level": 1,
+          "offsetMm": 2286,
+          "orientation": "vertical",
+          "originMm": -9000,
+          "overallMm": 9000,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "9000",
+              "lengthMm": 9000,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 9000
+        },
+        {
+          "id": "site-plot-edge-0",
+          "level": 1,
+          "offsetMm": -10200,
+          "orientation": "horizontal",
+          "originMm": 0,
+          "overallMm": 9144,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "9144",
+              "lengthMm": 9144,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 9144
+        },
+        {
+          "id": "site-plot-edge-1",
+          "level": 1,
+          "offsetMm": 10344,
+          "orientation": "vertical",
+          "originMm": 0,
+          "overallMm": 12192,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "12192",
+              "lengthMm": 12192,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 12192
+        },
+        {
+          "id": "site-plot-edge-2",
+          "level": 1,
+          "offsetMm": 13392,
+          "orientation": "horizontal",
+          "originMm": 0,
+          "overallMm": 9144,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "9144",
+              "lengthMm": 9144,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 9144
+        },
+        {
+          "id": "site-plot-edge-3",
+          "level": 1,
+          "offsetMm": -1200,
+          "orientation": "vertical",
+          "originMm": 0,
+          "overallMm": 12192,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "12192",
+              "lengthMm": 12192,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 12192
+        },
+        {
+          "id": "site-footprint-W",
+          "level": 1,
+          "offsetMm": 11320,
+          "orientation": "horizontal",
+          "originMm": 1000,
+          "overallMm": 6325,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "6325",
+              "lengthMm": 6325,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 6325
+        },
+        {
+          "id": "site-footprint-D",
+          "level": 1,
+          "offsetMm": 7825,
+          "orientation": "vertical",
+          "originMm": 3000,
+          "overallMm": 7820,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "7820",
+              "lengthMm": 7820,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 7820
+        },
+        {
           "id": "site-setback-front",
           "level": 1,
-          "offsetMm": 4162,
+          "offsetMm": 2581,
           "orientation": "vertical",
           "originMm": 0,
           "overallMm": 3000,
@@ -21,9 +140,26 @@
           "sumMm": 3000
         },
         {
+          "id": "site-setback-side-a",
+          "level": 1,
+          "offsetMm": 4955,
+          "orientation": "horizontal",
+          "originMm": 7325,
+          "overallMm": 1819,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "1819",
+              "lengthMm": 1819,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 1819
+        },
+        {
           "id": "site-setback-rear",
           "level": 1,
-          "offsetMm": 4162,
+          "offsetMm": 2581,
           "orientation": "vertical",
           "originMm": 10820,
           "overallMm": 1372,
@@ -38,9 +174,9 @@
           "sumMm": 1372
         },
         {
-          "id": "site-setback-side-a",
+          "id": "site-setback-side-b",
           "level": 1,
-          "offsetMm": 6910,
+          "offsetMm": 4955,
           "orientation": "horizontal",
           "originMm": 0,
           "overallMm": 1000,
@@ -53,23 +189,6 @@
             }
           ],
           "sumMm": 1000
-        },
-        {
-          "id": "site-setback-side-b",
-          "level": 1,
-          "offsetMm": 6910,
-          "orientation": "horizontal",
-          "originMm": 7325,
-          "overallMm": 1819,
-          "segments": [
-            {
-              "anchorElementId": null,
-              "label": "1819",
-              "lengthMm": 1819,
-              "startMm": 0
-            }
-          ],
-          "sumMm": 1819
         }
       ],
       "scale": 100,

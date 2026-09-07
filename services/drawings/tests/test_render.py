@@ -74,6 +74,7 @@ from services.drawings.render.reference_sheets import (  # noqa: E402
     outer_chains,
     plan_primitives,
     room_label_lines,
+    site_plan_primitives,
 )
 from services.drawings.render.sanitize import (  # noqa: E402
     SvgSanitizeError,
@@ -1223,3 +1224,133 @@ def test_every_room_on_every_plan_is_labelled_and_a_real_room_gets_all_four_valu
                     "%s: %s is %d mm² and lost part of its label: %r"
                     % (name, room.name, room.area_mm2, printed)
                 )
+
+
+# ---------------------------------------------------------------------------
+# Site plan: every side, the footprint, the road and the setbacks, dimensioned
+# ---------------------------------------------------------------------------
+def _site_chains(drawings: Any) -> dict[str, Any]:
+    site = drawings.by_kind("site-plan")[0]
+    return {chain.id: chain for chain in site.chains}
+
+
+def _site_texts(drawings: Any) -> list[str]:
+    site = drawings.by_kind("site-plan")[0]
+    return [p.text for g in site.groups for p in g.primitives if isinstance(p, Text)]
+
+
+def test_site_plan_dimensions_every_side_the_footprint_the_road_and_the_setbacks() -> None:
+    """The numbers a sanction desk reads off A-01, each equal to what it measures.
+
+    Plot edges equal the boundary's edge lengths, the footprint chains equal the
+    ground storey's building line, each road chain equals its width, and each setback
+    chain is named by the rules engine's role for that edge and equals the engine's
+    ``providedMm`` — the same row the compliance tab shows.
+    """
+    from garh_model.units import format_ft_in
+    from garh_rules.formatting import format_ratio
+
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        statement = _statement(doc)
+        drawings = dict(_sheet_sets())[name]
+        chains = _site_chains(drawings)
+        boundary = [(p.x, p.y) for p in doc.plot.boundary]
+        for index, a in enumerate(boundary):
+            b = boundary[(index + 1) % len(boundary)]
+            if a[0] != b[0] and a[1] != b[1]:
+                continue
+            chain = chains["site-plot-edge-%d" % index]
+            assert chain.overall_mm == abs(b[0] - a[0]) + abs(b[1] - a[1]), (name, index)
+        min_x, min_y, max_x, max_y = building_extent(doc.house, doc.house.storeys[0].id)
+        assert chains["site-footprint-W"].overall_mm == max_x - min_x, name
+        assert chains["site-footprint-D"].overall_mm == max_y - min_y, name
+        for road in doc.plot.roads:
+            if road.width_mm is not None:
+                assert chains["site-road-%d" % road.edge_index].overall_mm == road.width_mm
+        assert statement.setbacks, name
+        for row in statement.setbacks:
+            key = "site-setback-%s" % row.role
+            if row.provided_mm == 0:
+                assert key not in chains, (name, key)
+            else:
+                assert chains[key].overall_mm == row.provided_mm, (name, key)
+        texts = _site_texts(drawings)
+        xs = sorted({x for x, _ in boundary})
+        ys = sorted({y for _, y in boundary})
+        assert (
+            "PLOT SIZE: %d x %d mm (%s x %s)"
+            % (
+                xs[1] - xs[0],
+                ys[1] - ys[0],
+                format_ft_in(xs[1] - xs[0]),
+                format_ft_in(ys[1] - ys[0]),
+            )
+            in texts
+        ), texts
+        assert any(
+            t.startswith("FAR ACHIEVED: %s" % format_ratio(statement.far_achieved)) for t in texts
+        )
+        for row in statement.setbacks:
+            expected = "%s SETBACK: %d mm" % (row.role.upper().replace("-", " "), row.provided_mm)
+            assert any(t.startswith(expected) for t in texts), (name, expected, texts)
+            if row.required_mm is not None:
+                assert any(
+                    t == "%s (required %d mm)" % (expected, row.required_mm) for t in texts
+                ), (name, expected)
+        assert "N" in texts, "no north arrow"
+
+
+def test_site_plan_refuses_a_setback_that_disagrees_with_the_compliance_report() -> None:
+    """Negative control: one millimetre of disagreement and A-01 is not drawn.
+
+    The chain lengths are measured off the model; the rows come from the evaluation.
+    They agree on every fixture (the test above). Doctor one row by 1 mm and the site
+    plan refuses, naming the edge and both numbers, rather than printing a setback the
+    compliance tab contradicts.
+    """
+    from dataclasses import replace
+
+    _name, fixture = _fixtures()[-1]
+    doc = _fold(fixture)
+    statement = _statement(doc)
+    row = next(r for r in statement.setbacks if r.provided_mm > 0)
+    doctored = replace(
+        statement,
+        setbacks=tuple(
+            replace(r, provided_mm=r.provided_mm + 1) if r is row else r for r in statement.setbacks
+        ),
+    )
+    try:
+        site_plan_primitives(doc, statement=doctored, scale_denominator=100)
+    except ValueError as exc:
+        message = str(exc)
+        assert row.role in message and str(row.provided_mm + 1) in message, message
+    else:
+        raise AssertionError("a doctored setback row drew a site plan")
+    primitives, chains = site_plan_primitives(doc, statement=statement, scale_denominator=100)
+    assert primitives and any(c.id == "site-setback-%s" % row.role for c in chains)
+
+
+def test_site_plan_without_a_statement_names_setbacks_by_edge_and_prints_no_engine_numbers() -> (
+    None
+):
+    _name, fixture = _fixtures()[-1]
+    doc = _fold(fixture)
+    primitives, chains = site_plan_primitives(doc, statement=None, scale_denominator=100)
+    ids = {c.id for c in chains}
+    assert any(i.startswith("site-setback-edge-") for i in ids), ids
+    assert not any(i.startswith("site-setback-front") for i in ids)
+    texts = [p.text for p in primitives if isinstance(p, Text)]
+    assert any(t.startswith("PLOT SIZE: ") for t in texts)
+    assert not any("FAR" in t or "SETBACK:" in t for t in texts), texts
+
+
+def test_plot_size_note_is_only_written_for_a_rectangle() -> None:
+    from services.drawings.render.reference_sheets import _plot_size_note
+
+    assert _plot_size_note([(0, 0), (9144, 0), (9144, 12192), (0, 12192)]) == (
+        "PLOT SIZE: 9144 x 12192 mm (30'-0\" x 40'-0\")"
+    )
+    # A five-sided plot has edge chains but no single size that is true of it.
+    assert _plot_size_note([(0, 0), (9144, 0), (9144, 12192), (4000, 14000), (0, 12192)]) is None

@@ -230,6 +230,16 @@ class _TransportRow:
 
 
 @dataclass(frozen=True)
+class _TransportSetback:
+    """One ``AreaStatement.setbacks`` row, carried verbatim for the site plan."""
+
+    edge_index: int
+    role: str
+    provided_mm: int
+    required_mm: int | None
+
+
+@dataclass(frozen=True)
 class TransportStatement:
     """``AreaStatement.to_json()`` → the object the sheet renderer consumes.
 
@@ -275,6 +285,31 @@ class TransportStatement:
     @property
     def total_built_up_area_mm2(self) -> int:
         return int(self.raw["totalBuiltUpAreaMm2"])
+
+    # -- the setback rows the site plan names its chains by --------------
+    @property
+    def setbacks(self) -> tuple[_TransportSetback, ...]:
+        """``AreaStatement.setbacks`` as serialised: edge, role, provided, required.
+
+        A pass-through like the rows: the site plan names each setback chain by the
+        engine's role for that edge and refuses to draw a chain whose measured length
+        differs from ``providedMm``. An evaluation without the list (an older frozen
+        report) yields none, and the chains fall back to edge-index names.
+        """
+        out: list[_TransportSetback] = []
+        for row in self.raw.get("setbacks") or ():
+            if not isinstance(row, Mapping):
+                continue
+            required = row.get("requiredMm")
+            out.append(
+                _TransportSetback(
+                    edge_index=int(row["edgeIndex"]),
+                    role=str(row.get("role") or "other"),
+                    provided_mm=int(row["providedMm"]),
+                    required_mm=None if required is None else int(required),
+                )
+            )
+        return tuple(out)
 
     # -- the two exact ratios -------------------------------------------
     # These are Fractions because `format_ratio` rounds on the exact rational, and

@@ -17,7 +17,7 @@
   },
   "projects": [
     {
-      "chainCount": 24,
+      "chainCount": 31,
       "handChecked": false,
       "input": "fixtures/plans/blr-30x40-g1-3bhk.json",
       "labelCollisions": 0,
@@ -25,7 +25,7 @@
       "projectId": "blr-30x40-g1-3bhk",
       "sheets": [
         {
-          "chains": 4,
+          "chains": 11,
           "kind": "site-plan",
           "layersUsed": [
             "A-WALL",
@@ -36,7 +36,7 @@
             "A-TITL"
           ],
           "number": "A-01",
-          "primitives": 45,
+          "primitives": 57,
           "scale": 100
         },
         {
@@ -175,7 +175,7 @@
       "stateHash": "c3f7f3d41a3b621e4c6d3097a2def36929a7c31e33f38ba2fb51b2fbdc2149c7"
     },
     {
-      "chainCount": 30,
+      "chainCount": 37,
       "handChecked": false,
       "input": "fixtures/plans/blr-30x50-g2-3bhk.json",
       "labelCollisions": 0,
@@ -183,7 +183,7 @@
       "projectId": "blr-30x50-g2-3bhk",
       "sheets": [
         {
-          "chains": 4,
+          "chains": 11,
           "kind": "site-plan",
           "layersUsed": [
             "A-WALL",
@@ -194,7 +194,7 @@
             "A-TITL"
           ],
           "number": "A-01",
-          "primitives": 45,
+          "primitives": 57,
           "scale": 100
         },
         {
@@ -350,7 +350,7 @@
       "stateHash": "f61599f69586af7f6076e1a38f45fefcfd65c98c1a8104721efa2407c3966d9e"
     },
     {
-      "chainCount": 31,
+      "chainCount": 38,
       "handChecked": false,
       "input": "fixtures/plans/blr-40x60-g2-4bhk.json",
       "labelCollisions": 0,
@@ -358,7 +358,7 @@
       "projectId": "blr-40x60-g2-4bhk",
       "sheets": [
         {
-          "chains": 4,
+          "chains": 11,
           "kind": "site-plan",
           "layersUsed": [
             "A-WALL",
@@ -369,8 +369,8 @@
             "A-TITL"
           ],
           "number": "A-01",
-          "primitives": 45,
-          "scale": 100
+          "primitives": 57,
+          "scale": 125
         },
         {
           "chains": 7,
@@ -527,7 +527,7 @@
       "stateHash": "80e3d372ee8defd2787bf6fc73b31a056230070f64bc5143ea1e8f7fc848b468"
     },
     {
-      "chainCount": 24,
+      "chainCount": 31,
       "handChecked": false,
       "input": "fixtures/plans/hyd-30x40-g1-3bhk.json",
       "labelCollisions": 0,
@@ -535,7 +535,7 @@
       "projectId": "hyd-30x40-g1-3bhk",
       "sheets": [
         {
-          "chains": 4,
+          "chains": 11,
           "kind": "site-plan",
           "layersUsed": [
             "A-WALL",
@@ -546,7 +546,7 @@
             "A-TITL"
           ],
           "number": "A-01",
-          "primitives": 45,
+          "primitives": 57,
           "scale": 100
         },
         {

@@ -3,12 +3,12 @@
   "projectId": "blr-30x50-g2-3bhk",
   "sheets": [
     {
-      "chains": 4,
-      "dimensionSegments": 4,
+      "chains": 11,
+      "dimensionSegments": 11,
       "entities": {
         "A-AREA/HATCH": 1,
-        "A-AREA/TEXT": 3,
-        "A-DIM/DIMENSION": 4,
+        "A-AREA/TEXT": 8,
+        "A-DIM/DIMENSION": 11,
         "A-TEXT/LWPOLYLINE": 1,
         "A-TEXT/TEXT": 21,
         "A-TITL/LINE": 9,

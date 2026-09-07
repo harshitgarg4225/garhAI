@@ -1557,15 +1557,63 @@ def section_primitives(
 # ---------------------------------------------------------------------------
 # Site plan (§7 / F7-A item 1)
 # ---------------------------------------------------------------------------
+#: Paper µm from a plot edge (or the road band outside it) to the plot-edge chain.
+_SITE_EDGE_CHAIN_OFFSET_PAPER_UM = 12_000
+#: Paper µm from the footprint's face to its overall chain, inside the setback.
+_SITE_FOOTPRINT_CHAIN_OFFSET_PAPER_UM = 5_000
+#: Paper µm of line spacing in the site plan's notes block.
+_SITE_NOTE_LINE_PAPER_UM = 4_000
+
+
+def _edge_outward(a: Pt2, b: Pt2, centre: Pt2) -> tuple[int, int]:
+    """Unit outward normal of an axis-aligned plot edge, judged against the centroid."""
+    if a[1] == b[1]:
+        return (0, -1) if a[1] <= centre[1] else (0, 1)
+    return (-1, 0) if a[0] <= centre[0] else (1, 0)
+
+
+def _plot_size_note(boundary: Sequence[Pt2]) -> str | None:
+    """``PLOT SIZE: 9144 x 12192 mm (30'-0" x 40'-0")`` for a rectangular plot.
+
+    Both figures come off the boundary; the feet are how a Bengaluru or Hyderabad
+    sanction plan quotes a site ("30 x 40"), the millimetres are what the chains
+    print. A plot that is not an axis-aligned rectangle gets its edge chains and no
+    single size line, rather than a size that is true of no side.
+    """
+    from garh_model.units import format_ft_in
+
+    if len(boundary) != 4:
+        return None
+    xs = sorted({x for x, _ in boundary})
+    ys = sorted({y for _, y in boundary})
+    if len(xs) != 2 or len(ys) != 2:
+        return None
+    width = xs[1] - xs[0]
+    depth = ys[1] - ys[0]
+    return "PLOT SIZE: %d x %d mm (%s x %s)" % (
+        width,
+        depth,
+        format_ft_in(width),
+        format_ft_in(depth),
+    )
+
+
 def site_plan_primitives(
     doc: Any, *, statement: Any = None, scale_denominator: int = 200
 ) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
     """Plot boundary, footprint, road, dimensioned setbacks, north, coverage/FAR note.
 
+    Every side of the plot is chained (outside the road band where there is one), the
+    footprint carries its overall width and depth, each road its width across the
+    band, and the four setbacks their clear distance — so a desk can read the whole
+    site off the sheet without a scale rule.
+
     Setback *values* are not measured here — they are read off the area statement's
     ``setbacks`` rows, which the rules engine produced. §7's "same numbers, one source"
     applies to the site plan more than anywhere else: a setback dimension that disagrees
-    with the compliance chip is the drawing a municipality rejects.
+    with the compliance chip is the drawing a municipality rejects. The notes block
+    prints the statement's plot area, coverage, FAR and each setback's provided /
+    required pair, formatted by the engine's own formatters.
     """
     plot = doc.plot
     house = doc.house
@@ -1574,6 +1622,9 @@ def site_plan_primitives(
     if len(boundary) < 3:
         return ((), ())
 
+    def paper(um: int) -> int:
+        return paper_to_model_mm(um, scale_denominator)
+
     # The plot boundary doubles as the compound wall, hence A-WALL-PART rather than a
     # geometry layer: it is a real built thing, but not full-height building fabric.
     out.append(Polyline(tuple(boundary), A_WALL_PART, closed=True))
@@ -1581,53 +1632,172 @@ def site_plan_primitives(
     ys = [y for _, y in boundary]
     min_x, max_x = min(xs), max(xs)
     min_y, max_y = min(ys), max(ys)
+    centre = ((min_x + max_x) // 2, (min_y + max_y) // 2)
+    chains: list[DimChain] = []
 
-    # Roads, drawn as a band outside the relevant edge.
+    # Roads, drawn as a band outside the relevant edge, each with a width chain
+    # across the band at the edge's quarter point (the name sits at its centre).
+    road_width_on_edge: dict[int, int] = {}
     for road in plot.roads:
         if road.width_mm is None:
             continue
         index = road.edge_index % len(boundary)
         a = boundary[index]
         b = boundary[(index + 1) % len(boundary)]
+        if a[0] != b[0] and a[1] != b[1]:
+            continue  # a road on a skew edge is drawn by nobody yet; the chain would lie
         width = road.width_mm
-        if a[1] == b[1]:
-            outward = -width if a[1] <= (min_y + max_y) // 2 else width
-            ring = ((a[0], a[1]), (b[0], b[1]), (b[0], b[1] + outward), (a[0], a[1] + outward))
-        else:
-            outward = -width if a[0] <= (min_x + max_x) // 2 else width
-            ring = ((a[0], a[1]), (b[0], b[1]), (b[0] + outward, b[1]), (a[0] + outward, a[1]))
+        road_width_on_edge[index] = width
+        nx, ny = _edge_outward(a, b, centre)
+        ring = (
+            a,
+            b,
+            (b[0] + nx * width, b[1] + ny * width),
+            (a[0] + nx * width, a[1] + ny * width),
+        )
         out.append(Polyline(ring, A_WALL_PART, closed=True, style=STYLE_DASHED))
         out.append(
             Text(
                 at=((ring[0][0] + ring[2][0]) // 2, (ring[0][1] + ring[2][1]) // 2),
-                text=road.name or "%d mm ROAD" % width,
+                text=road.name or "%d mm WIDE ROAD" % width,
                 layer=A_TEXT,
                 height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM,
                 anchor="middle",
                 baseline="middle",
             )
         )
+        quarter = (a[0] + (b[0] - a[0]) // 4, a[1] + (b[1] - a[1]) // 4)
+        if nx == 0:
+            lo, hi = sorted((a[1], a[1] + ny * width))
+            chain = _chain_from_breaks(
+                chain_id="site-road-%d" % index,
+                orientation="vertical",
+                level=1,
+                offset_mm=quarter[0],
+                lo=lo,
+                hi=hi,
+                breaks=(),
+            )
+        else:
+            lo, hi = sorted((a[0], a[0] + nx * width))
+            chain = _chain_from_breaks(
+                chain_id="site-road-%d" % index,
+                orientation="horizontal",
+                level=1,
+                offset_mm=quarter[1],
+                lo=lo,
+                hi=hi,
+                breaks=(),
+            )
+        if chain is not None:
+            chains.append(chain)
 
-    # Footprint of the ground storey.
+    # Plot edges: one chain per axis-aligned side, outside the road band if any.
+    edge_offset = paper(_SITE_EDGE_CHAIN_OFFSET_PAPER_UM)
+    for index, a in enumerate(boundary):
+        b = boundary[(index + 1) % len(boundary)]
+        if a[0] != b[0] and a[1] != b[1]:
+            continue
+        nx, ny = _edge_outward(a, b, centre)
+        clearance = road_width_on_edge.get(index, 0) + edge_offset
+        if ny != 0:
+            chain = _chain_from_breaks(
+                chain_id="site-plot-edge-%d" % index,
+                orientation="horizontal",
+                level=1,
+                offset_mm=a[1] + ny * clearance,
+                lo=min(a[0], b[0]),
+                hi=max(a[0], b[0]),
+                breaks=(),
+            )
+        else:
+            chain = _chain_from_breaks(
+                chain_id="site-plot-edge-%d" % index,
+                orientation="vertical",
+                level=1,
+                offset_mm=a[0] + nx * clearance,
+                lo=min(a[1], b[1]),
+                hi=max(a[1], b[1]),
+                breaks=(),
+            )
+        if chain is not None:
+            chains.append(chain)
+
+    # Footprint of the ground storey, with its overall width and depth.
     footprint = building_extent(house, house.storeys[0].id) if house.storeys else None
-    chains: list[DimChain] = []
     if footprint is not None:
         f_min_x, f_min_y, f_max_x, f_max_y = footprint
         ring = ((f_min_x, f_min_y), (f_max_x, f_min_y), (f_max_x, f_max_y), (f_min_x, f_max_y))
         out.append(Hatch(ring, A_AREA, pattern=HATCH_DIAGONAL, spacing_mm=500, angle_deg=45))
         out.append(Polyline(ring, A_WALL, closed=True))
+        footprint_offset = paper(_SITE_FOOTPRINT_CHAIN_OFFSET_PAPER_UM)
+        for chain in (
+            _chain_from_breaks(
+                chain_id="site-footprint-W",
+                orientation="horizontal",
+                level=1,
+                offset_mm=f_max_y + footprint_offset,
+                lo=f_min_x,
+                hi=f_max_x,
+                breaks=(),
+            ),
+            _chain_from_breaks(
+                chain_id="site-footprint-D",
+                orientation="vertical",
+                level=1,
+                offset_mm=f_max_x + footprint_offset,
+                lo=f_min_y,
+                hi=f_max_y,
+                breaks=(),
+            ),
+        ):
+            if chain is not None:
+                chains.append(chain)
 
-        # Setback dimensions, one chain per side, anchored on the plot edge.
-        setback_specs = (
-            ("front", "vertical", (f_min_x + f_max_x) // 2, min_y, f_min_y),
-            ("rear", "vertical", (f_min_x + f_max_x) // 2, f_max_y, max_y),
-            ("side-a", "horizontal", (f_min_y + f_max_y) // 2, min_x, f_min_x),
-            ("side-b", "horizontal", (f_min_y + f_max_y) // 2, f_max_x, max_x),
-        )
-        for name, orientation, offset_line, lo, hi in setback_specs:
+        # Setback dimensions, one chain per plot edge, from the edge to the footprint
+        # face. They sit at the footprint's quarter points so their figures stay clear
+        # of the footprint chains, whose figures are centred. With a statement each
+        # chain is named by the rules engine's role for that edge (front / rear /
+        # side-a / side-b) and its length is checked against the engine's
+        # ``providedMm``: the number on the drawing and the number on the compliance
+        # tab are the same number or the sheet is not produced.
+        quarter_x = f_min_x + (f_max_x - f_min_x) // 4
+        quarter_y = f_min_y + (f_max_y - f_min_y) // 4
+        roles: dict[int, Any] = {}
+        if statement is not None:
+            roles = {int(row.edge_index): row for row in statement.setbacks}
+        for index, a in enumerate(boundary):
+            b = boundary[(index + 1) % len(boundary)]
+            if a[0] != b[0] and a[1] != b[1]:
+                continue
+            nx, ny = _edge_outward(a, b, centre)
+            # Signed clear distance from the plot edge inward to the footprint face,
+            # clamped at zero exactly as the rules engine clamps it: a wall face on or
+            # over the plot line is a setback of 0, and 0 is not dimensioned.
+            if ny != 0:
+                face = f_min_y if ny < 0 else f_max_y
+                provided = max(0, (face - a[1]) if ny < 0 else (a[1] - face))
+                lo, hi = sorted((a[1], face))
+                orientation, offset_line = "vertical", quarter_x
+            else:
+                face = f_min_x if nx < 0 else f_max_x
+                provided = max(0, (face - a[0]) if nx < 0 else (a[0] - face))
+                lo, hi = sorted((a[0], face))
+                orientation, offset_line = "horizontal", quarter_y
+            row = roles.get(index)
+            name = str(row.role) if row is not None else "edge-%d" % index
+            if row is not None and int(row.provided_mm) != provided:
+                raise ValueError(
+                    "Setback on plot edge %d (%s) measures %d mm on the site plan but the "
+                    "compliance evaluation says %d mm; a sheet that disagrees with the "
+                    "compliance report is not drawn."
+                    % (index, name, provided, int(row.provided_mm))
+                )
+            if provided == 0:
+                continue
             chain = _chain_from_breaks(
                 chain_id="site-setback-%s" % name,
-                orientation=orientation,  # type: ignore[arg-type]
+                orientation=orientation,
                 level=1,
                 offset_mm=offset_line,
                 lo=lo,
@@ -1641,34 +1811,57 @@ def site_plan_primitives(
     out.extend(
         Dim(chain=c, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM) for c in chains
     )
-    out.extend(_north_arrow((max_x + 1200, max_y - 1200), 1200, plot.north_deg))
+    out.extend(
+        _north_arrow((max_x + paper(12_000), max_y - paper(12_000)), paper(12_000), plot.north_deg)
+    )
 
-    # Coverage / FAR note, straight off the statement — never recomputed here.
+    # Notes block, below everything drawn so far (road bands and chains included):
+    # plot size off the boundary, then the statement's numbers — never recomputed here.
+    lines: list[str] = []
+    size_note = _plot_size_note(boundary)
+    if size_note:
+        lines.append(size_note)
     if statement is not None:
         from garh_model.units import format_sqm
         from garh_rules.formatting import format_ratio
 
-        lines = [
-            "PLOT AREA: %s" % format_sqm(statement.plot_area_mm2, 2),
+        lines.append("PLOT AREA: %s" % format_sqm(statement.plot_area_mm2, 2))
+        lines.append(
             "GROUND COVERAGE: %s (%s)"
             % (
                 format_sqm(statement.footprint_area_mm2, 2),
                 "permissible %s" % format_sqm(statement.coverage_allowed_mm2, 2)
                 if statement.coverage_allowed_mm2 is not None
                 else "no coverage rule applied",
-            ),
+            )
+        )
+        lines.append(
             "FAR ACHIEVED: %s%s"
             % (
                 format_ratio(statement.far_achieved),
                 " (permissible %s)" % format_ratio(statement.far_allowed)
                 if statement.far_allowed is not None
                 else "",
-            ),
-        ]
+            )
+        )
+        for row in statement.setbacks:
+            lines.append(
+                "%s SETBACK: %d mm%s"
+                % (
+                    str(row.role).upper().replace("-", " "),
+                    row.provided_mm,
+                    (" (required %d mm)" % row.required_mm)
+                    if row.required_mm is not None
+                    else " (not regulated)",
+                )
+            )
+    if lines:
+        lowest = min(y for primitive in out for _x, y in primitive.points())
+        top = lowest - paper(_SITE_NOTE_LINE_PAPER_UM + 2_000)
         for index, text in enumerate(lines):
             out.append(
                 Text(
-                    at=(min_x, min_y - 1200 - index * 700),
+                    at=(min_x, top - index * paper(_SITE_NOTE_LINE_PAPER_UM)),
                     text=text,
                     layer=A_AREA,
                     height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM,
@@ -1980,6 +2173,7 @@ def site_plan_sheet(
 ) -> SheetDrawing:
     frame = layout.frame()
     rect = content_rect(frame)
+    site_scales = (100, 125, 150, 200, 250, 500, 1000)
     primitives, chains = site_plan_primitives(doc, statement=statement, scale_denominator=200)
     if not primitives:
         raise ValueError("no plot boundary, so no site plan")
@@ -1991,7 +2185,18 @@ def site_plan_sheet(
     # No `preferred` here, and 1:100 is the finest scale offered: a site plan is drawn
     # as large as the sheet allows (a reviewer measures setbacks off it) but never
     # finer than 1:100, which is the convention for a plot drawing.
-    denominator = choose_scale(padded, rect, scales=(100, 125, 150, 200, 250, 500, 1000))
+    denominator = choose_scale(padded, rect, scales=site_scales)
+    if denominator != 200:
+        # The chain offsets and the notes block are paper distances, so the drawing
+        # is rebuilt at the scale it will actually print at (as the elevations are).
+        primitives, chains = site_plan_primitives(
+            doc, statement=statement, scale_denominator=denominator
+        )
+        group = DrawingGroup(id="site", placement=Placement(denominator), primitives=primitives)
+        extent = group.extent_model_mm()
+        assert extent is not None
+        padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
+        denominator = choose_scale(padded, rect, scales=site_scales)
     scale = Scale(denominator)
     placement = fit_placement(padded, rect, denominator)
     sheet = _sheet(
