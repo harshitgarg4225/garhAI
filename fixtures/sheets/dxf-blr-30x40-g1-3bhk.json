@@ -50,11 +50,11 @@
       "sheetNumber": "A-01"
     },
     {
-      "chains": 24,
-      "dimensionSegments": 40,
+      "chains": 8,
+      "dimensionSegments": 20,
       "entities": {
         "A-AREA/LWPOLYLINE": 8,
-        "A-DIM/DIMENSION": 24,
+        "A-DIM/DIMENSION": 8,
         "A-DOOR/ARC": 8,
         "A-DOOR/LINE": 24,
         "A-STAIR/LINE": 9,
@@ -62,7 +62,7 @@
         "A-TEXT/CIRCLE": 2,
         "A-TEXT/LINE": 1,
         "A-TEXT/LWPOLYLINE": 1,
-        "A-TEXT/TEXT": 40,
+        "A-TEXT/TEXT": 68,
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
         "A-WALL-PART/HATCH": 15,
@@ -256,17 +256,17 @@
       "sheetNumber": "A-02A"
     },
     {
-      "chains": 17,
-      "dimensionSegments": 28,
+      "chains": 7,
+      "dimensionSegments": 14,
       "entities": {
         "A-AREA/LWPOLYLINE": 5,
-        "A-DIM/DIMENSION": 17,
+        "A-DIM/DIMENSION": 7,
         "A-DOOR/ARC": 4,
         "A-DOOR/LINE": 12,
         "A-TEXT/CIRCLE": 2,
         "A-TEXT/LINE": 1,
         "A-TEXT/LWPOLYLINE": 1,
-        "A-TEXT/TEXT": 33,
+        "A-TEXT/TEXT": 50,
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
         "A-WALL-PART/HATCH": 10,

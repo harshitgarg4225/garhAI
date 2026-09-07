@@ -360,32 +360,14 @@ def _label_collisions(drawing: Any) -> List[Tuple[str, str]]:
     harness treats any collision as a FAILURE (§16 asks for an assertion, not a metric).
     The offending pairs are printed and recorded in ``index.json``, so a regression names
     the two labels that hit each other rather than just incrementing a number.
-    """
-    from services.drawings.dimensions import LabelBox
-    from services.drawings.render.primitives import Text
 
-    boxes: List[LabelBox] = []
-    for group in drawing.groups:
-        for primitive in group.primitives:
-            if not isinstance(primitive, Text) or not primitive.text.strip():
-                continue
-            x_um, y_um = group.placement.to_paper_um(primitive.at)
-            height = primitive.height_paper_um
-            width = int(len(primitive.text) * height * 58 / 100)
-            if primitive.anchor == "middle":
-                x_um -= width // 2
-            elif primitive.anchor == "end":
-                x_um -= width
-            boxes.append(
-                LabelBox(
-                    x_mm=x_um,
-                    y_mm=y_um - height,
-                    width_mm=width,
-                    height_mm=height,
-                    owner_id=primitive.element_id or primitive.text[:24],
-                )
-            )
-    return list(find_label_collisions(boxes))
+    The boxes come from :func:`services.drawings.render.labels.label_boxes` — the same
+    call the worker's pipeline and ``test_render`` make — and include the figures inside
+    dimension chains, so a room name over a dimension is a collision here too.
+    """
+    from services.drawings.render.labels import label_boxes
+
+    return list(find_label_collisions(label_boxes(drawing)))
 
 
 def _slug(value: str) -> str:

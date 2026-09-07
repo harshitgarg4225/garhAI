@@ -43,6 +43,7 @@ from services.drawings.dimensions import (  # noqa: E402
 )
 from services.drawings.layers import LAYER_NAMES  # noqa: E402
 from services.drawings.render.frame import frame_group  # noqa: E402
+from services.drawings.render.labels import Box, label_boxes, text_box_mm  # noqa: E402
 from services.drawings.render.layout import (  # noqa: E402
     PaperRect,
     choose_scale,
@@ -55,16 +56,24 @@ from services.drawings.render.primitives import (  # noqa: E402
     DrawingGroup,
     Line,
     Placement,
+    SheetDrawing,
     Text,
     dim_geometry,
     div_round,
     sort_by_layer,
 )
 from services.drawings.render.reference_sheets import (  # noqa: E402
+    _opening_centre_along,
+    _room_label_block,
+    _sheet,
     build_schedule_rows,
     build_sheet_set,
+    building_extent,
+    door_window_schedule,
     inner_chains,
     outer_chains,
+    plan_primitives,
+    room_label_lines,
 )
 from services.drawings.render.sanitize import (  # noqa: E402
     SvgSanitizeError,
@@ -74,7 +83,13 @@ from services.drawings.render.sanitize import (  # noqa: E402
 )
 from services.drawings.render.svg import normalize_svg, render_sheet_svg  # noqa: E402
 from services.drawings.render.tables import Column, table_primitives  # noqa: E402
-from services.drawings.sheets import PAPER_SIZES, TitleBlock, default_frame  # noqa: E402
+from services.drawings.sheets import (  # noqa: E402
+    PAPER_SIZES,
+    Scale,
+    TitleBlock,
+    Viewport,
+    default_frame,
+)
 
 INPUT_DIR = os.path.join(_REPO_ROOT, "fixtures", "sheets", "inputs")
 RULEPACK_DIR = os.path.join(_REPO_ROOT, "rulepacks")
@@ -172,7 +187,10 @@ def test_every_chain_sums_exactly() -> None:
                     cursor = segment.end_mm
                 assert cursor == chain.overall_mm
                 checked += 1
-    assert checked >= 40, "expected a substantial number of chains, got %d" % checked
+    # Two fixtures' worth of outer chains (three levels a side), elevations and the
+    # section. The per-room chains that used to inflate this count are now printed in
+    # the room labels (see plan_primitives), so the floor is what the outer chains give.
+    assert checked >= 30, "expected a substantial number of chains, got %d" % checked
 
 
 def test_chain_consistency_error_is_raised_not_corrected() -> None:
@@ -586,40 +604,74 @@ def test_normalize_svg_is_idempotent_and_only_touches_whitespace() -> None:
 def test_no_overlapping_text_labels_on_any_sheet() -> None:
     """§16: "collision-free assertion (no overlapping text bboxes)".
 
-    Measured in paper micrometres — the only space where an overlap is real. The width
-    metric is the same 0.58-em estimate ``scripts/sheet_goldens.py`` uses, kept in step
-    with it deliberately so the test and the harness cannot disagree about what passes.
+    Measured in paper micrometres — the only space where an overlap is real. The boxes
+    come from :func:`label_boxes`, the one measurer the worker's pipeline and
+    ``scripts/sheet_goldens.py`` also use, so the test and the harness cannot disagree
+    about what passes; and it boxes the figures inside dimension chains, so a room
+    label sitting on a dimension is a collision here, which it was not while only
+    ``Text`` primitives were measured.
     """
     for name, drawings in _sheet_sets():
         for drawing in drawings:
-            boxes: list[LabelBox] = []
-            for group in drawing.groups:
-                for primitive in group.primitives:
-                    if not isinstance(primitive, Text) or not primitive.text.strip():
-                        continue
-                    x_um, y_um = group.placement.to_paper_um(primitive.at)
-                    height = primitive.height_paper_um
-                    width = int(len(primitive.text) * height * 58 / 100)
-                    if primitive.anchor == "middle":
-                        x_um -= width // 2
-                    elif primitive.anchor == "end":
-                        x_um -= width
-                    boxes.append(
-                        LabelBox(
-                            x_um,
-                            y_um - height,
-                            width,
-                            height,
-                            primitive.element_id or primitive.text[:24],
-                        )
-                    )
-            collisions = find_label_collisions(boxes)
+            collisions = find_label_collisions(label_boxes(drawing))
             assert not collisions, "%s sheet %s has %d overlapping label pair(s): %s" % (
                 name,
                 drawing.sheet.number,
                 len(collisions),
                 collisions[:3],
             )
+
+
+def test_the_collision_audit_sees_dimension_figures() -> None:
+    """Negative control for the measurer: a room name on a dimension figure is caught.
+
+    The figure of a chain is not a ``Text`` primitive — it is exploded from the ``Dim``
+    at render time — and the old audit therefore never saw it. This builds a sheet with
+    exactly one text sitting on exactly one figure and requires one collision; then
+    moves the text clear and requires none.
+    """
+    chain = DimChain(
+        id="probe",
+        orientation="horizontal",
+        level=1,
+        offset_mm=0,
+        origin_mm=0,
+        segments=(DimSegment(0, 3000),),
+        overall_mm=3000,
+    )
+    dim = Dim(chain=chain, layer="A-DIM", text_height_paper_um=2_000)
+    sheet = _sheet(
+        sheet_id="probe",
+        kind="floor-plan",
+        number="A-00",
+        title="Probe",
+        viewport=Viewport(storey_id="s"),
+        scale=Scale(100),
+        title_block=TitleBlock(),
+    )
+
+    def drawing_with(label_at: tuple[int, int]) -> SheetDrawing:
+        label = Text(
+            at=label_at, text="BEDROOM", layer="A-TEXT", anchor="middle", baseline="middle"
+        )
+        return SheetDrawing(
+            sheet=sheet,
+            groups=(
+                DrawingGroup(
+                    id="plan",
+                    placement=Placement(100, origin_paper_um=(100_000, 100_000)),
+                    primitives=(dim, label),
+                ),
+            ),
+            chains=(chain,),
+        )
+
+    # The figure "3000" sits centred on the chain, one text gap above the line.
+    on_the_figure = find_label_collisions(label_boxes(drawing_with((1500, 250))))
+    assert len(on_the_figure) == 1, on_the_figure
+    assert "probe" in on_the_figure[0][0] + on_the_figure[0][1]
+    clear = find_label_collisions(label_boxes(drawing_with((1500, 2000))))
+    assert not clear, clear
 
 
 def test_label_box_touching_is_allowed_overlapping_is_not() -> None:
@@ -963,3 +1015,211 @@ if __name__ == "__main__":  # pragma: no cover
                 traceback.print_exc()
     print("\n%d failure(s)" % failures)
     sys.exit(1 if failures else 0)
+
+
+# ---------------------------------------------------------------------------
+# Opening tags: the plan prints what A-05 tabulates, and nothing else
+# ---------------------------------------------------------------------------
+def _opening_storeys(house: Any) -> dict[str, str]:
+    wall_storey = {wall.id: wall.storey_id for wall in house.walls}
+    return {opening.id: wall_storey[opening.wall_id] for opening in house.openings}
+
+
+def _tag_texts(primitives: Any, opening_ids: set[str]) -> list[Text]:
+    return [p for p in primitives if isinstance(p, Text) and p.element_id in opening_ids]
+
+
+def test_plan_opening_tags_are_the_schedule_sheets_tags() -> None:
+    """Every opening on every plan carries exactly the tag A-05 gives its group.
+
+    Folds each fixture once, builds the schedule the A-05 sheet prints, then reads the
+    tags off every floor-plan sheet and requires: one tag per opening on its storey,
+    equal to the schedule's ``tag_by_opening_id``; per-storey counts of each tag equal
+    to the schedule row's count column; and every row's tag present on some plan. The
+    class-4 bug at data level ("the schedule assigns tags, the plan prints none") is
+    exactly what this could not pass through.
+    """
+    from collections import Counter
+
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        house = doc.house
+        assert house.openings, "%s has no openings, so it proves nothing here" % name
+        schedule = door_window_schedule(house)
+        rows = {row.tag: row for row in build_schedule_rows(house)}
+        storey_of = _opening_storeys(house)
+        drawings = dict(_sheet_sets())[name]
+        seen_tags: set[str] = set()
+        for drawing in drawings.by_kind("floor-plan"):
+            storey_id = drawing.meta["storeyId"]
+            plan = next(g for g in drawing.groups if g.id.startswith("plan-"))
+            expected = {oid for oid, sid in storey_of.items() if sid == storey_id}
+            texts = _tag_texts(plan.primitives, expected)
+            tagged = {t.element_id: t.text for t in texts}
+            assert set(tagged) == expected, (name, storey_id, set(tagged) ^ expected)
+            assert len(texts) == len(expected), "an opening was tagged twice"
+            for opening_id, tag in tagged.items():
+                assert tag == schedule.tag_by_opening_id[opening_id], (name, opening_id, tag)
+            counts = Counter(tagged.values())
+            for tag, count in counts.items():
+                assert rows[tag].counts_by_storey.get(storey_id, 0) == count, (name, tag)
+            seen_tags |= set(counts)
+        assert seen_tags == set(rows), (name, seen_tags ^ set(rows))
+
+
+def test_the_plan_prints_the_mapping_it_is_given_not_its_own() -> None:
+    """Negative controls for the agreement above.
+
+    An empty mapping draws no tags at all, and a deliberately wrong mapping is printed
+    verbatim — so the positive test passes because the plan and the schedule share one
+    source, not because the plan happens to compute the same thing.
+    """
+    _name, fixture = _fixtures()[-1]
+    doc = _fold(fixture)
+    storey_id = doc.house.storeys[0].id
+    opening_ids = {oid for oid, sid in _opening_storeys(doc.house).items() if sid == storey_id}
+    assert opening_ids
+
+    none, _ = plan_primitives(doc, storey_id, opening_tags={})
+    assert not _tag_texts(none, opening_ids)
+
+    victim = sorted(opening_ids)[0]
+    wrong, _ = plan_primitives(doc, storey_id, opening_tags={victim: "Z9"})
+    texts = _tag_texts(wrong, opening_ids)
+    assert [t.text for t in texts] == ["Z9"]
+    assert "Z9" not in door_window_schedule(doc.house).tag_by_opening_id.values()
+
+
+def test_tags_sit_beside_their_opening_and_inside_the_building() -> None:
+    """A tag is within one door-width of its opening's centre, inside the building line,
+    and touches no other label on the plan — the greedy placer's contract."""
+    for _name, fixture in _fixtures():
+        doc = _fold(fixture)
+        house = doc.house
+        openings = {o.id: o for o in house.openings}
+        walls = {w.id: w for w in house.walls}
+        for storey in house.storeys:
+            extent = building_extent(house, storey.id)
+            if extent is None:
+                continue
+            primitives, _ = plan_primitives(doc, storey.id, scale_denominator=100)
+            boxes = [text_box_mm(p, 100) for p in primitives if isinstance(p, Text)]
+            for index, a in enumerate(boxes):
+                for b in boxes[index + 1 :]:
+                    assert not a.overlaps(b), (storey.name, a, b)
+            for text in _tag_texts(primitives, set(openings)):
+                opening = openings[text.element_id]
+                wall = walls[opening.wall_id]
+                along = _opening_centre_along(wall, opening)
+                centre = (along, wall.a.y) if wall.a.y == wall.b.y else (wall.a.x, along)
+                dx = abs(text.at[0] - centre[0])
+                dy = abs(text.at[1] - centre[1])
+                assert max(dx, dy) <= opening.width_mm + 500, (text, centre)
+                min_x, min_y, max_x, max_y = extent
+                assert min_x <= text.at[0] <= max_x and min_y <= text.at[1] <= max_y, text
+
+
+# ---------------------------------------------------------------------------
+# Room labels: name, clear dimensions, m² and sq ft, inside the room
+# ---------------------------------------------------------------------------
+class _FakePt:
+    def __init__(self, x: int, y: int) -> None:
+        self.x, self.y = x, y
+
+
+class _FakeRoom:
+    def __init__(self, width: int, depth: int, name: str = "BEDROOM") -> None:
+        self.id = "room_fake"
+        self.storey_id = "s"
+        self.type = "bedroom"
+        self.name = name
+        self.polygon = (_FakePt(0, 0), _FakePt(width, 0), _FakePt(width, depth), _FakePt(0, depth))
+        self.area_mm2 = width * depth
+
+
+def test_room_label_lines_are_the_polygon_extent_and_both_area_formats() -> None:
+    from garh_model.units import format_sqft, format_sqm
+
+    room = _FakeRoom(3623, 2703)
+    assert room_label_lines(room) == (
+        "BEDROOM",
+        "3623 x 2703",
+        format_sqm(3623 * 2703, 2),
+        format_sqft(3623 * 2703, 1),
+    )
+    assert room_label_lines(room)[2].endswith("m²")
+    assert room_label_lines(room)[3].endswith("sq ft")
+
+
+def test_room_label_block_fits_its_room_and_sheds_lines_only_when_it_must() -> None:
+    """The ladder: a bedroom gets four lines at full size; a passage turns; a shaft
+    keeps its name. Every line drawn lies inside the room."""
+    texts, boxes, complete = _room_label_block(_FakeRoom(3600, 3000), scale_denominator=100)
+    assert complete and len(texts) == 4
+    assert texts[0].bold and texts[0].height_paper_um == 2_500
+    assert all(box.inside(Box(0, 0, 3600, 3000)) for box in boxes)
+    assert all(text.rotation_deg == 0 for text in texts)
+
+    # Deeper than wide, and too narrow for the block upright: it turns.
+    texts, boxes, complete = _room_label_block(
+        _FakeRoom(1000, 3000, "PASSAGE"), scale_denominator=100
+    )
+    assert complete, [t.text for t in texts]
+    assert all(text.rotation_deg == 90 for text in texts)
+    assert all(box.inside(Box(0, 0, 1000, 3000)) for box in boxes)
+
+    # A shallow utility: the areas share a line rather than vanish.
+    texts, _boxes, complete = _room_label_block(
+        _FakeRoom(2400, 863, "UTILITY"), scale_denominator=100
+    )
+    assert complete
+    assert [t.text for t in texts][:2] == ["UTILITY", "2400 x 863"]
+    assert "m²" in texts[2].text and "sq ft" in texts[2].text
+
+    # A shaft: the name, and honestly reported as incomplete.
+    texts, _boxes, complete = _room_label_block(_FakeRoom(863, 633, "SHAFT"), scale_denominator=100)
+    assert not complete
+    assert [t.text for t in texts] == ["SHAFT"]
+
+
+def test_room_label_block_keeps_off_a_stair_flight() -> None:
+    room = _FakeRoom(2128, 2703, "STAIRCASE")
+    flight = Box(0, 0, 900, 1750)  # a dogleg's drawn flight up the left side
+    texts, boxes, _complete = _room_label_block(room, scale_denominator=100, obstacles=(flight,))
+    assert texts
+    assert all(not box.overlaps(flight) for box in boxes), boxes
+    assert all(box.inside(Box(0, 0, 2128, 2703)) for box in boxes)
+    # Negative control: without the obstacle the block is centred on the flight.
+    _texts, centred, _ = _room_label_block(room, scale_denominator=100)
+    assert any(box.overlaps(flight) for box in centred)
+
+
+def test_every_room_on_every_plan_is_labelled_and_a_real_room_gets_all_four_values() -> None:
+    """Corpus gate: rooms of 2 m² and more carry name, dimensions, m² and sq ft, inside
+    the room; smaller ones carry at least their name and are listed, not lost."""
+    partial: list[tuple[str, str, int]] = []
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        for storey in doc.house.storeys:
+            if not [w for w in doc.house.walls if w.storey_id == storey.id]:
+                continue
+            primitives, _ = plan_primitives(doc, storey.id, scale_denominator=100)
+            for room in doc.house.rooms:
+                if room.storey_id != storey.id:
+                    continue
+                lines = room_label_lines(room)
+                texts = [p for p in primitives if isinstance(p, Text) and p.element_id == room.id]
+                printed = " | ".join(t.text for t in texts)
+                assert texts and texts[0].text == lines[0], (name, room.name)
+                xs = [p.x for p in room.polygon]
+                ys = [p.y for p in room.polygon]
+                room_box = Box(min(xs), min(ys), max(xs), max(ys))
+                for text in texts:
+                    assert text_box_mm(text, 100).inside(room_box), (name, room.name, text)
+                if all(value in printed for value in lines[1:]):
+                    continue
+                partial.append((name, room.name, room.area_mm2))
+                assert room.area_mm2 < 2_000_000, (
+                    "%s: %s is %d mm² and lost part of its label: %r"
+                    % (name, room.name, room.area_mm2, printed)
+                )

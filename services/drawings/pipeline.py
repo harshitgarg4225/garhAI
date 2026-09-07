@@ -1118,39 +1118,12 @@ def _label_collisions(drawing: Any) -> int:
     surfacing in the UI; refusing to hand over the whole set because two labels touch
     would be the wrong trade for an architect on a deadline.
     """
-    from services.drawings.dimensions import LabelBox, find_label_collisions
-    from services.drawings.render.primitives import Text
+    from services.drawings.dimensions import find_label_collisions
+    from services.drawings.render.labels import label_boxes
 
-    boxes: list[LabelBox] = []
-    for group in drawing.groups:
-        for index, primitive in enumerate(group.primitives):
-            if not isinstance(primitive, Text) or not primitive.text.strip():
-                continue
-            height = int(primitive.height_paper_um)
-            width = int(len(primitive.text) * height * 58 // 100)
-            x_um, y_um = group.placement.to_paper_um(primitive.at)
-            if primitive.anchor == "middle":
-                x_um -= width // 2
-            elif primitive.anchor == "end":
-                x_um -= width
-            # Paper space runs Y-down (see Placement), so a baseline sits at the box's
-            # BOTTOM edge and the box extends upward — i.e. to smaller y.
-            if primitive.baseline == "hanging":
-                top = y_um
-            elif primitive.baseline == "middle":
-                top = y_um - height // 2
-            else:
-                top = y_um - height
-            boxes.append(
-                LabelBox(
-                    x_mm=x_um,
-                    y_mm=top,
-                    width_mm=width,
-                    height_mm=height,
-                    owner_id="%s#%d" % (group.id, index),
-                )
-            )
-    return len(find_label_collisions(boxes))
+    # One measurer for the pipeline, the golden harness and test_render — including
+    # the figures inside dimension chains, which a Text-only box list never saw.
+    return len(find_label_collisions(label_boxes(drawing)))
 
 
 def _reason(exc: BaseException) -> str:

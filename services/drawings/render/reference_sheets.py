@@ -76,6 +76,7 @@ from services.drawings.layers import (
     A_WIND,
 )
 from services.drawings.render.frame import frame_group
+from services.drawings.render.labels import Box, first_free, paper_to_model_mm, text_box_mm
 from services.drawings.render.layout import choose_scale, content_rect, fit_placement
 from services.drawings.render.primitives import (
     HATCH_DIAGONAL,
@@ -112,6 +113,8 @@ from services.drawings.revisions import (
     revision_marks,
     revision_register_group,
 )
+from services.drawings.schedules.door_window import DoorWindowSchedule, build_schedule
+from services.drawings.sections.stair import stair_geometry
 from services.drawings.sheets import (
     DEFAULT_SCALE,
     DEFAULT_SHEET_LAYOUT,
@@ -129,10 +132,13 @@ __all__ = [
     "build_schedule_rows",
     "build_sheet_set",
     "carpet_lines_for",
+    "door_window_schedule",
     "elevation_sheet",
     "floor_plan_sheet",
+    "opening_tag_map",
     "outer_chains",
     "inner_chains",
+    "room_label_lines",
     "section_sheet",
     "site_plan_sheet",
 ]
@@ -299,12 +305,148 @@ def _roof_level_mm(house: Any) -> int:
     return _storey_ffl_mm(house, len(house.storeys) - 1) + house.storeys[-1].height_mm
 
 
-def room_label_lines(room: Any) -> tuple[str, str]:
-    """``(name, area)`` — §7: "room label block (name, area in sqft one decimal)"."""
-    from garh_model.units import format_sqft
+def _room_extent(room: Any) -> tuple[int, int, int, int]:
+    xs = [p.x for p in room.polygon]
+    ys = [p.y for p in room.polygon]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def room_label_lines(room: Any) -> tuple[str, str, str, str]:
+    """``(name, "W x D", m², sq ft)`` — what an Indian municipal plan writes in a room.
+
+    The clear dimensions are the room polygon's axis-aligned extent, the same numbers
+    :func:`inner_chains` measures, so a contractor reading the label and a reviewer
+    reading the chain get one answer. Both areas come from ``garh_model.units``, whose
+    formatters are golden-tested against their TypeScript twins, so the label and the
+    area statement (m² for the municipality, sq ft for the client) cannot drift.
+    """
+    from garh_model.units import format_sqft, format_sqm
 
     name = room.name or str(room.type).replace("_", " ").upper()
-    return (name.upper(), format_sqft(room.area_mm2, 1))
+    min_x, min_y, max_x, max_y = _room_extent(room)
+    return (
+        name.upper(),
+        "%d x %d" % (max_x - min_x, max_y - min_y),
+        format_sqm(room.area_mm2, 2),
+        format_sqft(room.area_mm2, 1),
+    )
+
+
+#: Text heights the room label block steps down through until it fits its room:
+#: ``(name, other lines)`` in paper µm. 2.5/2.0 mm is the normal print; 1.8/1.5 mm is
+#: the smallest a municipal desk reads without complaint, and a WC gets it.
+_ROOM_LABEL_LADDER: tuple[tuple[int, int], ...] = (
+    (TEXT_HEIGHT_PAPER_UM, TEXT_HEIGHT_SMALL_PAPER_UM),
+    (2_200, TEXT_HEIGHT_LABEL_PAPER_UM),
+    (TEXT_HEIGHT_LABEL_PAPER_UM, 1_500),
+)
+#: Paper µm of air between a label block and the room's inner faces.
+_ROOM_LABEL_MARGIN_PAPER_UM = 800
+#: Paper µm between the lines of a block.
+_ROOM_LABEL_GAP_PAPER_UM = 500
+
+
+def _free_region(room_box: Box, obstacles: Sequence[Box]) -> Box:
+    """The largest strip of ``room_box`` clear of every obstacle (a stair flight).
+
+    Each obstacle that overlaps the region cuts it down to the biggest of the four
+    strips beside it. A staircase room keeps its label off the treads this way; a room
+    with nothing in it is returned untouched.
+    """
+    region = room_box
+    for obstacle in obstacles:
+        if not obstacle.overlaps(region):
+            continue
+        strips = (
+            Box(region.x0, region.y0, min(region.x1, obstacle.x0), region.y1),
+            Box(max(region.x0, obstacle.x1), region.y0, region.x1, region.y1),
+            Box(region.x0, region.y0, region.x1, min(region.y1, obstacle.y0)),
+            Box(region.x0, max(region.y0, obstacle.y1), region.x1, region.y1),
+        )
+        region = max(
+            (s for s in strips if s.width > 0 and s.height > 0),
+            key=lambda s: (s.width * s.height, s.x0, s.y0),
+            default=region,
+        )
+    return region
+
+
+def _room_label_block(
+    room: Any, *, scale_denominator: int, obstacles: Sequence[Box] = ()
+) -> tuple[tuple[Text, ...], tuple[Box, ...], bool]:
+    """The label block placed in a room: ``(texts, their boxes, complete)``.
+
+    Centred on the room's extent — less any ``obstacles`` (stair flights) drawn in it —
+    stacked name / dimensions / m² / sq ft. The block walks :data:`_ROOM_LABEL_LADDER`
+    until every line clears the inner faces by the margin; a room deeper than it is
+    wide gets the block turned 90° before the size is dropped, which is what a
+    draughtsman does with a passage. Only when the smallest size still overflows does
+    the block shed lines, areas first. ``complete`` is True only when all four values
+    are on the plan; the test that reads it lists every room that got less, so a shaft
+    may lose its area but a bedroom cannot lose it silently.
+    """
+    name, dims, sqm, sqft = room_label_lines(room)
+    min_x, min_y, max_x, max_y = _room_extent(room)
+    margin = paper_to_model_mm(_ROOM_LABEL_MARGIN_PAPER_UM, scale_denominator)
+    gap = paper_to_model_mm(_ROOM_LABEL_GAP_PAPER_UM, scale_denominator)
+    room_box = _free_region(
+        Box(min_x + margin, min_y + margin, max_x - margin, max_y - margin), obstacles
+    )
+    centre = ((room_box.x0 + room_box.x1) // 2, (room_box.y0 + room_box.y1) // 2)
+    rotations = (0, 90) if room_box.height > room_box.width else (0,)
+    # Arrangements, fullest first. A room too small for four lines gets two — the
+    # areas share a line, then the areas go — and a shaft gets its name. Every line
+    # kept is exactly the text the four-line block would print.
+    arrangements: tuple[tuple[str, ...], ...] = (
+        (name, dims, sqm, sqft),
+        (name, dims, "%s (%s)" % (sqm, sqft)),
+        (name, dims),
+        (name,),
+    )
+
+    def build(
+        lines: tuple[str, ...], name_um: int, line_um: int, rotation: int
+    ) -> tuple[tuple[Text, ...], tuple[Box, ...]]:
+        heights = [
+            paper_to_model_mm(name_um, scale_denominator),
+            *(paper_to_model_mm(line_um, scale_denominator) for _ in lines[1:]),
+        ]
+        total = sum(heights) + gap * (len(heights) - 1)
+        texts: list[Text] = []
+        boxes: list[Box] = []
+        cursor = total // 2  # signed distance from the block centre to the current top
+        for index, (text, height) in enumerate(zip(lines, heights, strict=False)):
+            offset = cursor - height // 2
+            at = (
+                (centre[0], centre[1] + offset)
+                if rotation == 0
+                else (centre[0] - offset, centre[1])
+            )
+            primitive = Text(
+                at=at,
+                text=text,
+                layer=A_TEXT,
+                height_paper_um=name_um if index == 0 else line_um,
+                anchor="middle",
+                baseline="middle",
+                rotation_deg=rotation,
+                element_id=room.id,
+                bold=index == 0,
+            )
+            texts.append(primitive)
+            boxes.append(text_box_mm(primitive, scale_denominator))
+            cursor -= height + gap
+        return (tuple(texts), tuple(boxes))
+
+    for lines in arrangements:
+        for rotation in rotations:
+            for name_um, line_um in _ROOM_LABEL_LADDER:
+                texts, boxes = build(lines, name_um, line_um, rotation)
+                if all(box.inside(room_box) for box in boxes):
+                    return (texts, boxes, len(lines) >= 3)
+    # Not even the name fits at the smallest size: draw it anyway, unrotated.
+    texts, boxes = build((name,), *_ROOM_LABEL_LADDER[-1], 0)
+    return (texts, boxes, False)
 
 
 # ---------------------------------------------------------------------------
@@ -400,16 +542,27 @@ def outer_chains(
         offset_for(LEVEL_3_OFFSET_MM),
     )
 
-    # Breakpoints: internal wall centrelines crossing each facade direction.
+    # Breakpoints: wall centrelines crossing each facade direction — the internal
+    # walls, and any external wall that is not the facade's own return. The return
+    # walls' centrelines sit half a wall inside the building line, and breaking there
+    # printed a "115" at each end of every level-2 chain: a figure wider than its
+    # segment, overlapping its neighbour, which the collision audit could not see
+    # while it boxed only Text. Level 2 measures from the outer face to the first
+    # centreline, as a setting-out chain is read.
     vertical_breaks: list[int] = []
     horizontal_breaks: list[int] = []
     vertical_anchors: dict[int, str] = {}
     horizontal_anchors: dict[int, str] = {}
     for wall in walls:
+        half = _half(wall.thickness_mm)
         if _is_vertical(wall):
+            if wall.kind == "external" and (wall.a.x - half <= min_x or wall.a.x + half >= max_x):
+                continue
             vertical_breaks.append(wall.a.x)
             vertical_anchors[wall.a.x] = wall.id
         else:
+            if wall.kind == "external" and (wall.a.y - half <= min_y or wall.a.y + half >= max_y):
+                continue
             horizontal_breaks.append(wall.a.y)
             horizontal_anchors[wall.a.y] = wall.id
 
@@ -828,11 +981,39 @@ def _north_arrow(at: Pt2, length_mm: int, north_deg: int) -> list[Primitive]:
     ]
 
 
-def _section_marker(a: Pt2, b: Pt2, tag: str) -> list[Primitive]:
-    """A section line with a bubble and a view direction tick at each end."""
+#: Paper µm from the building line to the centre of a section bubble: past the
+#: level-1 chain (24 000) and its figure, with the bubble's own radius to spare.
+_SECTION_BUBBLE_REACH_PAPER_UM = 33_000
+_SECTION_BUBBLE_RADIUS_PAPER_UM = 4_500
+
+
+def _section_marker(
+    cut: tuple[Pt2, Pt2],
+    tag: str,
+    *,
+    extent: tuple[int, int, int, int],
+    scale_denominator: int,
+) -> list[Primitive]:
+    """A section line with a bubble at each end, drawn clear of the dimension chains.
+
+    ``cut`` is the cut itself (what the section sheet's viewport records); the drawn
+    line runs on past the three chain levels so the bubbles sit outside them rather
+    than on the level-3 figures, which is where a bubble 900 mm off the building
+    line landed.
+    """
+    reach = paper_to_model_mm(_SECTION_BUBBLE_REACH_PAPER_UM, scale_denominator)
+    radius = paper_to_model_mm(_SECTION_BUBBLE_RADIUS_PAPER_UM, scale_denominator)
+    min_x, min_y, max_x, max_y = extent
+    (ax, ay), (bx, by) = cut
+    if ax == bx:
+        a: Pt2 = (ax, min(ay, by, min_y - reach))
+        b: Pt2 = (ax, max(ay, by, max_y + reach))
+    else:
+        a = (min(ax, bx, min_x - reach), ay)
+        b = (max(ax, bx, max_x + reach), ay)
     out: list[Primitive] = [Line(a, b, A_TEXT, style=STYLE_CENTRE)]
     for point in (a, b):
-        out.append(Circle(point, 450, A_TEXT))
+        out.append(Circle(point, radius, A_TEXT))
         out.append(
             Text(
                 at=point,
@@ -847,6 +1028,65 @@ def _section_marker(a: Pt2, b: Pt2, tag: str) -> list[Primitive]:
     return out
 
 
+#: Paper µm between an opening tag and the wall face it sits beside.
+_TAG_CLEARANCE_PAPER_UM = 3_000
+
+#: Paper µm of air around a floor plan's building line: the section bubbles' reach
+#: plus a bubble radius and a little more, so the sheet title clears them.
+_PLAN_PAD_PAPER_UM = _SECTION_BUBBLE_REACH_PAPER_UM + _SECTION_BUBBLE_RADIUS_PAPER_UM + 6_000
+
+
+def _tag_candidates(
+    wall: Any,
+    opening: Any,
+    centre_along: int,
+    tag: str,
+    *,
+    extent: tuple[int, int, int, int],
+    scale_denominator: int,
+) -> list[tuple[Text, Box]]:
+    """Where an opening's tag may go, best first.
+
+    A door's tag sits inside its swing (the quadrant the leaf sweeps is the one place
+    on a plan guaranteed to hold nothing else), then on the far side. A window's sits
+    inside the building — outside is where the three dimension levels live. Each side
+    is tried centred on the opening, then shifted past either jamb.
+    """
+    clearance = paper_to_model_mm(_TAG_CLEARANCE_PAPER_UM, scale_denominator)
+    perpendicular = _half(wall.thickness_mm) + clearance
+    line = _wall_line_mm(wall)
+    horizontal = _is_horizontal(wall)
+    min_x, min_y, max_x, max_y = extent
+    if horizontal:
+        inward = 1 if line <= (min_y + max_y) // 2 else -1
+    else:
+        inward = 1 if line <= (min_x + max_x) // 2 else -1
+    if opening.kind == "door":
+        swing = 1 if str(opening.swing).startswith("in") else -1
+        sides = (swing, -swing)
+    else:
+        sides = (inward, -inward)
+    shift = opening.width_mm // 2 + clearance
+    candidates: list[tuple[Text, Box]] = []
+    for side in sides:
+        for along in (0, shift, -shift):
+            across = line + side * perpendicular
+            at: Pt2 = (
+                (centre_along + along, across) if horizontal else (across, centre_along + along)
+            )
+            text = Text(
+                at=at,
+                text=tag,
+                layer=A_TEXT,
+                height_paper_um=TEXT_HEIGHT_LABEL_PAPER_UM,
+                anchor="middle",
+                baseline="middle",
+                element_id=opening.id,
+            )
+            candidates.append((text, text_box_mm(text, scale_denominator)))
+    return candidates
+
+
 def plan_primitives(
     doc: Any,
     storey_id: str,
@@ -854,14 +1094,23 @@ def plan_primitives(
     scale_denominator: int = 100,
     dim_to_jamb: bool = DEFAULT_DIM_TO_JAMB,
     section_line: tuple[Pt2, Pt2] | None = None,
+    opening_tags: Mapping[str, str] | None = None,
 ) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
-    """One storey's plan: walls, openings, stairs, room labels, dims, markers."""
+    """One storey's plan: walls, openings, stairs, room labels, tags, dims, markers.
+
+    ``opening_tags`` is ``{opening id: tag}`` — the schedule sheet's own assignment.
+    When it is not supplied it is computed by :func:`opening_tag_map`, the same call
+    :func:`build_schedule_rows` makes, so a ``W2`` on the plan is the ``W2`` row on
+    A-05 by construction. Passing a mapping is for callers that build a whole set and
+    want one computation; passing ``{}`` draws no tags.
+    """
     house = doc.house
     storey = next((s for s in house.storeys if s.id == storey_id), None)
     if storey is None:
         raise KeyError("no storey %r in this model" % storey_id)
     storey_index = list(house.storeys).index(storey)
     walls = _orthogonal_only(_walls_of(house, storey_id))
+    tags = opening_tag_map(house) if opening_tags is None else dict(opening_tags)
     out: list[Primitive] = []
 
     # -- walls: poché + faces, broken by openings -------------------------
@@ -890,31 +1139,18 @@ def plan_primitives(
                 out.extend(_door_primitives(wall, opening, centre))
             else:
                 out.extend(_window_primitives(wall, opening, centre))
-            if opening.tag:
-                out.append(
-                    Text(
-                        at=(centre, _wall_line_mm(wall))
-                        if _is_horizontal(wall)
-                        else (_wall_line_mm(wall), centre),
-                        text=opening.tag,
-                        layer=A_TEXT,
-                        height_paper_um=TEXT_HEIGHT_LABEL_PAPER_UM,
-                        anchor="middle",
-                        baseline="middle",
-                        element_id=opening.id,
-                    )
-                )
 
     # -- stairs -----------------------------------------------------------
+    flights: list[Box] = []
     for stair in sorted((s for s in house.stairs if s.storey_id == storey_id), key=lambda s: s.id):
         out.extend(_stair_primitives(house, stair, storey))
+        # The drawn flight (the same one _stair_primitives draws) is an obstacle a room
+        # label must not sit on; the return flight of a dogleg is not drawn, so the
+        # label may use that half of the stair room.
+        flights.append(Box(*stair_geometry(stair).flight_rect))
 
     # -- room labels + area outline ---------------------------------------
     for room in sorted((r for r in house.rooms if r.storey_id == storey_id), key=lambda r: r.id):
-        xs = [p.x for p in room.polygon]
-        ys = [p.y for p in room.polygon]
-        centre = ((min(xs) + max(xs)) // 2, (min(ys) + max(ys)) // 2)
-        name, area = room_label_lines(room)
         out.append(
             Polyline(
                 tuple((p.x, p.y) for p in room.polygon),
@@ -924,30 +1160,37 @@ def plan_primitives(
                 element_id=room.id,
             )
         )
-        out.append(
-            Text(
-                at=(centre[0], centre[1] + 200),
-                text=name,
-                layer=A_TEXT,
-                anchor="middle",
-                baseline="middle",
-                element_id=room.id,
-                bold=True,
-            )
+        texts, _boxes, _complete = _room_label_block(
+            room, scale_denominator=scale_denominator, obstacles=flights
         )
-        out.append(
-            Text(
-                at=(centre[0], centre[1] - 300),
-                text=area,
-                layer=A_TEXT,
-                height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM,
-                anchor="middle",
-                baseline="middle",
-                element_id=room.id,
-            )
-        )
+        out.extend(texts)
 
     extent = building_extent(house, storey_id)
+
+    # -- opening tags, kept off every label already on the plan -----------
+    # The room labels and the stair's UP label are placed first and are fixed; each
+    # tag then takes the first of its candidate spots that touches none of them and
+    # none of the tags placed before it. Walls and openings are visited in id order,
+    # so the result is a pure function of the design.
+    if extent is not None:
+        placed: list[Box] = [text_box_mm(p, scale_denominator) for p in out if isinstance(p, Text)]
+        for wall in sorted(walls, key=lambda w: w.id):
+            for opening in _openings_of_wall(house, wall.id):
+                tag = tags.get(opening.id)
+                if not tag:
+                    continue
+                candidates = _tag_candidates(
+                    wall,
+                    opening,
+                    _opening_centre_along(wall, opening),
+                    tag,
+                    extent=extent,
+                    scale_denominator=scale_denominator,
+                )
+                text, box, _found = first_free(candidates, placed)
+                placed.append(box)
+                out.append(text)
+
     if extent is not None:
         min_x, min_y, max_x, max_y = extent
         # FFL marker (§7 "FFL markers"), OUTSIDE the building beside the north
@@ -963,11 +1206,20 @@ def plan_primitives(
         )
         out.extend(_north_arrow((max_x + 1500, max_y - 1200), 900, doc.plot.north_deg))
         if section_line is not None:
-            out.extend(_section_marker(section_line[0], section_line[1], "A"))
+            out.extend(
+                _section_marker(
+                    section_line, "A", extent=extent, scale_denominator=scale_denominator
+                )
+            )
 
+    # Outer chains only. The per-room clear dimensions are printed in the room label
+    # (``3623 x 2700``) rather than as :func:`inner_chains`: drawn as chains they were
+    # a cross-hair through every room with their figures under the room name, which
+    # the collision audit could not see because a chain's figures are not Text. The
+    # numbers are identical — both read the room polygon's extent.
     chains = outer_chains(
         house, storey_id, scale_denominator=scale_denominator, dim_to_jamb=dim_to_jamb
-    ) + inner_chains(house, storey_id)
+    )
     assert_chains_sum(chains)
     out.extend(
         Dim(chain=chain, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM)
@@ -1428,51 +1680,45 @@ def site_plan_primitives(
 # ---------------------------------------------------------------------------
 # Door / window schedule rows (§7 "group openings by (kind, w, h) -> tags")
 # ---------------------------------------------------------------------------
-_TAG_PREFIX = {"door": "D", "window": "W", "ventilator": "V"}
-_KIND_ORDER = {"door": 0, "window": 1, "ventilator": 2}
+def door_window_schedule(house: Any) -> DoorWindowSchedule:
+    """The one tagging of this model's openings, shared by A-05 and every plan.
 
-
-def build_schedule_rows(house: Any) -> tuple[Any, ...]:
-    """Group openings by ``(kind, width, height)`` and tag them D1.., W1.., V1...
-
-    Ordering is by kind then descending width then descending height — the order an
-    Indian schedule is conventionally read (main door first) and, more importantly, a
-    total order that does not depend on the model's array order, so the tag an opening
-    gets is stable across edits that do not change the opening set.
+    :mod:`services.drawings.schedules.door_window` groups by ``(kind, w, h)`` exactly as
+    §7 says, orders doors-then-windows-then-ventilators widest first, honours tags an
+    opening already carries and never recycles a retired number. Both
+    :func:`build_schedule_rows` (the A-05 table) and :func:`opening_tag_map` (what the
+    plans print beside each opening) are views of this one object, which is what makes
+    "the tag on the plan is the row in the schedule" true by construction rather than
+    by review.
     """
-    groups: dict[tuple[str, int, int, int], dict[str, Any]] = {}
-    wall_storey = {wall.id: wall.storey_id for wall in house.walls}
-    for opening in house.openings:
-        key = (opening.kind, opening.width_mm, opening.height_mm, opening.sill_mm)
-        entry = groups.setdefault(key, {"counts": {}, "total": 0})
-        storey_id = wall_storey.get(opening.wall_id, "")
-        entry["counts"][storey_id] = entry["counts"].get(storey_id, 0) + 1
-        entry["total"] += 1
+    return build_schedule(house)
 
-    ordered = sorted(
-        groups.items(),
-        key=lambda item: (
-            _KIND_ORDER.get(item[0][0], 9),
-            -item[0][1],
-            -item[0][2],
-            item[0][3],
-        ),
-    )
-    counters: dict[str, int] = {}
-    rows: list[Any] = []
-    for (kind, width, height, sill), entry in ordered:
-        prefix = _TAG_PREFIX.get(kind, "X")
-        counters[prefix] = counters.get(prefix, 0) + 1
+
+def opening_tag_map(house: Any) -> dict[str, str]:
+    """``{opening id: tag}`` for the plans — the schedule's assignment, never a local one."""
+    return dict(door_window_schedule(house).tag_by_opening_id)
+
+
+def build_schedule_rows(house: Any) -> tuple[ScheduleRow, ...]:
+    """A-05's rows, from :func:`door_window_schedule`.
+
+    The sheet's table has a SILL column, so the module's ``Sill 900`` remark would print
+    the same number twice; the remark is kept only when a group's sills differ, which
+    is the one case a reader needs telling.
+    """
+    rows: list[ScheduleRow] = []
+    for group in door_window_schedule(house).groups:
+        row = group.to_row()
         rows.append(
             ScheduleRow(
-                tag="%s%d" % (prefix, counters[prefix]),
-                kind=kind,
-                width_mm=width,
-                height_mm=height,
-                sill_mm=sill,
-                counts_by_storey=dict(entry["counts"]),
-                total=entry["total"],
-                notes="",
+                tag=row.tag,
+                kind=row.kind,
+                width_mm=row.width_mm,
+                height_mm=row.height_mm,
+                sill_mm=row.sill_mm,
+                counts_by_storey=row.counts_by_storey,
+                total=row.total,
+                notes=row.notes if len(group.sills_mm) > 1 else "",
             )
         )
     return tuple(rows)
@@ -1522,9 +1768,14 @@ def floor_plan_sheet(
     register: RevisionHistory | None = None,
     diff: ModelDiff | None = None,
     layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
+    opening_tags: Mapping[str, str] | None = None,
 ) -> SheetDrawing:
     """One storey's plan, with revision clouds when a diff against the previous issue
     is supplied.
+
+    ``opening_tags`` is the schedule's ``{opening id: tag}``; left as ``None`` it is
+    computed here by the same call the schedule sheet makes (see
+    :func:`plan_primitives`).
 
     ``diff`` is a :class:`~services.drawings.revisions.ModelDiff` between the state the
     previous revision was issued at and this one. Its clouds are drawn in the plan's own
@@ -1538,12 +1789,15 @@ def floor_plan_sheet(
     extent = building_extent(house, storey_id)
     if extent is None:
         raise ValueError("storey %r has no walls, so it has no plan" % storey_id)
-    # Pad the extent so the three dimension chain levels fit inside the sheet: the
-    # outermost chain sits LEVEL_1_OFFSET_MM off the building line and then needs room
-    # for its own text.
-    pad = LEVEL_1_OFFSET_MM + 1_200
+    # Pad the extent so the three dimension chain levels and the section bubbles
+    # beyond them fit inside the sheet, and the sheet title clears the bubbles. The
+    # pad is a paper distance (the chains are paper-spaced), so it is chosen at the
+    # preferred scale and recomputed once the scale is known.
+    pad = paper_to_model_mm(_PLAN_PAD_PAPER_UM, DEFAULT_SCALE.denominator)
     padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
     denominator = choose_scale(padded, rect, preferred=DEFAULT_SCALE.denominator)
+    pad = paper_to_model_mm(_PLAN_PAD_PAPER_UM, denominator)
+    padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
     section_line = choose_section_line(doc)
     primitives, chains = plan_primitives(
         doc,
@@ -1551,6 +1805,7 @@ def floor_plan_sheet(
         scale_denominator=denominator,
         dim_to_jamb=dim_to_jamb,
         section_line=section_line,
+        opening_tags=opening_tags,
     )
     revision_number = (register.latest.number if register and register.latest else "") or (
         title_block.revision if diff is not None else ""
@@ -1587,7 +1842,7 @@ def floor_plan_sheet(
         scale=scale,
         title_block=title_block,
     )
-    label_at = ((extent[0] + extent[2]) // 2, padded[1] + 600)
+    label_at = ((extent[0] + extent[2]) // 2, padded[1] + paper_to_model_mm(3_000, denominator))
     return SheetDrawing(
         sheet=sheet,
         groups=(
@@ -1973,6 +2228,8 @@ def build_sheet_set(
             register=register,
         )
     )
+    # One tagging for the whole set: the plans print it, A-05 tabulates it.
+    tags = opening_tag_map(doc.house)
     for index, storey in enumerate(doc.house.storeys):
         if not _walls_of(doc.house, storey.id):
             continue
@@ -1986,6 +2243,7 @@ def build_sheet_set(
                 revisions=revisions,
                 register=register,
                 diff=diff,
+                opening_tags=tags,
             )
         )
     for index, direction in enumerate(("N", "E", "S", "W")):

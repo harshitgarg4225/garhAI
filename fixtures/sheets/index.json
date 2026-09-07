@@ -17,7 +17,7 @@
   },
   "projects": [
     {
-      "chainCount": 50,
+      "chainCount": 24,
       "handChecked": false,
       "input": "fixtures/plans/blr-30x40-g1-3bhk.json",
       "labelCollisions": 0,
@@ -40,7 +40,7 @@
           "scale": 100
         },
         {
-          "chains": 24,
+          "chains": 8,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -54,11 +54,11 @@
             "A-TITL"
           ],
           "number": "A-02A",
-          "primitives": 198,
+          "primitives": 210,
           "scale": 100
         },
         {
-          "chains": 17,
+          "chains": 7,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -71,7 +71,7 @@
             "A-TITL"
           ],
           "number": "A-02B",
-          "primitives": 134,
+          "primitives": 141,
           "scale": 100
         },
         {
@@ -175,7 +175,7 @@
       "stateHash": "c3f7f3d41a3b621e4c6d3097a2def36929a7c31e33f38ba2fb51b2fbdc2149c7"
     },
     {
-      "chainCount": 64,
+      "chainCount": 30,
       "handChecked": false,
       "input": "fixtures/plans/blr-30x50-g2-3bhk.json",
       "labelCollisions": 0,
@@ -198,7 +198,7 @@
           "scale": 100
         },
         {
-          "chains": 19,
+          "chains": 7,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -212,11 +212,11 @@
             "A-TITL"
           ],
           "number": "A-02A",
-          "primitives": 157,
+          "primitives": 162,
           "scale": 100
         },
         {
-          "chains": 17,
+          "chains": 7,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -230,11 +230,11 @@
             "A-TITL"
           ],
           "number": "A-02B",
-          "primitives": 145,
+          "primitives": 152,
           "scale": 100
         },
         {
-          "chains": 19,
+          "chains": 7,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -247,7 +247,7 @@
             "A-TITL"
           ],
           "number": "A-02C",
-          "primitives": 139,
+          "primitives": 144,
           "scale": 100
         },
         {
@@ -350,7 +350,7 @@
       "stateHash": "f61599f69586af7f6076e1a38f45fefcfd65c98c1a8104721efa2407c3966d9e"
     },
     {
-      "chainCount": 69,
+      "chainCount": 31,
       "handChecked": false,
       "input": "fixtures/plans/blr-40x60-g2-4bhk.json",
       "labelCollisions": 0,
@@ -373,7 +373,7 @@
           "scale": 100
         },
         {
-          "chains": 19,
+          "chains": 7,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -387,11 +387,11 @@
             "A-TITL"
           ],
           "number": "A-02A",
-          "primitives": 157,
+          "primitives": 164,
           "scale": 100
         },
         {
-          "chains": 21,
+          "chains": 7,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -405,11 +405,11 @@
             "A-TITL"
           ],
           "number": "A-02B",
-          "primitives": 170,
+          "primitives": 174,
           "scale": 100
         },
         {
-          "chains": 20,
+          "chains": 8,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -422,7 +422,7 @@
             "A-TITL"
           ],
           "number": "A-02C",
-          "primitives": 140,
+          "primitives": 142,
           "scale": 100
         },
         {
@@ -527,7 +527,7 @@
       "stateHash": "80e3d372ee8defd2787bf6fc73b31a056230070f64bc5143ea1e8f7fc848b468"
     },
     {
-      "chainCount": 48,
+      "chainCount": 24,
       "handChecked": false,
       "input": "fixtures/plans/hyd-30x40-g1-3bhk.json",
       "labelCollisions": 0,
@@ -550,7 +550,7 @@
           "scale": 100
         },
         {
-          "chains": 22,
+          "chains": 8,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -564,11 +564,11 @@
             "A-TITL"
           ],
           "number": "A-02A",
-          "primitives": 185,
+          "primitives": 192,
           "scale": 100
         },
         {
-          "chains": 17,
+          "chains": 7,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -581,7 +581,7 @@
             "A-TITL"
           ],
           "number": "A-02B",
-          "primitives": 134,
+          "primitives": 141,
           "scale": 100
         },
         {
