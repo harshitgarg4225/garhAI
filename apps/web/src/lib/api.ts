@@ -390,6 +390,26 @@ export type UsageLine = z.infer<typeof usageLineSchema>;
 export type SpendBudget = z.infer<typeof spendBudgetSchema>;
 
 // ---------------------------------------------------------------------------
+// The platform fee (GET/PUT /admin/billing/markup)
+// ---------------------------------------------------------------------------
+// The owner's percentage on every charge. Anyone signed in may read it (the usage
+// card shows it to every architect); `canSet` is the server saying whether THIS
+// caller may change it — a hint the fee page uses to decide what to render, never
+// the gate, which is the PUT's own 403.
+
+export const platformMarkupSchema = z.object({
+  /** A percentage string ("5", "7.25") so nothing here parses a float. */
+  percent: z.string(),
+  bps: z.number().int().nonnegative(),
+  source: z.enum(['setting', 'default']).catch('default'),
+  updatedAt: z.string().nullable().default(null),
+  updatedBy: z.string().nullable().default(null),
+  updatedByEmail: z.string().nullable().default(null),
+  canSet: z.boolean().default(false),
+});
+export type PlatformMarkup = z.infer<typeof platformMarkupSchema>;
+
+// ---------------------------------------------------------------------------
 // Project templates (GET /templates → POST /projects {templateId})
 // ---------------------------------------------------------------------------
 // Declared here rather than in `lib/schemas.ts` deliberately: the registry card
@@ -815,6 +835,31 @@ export function createApiClient(client: HttpClient = http) {
       /** Used vs allowed per metered kind, plus the spend budget, for the firm. */
       usage: (opts: CallOptions = {}): Promise<Usage> =>
         client.request({ path: '/billing/usage', parse: parser(usageSchema), ...opts }),
+    },
+
+    // ── Platform owner: the fee on every charge ───────────────────────────
+    admin: {
+      markup: {
+        /** The fee in force, who set it and when, and whether the caller may change it. */
+        get: (opts: CallOptions = {}): Promise<PlatformMarkup> =>
+          client.request({
+            path: '/admin/billing/markup',
+            parse: parser(platformMarkupSchema),
+            ...opts,
+          }),
+        /**
+         * Set the fee for every charge from now on. 403 for anyone not on the
+         * owner allowlist; rows already recorded keep the fee they were charged at.
+         */
+        set: (input: { percent: string }, opts: CallOptions = {}): Promise<PlatformMarkup> =>
+          client.request({
+            method: 'PUT',
+            path: '/admin/billing/markup',
+            body: { percent: input.percent },
+            parse: parser(platformMarkupSchema),
+            ...opts,
+          }),
+      },
     },
 
     // ── Project templates (Rayon-parity starters, applied server-side) ─────

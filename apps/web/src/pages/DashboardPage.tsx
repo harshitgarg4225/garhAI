@@ -37,7 +37,7 @@ import {
   toProblem,
 } from '../components';
 import type { CreateProjectInput, ProjectStage } from '../components';
-import { TrialUsageCard, useUsage } from '../features/billing';
+import { BillingLinks, TrialUsageCard, useUsage } from '../features/billing';
 import { api } from '../lib/api';
 import type { ProjectTemplate } from '../lib/api';
 import { useProjectStore } from '../stores/project';
@@ -185,9 +185,12 @@ export function DashboardPage(): JSX.Element {
         </Link>
       )}
       headerActions={
-        <Button variant="primary" size="sm" iconLeft="plus" onClick={() => setCreateOpen(true)}>
-          New project
-        </Button>
+        <>
+          <BillingLinks />
+          <Button variant="primary" size="sm" iconLeft="plus" onClick={() => setCreateOpen(true)}>
+            New project
+          </Button>
+        </>
       }
     >
       <PageBody>

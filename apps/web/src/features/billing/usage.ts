@@ -5,6 +5,7 @@
  */
 
 import type { Usage, UsageLine } from '../../lib/api';
+import { formatUsd } from './money';
 
 const KIND_LABEL: Record<string, string> = {
   solver: 'Generations',
@@ -44,4 +45,17 @@ export function describeFee(usage: Usage): string | null {
   const percent = (spend.markupPercent ?? '').trim();
   if (percent === '' || percent === '0') return null;
   return `${percent}% platform fee`;
+}
+
+/**
+ * The fee separated from the cost, for one architect's lifetime charges:
+ * "Provider cost $0.04 + platform fee $0.00 = $0.04 charged". Null with no budget
+ * object at all (an older api); shown even when nothing is enforced, because the
+ * split is the point — an owner reading it can see the fee is applied, and how much.
+ */
+export function describeSpendBreakdown(usage: Usage): string | null {
+  const spend = usage.spend;
+  if (!spend) return null;
+  const feeMicros = Math.max(0, spend.spentMicros - spend.providerCostMicros);
+  return `Provider cost ${formatUsd(spend.providerCostMicros)} + platform fee ${formatUsd(feeMicros)} = ${formatUsd(spend.spentMicros)} charged`;
 }

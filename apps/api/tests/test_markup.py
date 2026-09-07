@@ -9,6 +9,9 @@ Two promises, each with a negative control:
 
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Any
+
 import pytest
 from garh_api.billing.markup import (
     MarkupValueError,
@@ -17,6 +20,19 @@ from garh_api.billing.markup import (
     markup_micros,
     percent_to_bps,
 )
+
+
+@pytest.fixture(autouse=True)
+def _billing_tables(request: Any) -> None:
+    """``GET /billing/usage`` reads ``billing_subscriptions``, which is not in
+    ``ALL_TABLES`` — on a bare database this file passed only if ``test_billing_api``
+    had run first. Create-if-absent here, so the order of files is not a hidden input.
+    """
+    if request.node.get_closest_marker("integration"):
+        from garh_api.billing.models import BILLING_METADATA
+
+        BILLING_METADATA.create_all(request.getfixturevalue("database"))
+
 
 # ---------------------------------------------------------------------------
 # 1. Arithmetic — integers in, integers out, one rounding at the end
@@ -200,3 +216,64 @@ async def test_the_owner_sets_the_fee_and_the_usage_card_shows_it(
             "%s/admin/billing/markup" % api, json={"percent": bad}, headers=firm_a.headers
         )
         assert refused.status_code in (400, 422), (bad, refused.text)
+
+
+@pytest.mark.integration
+async def test_before_any_owner_sets_it_the_read_says_so(client, api, firm_a) -> None:
+    """The boot default is in force: nobody set it, so there is no who and no when."""
+    response = await client.get("%s/admin/billing/markup" % api, headers=firm_a.headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["source"] == "default"
+    assert body["updatedAt"] is None and body["updatedBy"] is None
+    assert body["updatedByEmail"] is None
+    assert body["canSet"] is False, "no allowlist configured means nobody, not the caller"
+
+
+@pytest.mark.integration
+async def test_the_owner_reads_who_set_it_and_when_and_others_cannot_set_it(
+    client, api, session, firm_a, firm_b, monkeypatch
+) -> None:
+    """The fee page's three facts — the percentage, who set it, when — and its gate.
+
+    ``canSet`` is the UI's hint to show the page; the PUT is the real gate, and the
+    negative control below is a signed-in admin of ANOTHER firm who reads everything
+    (the usage card shows the fee to every architect) and may change nothing.
+    """
+    from garh_api import models
+    from garh_api.config import get_settings
+    from sqlalchemy import select
+
+    result = await session.execute(
+        select(models.User.email).where(models.User.id == firm_a.user_id)
+    )
+    owner_email = result.scalar_one()
+    monkeypatch.setattr(get_settings(), "platform_owner_emails", owner_email.upper(), raising=False)
+
+    before = await client.get("%s/admin/billing/markup" % api, headers=firm_a.headers)
+    assert before.json()["canSet"] is True
+
+    put = await client.put(
+        "%s/admin/billing/markup" % api, json={"percent": "12.5"}, headers=firm_a.headers
+    )
+    assert put.status_code == 200, put.text
+
+    read = await client.get("%s/admin/billing/markup" % api, headers=firm_a.headers)
+    body = read.json()
+    assert body["percent"] == "12.5" and body["source"] == "setting"
+    assert body["updatedBy"] == str(firm_a.user_id)
+    assert body["updatedByEmail"] == owner_email.lower()
+    assert body["updatedAt"] is not None
+    when = datetime.fromisoformat(body["updatedAt"])
+    assert when.tzinfo is not None, "an aware timestamp, so the page can localise it"
+
+    # NEGATIVE CONTROL: another firm's admin sees the same facts and cannot set the fee.
+    other = await client.get("%s/admin/billing/markup" % api, headers=firm_b.headers)
+    assert other.status_code == 200, other.text
+    assert other.json()["percent"] == "12.5" and other.json()["canSet"] is False
+    refused = await client.put(
+        "%s/admin/billing/markup" % api, json={"percent": 1}, headers=firm_b.headers
+    )
+    assert refused.status_code == 403, refused.text
+    still = await client.get("%s/admin/billing/markup" % api, headers=firm_a.headers)
+    assert still.json()["percent"] == "12.5", "the refused PUT changed nothing"

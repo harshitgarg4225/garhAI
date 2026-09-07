@@ -89,4 +89,16 @@ curl "$APP_URL/api/v1/admin/billing/markup" -H "authorization: Bearer $TOKEN"
 
 Applies to the next charge and every one after; rows already written keep the fee they
 were charged at (`test_markup.py` holds that as a negative control). 0–100, at most two
-decimals. The value lives in `platform_settings` under `billing.markup_bps`.
+decimals. The value lives in `platform_settings` under `billing.markup_bps`, with the
+email of the owner who set it beside it under `billing.markup_set_by`.
+
+**From the app, no curl:** sign in with an address on `PLATFORM_OWNER_EMAILS`, and the
+dashboard header shows a **Platform fee** link (`/platform/fee`) beside **Billing**. The
+link appears only when `GET /admin/billing/markup` answers `canSet: true` for the caller;
+it is a courtesy, not the gate — the page renders read-only for anyone else, and the
+`PUT` answers 403 on its own. The page shows the fee in force, who set it and when (or
+that the boot default is still in force), a field that refuses anything outside 0–100 or
+finer than two decimals before the round trip, and a confirm that states the rule above:
+the change applies from the next metered charge, earlier rows keep theirs. After a change
+the page re-reads `/billing/usage`, so the percentage the usage card names is the one the
+next generation, render, copilot call or export is debited at.
