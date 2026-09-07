@@ -318,6 +318,29 @@ Two smaller gaps found in passing:
   chains forward once, the abandoned successor dies, and a third presentation — or
   anyone presenting the abandoned token — still revokes the family. Tests: the raced
   reload chains once, the abandoned successor is theft, the leeway off is strict.
+- **Three delivered plans rendered as "No plan cleared the quality checks" (found by
+  the browser UAT, 2026-09-06).** The solver log said `options=3`, the job row held
+  three, `GET /solver-jobs/:id` returned three — and the Plan tab showed the
+  loosen-your-brief card. The options screen validates every option at its boundary
+  and dropped, one by one and silently, any whose rule rows carried the vastu zone
+  lists and `{allow}` objects (the same shape that had already sunk the Compliance tab
+  once, fixed there and not here). The option schema now takes the shared compliance
+  value; an option this build genuinely cannot read is COUNTED and shown as a client
+  defect with a reload, never as the solver's verdict; and the job row's `banner` is
+  declared on the schema — zod strips undeclared keys, so the "why nothing cleared"
+  sentence had never reached the screen. `types.test.ts` holds a vastu row verbatim
+  and the unreadable-option negative control.
+- **"Generate the set" refused every project that had never saved a version, and the
+  product has no save-version button (found by the browser UAT, 2026-09-06).** A
+  project started from a ready-made plan, drawn by hand or imported from DXF got 409
+  "Save a version first"; a project with an old checkpoint was silently drawn at that
+  checkpoint, hundreds of ops behind the screen. Sheets and exports now pin to the
+  version at the head of the branch: the latest one when the design has not moved past
+  it, else a checkpoint minted in the request (snapshot plus the frozen compliance
+  report, exactly what `POST /versions` stores). Only a project with nothing to draw
+  is refused, and the message says to generate or draw a plan.
+  `test_drawing_version_pin.py`: minted at the head, re-minted after an edit and
+  reused without one (the negative control), the export path, and the honest refusal.
 - **Sign-in must not spend sign-up's cooldown (fixed 2026-09-02, first live trial).**
   Execution find: an architect with no account pressed _Sign in_ (202, nothing sent — the
   anti-enumeration path), then _Create an account_ thirty seconds later and got 429 "We

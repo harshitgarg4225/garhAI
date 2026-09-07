@@ -78,6 +78,7 @@ from garh_api.repositories import (
     AuditLogRepository,
     CreditEventRepository,
     DesignVersionRepository,
+    OpRepository,
     RenderJobRepository,
     SheetRepository,
     SolverJobRepository,
@@ -225,6 +226,89 @@ async def _resolve_design_version(
     branch = await active_branch(session, ctx, project_id)
     latest = await DesignVersionRepository(session, ctx).latest(project_id, branch)
     return latest.id if latest is not None else None
+
+
+async def _design_version_for_drawing(
+    session: AsyncSession,
+    ctx: TenantCtx,
+    project_id: uuid.UUID,
+    supplied: uuid.UUID | None,
+) -> uuid.UUID | None:
+    """The version a drawing set or an export is *of* — minted here when the head has none.
+
+    Sheets need a version to be of: an area statement is a statement about one state of
+    the design, reproducible and defensible later. But the architect who presses
+    "Generate the set" means the design on their screen. Before this helper the route
+    answered "save a version first" — and the product has no save-version button, so a
+    project drawn by hand, imported from DXF or started from a ready-made plan could
+    never be drawn at all; a project that HAD an old checkpoint was silently drawn at
+    that checkpoint, hundreds of ops behind the screen. Both were found by the browser
+    UAT.
+
+    A supplied id is honoured as-is. Otherwise: the latest version on the branch when
+    the design has not moved past it, else a fresh checkpoint of the head (snapshot +
+    frozen compliance report, exactly what "save a version" would store). ``None`` means
+    there is nothing to draw — no ops and no version.
+    """
+    if supplied is not None:
+        await DesignVersionRepository(session, ctx).require(supplied)
+        return supplied
+
+    branch = await active_branch(session, ctx, project_id)
+    op_repo = OpRepository(session, ctx)
+    dv_repo = DesignVersionRepository(session, ctx)
+    head_seq = await op_repo.head_seq(project_id, branch)
+    latest = await dv_repo.latest(project_id, branch)
+    if latest is None and head_seq is None:
+        return None
+    if latest is not None and (
+        head_seq is None or (latest.op_seq_end is not None and latest.op_seq_end >= head_seq)
+    ):
+        return latest.id
+
+    # Imported here, not at module top: projects.py and ops.py are loaded after this
+    # module by the routers package, and the snapshot helpers live there.
+    from garh_api.routers.ops import get_model_engine, load_project_state, wrap_snapshot
+    from garh_api.routers.projects import freeze_compliance_report
+
+    await op_repo.acquire_branch_write_lock(project_id, branch)
+    state = await load_project_state(session, ctx, project_id, branch)
+    head_seq = await op_repo.head_seq(project_id, branch)
+    if (
+        latest is not None
+        and latest.snapshot is not None
+        and state.state_hash is not None
+        and latest.snapshot.get("stateHash") == state.state_hash
+    ):
+        # A version with no recorded op range (older rows) that is nonetheless the head.
+        return latest.id
+
+    engine = get_model_engine()
+    version = await dv_repo.create_checkpoint(
+        project_id,
+        version_branch=branch,
+        snapshot=wrap_snapshot(
+            state.document,
+            version_branch=branch,
+            at_idx=state.head_idx,
+            at_seq=head_seq,
+            state_hash=state.state_hash,
+            schema_version=engine.schema_version,
+        ),
+        op_seq_start=None,
+        op_seq_end=head_seq,
+    )
+    # §7: the area statement on the sheet and the compliance annexure quote ONE set of
+    # numbers, frozen with the snapshot — the same rule POST /versions follows.
+    await freeze_compliance_report(session, ctx, project_id, state.document, version.id)
+    _log.info(
+        "drawing.version_minted",
+        project_id=str(project_id),
+        version_id=str(version.id),
+        at_idx=state.head_idx,
+        behind=None if latest is None else str(latest.id),
+    )
+    return version.id
 
 
 async def _enqueue_or_rollback(envelope: queue.JobEnvelope) -> int:
@@ -698,21 +782,23 @@ async def generate_sheets(
 
     Sheets need a version to be *of*: an area statement or an elevation is a statement
     about a specific state of the design, and a set generated from "whatever is current"
-    could not be reproduced or defended later. A project with no version yet gets a 409
-    telling the user to save one.
+    could not be reproduced or defended later. So the set is pinned to the version at
+    the head of the branch — minted right here when the design has moved since the last
+    one (see :func:`_design_version_for_drawing`). Only a project with no design at all
+    gets a 409.
     """
     ctx.require_write("generating drawings")
     await require_project(session, ctx, project_id)
 
-    design_version_id = await _resolve_design_version(
+    design_version_id = await _design_version_for_drawing(
         session, ctx, project_id, body.design_version_id
     )
     if design_version_id is None:
         raise ApiError(
-            "There's no saved version of this design to draw yet.",
+            "There's nothing to draw yet — this project has no plan.",
             status=409,
             code="no_design_version",
-            action="Save a version first, then generate the drawing set.",
+            action="Generate plan options or draw the plan first, then generate the set.",
         )
 
     job_id = queue.new_job_id()
@@ -907,7 +993,7 @@ async def start_export(
         return ExportJobOut.model_validate(replayed)
 
     try:
-        design_version_id = await _resolve_design_version(
+        design_version_id = await _design_version_for_drawing(
             session, ctx, project_id, body.design_version_id
         )
         job_id = queue.new_job_id()
@@ -926,10 +1012,10 @@ async def start_export(
 
         if design_version_id is None:
             raise ApiError(
-                "There's no saved version of this design to export yet.",
+                "There's nothing to export yet — this project has no plan.",
                 status=409,
                 code="no_design_version",
-                action="Save a version first, then export.",
+                action="Generate plan options or draw the plan first, then export.",
             )
         export_assets, export_outputs = await sheets_support.build_export_job(
             session, ctx, project_id, design_version_id, job_id=job_id, kind=body.kind
