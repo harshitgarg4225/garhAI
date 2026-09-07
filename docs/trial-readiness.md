@@ -398,7 +398,7 @@ Two smaller gaps found in passing:
   (2026-09-07, Railway project `garhai`, environment `production`).** Live: the
   copilot provider is `anthropic` (key set on the api service), the render provider is
   `stability` on the render worker (key set; `render.provider.selected
-  base_url=https://api.stability.ai`), sign-in mail goes through Brevo's HTTP transport
+base_url=https://api.stability.ai`), sign-in mail goes through Brevo's HTTP transport
   (`auth.mailer_installed transport=brevo-http`), object storage is the project's
   MinIO with a public endpoint for browser downloads, Alembic runs on boot
   (`API_MIGRATE_ON_BOOT`), the solver worker boots with `seed_rounds=3`, and the

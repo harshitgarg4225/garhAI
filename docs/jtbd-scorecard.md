@@ -8,23 +8,23 @@ what changed on 2026-09-06/07 and are honest about what is still open. The evide
 behind each score, including the gap lists this page abbreviates, is kept with the
 session's audit output; the tests named here are in the tree.
 
-| Job | Score | Verdict |
-|-----|------:|---------|
-| J01 Sign in and set up the practice | 5.5 | Sign-up → OTP → session → sign-out is executed, hardened and green (280 API tests, CI browser smoke, one live Brevo sign-up on the deployed  |
-| J02 Capture the plot | 6 | Rectangular-plot main path (quick-start → roads → city pack → compliance re-check → DXF round trip) is executed in a real browser and backed |
-| J03 Capture the client brief | 5 | The main path — typed form or pasted text → assumption chips → one undoable brief |
-| J04 Generate compliant plan options | 5.5 | The CP-SAT pipeline is real, executed and gated (129 solver tests + a real solve of the demo brief pass locally; 4 library plans fold and ar |
-| J05 Edit the plan in 2D | 6.5 | The core loop (typed-length ortho walls, doors/windows with swing, stairs, room typing, dimension click-to-edit, one-group undo/redo, live b |
-| J06 See and tune the building in 3D | 5.5 | The extrude-select-dress-scrub loop is real and was proven once in a browser (2026-08-26) with 435 unit tests green today, but opening holes |
-| J07 Check compliance continuously | 6.5 | The engine and live re-check are real and executed (1,240 engine tests, 238/238 fixtures, browser-proven strip); but "Fix it" is never wired |
-| J08 Produce the municipal drawing set | 5 | The pipeline genuinely runs end to end (42 golden sheets diff-clean, 231 chains sum, DXF audits clean, a 42-page vector PDF produced here),  |
-| J09 Produce client renders and mood | 5 | The mock render pipeline, seed determinism, gallery/stale flag, client pack (server side) and the inspiration board are executed and green,  |
-| J10 Collaborate with client and team | 5 | Client share link is real and proven in a browser (create → anonymous view → comment → revoke), but team collaboration is unreachable (no in |
-| J11 Edit by natural language | 5 | The containment pipeline (schema gate → real fold on a fork → rules diff → human apply, one undo group) is executed and green on every layer |
-| J12 Estimate fees, areas and costs | 4.5 | A well-tested GET /projects/:id/estimate (envelope, binding caps, 4 cost tiers, 3 CoA-anchored fee bands, whole rupees, seed-disclaimed) and |
-| J13 Manage plan, credits and billing | 5 | The API half is thorough and executed green (186 pytest + 16 vitest run here: plans, quotas, refunds, spend cap, GST invoices, mock checkout |
-| J14 Trust and operations | 6 | The security core (tenancy 404s, RS256 OTP auth, headers/CSP, body caps, fail-closed auth limits, PII-scrubbed Sentry) is executed and green |
-| J15 Interoperate and hand off | 4.5 | The worker-side exporters are real and executed (audit-clean DXF, 42-page vector PDF, valid GLB), but the two things an architect would actu |
+| Job                                   | Score | Verdict                                                                                                                                      |
+| ------------------------------------- | ----: | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| J01 Sign in and set up the practice   |   5.5 | Sign-up → OTP → session → sign-out is executed, hardened and green (280 API tests, CI browser smoke, one live Brevo sign-up on the deployed  |
+| J02 Capture the plot                  |     6 | Rectangular-plot main path (quick-start → roads → city pack → compliance re-check → DXF round trip) is executed in a real browser and backed |
+| J03 Capture the client brief          |     5 | The main path — typed form or pasted text → assumption chips → one undoable brief                                                            |
+| J04 Generate compliant plan options   |   5.5 | The CP-SAT pipeline is real, executed and gated (129 solver tests + a real solve of the demo brief pass locally; 4 library plans fold and ar |
+| J05 Edit the plan in 2D               |   6.5 | The core loop (typed-length ortho walls, doors/windows with swing, stairs, room typing, dimension click-to-edit, one-group undo/redo, live b |
+| J06 See and tune the building in 3D   |   5.5 | The extrude-select-dress-scrub loop is real and was proven once in a browser (2026-08-26) with 435 unit tests green today, but opening holes |
+| J07 Check compliance continuously     |   6.5 | The engine and live re-check are real and executed (1,240 engine tests, 238/238 fixtures, browser-proven strip); but "Fix it" is never wired |
+| J08 Produce the municipal drawing set |     5 | The pipeline genuinely runs end to end (42 golden sheets diff-clean, 231 chains sum, DXF audits clean, a 42-page vector PDF produced here),  |
+| J09 Produce client renders and mood   |     5 | The mock render pipeline, seed determinism, gallery/stale flag, client pack (server side) and the inspiration board are executed and green,  |
+| J10 Collaborate with client and team  |     5 | Client share link is real and proven in a browser (create → anonymous view → comment → revoke), but team collaboration is unreachable (no in |
+| J11 Edit by natural language          |     5 | The containment pipeline (schema gate → real fold on a fork → rules diff → human apply, one undo group) is executed and green on every layer |
+| J12 Estimate fees, areas and costs    |   4.5 | A well-tested GET /projects/:id/estimate (envelope, binding caps, 4 cost tiers, 3 CoA-anchored fee bands, whole rupees, seed-disclaimed) and |
+| J13 Manage plan, credits and billing  |     5 | The API half is thorough and executed green (186 pytest + 16 vitest run here: plans, quotas, refunds, spend cap, GST invoices, mock checkout |
+| J14 Trust and operations              |     6 | The security core (tenancy 404s, RS256 OTP auth, headers/CSP, body caps, fail-closed auth limits, PII-scrubbed Sentry) is executed and green |
+| J15 Interoperate and hand off         |   4.5 | The worker-side exporters are real and executed (audit-clean DXF, 42-page vector PDF, valid GLB), but the two things an architect would actu |
 
 The user's bar for this pass: every job scored above 5 and at most 8 goes to 10/10.
 That set is J01, J02, J04, J05, J06, J07 and J14. J08 and J15 sit at or below 5 but
@@ -35,6 +35,7 @@ are the drawings an architect's fee is earned on, so they are in the same wave.
 **Score 5.5.** Sign-up → OTP → session → sign-out is executed, hardened and green (280 API tests, CI browser smoke, one live Brevo sign-up on the deployed stack), but "set up the practice" stops at a firm name: no invite/team/roles/account-settings UI or endpoints exist, seats and 2FA/devices are backend-only, and the login form collects a mobile number it silently discards.
 
 Blocking gaps the reader found:
+
 - Invite a colleague into the firm (team members) — There is no endpoint or UI to add a second user to a firm; AuthService.signup is the only User constructor and always creates a new firm
 - Roles and permissions management — UserRepository.set_role/remove exist but no route calls them; there is no way to promote/demote or remove a member, and no UI to see roles
 - Firm and account settings page — Signup copy promises CoA can be added 'later in firm settings'; no settings route exists
@@ -53,6 +54,7 @@ Since the reading: A reload that raced a token refresh no longer signs the archi
 **Score 6.** Rectangular-plot main path (quick-start → roads → city pack → compliance re-check → DXF round trip) is executed in a real browser and backed by green pure-logic tests, but irregular plots can only be approximated by dragging midpoints, the underlay is PNG/JPEG-only and lives on the Plan canvas rather than the plot editor, LINE-segment survey DXFs import nothing, and every direct-manipulation surface (vertex drag, edge typing, compass, road toggles) has never run in a browser test.
 
 Blocking gaps the reader found:
+
 - No way to enter an irregular plot from a sale deed (four sides + diagonal, or bearings) — The editor offers only a rectangle quick-start, midpoint '+' corners and 115/25 mm-snapped dragging; typing an edge length uses a 'stretch' that silently moves neighbouring edges on a non-rectilinear ring (geometry.ts:13
 - Survey DXFs made of LINE/ARC entities import nothing — dxf_import.py:280-296 harvests only closed LWPOLYLINE/POLYLINE and `continue`s on everything else without incrementing `skipped.unsupported`, so a LINE-drawn boundary (the common Total-Station export) fails with 'no clos
 - Underlay tracing is unavailable in the plot editor and rejects PDF — The underlay (PNG/JPEG only, UnderlayPanel.tsx:93, routers/underlay.py) renders on the Plan tab's R3F canvas; the SVG PlotEditor has no image layer, so a scanned survey or a PDF site plan cannot be traced into the bounda
@@ -60,7 +62,7 @@ Blocking gaps the reader found:
 - Only one side-setback value; rear edge is guessed as 'opposite' on even-edge rings — REG_VALUE_KEYS has a single setbackSideMm (rules.ts:221-229) while bye-laws and the engine distinguish side-a/side-b; compliance.py:257-260 assigns 'rear' as front+n/2, which for a 6-edge L-plot picks an arbitrary edge
 - No deed-area reconciliation or diagonal/perimeter readout in the editor — Architects check drawn area against the registered deed area (sq ft / gaj / sq m) and quote diagonals
 - Editing the plot after a plan exists gives no warning — plot.set_boundary/set_road change setbacks and the front edge but never touch house geometry or tell the architect the applied plan is now out of its envelope; the only signal is the compliance strip
-- PUT /plot drops road names and mirrors reg_profile raw — routers/projects.py:422-429 builds plot.set_road without `name`, and :461-469 upserts `reg_profile=body.reg_profile` verbatim while the op used the normalised {cityPack, overrides} shape, so the plots table can disagree 
+- PUT /plot drops road names and mirrors reg_profile raw — routers/projects.py:422-429 builds plot.set_road without `name`, and :461-469 upserts `reg_profile=body.reg_profile` verbatim while the op used the normalised {cityPack, overrides} shape, so the plots table can disagree
 
 What no test looks at: Whether the SVG vertex handles, edge-label <text role=button> and '+' handles actually receive pointer/keyboard events in a real browser (the furniture-layer class of bug: code tags itself interactive but nothing proves the hit-test).; Edge-length 'stretch' on a non-rectilinear ring: plot.test.ts covers a rectangle and an L-shape only; a trapezoid silently changes the adjacent edges and no test states what the architect will see.; DXF entities that are not closed polylines: LINE/ARC/SPLINE/INSERT hit `continue` without being counted, so the skipped-summary the dialog shows can read 'nothing sk
 
@@ -69,8 +71,9 @@ What no test looks at: Whether the SVG vertex handles, edge-label <text role=but
 **Score 5.** The main path — typed form or pasted text → assumption chips → one undoable brief.update op — is real, unit-tested (35 vitest + 115 llm + 65 api file-only tests green today) and browser-proven in the CI smoke spec, but half the form's controls (per-room floor/facing/adjacency/bath choice) are written under names nothing downstream reads, template/seed briefs are written under names the form cannot read, a parse's assumed values overwrite what the architect already typed, the form cannot express a bath count or a basement, there are no feasibility hints at all, and the real Anthropic parser has never executed.
 
 Blocking gaps the reader found:
-- Per-room preferences (floor, facing, next-to, attached/common bath) never reach the solver — RoomPrefsEditor writes rooms[].floor/facing/adjacentTo and the bedroom row writes rooms[].bath; solver_enqueue._room_requests forwards only rooms[].storey, the solver program reads mustFace and a top-level adjacency[{a,b
-- Form has no bath count and no basement toggle; a form-only brief generates a house with no bathrooms — OPTIONAL_ROOM_TYPES has no bath_wc/wc; the completeness 'baths' item is satisfied by a per-bedroom attached/common choice that produces no bath room; _synthesise_support_rooms adds only staircases and passages
+
+- Per-room preferences (floor, facing, next-to, attached/common bath) never reach the solver — RoomPrefsEditor writes rooms[].floor/facing/adjacentTo and the bedroom row writes rooms[].bath; solver_enqueue.\_room_requests forwards only rooms[].storey, the solver program reads mustFace and a top-level adjacency[{a,b
+- Form has no bath count and no basement toggle; a form-only brief generates a house with no bathrooms — OPTIONAL_ROOM_TYPES has no bath_wc/wc; the completeness 'baths' item is satisfied by a per-bedroom attached/common choice that produces no bath room; \_synthesise_support_rooms adds only staircases and passages
 - Template/seed brief vocabulary is unreadable by the form (floorsAboveGround, carParking, styleId, poojaRoom) — Projects created from the ready-made plan library or the demo seed open the Brief tab with Floors 'Not decided', Car parking 'Not set', no style, and completeness that ignores them, while the solver reads the other spell
 - A parse overwrites the architect's stated values with the parser's assumptions and wipes per-bedroom prefs — FreeTextParse never sends knownFields, so the parser re-assumes storeys/parking/vastu/family; apply() prunes only keys equal to the current brief, so an assumed storeys:2 overwrites a typed storeys:3, and the rooms array
 - briefs projection table is stale for browser-edited briefs, and the Plan tab's briefReady gate reads it — Web brief edits dispatch brief.update via POST /ops; routers/ops.py never mirrors into `briefs`; GET /projects/:id serves BriefRepository; stores/project.ts derives progress.briefCompleteness from it and OptionsPanel hid
@@ -85,9 +88,10 @@ What no test looks at: Whether a field the form WRITES is READ by anything downs
 **Score 5.5.** The CP-SAT pipeline is real, executed and gated (129 solver tests + a real solve of the demo brief pass locally; 4 library plans fold and are walkable), but coverage is partial (18/60 configs, no NCR plan, no parking placement, rect/L/T plots only), the zero-options screen swallows the diagnosis the worker sends, rationale is raw fact chips, the Playwright Generate journey is still skipped, and the API-side refund/library tests could not be confirmed on this working tree.
 
 Blocking gaps the reader found:
+
 - Zero-options screen hides the worker's diagnosis and the ready-made fallback — pipeline.finalise puts the stage-A shortfall sentence in result.banner and the API row carries it, but OptionsPanel only renders `banner` when options.length>0; the succeededEmpty EmptyState shows 'The plot, setbacks and
 - Coverage: 18/60 stage-A configs, zero NCR plans, 2BHK on small plots infeasible — Per trial-readiness the offline matrix is 42/60; my sample confirms 20x30 2BHK G+1 fails
-- No car-parking placement; parking compliance passes on a declaration — An Indian residential plan on 30x40 needs an ECS/porch on the ground floor (blr.parking.*, ncr.parking.ecs)
+- No car-parking placement; parking compliance passes on a declaration — An Indian residential plan on 30x40 needs an ECS/porch on the ground floor (blr.parking.\*, ncr.parking.ecs)
 - Rationale is machine tokens, not prose — 'Why this plan' shows chips like composite:73 / zone:kitchen@SE / stairAnchor:se-1
 - Browser Generate → options → apply journey has no executing e2e spec — e2e/tests/happy-path.spec.ts:87 is test.skip with a Phase-3-era reason; the live proof is API-level (scripts/first_run_journey.py)
 - Irregular plots are refused (rect/L/T only) — grid.py raises UNSUPPORTED_SHAPE for any buildable mask needing >3 rectangles; trapezoidal/skewed survey plots are common in India
@@ -103,6 +107,7 @@ Since the reading: Generate retries up to three fresh seeds before answering "no
 **Score 6.5.** The core loop (typed-length ortho walls, doors/windows with swing, stairs, room typing, dimension click-to-edit, one-group undo/redo, live bye-law chip, endpoint/marquee select, layers with lock, storeys add/copy, measure, saved views, constraints) is real, unit-tested (2,052 green tests run here) and was proven once in a real browser (plan-canvas.spec, 2026-08-26) — but that spec is not in CI, the G+2 frame budget has never been measured, and daily-CAD table stakes are missing: wall split, copy/paste/mirror/array from the canvas, column placement, storey removal, touch, and trackpad two-finger pan.
 
 Blocking gaps the reader found:
+
 - Put the @canvas DoD spec and a real G+2 frame-budget measurement into CI — plan-canvas.spec has run green exactly once by hand; CI runs only @smoke, which never draws a wall (smoke.spec.ts:4 admits the last three steps of §16 are not there)
 - Wall split from the canvas — wall.split exists in ops.ts:940 with fold and inverse but no tool or inspector action emits it
 - Copy / paste / array / mirror surfaced on the canvas — packages/model/src/transform.ts (and the Python twin) implement all four with duplicate guards and a work cap, but nothing in apps/web imports them: no ⌘C/⌘V/⌘D bindings, no mirror axis picker, no array dialog
@@ -119,6 +124,7 @@ What no test looks at: Pixels: plan-canvas.spec asserts op log, folded model and
 **Score 5.5.** The extrude-select-dress-scrub loop is real and was proven once in a browser (2026-08-26) with 435 unit tests green today, but opening holes have never been asserted anywhere, the 3D e2e is outside CI and the 3D code has changed since, facades are unlit/no-shadow boxes with flat colours, and 3D export does not exist.
 
 Blocking gaps the reader found:
+
 - Prove opening holes actually render, then assert it — Manifold cutting has never been asserted in an executed test: solids.test uses a null cutter, three-d.spec only annotates the engine state, and no ledger records holes=true
 - Put the 3D e2e (and a minted visual baseline) into CI — three-d.spec (@canvas) runs only by hand and last ran 2026-08-26; the 3D/canvas tree changed on 08-27..29
 - 3D export (glTF/GLB, optionally OBJ) of building + facade — Nothing exports the 3D model
@@ -135,6 +141,7 @@ What no test looks at: Pixels: no executed test looks at what the 3D view draws 
 **Score 6.5.** The engine and live re-check are real and executed (1,240 engine tests, 238/238 fixtures, browser-proven strip); but "Fix it" is never wired, rule-acknowledgement overrides have no UI, the tab hides actual/limit/override/area/Vastu detail, all 118 values are unreviewed seeds, and the report still cannot see doors, shafts or real parking.
 
 Blocking gaps the reader found:
+
 - Wire 'Fix it' end to end or remove the affordance — ComplianceStrip/ComplianceChip accept onApplyFix/onFix but ProjectShell never passes one, and no client code builds an op group from autofix {opType, strategy}
 - Override a failing rule with a reason from the Compliance tab — The engine already supports {ruleId:{reason}} acknowledgements (overridden=true, excluded from blocking_failures, kept in failures()), and the tab's header promises 'the override is logged, not prevented', but there is n
 - Show the numbers an architect needs on the tab: actual vs limit, original limit, per-element instances, severity/hard, area statement, Vastu score, engine warnings/notes, pack versions — toComplianceIssue drops actual/limit/originalLimit/overridden/hard/severity/instances; the tab never renders report.areas, scores, warnings (e.g
@@ -153,6 +160,7 @@ Since the reading: Unchanged in code today; the build wave is wiring Fix-it, ove
 **Score 5.** The pipeline genuinely runs end to end (42 golden sheets diff-clean, 231 chains sum, DXF audits clean, a 42-page vector PDF produced here), but what it draws is a submission skeleton, not a submission set: the section is an envelope box with no cut walls, stair or room names, plans carry no D/W tags although the schedule assigns them, the site plan dimensions only setbacks, and the richly-tested sections/elevations/autodim/projection/blocks packages are never imported by the shipped renderer.
 
 Blocking gaps the reader found:
+
 - Section A-A is an envelope box, not a section — The shipped section_primitives draws plinth, envelope, slab lines, sill/lintel lines and a height chain
 - Door/window tags absent on plans while the schedule assigns them — A-05 lists D1–D5/W1–W2/V1 with per-storey counts, but every floor plan prints zero tags: reference_sheets prints opening.tag only when the ProjectDoc opening carries one, and no writer (solver, schedule generator, pipeli
 - Site plan lacks plot boundary and footprint dimensions — Only the four setback chains are dimensioned; the plot edges (the 30 x 40 ft an Indian sanction plan quotes), the building footprint, and the road width are not chains
@@ -171,14 +179,15 @@ Since the reading: "Generate the set" no longer refuses a project that never sav
 **Score 5.** The mock render pipeline, seed determinism, gallery/stale flag, client pack (server side) and the inspiration board are executed and green, but no real AI render has ever been produced, 16 of the 23 offered presets (all elevations) are wired to neither the named facade nor the project's north, the architect has no prompt text field, and the browser-side client pack and @renders e2e have never run.
 
 Blocking gaps the reader found:
-- Elevation presets photograph the wrong face and ignore project north — All 16 elevation-* presets are offered in the launcher but cameras.ts routes every non-street exterior to the same SE three-quarter station point, and handler.py never passes plot.northDeg into RenderRequest.north_deg, s
+
+- Elevation presets photograph the wrong face and ignore project north — All 16 elevation-\* presets are offered in the launcher but cameras.ts routes every non-street exterior to the same SE three-quarter station point, and handler.py never passes plot.northDeg into RenderRequest.north_deg, s
 - No real AI render has ever been produced — Stability and diffusers adapters exist; only the mock (watermarked 'GARH AI · MOCK RENDER') has run
 - Architect cannot describe materials or finishes for a render — prompt_extras is accepted by the API and sanitised in prompts.py but the launcher has no text field and features/renders/api.ts drops it
 - Client pack from a real browser never proven; likely fails without minio CORS — e2e pack test is test.skip(true)
 - @renders Playwright DoD walk is not in CI and has no execution record — CI greps @smoke only; the capture→render→stale-banner spec has never been recorded as run
 - Shared links die after 10 minutes — WhatsApp share and the pack-zip share send a presigned S3 URL with the configured TTL; a client opening it later gets an S3 'Request has expired' page
 - Client pack bypasses the render count allowance — POST /renders/client-pack has require_spend_budget only; the free plan's render allowance is 5 but a pack enqueues 8 with no count check, while the single route is gated
-- Gallery lacks full-size view, real download, delete and captions — <a download> on a cross-origin URL navigates instead of saving and gives no filename; no lightbox, no delete/hide of a failed or unwanted render, no caption/note per image, no 'compare with previous version' for a stale 
+- Gallery lacks full-size view, real download, delete and captions — <a download> on a cross-origin URL navigates instead of saving and gives no filename; no lightbox, no delete/hide of a failed or unwanted render, no caption/note per image, no 'compare with previous version' for a stale
 
 What no test looks at: Whether an elevation preset's camera actually faces the named facade: test_orientation.py proves camera_azimuth_deg in isolation, nothing calls it from cameras.ts, and no test folds a preset through presetCamera and checks the eye is north of the building (bug class #4: a module that believes it is registered).; Whether the project's plot.northDeg ever reaches RenderRequest.north_deg — the handler constructs the request without it and every test that touches orientation passes north_deg by hand (bug class #1: a gate that silently never fires).; Whether the mock render's image contains the buil
 
@@ -187,6 +196,7 @@ What no test looks at: Whether an elevation preset's camera actually faces the n
 **Score 5.** Client share link is real and proven in a browser (create → anonymous view → comment → revoke), but team collaboration is unreachable (no invite/member route, one user per firm), resolved comments vanish with no reopen/list, there is no UI to save or restore a version, the viewer silently drops 3D/compliance grants, and there is no notification of any kind.
 
 Blocking gaps the reader found:
+
 - Team collaboration is unreachable: no invite/add-member route — Add POST /firms/members (admin) that calls UserRepository.create + seat assignment, an invite email via the existing mailer, and a Team page in the web; add a negative test that a member of firm B still 404s on firm A
 - Resolved comments vanish; no reopen or 'show resolved' list — Add ?resolved=all|open filter to GET /projects/:id/comments (repo already has set_resolved(False)); UI toggle 'Show resolved' and a Reopen button; negative test: resolving then listing with the filter returns the row.
 - Share viewer ignores 3D and compliance grants; client cannot see prior comments or replies — ShareDialog offers five sections but ShareViewerPage renders three
@@ -203,22 +213,24 @@ What no test looks at: Whether a second real browser ever renders a colleague's 
 **Score 5.** The containment pipeline (schema gate → real fold on a fork → rules diff → human apply, one undo group) is executed and green on every layer against the MOCK provider, but the thing the job is actually for — a model understanding an architect's words — has never run: the Anthropic adapter has zero tests, streaming and multi-turn history exist only inside services/llm and never reach the route or the panel, and the mock's keyword matcher hands back the fixture's number for any paraphrase ("make the middle wall 150 thick" → a 230 mm proposal).
 
 Blocking gaps the reader found:
-- Real Anthropic provider never executed and has zero tests — services/llm/anthropic_provider.py (410 lines: output_config json_schema, _strip_unsupported, parameter-drop-and-retry, parsed_output/stop_reason handling) has no unit test with an SDK double and has never been called wi
-- Mock provider answers paraphrases with the fixture's numbers — _best_overlap accepts any command sharing ≥50% of a fixture's keywords, so 'make the middle wall 150 thick' proposes 230 mm and 'widen the main door to 900' proposes 1200 mm — a confident wrong edit on the trial stack (w
+
+- Real Anthropic provider never executed and has zero tests — services/llm/anthropic_provider.py (410 lines: output_config json_schema, \_strip_unsupported, parameter-drop-and-retry, parsed_output/stop_reason handling) has no unit test with an SDK double and has never been called wi
+- Mock provider answers paraphrases with the fixture's numbers — \_best_overlap accepts any command sharing ≥50% of a fixture's keywords, so 'make the middle wall 150 thick' proposes 230 mm and 'widen the main door to 900' proposes 1200 mm — a confident wrong edit on the trial stack (w
 - Streaming never reaches the route or the panel — propose_stream / guarded_stream / StageEvent are built and tested (27 tests) but routers/copilot.py calls the blocking propose() and the web client is a single 60 s POST; the panel shows a static skeleton
 - No multi-turn context: 'now do the same on the first floor' is unanswerable — ConversationContext (redacted at construction, swept at render, 20 tests) is never passed by the route
 - Corpus has no Indian-vocabulary, Hinglish or feet-inches rows — All 40 commands are English; nothing exercises 'deewar', 'pooja room', 'wash area', 'utility', '12\'6"', 'two hundred thirty'
 - Client abort still spends provider budget and meters a credit — Client deadline is 60 s; server llm_timeout_seconds=60 with SDK max_retries=2 can run ~180 s
 - @copilot e2e spec is not in CI — ci.yml's e2e job runs test:smoke only; the copilot DoD walk is executed by hand per the ledger
-- Rules gate blocks only hard failures; a copilot edit that introduces a new warn passes silently — _hard_failures keeps only status=='fail'
+- Rules gate blocks only hard failures; a copilot edit that introduces a new warn passes silently — \_hard_failures keeps only status=='fail'
 
-What no test looks at: Whether the mock's fuzzy match returns the WRONG NUMBER for a near-miss command — only the unrelated-text → cannotDo fallback is asserted (test_unknown_command_gets_the_honest_default); the executed probe shows 150→230 and 900→1200 pass every gate green; Whether the Anthropic request the code builds is accepted at all: the schema after _strip_unsupported, the output_config.format shape, the guessed response attributes (parsed_output, stop_details.category) — nothing executes that code; Whether a proposal introduces a NEW warn-level rule regression — the gate reads status=='fail' only, so a cop
+What no test looks at: Whether the mock's fuzzy match returns the WRONG NUMBER for a near-miss command — only the unrelated-text → cannotDo fallback is asserted (test_unknown_command_gets_the_honest_default); the executed probe shows 150→230 and 900→1200 pass every gate green; Whether the Anthropic request the code builds is accepted at all: the schema after \_strip_unsupported, the output_config.format shape, the guessed response attributes (parsed_output, stop_details.category) — nothing executes that code; Whether a proposal introduces a NEW warn-level rule regression — the gate reads status=='fail' only, so a cop
 
 ## J12 — Estimate fees, areas and costs
 
 **Score 4.5.** A well-tested GET /projects/:id/estimate (envelope, binding caps, 4 cost tiers, 3 CoA-anchored fee bands, whole rupees, seed-disclaimed) and a proven municipal A-06 area statement exist on the backend, but no web screen calls the estimator, rates are one national table (not per city, not firm-editable), there is no BOQ/take-off, no estimate export, the compliance tab shows no FAR/coverage readout, and a reviewer-flagged mislabel (coverage-bound plots reported as envelope-bound) is still live.
 
 Blocking gaps the reader found:
+
 - Estimate has no screen: nothing in apps/web calls GET /projects/:id/estimate — The route, schema and 21 tests exist, but an architect cannot see the buildable envelope, cost band or fee band in the product
 - builtUpBinding mislabelled 'envelope' on coverage-bound plots (reviewer finding from f6ecd50, still live) — stacked_mm2 = max_ground_floor_area_mm2 × max_storeys is always labelled "envelope" even when max_ground_floor_area_mm2 came from coverage
 - Cost per sq ft is one national seed table — no per-city rates, no firm-editable rate library, no persistence — CONSTRUCTION_RATES is 4 tiers regardless of city_pack (probed: blr/hyd/ncr give identical bands)
@@ -235,9 +247,10 @@ What no test looks at: builtUpBinding on a coverage-bound plot: test_both_built_
 **Score 5.** The API half is thorough and executed green (186 pytest + 16 vitest run here: plans, quotas, refunds, spend cap, GST invoices, mock checkout, seats, owner markup), but an architect can only SEE usage — there is no UI to view plans, upgrade, enter GST details, see or pay an invoice, or manage seats; Razorpay has never run live; the `billing_live` flag is never read; and solver/export events are priced at 0 by their own call sites despite the ledger claiming otherwise.
 
 Blocking gaps the reader found:
-- No architect-facing billing UI: plans, upgrade, GST details, invoices, checkout, seats — The API exposes 15 routes under /billing/** and the web binds exactly one (GET /billing/usage)
+
+- No architect-facing billing UI: plans, upgrade, GST details, invoices, checkout, seats — The API exposes 15 routes under /billing/\*\* and the web binds exactly one (GET /billing/usage)
 - Out-of-credits 402 is a dead-end toast with 'Try again' — ProjectShell.handleGenerate maps every non-409 error to a 'Try again' action, so a quota_exceeded / spend_cap_exceeded 402 offers a retry that will 402 again
-- Solver and export are silently priced at 0 in the ledger — jobs.py writes solver/export meta with no 'provider' key; cost_micros_for treats '' as a free provider, so FLAT_PRICES for solver (6,000 µUSD) and export (2,000 µUSD) never apply, and the spend cap cannot count CPU work 
+- Solver and export are silently priced at 0 in the ledger — jobs.py writes solver/export meta with no 'provider' key; cost_micros_for treats '' as a free provider, so FLAT_PRICES for solver (6,000 µUSD) and export (2,000 µUSD) never apply, and the spend cap cannot count CPU work
 - Export quota is unmounted; free plan says 'no drawing exports' but exports are unlimited — plans.py sets free export allowance to 0 on purpose, but require_quota('export') is not mounted on POST /export or the render pack (UNGATED_ON_PURPOSE), so the product's stated pricing is not enforced
 - Razorpay has never run live; billing_live flag is dead; env docs stale — The adapter is proven only against an httpx.MockTransport double
 - No payment webhook: an invoice paid after the browser closes never settles — payments.py documents that no webhook is mounted because tenant resolution from provider metadata is unsolved
@@ -253,6 +266,7 @@ Since the reading: The platform fee exists end to end: 5% by default, read from 
 **Score 6.** The security core (tenancy 404s, RS256 OTP auth, headers/CSP, body caps, fail-closed auth limits, PII-scrubbed Sentry) is executed and green locally and in CI, but operations are half-real: Sentry is not enabled on the deployed stack, no scheduled backup exists, the "load test" is a read-only /healthz smoke, Railway runs migrations+seed on boot against the doc that forbids it, CI is red at HEAD on a ruff-format miss, the onboarding tour is a store with no UI, 2FA/devices/DPDP have no web surface, and the trust docs are stale by a month.
 
 Blocking gaps the reader found:
+
 - CI is red at HEAD on a formatting miss — Runs 71–73 fail at lint 'ruff format --check' (apps/api/garh_api/models.py would be reformatted), so typecheck/unit/golden/e2e never ran for the last three commits including the platform-fee and seed-round changes
 - Sentry/monitoring is built but OFF in production — No SENTRY_DSN on the Railway api or worker services; no queue-depth metric, no job-duration histograms (deployment.md 'Still to add'), no alerting
 - No scheduled backup and no recorded restore rehearsal — scripts/backup_db.sh exists; Railway has no cron/backup service; the 'ran once for real' claim in CLAUDE.md has no ledger line, no timestamp, no output
@@ -271,7 +285,8 @@ Since the reading: CI is green again after two formatting misses; the production
 **Score 4.5.** The worker-side exporters are real and executed (audit-clean DXF, 42-page vector PDF, valid GLB), but the two things an architect would actually do daily are broken or missing: the web UI never surfaces the finished set-export download (JobList is mounted without onOpenResult, per-sheet PDF is never requested), and every exported DXF drops paper-space groups (title block, schedules, area statement) into model-mm blocks unscaled — a 594x420 mm frame with 1.8 mm text sitting inside a 1:100 plan; DXF import reads only top-level closed polylines (no INSERT traversal, LINE loops rejected, arc bulges silently flattened) and there is no DWG, IFC or OBJ.
 
 Blocking gaps the reader found:
-- DXF export writes paper-space groups (title block, schedules, area statement, north arrow) unscaled into model-mm blocks — _model_point is identity and _write_group ignores DrawingGroup.placement, so a Placement.paper() group lands as 594x420 model-mm geometry with 1.8-5 mm text overlapping a 1:100 plan; A-05/A-06 sheets are entirely miniatu
+
+- DXF export writes paper-space groups (title block, schedules, area statement, north arrow) unscaled into model-mm blocks — \_model_point is identity and \_write_group ignores DrawingGroup.placement, so a Placement.paper() group lands as 594x420 model-mm geometry with 1.8-5 mm text overlapping a 1:100 plan; A-05/A-06 sheets are entirely miniatu
 - Finished set exports (PDF/DXF/glTF/PNG) have no download control in the web UI — SheetsTab mounts JobList without onOpenResult and nothing reads JobDTO.downloadUrl; the toast promises an automatic download that never happens
 - Per-sheet PDF button is permanently disabled — The web never requests formats on generate and DEFAULT_SHEET_FORMATS is (svg, dxf), so sheet.artifacts.pdf never exists
 - DXF import reads only top-level closed LWPOLYLINE/POLYLINE — Boundaries inside INSERT blocks, closed loops made of LINE/ARC entities (the common surveyor output), and the product's own exported DXF all return dxf_no_boundary
