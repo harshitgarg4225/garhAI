@@ -38,7 +38,7 @@ const GROUP_TITLE: Readonly<Record<ComplianceResultStatus, string>> = {
 const GROUP_ORDER: readonly ComplianceResultStatus[] = ['fail', 'warn', 'pass', 'not_applicable'];
 
 export function CompliancePage(): JSX.Element {
-  const { compliance } = useProjectOutlet();
+  const { compliance, applyFix } = useProjectOutlet();
 
   const grouped = useMemo(() => {
     const map = new Map<ComplianceResultStatus, ComplianceIssueVM[]>();
@@ -97,6 +97,9 @@ export function CompliancePage(): JSX.Element {
                         cite={issue.cite}
                         ruleId={issue.ruleId}
                         confidence={issue.confidence}
+                        /* Same computed op group as the strip's button (§15);
+                           absent — not disabled — when nothing can be built. */
+                        onFix={issue.fixAvailable ? () => applyFix(issue) : undefined}
                       />
                       {issue.fixHint === undefined ? null : (
                         <p className="pl-1 text-xs text-ink-muted">{issue.fixHint}</p>

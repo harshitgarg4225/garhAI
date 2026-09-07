@@ -775,11 +775,39 @@ export const complianceValueSchema = z
   .default(null);
 export type ComplianceValue = z.infer<typeof complianceValueSchema>;
 
+/**
+ * The pack's `autofix` block, verbatim (`AutoFix.to_json()` in garh_rules/packs.py).
+ * `computable` is the PACK's claim; whether this client can actually build the op
+ * group is decided by `features/compliance/autofix.ts`, and "Fix it" appears only
+ * when both agree. A pack claiming a fix the client cannot compute must produce no
+ * button, never a dead one.
+ */
+export const complianceAutofixSchema = z.object({
+  opType: z.string(),
+  strategy: z.string(),
+  computable: z.boolean().default(true),
+});
+export type ComplianceAutofix = z.infer<typeof complianceAutofixSchema>;
+
+/** One evaluated element of a scoped rule (`ResultInstance.to_json()`). */
+export const complianceInstanceSchema = z.object({
+  elementId: z.string().nullable().default(null),
+  label: z.string().nullable().default(null),
+  status: z.enum(['pass', 'warn', 'fail', 'not_applicable']).catch('not_applicable'),
+  actual: complianceValueSchema,
+  limit: complianceValueSchema,
+  message: z.string().nullable().default(null),
+  note: z.string().nullable().default(null),
+});
+export type ComplianceInstance = z.infer<typeof complianceInstanceSchema>;
+
 export const complianceResultSchema = z.object({
   ruleId: z.string(),
   packId: z.string().nullable().default(null),
   status: z.enum(['pass', 'warn', 'fail', 'not_applicable']).catch('not_applicable'),
   severity: z.string().nullable().default(null),
+  /** The pack's own severity, before any vastu-mode ceiling relaxed it. */
+  declaredSeverity: z.string().nullable().default(null),
   title: z.string().nullable().default(null),
   message: z.string().nullable().default(null),
   actual: complianceValueSchema,
@@ -787,19 +815,135 @@ export const complianceResultSchema = z.object({
   unit: z.string().nullable().default(null),
   cite: z.string().nullable().default(null),
   citeShort: z.string().nullable().default(null),
+  citeUrl: z.string().nullable().default(null),
   fixHint: z.string().nullable().default(null),
   /** True when the pack's `autofix` block yields an applicable op group. */
   fixAvailable: z.boolean().default(false),
+  autofix: complianceAutofixSchema.nullable().default(null),
   elements: z.array(z.string()).default([]),
   confidence: z.string().nullable().default(null),
   checkType: z.string().nullable().default(null),
-  /** A hard rule is a solver gate (§5.6), not merely a red chip. */
+  /** The pack's `hard` flag: a rule no mode may relax to a warning (§5.6). */
   hard: z.boolean().default(false),
+  /** An architect touched this rule — a logged acknowledgement OR a value override. */
   overridden: z.boolean().default(false),
   overrideReason: z.string().nullable().default(null),
+  /**
+   * A value override (`regProfile.overrides.values`) moved the limit this rule ran
+   * against; `originalLimit` keeps the pack's own number so the replaced value
+   * stays visible (golden rule 4).
+   */
+  valueOverridden: z.boolean().default(false),
+  overrideValueKeys: z.array(z.string()).default([]),
+  originalLimit: complianceValueSchema,
+  relaxedToWarn: z.boolean().default(false),
+  note: z.string().nullable().default(null),
   notApplicableReason: z.string().nullable().default(null),
+  notApplicableField: z.string().nullable().default(null),
+  /** Emitted for violated rules only (see `RuleResult.to_json`). */
+  instances: z.array(complianceInstanceSchema).default([]),
 });
 export type ComplianceResult = z.infer<typeof complianceResultSchema>;
+
+/** One printable line of the area statement (`AreaRow.to_json()`). */
+export const complianceAreaRowSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  value: complianceValueSchema,
+  unit: z.string().nullable().default(null),
+  kind: z.enum(['allowance', 'requirement', 'informational']).catch('informational'),
+  allowed: complianceValueSchema,
+  limitLabel: z.string().nullable().default(null),
+  note: z.string().nullable().default(null),
+  ruleIds: z.array(z.string()).default([]),
+});
+export type ComplianceAreaRow = z.infer<typeof complianceAreaRowSchema>;
+
+export const complianceStoreyAreaSchema = z.object({
+  storeyId: z.string().nullable().default(null),
+  index: z.number().int().nullable().default(null),
+  label: z.string().nullable().default(null),
+  builtUpAreaMm2: z.number().int().nullable().default(null),
+});
+export type ComplianceStoreyArea = z.infer<typeof complianceStoreyAreaSchema>;
+
+export const complianceSetbackRowSchema = z.object({
+  edgeIndex: z.number().int(),
+  role: z.string(),
+  elementId: z.string().nullable().default(null),
+  providedMm: z.number().int(),
+  requiredMm: z.number().int().nullable().default(null),
+  shortfallMm: z.number().int().default(0),
+  status: z.enum(['ok', 'short', 'not_regulated']).catch('not_regulated'),
+  ruleIds: z.array(z.string()).default([]),
+});
+export type ComplianceSetbackRow = z.infer<typeof complianceSetbackRowSchema>;
+
+/**
+ * The area statement (`AreaStatement.to_json()`, garh_rules/areas.py): FAR, coverage
+ * and setbacks derived from the SAME rule results the chips show — the one source
+ * of compliance numbers the sheet and the tab must agree on.
+ */
+export const complianceAreasSchema = z.object({
+  plotAreaMm2: z.number().int().nullable().default(null),
+  footprintAreaMm2: z.number().int().nullable().default(null),
+  coverageAllowedMm2: z.number().int().nullable().default(null),
+  coverageAchieved: z.string().nullable().default(null),
+  coverageAllowed: z.string().nullable().default(null),
+  totalBuiltUpAreaMm2: z.number().int().nullable().default(null),
+  farCountableAreaMm2: z.number().int().nullable().default(null),
+  farAllowedMm2: z.number().int().nullable().default(null),
+  farAchieved: z.string().nullable().default(null),
+  farAllowed: z.string().nullable().default(null),
+  perStorey: z.array(complianceStoreyAreaSchema).default([]),
+  setbacks: z.array(complianceSetbackRowSchema).default([]),
+  storeyCount: z.number().int().nullable().default(null),
+  floorsCounted: z.number().int().nullable().default(null),
+  floorsAllowed: z.number().int().nullable().default(null),
+  buildingHeightMm: z.number().int().nullable().default(null),
+  heightCountedMm: z.number().int().nullable().default(null),
+  heightAllowedMm: z.number().int().nullable().default(null),
+  parkingProvided: z.number().int().nullable().default(null),
+  parkingRequired: z.number().int().nullable().default(null),
+  /** Rule ids the engine marked overridden — the annexure prints these as such. */
+  overriddenRuleIds: z.array(z.string()).default([]),
+  warnings: z.array(z.string()).default([]),
+  rows: z.array(complianceAreaRowSchema).default([]),
+});
+export type ComplianceAreas = z.infer<typeof complianceAreasSchema>;
+
+/** A scoring pack's total (`ScoreSummary.to_json()`, garh_rules/scoring.py). */
+export const complianceScoreSchema = z.object({
+  packId: z.string(),
+  packVersion: z.string().nullable().default(null),
+  mode: z.string().nullable().default(null),
+  enforce: z.boolean().default(false),
+  severityCeiling: z.string().nullable().default(null),
+  score: z.number().nullable().default(null),
+  scale: z
+    .object({ min: z.number().default(0), max: z.number().default(100) })
+    .default({ min: 0, max: 100 }),
+  groups: z
+    .array(
+      z.object({
+        id: z.string(),
+        label: z.string().nullable().default(null),
+        weight: z.number().nullable().default(null),
+        score: z.number().nullable().default(null),
+        ruleIds: z.array(z.string()).default([]),
+      }),
+    )
+    .default([]),
+});
+export type ComplianceScore = z.infer<typeof complianceScoreSchema>;
+
+/** A pack's review block (`rulepacks/<id>.json` → `review`), for staleness. */
+export const compliancePackReviewSchema = z.object({
+  status: z.string().nullable().default(null),
+  lastReviewedAt: z.string().nullable().default(null),
+  nextReviewDue: z.string().nullable().default(null),
+});
+export type CompliancePackReview = z.infer<typeof compliancePackReviewSchema>;
 
 export const complianceSchema = z.object({
   /** False means "nobody has run the rules yet" — never an implied pass. */
@@ -824,6 +968,16 @@ export const complianceSchema = z.object({
   worstStatus: z.enum(['pass', 'warn', 'fail', 'not_applicable']).nullable().default(null),
   /** Approximations the projection made. Shown in the report's detail view. */
   notes: z.array(z.string()).default([]),
+  /** Null when the API did not carry the statement (reports frozen before it was stored). */
+  areas: complianceAreasSchema.nullable().default(null),
+  scores: z.array(complianceScoreSchema).default([]),
+  /** The Vastu pack's 0–100 total, only when the pack was loaded. */
+  vastuScore: z.number().nullable().default(null),
+  /** Engine warnings: unclassified room types, value-override keys no rule reads. */
+  warnings: z.array(z.string()).default([]),
+  disclaimers: z.array(z.object({ packId: z.string(), text: z.string() })).default([]),
+  /** Per pack: review status and when the next review falls due. */
+  packReview: z.record(compliancePackReviewSchema).default({}),
 });
 export type ComplianceReport = z.infer<typeof complianceSchema>;
 

@@ -18,19 +18,21 @@
  *                        above.
  *   `checking`         → a re-check is in flight; the previous results stay on
  *                        screen rather than flashing to a skeleton.
- *
- * A failed re-check keeps the last known results (stale chips beat vanished
- * ones mid-edit) and surfaces the failure through `error` so the shell can
- * decide whether to say anything.
+ *   `error`            → the LAST re-check failed. The results on screen are
+ *                        whatever the previous successful check said, and may
+ *                        describe a state several edits old. The strip and the
+ *                        tab say so and offer `recheck`; a green strip that is
+ *                        silently stale is the one state this hook must never
+ *                        present as current.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { toComplianceReport } from '../features/compliance/report';
+import type { ComplianceReportVM } from '../features/compliance/report';
 import { api } from '../lib/api';
 import { AppError } from '../lib/errors';
-import type { ComplianceResult } from '../lib/schemas';
 import { useModelStore } from '../stores/model';
-import { toComplianceIssue } from './_contracts';
 import type { ComplianceIssueVM } from '../components';
 
 /** §14: "compliance run ≤500ms debounce". Under the cap, over the flush. */
@@ -39,33 +41,14 @@ const DEBOUNCE_MS = 450;
 export interface LiveCompliance {
   /** Mapped results, or `null` when nothing has been evaluated yet. */
   readonly issues: readonly ComplianceIssueVM[] | null;
+  /** The whole report (areas, warnings, pack versions…), or `null` as above. */
+  readonly report: ComplianceReportVM | null;
   /** True while a (re-)check is in flight. */
   readonly checking: boolean;
-  /** The last re-check failure, or null. Results shown may be stale when set. */
+  /** The last re-check failure, or null. Results shown are stale when set. */
   readonly error: AppError | null;
-}
-
-const CONFIDENCES = ['seed', 'reviewed', 'verified'] as const;
-type Confidence = (typeof CONFIDENCES)[number];
-
-function asConfidence(value: string | null): Confidence | null {
-  return (CONFIDENCES as readonly string[]).includes(value ?? '') ? (value as Confidence) : null;
-}
-
-/** Wire row → the view model the strip and the Compliance tab both consume. */
-function toIssueVM(r: ComplianceResult): ComplianceIssueVM {
-  return toComplianceIssue({
-    ruleId: r.ruleId,
-    status: r.status,
-    // The engine writes `message`; `title` is the fallback for rules that have
-    // not produced a sentence, and the id is the last honest resort.
-    message: r.message ?? r.title ?? r.ruleId,
-    cite: r.citeShort ?? r.cite,
-    confidence: asConfidence(r.confidence),
-    elements: r.elements,
-    fixHint: r.fixHint,
-    fixAvailable: r.fixAvailable,
-  });
+  /** Run the check again now — the retry behind the error state. */
+  readonly recheck: () => void;
 }
 
 export function useLiveCompliance(projectId: string): LiveCompliance {
@@ -73,9 +56,12 @@ export function useLiveCompliance(projectId: string): LiveCompliance {
   const modelProjectId = useModelStore((s) => s.projectId);
   const baseIdx = useModelStore((s) => s.baseIdx);
 
-  const [issues, setIssues] = useState<readonly ComplianceIssueVM[] | null>(null);
+  const [report, setReport] = useState<ComplianceReportVM | null>(null);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
+  // Bumped by `recheck`; a dependency of the effect so a retry re-runs it
+  // without pretending the server confirmed anything.
+  const [attempt, setAttempt] = useState(0);
 
   // Results belong to a project; switching projects must not show the old
   // project's chips for even one frame. `checking` resets too — an aborted
@@ -84,7 +70,7 @@ export function useLiveCompliance(projectId: string): LiveCompliance {
   const shownFor = useRef<string | null>(null);
   if (shownFor.current !== projectId) {
     shownFor.current = projectId;
-    if (issues !== null) setIssues(null);
+    if (report !== null) setReport(null);
     if (checking) setChecking(false);
     if (error !== null) setError(null);
   }
@@ -101,18 +87,19 @@ export function useLiveCompliance(projectId: string): LiveCompliance {
       setChecking(true);
       api.compliance
         .get(projectId, { signal: controller.signal })
-        .then((report) => {
+        .then((wire) => {
           if (cancelled) return;
           setError(null);
           // `evaluated: false` is "nobody has run the rules", never a pass —
           // keep it `null` so the strip says "nothing to check yet".
-          setIssues(report.evaluated ? report.results.map(toIssueVM) : null);
+          setReport(wire.evaluated ? toComplianceReport(wire) : null);
         })
         .catch((err: unknown) => {
           const appError = AppError.from(err);
           if (cancelled || appError.isAborted) return;
           // Keep the last known results on screen; a blank strip mid-edit
           // would read as "everything passed", which is worse than stale.
+          // `error` is what tells the strip to say "last check failed".
           setError(appError);
         })
         .finally(() => {
@@ -127,9 +114,12 @@ export function useLiveCompliance(projectId: string): LiveCompliance {
     };
     // `baseIdx` is the trigger: it advances exactly when the server confirms
     // ops, which is the earliest moment a re-check can see the change.
-  }, [projectId, ready, baseIdx]);
+    // `attempt` is the manual retry.
+  }, [projectId, ready, baseIdx, attempt]);
 
-  return { issues, checking, error };
+  const recheck = useCallback(() => setAttempt((n) => n + 1), []);
+
+  return { issues: report === null ? null : report.issues, report, checking, error, recheck };
 }
 
 export default useLiveCompliance;
