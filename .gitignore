@@ -78,3 +78,6 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.recommended.json
 dump.rdb
+
+# git worktrees the coding agent opens for parallel work
+.claude/worktrees/
