@@ -312,6 +312,31 @@ Two smaller gaps found in passing:
   micro-USD — `test_inr_display.py` asserts nothing rupee-shaped leaves the API, and it
   pins the same conversion table `money.test.ts` pins, so the two implementations
   cannot drift by a paisa without one going red.
+- **Out of credits is a page, not a dead end (2026-09-09).** A 402 from Generate used to
+  toast "Try again", which 402'd again. `billingRouteFor` now sends any 402 to
+  `/billing?reason=…&kind=…`, and the Billing page opens on a banner that states what ran
+  out, the numbers, the reset date and the cheapest plan that lifts it, with the plan
+  cards beneath — a firm admin can move to Studio there and then (immediate, no
+  pay-first gate, no proration; stated on the confirm). The page also carries the ledger
+  (every charge with provider cost, the fee as its own column, refunds with their
+  reason, rupees with the dollars on hover; `GET /billing/credit-events`), the GST
+  details form, invoices with their CGST/SGST or IGST split and a Pay button that walks
+  checkout → mock widget (`POST /billing/payments/mock`, 404 under a real gateway) →
+  verify, and seats. Members get every read and no write. Two ledger fixes landed with
+  it: solver and export runs were priced at **0** from every real route (the call sites
+  write no provider — it is our CPU — and `""` counted as free), so the fee was 5 % of
+  nothing on every generation; `OWN_COMPUTE_KINDS` prices them now, with the route meta
+  pinned byte for byte and a mock render beside them still 0. And the usage response
+  says which allowances are actually **enforced**: the free plan's export allowance is 0
+  by design, `require_quota("export")` is mounted nowhere, and the page now says "not
+  enforced yet" rather than showing a wall that is not there. **Not done, and why:**
+  mounting the export gate is one token on two routes, but every trial firm is on the
+  free plan and would 402 on its next export, the demo seed needs a paid plan, and
+  `test_cross_tenant`'s walker plus three other files export from free firms — a
+  decision for the owner, with the recipe in `docs/billing-verification.md`. Razorpay
+  has still never run live; the exact switch, what the web does and does not do under
+  it (no `checkout.js`, no webhook route), and the test-key rehearsal are in
+  `docs/ops-runbook.md` "Going live with Razorpay".
 - **Generate on a plan the solver itself had produced answered "No plan cleared the
   quality checks" twice, and charged for both (found by the browser UAT, 2026-09-06).**
   CP-SAT under a wall-clock budget with eight workers is not deterministic; the plan
