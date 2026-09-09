@@ -22,6 +22,7 @@ import {
   keyStats,
   moreLikeThisParams,
   newSeedParams,
+  noPlanClearedCopy,
   perFloorParams,
   regenerateOthersParams,
   roomMultiset,
@@ -351,5 +352,49 @@ describe('assumption chip display helpers', () => {
 
   it('labels a dotted field readably', () => {
     expect(assumptionLabel('brief.rooms.bedroom2.targetAreaMm2')).toBe('Bedroom 2 · Target Area');
+  });
+});
+
+describe('noPlanClearedCopy', () => {
+  const base = {
+    jobId: 'j',
+    status: 'succeeded' as const,
+    options: [],
+    envelope: null,
+    error: null,
+    params: {},
+    unreadable: 0,
+  };
+
+  it("prefers the worker's own sentence and says so", () => {
+    const copy = noPlanClearedCopy({
+      ...base,
+      banner: 'The ground floor is 6.9 m² short. Add a floor.',
+      considered: 4,
+      rejectedByGates: 4,
+    });
+    expect(copy.fromWorker).toBe(true);
+    expect(copy.diagnosis).toBe('The ground floor is 6.9 m² short. Add a floor.');
+    expect(copy.gateLine).toBe(
+      '4 layouts were tried and 4 were discarded by the checks (room minimums, circulation, furniture fit, parking).',
+    );
+  });
+
+  it('falls back to the generic reason only when there is no banner, and no gate line when nothing was tried', () => {
+    const copy = noPlanClearedCopy({ ...base, banner: null, considered: 0, rejectedByGates: 0 });
+    expect(copy.fromWorker).toBe(false);
+    expect(copy.diagnosis).toContain('left no workable layout');
+    expect(copy.gateLine).toBeNull();
+    // A blank banner is no banner.
+    expect(
+      noPlanClearedCopy({ ...base, banner: '   ', considered: 0, rejectedByGates: 0 }).fromWorker,
+    ).toBe(false);
+  });
+
+  it('counts one layout in the singular', () => {
+    const copy = noPlanClearedCopy({ ...base, banner: null, considered: 1, rejectedByGates: 1 });
+    expect(copy.gateLine).toBe(
+      '1 layout was tried and 1 was discarded by the checks (room minimums, circulation, furniture fit, parking).',
+    );
   });
 });
