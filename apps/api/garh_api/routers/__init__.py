@@ -541,10 +541,13 @@ def api_router() -> APIRouter:
         projects,
         renders,
         share,
+        team,
     )
 
     router = APIRouter()
     router.include_router(projects.router)
+    #: J01: the practice — profile, members, invites. Admin-gated writes; members read.
+    router.include_router(team.router)
     router.include_router(ops.router)
     #: Live collaboration SSE (op-log advance + presence). Read-only fan-out; the
     #: publishes it relays come from the op sequencer's post-commit seam.

@@ -48,6 +48,7 @@ import {
   useLocation,
   useNavigate,
   useParams,
+  useSearchParams,
   type RouteObject,
 } from 'react-router-dom';
 
@@ -69,6 +70,10 @@ const ProjectShell = lazy(async () => ({
 }));
 const NotFoundPage = lazy(async () => ({
   default: (await import('./pages/NotFoundPage')).NotFoundPage,
+}));
+/** J01: Practice · Team · Account. Small, but nobody signed out needs it. */
+const SettingsPage = lazy(async () => ({
+  default: (await import('./features/team/SettingsPage')).SettingsPage,
 }));
 
 const BriefPage = lazy(async () => ({
@@ -277,13 +282,22 @@ function readFrom(state: unknown): string | null {
 function LoginRoute(): JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
+  const [search] = useSearchParams();
   const from = readFrom(location.state);
+  // `/login?invite=<token>` — the link in a team invite email. The page asks the
+  // API what it points at; the token itself is never a credential.
+  const inviteToken = search.get('invite') ?? undefined;
 
   // `RedirectIfSignedIn` would also fire once `status` flips, so this is belt
   // and braces — but it is the path that runs in practice, and going through
   // the router keeps the "signed in → dashboard" transition on the client
   // rather than costing a full document load (§15 micro-speed).
-  return <LoginPage onSignedIn={() => navigate(from ?? '/', { replace: true })} />;
+  return (
+    <LoginPage
+      onSignedIn={() => navigate(from ?? '/', { replace: true })}
+      inviteToken={inviteToken}
+    />
+  );
 }
 
 /** The six project tabs, keyed by the `:tab` segment. See the header note. */
@@ -350,6 +364,29 @@ export const routes: RouteObject[] = [
         </RequireAuth>
       </ErrorBoundary>
     ),
+  },
+
+  /*
+   * `/settings/:section` — Practice · Team · Account (J01). The bare path lands
+   * on Practice; an unknown section is redirected by the page itself.
+   */
+  {
+    path: '/settings',
+    children: [
+      { index: true, element: <Navigate to="/settings/practice" replace /> },
+      {
+        path: ':section',
+        element: (
+          <ErrorBoundary region="settings">
+            <RequireAuth>
+              <Suspense fallback={<DashboardSkeleton />}>
+                <SettingsPage />
+              </Suspense>
+            </RequireAuth>
+          </ErrorBoundary>
+        ),
+      },
+    ],
   },
 
   {

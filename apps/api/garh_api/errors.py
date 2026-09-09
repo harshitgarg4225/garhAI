@@ -86,6 +86,11 @@ CODE_OTP_INVALID = "otp_invalid"
 CODE_OTP_RATE_LIMITED = "otp_rate_limited"
 CODE_EMAIL_ALREADY_REGISTERED = "email_already_registered"
 CODE_ACCOUNT_UNKNOWN = "account_unknown"
+# J01 team setup
+CODE_INVITE_PENDING = "invite_pending"
+CODE_ALREADY_A_MEMBER = "already_a_member"
+CODE_INVITE_INVALID = "invite_invalid"
+CODE_LAST_ADMIN = "last_admin"
 
 # -- authorisation / tenancy (raised by garh_api.tenancy, listed for completeness) --
 CODE_PERMISSION_DENIED = "permission_denied"
@@ -459,6 +464,47 @@ class EmailAlreadyRegisteredError(ApiError):
     action = "Sign in instead — we'll email you a code."
 
 
+class InvitePendingError(ApiError):
+    """This firm already has an open invite for that address. Resend it instead."""
+
+    http_status = 409
+    code = CODE_INVITE_PENDING
+    default_message = "That address already has an open invite from your practice."
+    action = "Resend it from the Team page, or withdraw it and invite again."
+
+
+class AlreadyMemberError(ApiError):
+    """The address is already a member of the CALLER'S firm.
+
+    Safe to say: the check is firm-scoped, so it reveals nothing about whether the
+    address exists anywhere else — which is the property an invite must keep.
+    """
+
+    http_status = 409
+    code = CODE_ALREADY_A_MEMBER
+    default_message = "That address is already a member of your practice."
+    action = "Find them on the Team page instead."
+
+
+class InviteInvalidError(ApiError):
+    """A token that matches no invite at all. Expired and withdrawn ones answer 200
+    with their status — the holder of a real link deserves the real reason."""
+
+    http_status = 404
+    code = CODE_INVITE_INVALID
+    default_message = "This invite link isn't valid."
+    action = "Ask whoever invited you to send a fresh one."
+
+
+class LastAdminError(ApiError):
+    """Demoting or removing the firm's only admin would leave nobody able to fix it."""
+
+    http_status = 409
+    code = CODE_LAST_ADMIN
+    default_message = "This is the practice's only admin."
+    action = "Make someone else an admin first."
+
+
 class ShareLinkInvalidError(ApiError):
     """Unknown, revoked or expired share token — one answer for all three."""
 
@@ -770,6 +816,14 @@ __all__ = [
     "RefreshTokenRevokedError",
     "ServiceUnavailableError",
     "ShareLinkInvalidError",
+    "InvitePendingError",
+    "AlreadyMemberError",
+    "InviteInvalidError",
+    "LastAdminError",
+    "CODE_INVITE_PENDING",
+    "CODE_ALREADY_A_MEMBER",
+    "CODE_INVITE_INVALID",
+    "CODE_LAST_ADMIN",
     "TokenExpiredError",
     "TokenInvalidError",
     "TokenRevokedError",

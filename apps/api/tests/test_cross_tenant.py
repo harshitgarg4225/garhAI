@@ -77,6 +77,10 @@ TENANT_SCOPED_PARAMS: frozenset[str] = frozenset(
         # only route that can end another person's session were covered by diligence
         # instead of by default.
         "family_id",
+        # J01. A member and an invite are tenant-owned rows reached by their own id
+        # under ``/firm`` — no project in the path, so the id IS the scoping.
+        "user_id",
+        "invite_id",
     }
 )
 
@@ -306,6 +310,13 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
     Case("GET", "/billing/invoices/{invoice_id}"),
     Case("POST", "/billing/invoices/{invoice_id}/checkout"),
     Case("DELETE", "/billing/seats/{seat_id}"),
+    # -- the practice (J01) ------------------------------------------------
+    # Firm B's admin naming firm A's member or invite by id: 404, and the body
+    # must not name them. The role body is valid so the 404 proves tenancy.
+    Case("PATCH", "/firm/members/{user_id}", body={"role": "member"}),
+    Case("DELETE", "/firm/members/{user_id}"),
+    Case("POST", "/firm/invites/{invite_id}/resend"),
+    Case("DELETE", "/firm/invites/{invite_id}"),
     # -- sheets, the §7 municipal set -------------------------------------
     Case("GET", "/projects/{project_id}/sheets/summary"),
     Case("GET", "/projects/{project_id}/sheets/review-tray"),
@@ -454,6 +465,23 @@ async def estate_a(
     )
 
     billing_ids = await _billing_estate(session, firm_a)
+    # J01: a second member and an open invite of firm A's, both through the
+    # product's own paths (the factory is the admin-only repository create; the
+    # invite is the scoped repository the service writes through).
+    from datetime import datetime, timedelta
+
+    from garh_api.invites import hash_invite_token, new_invite_token
+    from garh_api.repositories.firm_invites import FirmInviteRepository
+
+    member = await factories.add_member(session, firm_a, name="Firm A Member")
+    invite = await FirmInviteRepository(session, firm_a.ctx()).create(
+        email="invitee-%s@studio.test" % uuid.uuid4().hex[:8],
+        name="Firm A Invitee",
+        role="member",
+        seat_type="viewer",
+        token_hash=hash_invite_token(new_invite_token()),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
+    )
     await session.commit()
 
     export_job_id = "exp_%s" % uuid.uuid4().hex[:16]
@@ -473,6 +501,8 @@ async def estate_a(
         **billing_ids,
         "project_id": str(project_a.id),
         "family_id": family,
+        "user_id": str(member.user_id),
+        "invite_id": str(invite.id),
         "version_id": str(version.id),
         "job_id": str(solver_job.id),
         "render_job_id": str(render_job.id),

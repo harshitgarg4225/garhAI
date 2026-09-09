@@ -1,5 +1,5 @@
 /**
- * LoginPage — email OTP, two steps.
+ * LoginPage — email OTP, two steps (three with a second factor).
  *
  * §13 sets the security shape: email OTP with a 10-minute expiry and 5
  * attempts, JWT RS256, rate limits per firm and per IP. The UI's job is to make
@@ -11,75 +11,125 @@
  *    ("wrong address?") because mistyping it is the single most common failure
  *    and forcing a back-navigation to fix it is hostile.
  *
- *  - DEV OTP ECHO, LABELLED. With `PROVIDER_EMAIL=mock` the API returns the
- *    code instead of sending mail, so the product runs with zero SMTP config.
- *    We show it in a box that says exactly what it is and that it will not
- *    appear in production. Hiding it would mean every developer digs through
- *    docker logs; showing it unlabelled would look like a leak.
+ *  - DEV OTP ECHO, LABELLED. With no mailer installed the API returns the code
+ *    instead of sending mail, so the product runs with zero SMTP config. We show
+ *    it in a box that says exactly what it is and that it will not appear in
+ *    production.
  *
- *  - +91 PHONE FIELD STYLING (§15) even though auth is by email. Firms are
- *    reached on WhatsApp, so the optional mobile field is part of first sign-in
- *    and is styled the Indian way: fixed +91 prefix, 10 digits, "98765 43210"
- *    grouping. It is optional and says why we want it.
+ *  - MATCHED TO THE SERVER'S ERROR CONTRACT, CODE BY CODE. `POST /auth/verify`
+ *    answers ONE code for every wrong/expired/used-up/never-issued code —
+ *    `otp_invalid` — precisely so the response cannot say which. This page
+ *    therefore does not count "tries left" (a number the server refuses to
+ *    reveal, and one a reload would reset while the server's cap stayed), and
+ *    it has no branch for codes the server never emits. The codes it DOES
+ *    branch on: `otp_invalid`, `otp_rate_limited`/`rate_limited` (the resend
+ *    countdown adopts the server's Retry-After), `account_unknown`, and
+ *    `two_factor_required`, which carries the challenge the third step posts
+ *    back with an authenticator code.
  *
- *  - NEVER BLAMES THE USER. A wrong code is "That code didn't match" with the
- *    attempts left, not "Invalid OTP".
+ *  - AN INVITE LINK EXPLAINS ITSELF. Opened from `/login?invite=<token>` the
+ *    page asks the API what the link points at and says so — who is asking,
+ *    for which practice — or that it has lapsed or been withdrawn. Accepting is
+ *    still the ordinary sign-in below: control of the mailbox is the credential,
+ *    never the link. (There is no mobile field any more: the old one was
+ *    collected and silently discarded, which is a trust bug, not a feature.)
+ *
+ *  - NEVER BLAMES THE USER. A wrong code is "That code didn't work", not
+ *    "Invalid OTP".
  *
  *  - SIGN UP IS A THIRD MODE, NOT A FLAG ON VERIFY. `POST /auth/signup` creates
  *    the firm and its first admin and then issues a code; `POST /auth/verify`
- *    takes `{email, code}` ONLY (it is declared `extra="forbid"`, so passing a
- *    firm name there is a 422). Both modes therefore converge on the same code
- *    step. Without this branch there was no way to create a firm from the web
- *    app at all, and on a fresh database every sign-in attempt dead-ended.
- *
- * STORE CONTRACT: `../stores/session` must export `useSessionStore` satisfying
- * `SessionSlice` in `./_contracts`.
+ *    takes `{email, code}` ONLY (it is declared `extra="forbid"`). Both modes
+ *    converge on the same code step.
  */
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  Badge,
-  Button,
-  Card,
-  Field,
-  Icon,
-  Input,
-  OtpInput,
-  PhoneInput,
-  isPlausibleIndianMobile,
-} from '@garh/ui';
+import { Badge, Button, Card, Field, Icon, Input, OtpInput } from '@garh/ui';
 import { ProblemPanel, toProblem } from '../components';
 import type { Problem } from '../components';
+import { api } from '../lib/api';
+import type { InviteStatus } from '../lib/api';
+import { AppError, ERROR_CODES } from '../lib/errors';
 import { useSessionStore } from '../stores/session';
 import type { OtpRequestResult } from './_contracts';
 
 export interface LoginPageProps {
   /** Called after a successful verify. The router owns where to go next. */
   onSignedIn?: (() => void) | undefined;
+  /** The `?invite=` token from an invite email, if the page was opened from one. */
+  inviteToken?: string | undefined;
 }
 
-type Step = 'email' | 'signup' | 'code';
+type Step = 'email' | 'signup' | 'code' | 'twofactor';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
+/** What the invite banner has to say, per status the API can answer with. */
+export function describeInvite(invite: InviteStatus): { title: string; detail: string } {
+  const who = invite.invitedByName ?? invite.firmName;
+  switch (invite.status) {
+    case 'pending':
+      return {
+        title: `${who} invited you to join ${invite.firmName}`,
+        detail: `You'll join as ${invite.role === 'admin' ? 'an admin' : 'a member'}. Sign in with ${invite.email} and the seat is yours — we'll email you a code.`,
+      };
+    case 'expired':
+      return {
+        title: 'This invite has expired',
+        detail: `Invite links last a week. Ask ${who} to send a fresh one from the Team page of ${invite.firmName}.`,
+      };
+    case 'revoked':
+      return {
+        title: 'This invite was withdrawn',
+        detail: `${invite.firmName} withdrew it. If that is a surprise, ask ${who}.`,
+      };
+    case 'accepted':
+      return {
+        title: 'This invite has already been used',
+        detail: `Sign in with ${invite.email} as usual — the seat at ${invite.firmName} is already yours.`,
+      };
+    default:
+      return { title: 'About this invite', detail: `From ${invite.firmName}.` };
+  }
+}
+
+/** The one place a server error becomes a decision on the code step. */
+export function classifyVerifyError(error: AppError): {
+  kind: 'otp' | 'account_unknown' | 'two_factor' | 'other';
+  challenge?: string;
+} {
+  if (error.code === ERROR_CODES.otpInvalid) return { kind: 'otp' };
+  if (error.code === ERROR_CODES.accountUnknown) return { kind: 'account_unknown' };
+  if (error.code === ERROR_CODES.twoFactorRequired) {
+    const challenge = error.data.challenge;
+    if (typeof challenge === 'string' && challenge.length > 0) {
+      return { kind: 'two_factor', challenge };
+    }
+  }
+  return { kind: 'other' };
+}
+
+export function LoginPage({ onSignedIn, inviteToken }: LoginPageProps): JSX.Element {
   const requestOtp = useSessionStore((s) => s.requestOtp);
   const verifyOtp = useSessionStore((s) => s.verifyOtp);
   const signUp = useSessionStore((s) => s.signUp);
+  const completeTwoFactor = useSessionStore((s) => s.completeTwoFactor);
 
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
-  const [mobile, setMobile] = useState('');
   const [code, setCode] = useState('');
   const [firmName, setFirmName] = useState('');
   const [personName, setPersonName] = useState('');
   const [coaNumber, setCoaNumber] = useState('');
+  const [secondFactor, setSecondFactor] = useState('');
+  const [challenge, setChallenge] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
   const [otpMeta, setOtpMeta] = useState<OtpRequestResult | null>(null);
   const [resendIn, setResendIn] = useState(0);
-  const [attemptsLeft, setAttemptsLeft] = useState(5);
+  const [invite, setInvite] = useState<InviteStatus | null>(null);
+  const [inviteProblem, setInviteProblem] = useState<string | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -95,6 +145,43 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
     };
   }, [resendIn]);
 
+  // An invite link: ask what it points at, and pre-fill the address it names.
+  useEffect(() => {
+    if (inviteToken === undefined || inviteToken === '') return;
+    let cancelled = false;
+    api.auth
+      .inviteStatus(inviteToken)
+      .then((status) => {
+        if (cancelled) return;
+        setInvite(status);
+        setEmail((current) => (current === '' ? status.email : current));
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const p = toProblem(err);
+        setInviteProblem(
+          p.code === ERROR_CODES.inviteInvalid
+            ? "This invite link isn't valid. Ask whoever invited you for a fresh one — or sign in as usual below."
+            : p.message,
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteToken]);
+
+  /** A 429 on send carries the server's own countdown; adopt it instead of guessing. */
+  const adoptRateLimit = (err: unknown): boolean => {
+    const error = AppError.from(err);
+    if (error.code !== ERROR_CODES.otpRateLimited && error.code !== ERROR_CODES.rateLimited) {
+      return false;
+    }
+    const wait = error.retryAfterSeconds ?? 60;
+    setResendIn(wait);
+    setFieldError(`${error.message} You can ask again in ${wait} second${wait === 1 ? '' : 's'}.`);
+    return true;
+  };
+
   const sendCode = async (): Promise<void> => {
     const trimmed = email.trim().toLowerCase();
     if (!EMAIL_RE.test(trimmed)) {
@@ -108,11 +195,16 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
       const result = await requestOtp(trimmed);
       setOtpMeta(result);
       setResendIn(result.resendAfterSeconds);
-      setAttemptsLeft(5);
       setCode('');
       setStep('code');
     } catch (err) {
-      setProblem(toProblem(err));
+      if (adoptRateLimit(err)) {
+        // The code they already have is still good for ten minutes: stay (or
+        // land) on the code step rather than bouncing them to the address.
+        if (step === 'email') setStep('code');
+      } else {
+        setProblem(toProblem(err));
+      }
     } finally {
       setBusy(false);
     }
@@ -144,19 +236,18 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
       });
       setOtpMeta(result);
       setResendIn(result.resendAfterSeconds);
-      setAttemptsLeft(5);
       setCode('');
       setStep('code');
     } catch (err) {
       const p = toProblem(err);
-      if (p.code === 'email_already_registered') {
+      if (p.code === ERROR_CODES.emailAlreadyRegistered) {
         // The one place the API admits an address exists — say so plainly and
         // put them on the path that works instead of repeating the form.
         setStep('email');
         setFieldError(
           'That address already has an account. Sign in instead — we will email you a code.',
         );
-      } else {
+      } else if (!adoptRateLimit(err)) {
         setProblem(p);
       }
     } finally {
@@ -176,26 +267,95 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
       await verifyOtp(email.trim().toLowerCase(), value);
       onSignedIn?.();
     } catch (err) {
-      const p = toProblem(err);
-      if (p.code === 'otp_mismatch' || p.code === 'otp_invalid') {
-        const left = Math.max(0, attemptsLeft - 1);
-        setAttemptsLeft(left);
+      const error = AppError.from(err);
+      const outcome = classifyVerifyError(error);
+      if (outcome.kind === 'otp') {
+        // The server says nothing more than "no" — by design (§13). Don't invent
+        // a tries-left number it refused to give us.
         setCode('');
         setFieldError(
-          left === 0
-            ? 'That code did not match, and this one is now used up. Send a fresh code to try again.'
-            : `That code did not match. ${left} ${left === 1 ? 'try' : 'tries'} left, or send a fresh code.`,
+          "That code didn't work — it may be mistyped, expired, or already used. Check the newest email, or send a fresh code.",
         );
-      } else if (p.code === 'otp_expired') {
-        setFieldError('That code has expired — they last ten minutes. Send a fresh one.');
-        setResendIn(0);
+      } else if (outcome.kind === 'account_unknown') {
+        setStep('signup');
+        setCode('');
+        setOtpMeta(null);
+        setFieldError(
+          'You proved that address, but there is no practice behind it any more. Create one to continue.',
+        );
+      } else if (outcome.kind === 'two_factor' && outcome.challenge !== undefined) {
+        setChallenge(outcome.challenge);
+        setSecondFactor('');
+        setStep('twofactor');
       } else {
-        setProblem(p);
+        setProblem(toProblem(error));
       }
     } finally {
       setBusy(false);
     }
   };
+
+  const submitSecondFactor = async (): Promise<void> => {
+    const value = secondFactor.trim();
+    if (challenge === null) {
+      setStep('email');
+      return;
+    }
+    if (value.length < 6) {
+      setFieldError('Enter the six-digit code from your authenticator app, or a recovery code.');
+      return;
+    }
+    setFieldError(undefined);
+    setProblem(null);
+    setBusy(true);
+    try {
+      await completeTwoFactor(challenge, value);
+      onSignedIn?.();
+    } catch (err) {
+      const error = AppError.from(err);
+      if (error.code === ERROR_CODES.twoFactorInvalid) {
+        if (/expired/i.test(error.message)) {
+          // The five-minute challenge lapsed: the only way back is a new code.
+          setChallenge(null);
+          setSecondFactor('');
+          setStep('email');
+          setFieldError('That sign-in attempt expired. Ask for a new code and start again.');
+        } else {
+          setSecondFactor('');
+          setFieldError(
+            "That code didn't work. Try the next one your app shows, or a recovery code.",
+          );
+        }
+      } else {
+        setProblem(toProblem(error));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const inviteBanner =
+    invite !== null ? (
+      <div
+        className="mb-4 rounded-md border border-brand/40 bg-brand-soft p-3"
+        data-testid="invite-banner"
+        data-status={invite.status}
+      >
+        <div className="flex items-center gap-2">
+          <Icon name="users" size={14} />
+          <span className="text-sm font-medium text-ink">{describeInvite(invite).title}</span>
+        </div>
+        <p className="mt-1 text-xs leading-5 text-ink-muted">{describeInvite(invite).detail}</p>
+      </div>
+    ) : inviteProblem !== null ? (
+      <div
+        className="mb-4 rounded-md border border-warn-line bg-warn-soft p-3"
+        data-testid="invite-banner"
+        data-status="invalid"
+      >
+        <p className="text-xs leading-5 text-warn-ink">{inviteProblem}</p>
+      </div>
+    ) : null;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
@@ -214,6 +374,7 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
         </div>
 
         <Card className="p-5">
+          {inviteBanner}
           {problem !== null ? (
             <div className="mb-4">
               <ProblemPanel problem={problem} onRetry={() => setProblem(null)} />
@@ -256,20 +417,6 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
                 )}
               </Field>
 
-              <PhoneInput
-                value={mobile}
-                onChange={setMobile}
-                label="Mobile (optional)"
-                hint="Only used to send drawings to clients on WhatsApp. We never text you codes."
-                error={
-                  mobile.length > 0 && mobile.length < 10
-                    ? 'An Indian mobile number is ten digits.'
-                    : mobile.length === 10 && !isPlausibleIndianMobile(mobile)
-                      ? 'Indian mobile numbers start with 6, 7, 8 or 9.'
-                      : undefined
-                }
-              />
-
               <Button
                 type="submit"
                 variant="primary"
@@ -311,8 +458,8 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
               <div>
                 <h2 className="text-base font-semibold text-ink">Create your practice</h2>
                 <p className="mt-0.5 text-sm text-ink-muted">
-                  One firm, then invite the rest of the studio. We will email you a code to finish —
-                  there is no password.
+                  One firm, then invite the rest of the studio from Settings → Team. We will email
+                  you a code to finish — there is no password.
                 </p>
               </div>
 
@@ -377,7 +524,7 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
 
               <Field
                 label="CoA number (optional)"
-                hint="Council of Architecture registration. Municipal sheets need it, but you can add it later in firm settings."
+                hint="Council of Architecture registration. Municipal sheets need it; you can add it later under Settings → Account."
               >
                 {({ id, describedBy }) => (
                   <Input
@@ -415,6 +562,66 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
                 </button>
               </p>
             </form>
+          ) : step === 'twofactor' ? (
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submitSecondFactor();
+              }}
+            >
+              <div>
+                <h2 className="text-base font-semibold text-ink">One more step</h2>
+                <p className="mt-0.5 text-sm text-ink-muted">
+                  This account has two-factor sign-in turned on. Enter the six-digit code from your
+                  authenticator app, or one of your recovery codes.
+                </p>
+              </div>
+
+              <Field label="Authenticator code" required error={fieldError}>
+                {({ id, describedBy, invalid }) => (
+                  <Input
+                    id={id}
+                    inputMode="text"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    iconLeft="shield"
+                    placeholder="123 456"
+                    value={secondFactor}
+                    aria-describedby={describedBy}
+                    invalid={invalid}
+                    onChange={(e) => {
+                      setSecondFactor(e.target.value);
+                      if (fieldError !== undefined) setFieldError(undefined);
+                    }}
+                  />
+                )}
+              </Field>
+
+              <Button
+                type="submit"
+                variant="primary"
+                fullWidth
+                loading={busy}
+                loadingLabel="Checking your code"
+                disabled={secondFactor.trim().length < 6}
+              >
+                Sign in
+              </Button>
+
+              <button
+                type="button"
+                className="garh-focus-ring self-center rounded-sm text-xs text-ink-muted underline underline-offset-2 hover:text-ink"
+                onClick={() => {
+                  setChallenge(null);
+                  setSecondFactor('');
+                  setFieldError(undefined);
+                  setStep('email');
+                }}
+              >
+                Start over
+              </button>
+            </form>
           ) : (
             <form
               className="flex flex-col gap-4"
@@ -437,7 +644,7 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
                     exists or not. Execution find on the first live trial sign-in. */}
                 <p className="mt-2 text-xs leading-5 text-ink-muted">
                   Nothing after a minute? Sign-in only works for practices that already have an
-                  account. If you&apos;re new,{' '}
+                  account, or for an address a practice has invited. If you&apos;re new,{' '}
                   <button
                     type="button"
                     className="garh-focus-ring rounded-sm text-brand-ink underline underline-offset-2 hover:text-brand"
@@ -468,7 +675,7 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
                     <code className="rounded bg-surface px-1 py-0.5 font-mono text-sm font-semibold tracking-widest text-ink garh-nums">
                       {otpMeta.devCode}
                     </code>
-                    . This box only appears when the server runs with a mock email provider — it is
+                    . This box only appears when the server runs with no email transport — it is
                     never shown in staging or production.
                   </p>
                   <Button
@@ -494,7 +701,7 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
                 onComplete={(v) => void submitCode(v)}
                 error={fieldError}
                 autoFocus
-                disabled={busy || attemptsLeft === 0}
+                disabled={busy}
               />
 
               <Button
@@ -503,7 +710,7 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
                 fullWidth
                 loading={busy}
                 loadingLabel="Checking your code"
-                disabled={code.length < 6 || attemptsLeft === 0}
+                disabled={code.length < 6}
               >
                 Sign in
               </Button>
@@ -532,7 +739,8 @@ export function LoginPage({ onSignedIn }: LoginPageProps): JSX.Element {
               </div>
 
               <p className="text-center text-2xs text-ink-subtle">
-                Codes last ten minutes. Nothing else on your account changes if one expires.
+                Codes last ten minutes and five attempts. Nothing else on your account changes if
+                one expires.
               </p>
             </form>
           )}

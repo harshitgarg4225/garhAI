@@ -184,6 +184,11 @@ export function DashboardPage(): JSX.Element {
           {children}
         </Link>
       )}
+      renderSettingsLink={({ className, children, 'aria-label': ariaLabel }) => (
+        <Link to="/settings/practice" className={className} aria-label={ariaLabel}>
+          {children}
+        </Link>
+      )}
       headerActions={
         <>
           <BillingLinks />

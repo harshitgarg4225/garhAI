@@ -8,10 +8,12 @@ question.
 Why it is safe:
 
 * It returns only :class:`~garh_api.repositories.domain.AuthPrincipal` — user id,
-  firm id, role, email, name, firm name. It cannot reach projects, plots, briefs,
-  ops, renders, sheets or comments. There is no generic query method.
-* Lookup is by exact normalised email or by user id. There is no listing, no
-  wildcard, no "find users in other firms".
+  firm id, role, email, name, firm name — or, for the invite path, an
+  :class:`~garh_api.repositories.domain.InviteOffer` (the invite row plus the firm's
+  and inviter's names). It cannot reach projects, plots, briefs, ops, renders, sheets
+  or comments. There is no generic query method.
+* Lookup is by exact normalised email, by user id, or by the ``sha256`` of an invite
+  token. There is no listing, no wildcard, no "find users in other firms".
 * Every call is logged with the email **domain** only (§13: model summaries and logs
   exclude PII).
 
@@ -26,13 +28,16 @@ and ``ShareTokenResolver``.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from garh_api import models
 from garh_api.logging import get_logger
-from garh_api.repositories.domain import AuthPrincipal
+from garh_api.repositories.domain import AuthPrincipal, FirmInvite, InviteOffer
 from garh_api.repositories.users import normalise_email
 from garh_api.tenancy import RepositoryUsageError
 
@@ -174,6 +179,116 @@ class AuthDirectoryRepository:
         stmt = select(models.User.id).where(models.User.email == normalise_email(email)).limit(1)
         result = await self._session.execute(stmt)
         return result.first() is not None
+
+    # -- invites (J01) -------------------------------------------------
+    def _offer_select(self) -> Any:
+        inviter = aliased(models.User)
+        return (
+            select(models.FirmInvite, models.Firm.name, inviter.name)
+            .join(models.Firm, models.Firm.id == models.FirmInvite.firm_id)
+            .outerjoin(inviter, inviter.id == models.FirmInvite.invited_by)
+        )
+
+    @staticmethod
+    def _offer(row: Any) -> InviteOffer:
+        return InviteOffer(
+            invite=FirmInvite.from_row(row[0]), firm_name=row[1], invited_by_name=row[2]
+        )
+
+    async def find_open_invite_by_email(
+        self, email: str, *, now: datetime | None = None
+    ) -> InviteOffer | None:
+        """The newest OPEN invite for an address, across every firm, or None.
+
+        Open means not accepted, not withdrawn, not expired. Newest-first is the tie
+        rule when two practices invited the same address: the most recent offer is
+        the one the person most plausibly just received. The other stays pending until
+        it lapses — ``users.email`` is unique, so only one can ever be accepted.
+
+        Callers must answer identically whether this returns a row or not
+        (``POST /auth/otp`` always says "sent"), for the same reason
+        :meth:`find_principal_by_email` demands it.
+        """
+        clean = normalise_email(email)
+        moment = now or datetime.now(UTC)
+        stmt = (
+            self._offer_select()
+            .where(models.FirmInvite.email == clean)
+            .where(models.FirmInvite.accepted_at.is_(None))
+            .where(models.FirmInvite.revoked_at.is_(None))
+            .where(models.FirmInvite.expires_at > moment)
+            .order_by(models.FirmInvite.created_at.desc(), models.FirmInvite.id.desc())
+            .limit(1)
+        )
+        result = await self._session.execute(stmt)
+        row = result.first()
+        _log.info(
+            "auth_directory.invite_lookup",
+            found=row is not None,
+            email_domain=_email_domain(clean),
+        )
+        return None if row is None else self._offer(row)
+
+    async def find_invite_by_token_hash(self, token_hash: str) -> InviteOffer | None:
+        """Resolve a link to its invite, whatever state it is in.
+
+        Any state, deliberately: the pre-auth status page exists to tell the holder of
+        a real link that it expired or was withdrawn. The token is 256 random bits
+        delivered to the invitee's mailbox, so knowing it is the authorisation to read
+        this much — firm name, inviter, role, the address it was sent to.
+        """
+        stmt = self._offer_select().where(models.FirmInvite.token_hash == token_hash).limit(1)
+        result = await self._session.execute(stmt)
+        row = result.first()
+        return None if row is None else self._offer(row)
+
+    async def accept_invite(self, offer: InviteOffer) -> AuthPrincipal:
+        """Turn an open invite into a member of the inviting firm. The caller commits.
+
+        Only reachable from :meth:`garh_api.auth.AuthService.verify_otp` after a code
+        sent to the invite's address has been verified — control of the mailbox IS the
+        acceptance. Refuses (rather than trusts the caller) if the invite is no longer
+        open or the address meanwhile gained an account: both are races this method
+        must lose loudly.
+        """
+        invite = offer.invite
+        if not invite.is_open():
+            raise RepositoryUsageError("Only an open invite can be accepted.")
+        if await self.email_exists(invite.email):
+            raise RepositoryUsageError("That address already has an account.")
+
+        user = models.User(
+            firm_id=invite.firm_id,
+            email=invite.email,
+            name=invite.name,
+            role=invite.role,
+        )
+        self._session.add(user)
+        await self._session.flush()
+
+        row = await self._session.get(models.FirmInvite, invite.id)
+        if row is None:  # pragma: no cover - the offer was just read from this row
+            raise RepositoryUsageError("The invite vanished while being accepted.")
+        row.accepted_at = datetime.now(UTC)
+        row.accepted_user_id = user.id
+        await self._session.flush()
+
+        _log.info(
+            "auth_directory.invite_accepted",
+            invite_id=str(invite.id),
+            firm_id=str(invite.firm_id),
+            user_id=str(user.id),
+            user_role=user.role,
+            email_domain=_email_domain(invite.email),
+        )
+        return AuthPrincipal(
+            user_id=user.id,
+            firm_id=invite.firm_id,
+            role=user.role,
+            email=user.email,
+            name=user.name,
+            firm_name=offer.firm_name,
+        )
 
 
 __all__ = ["AuthDirectoryRepository"]

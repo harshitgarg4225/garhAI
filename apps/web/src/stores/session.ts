@@ -101,6 +101,19 @@ export interface SessionState {
   verifyOtp: (email: string, code: string) => Promise<void>;
 
   /**
+   * Finish a sign-in that `verifyOtp` refused with 403 `two_factor_required`.
+   * The challenge is in that error's `data.challenge`; the code is a live
+   * authenticator code or a recovery code. Rejects with an `AppError`.
+   */
+  completeTwoFactor: (challenge: string, code: string) => Promise<void>;
+
+  /** Edit your own name / CoA number; the store's `user` follows the response. */
+  updateProfile: (input: { name?: string; coaNumber?: string }) => Promise<void>;
+
+  /** The Practice page renamed the firm; keep the shell's firm name honest. */
+  setFirmName: (name: string) => void;
+
+  /**
    * Create a firm and its first admin, then send that admin a sign-in code.
    *
    * Resolves with the same challenge shape as `requestOtp`, because that is
@@ -254,6 +267,36 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       set({ busy: false, error });
       throw error;
     }
+  },
+
+  completeTwoFactor: async (challenge, code) => {
+    set({ busy: true, error: null });
+    try {
+      const session = await api.auth.verifySecondFactor({ challenge, code });
+      adoptSession(session);
+      set({
+        busy: false,
+        status: 'authenticated',
+        user: session.user,
+        firm: session.firm,
+        otp: null,
+        error: null,
+      });
+    } catch (err) {
+      const error = AppError.from(err);
+      set({ busy: false, error });
+      throw error;
+    }
+  },
+
+  updateProfile: async (input) => {
+    const session = await api.auth.updateProfile(input);
+    set({ user: session.user, firm: session.firm });
+  },
+
+  setFirmName: (name) => {
+    const firm = get().firm;
+    if (firm !== null) set({ firm: { ...firm, name } });
   },
 
   signOut: async (options = {}) => {

@@ -77,6 +77,7 @@ from garh_api.repositories.domain import (
     Underlay,
     User,
 )
+from garh_api.repositories.firm_invites import FirmInviteRepository
 from garh_api.repositories.firms import FirmRepository
 from garh_api.repositories.flags import (
     DEFAULT_FLAGS,
@@ -140,6 +141,7 @@ __all__ = [
     "PlatformSetting",
     "PlatformSettingRepository",
     "DesignVersionRepository",
+    "FirmInviteRepository",
     "FirmRepository",
     "OpRepository",
     "PlotRepository",

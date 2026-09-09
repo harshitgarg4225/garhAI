@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -76,6 +76,8 @@ class User:
     coa_number: str | None
     created_at: datetime
     updated_at: datetime
+    #: Null until the first completed sign-in — see ``models.User.last_sign_in_at``.
+    last_sign_in_at: datetime | None = None
 
     @classmethod
     def from_row(cls, row: Any) -> User:
@@ -88,11 +90,91 @@ class User:
             coa_number=row.coa_number,
             created_at=row.created_at,
             updated_at=row.updated_at,
+            last_sign_in_at=getattr(row, "last_sign_in_at", None),
         )
 
     @property
     def is_admin(self) -> bool:
         return self.role == "admin"
+
+
+INVITE_PENDING = "pending"
+INVITE_ACCEPTED = "accepted"
+INVITE_REVOKED = "revoked"
+INVITE_EXPIRED = "expired"
+
+
+@dataclass(frozen=True)
+class FirmInvite:
+    """A ``firm_invites`` row. The token is never here — only its hash was stored."""
+
+    id: uuid.UUID
+    firm_id: uuid.UUID
+    email: str
+    name: str
+    role: str
+    seat_type: str
+    invited_by: uuid.UUID | None
+    expires_at: datetime
+    last_sent_at: datetime
+    send_count: int
+    accepted_at: datetime | None
+    accepted_user_id: uuid.UUID | None
+    revoked_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_row(cls, row: Any) -> FirmInvite:
+        return cls(
+            id=row.id,
+            firm_id=row.firm_id,
+            email=row.email,
+            name=row.name,
+            role=row.role,
+            seat_type=row.seat_type,
+            invited_by=row.invited_by,
+            expires_at=row.expires_at,
+            last_sent_at=row.last_sent_at,
+            send_count=row.send_count,
+            accepted_at=row.accepted_at,
+            accepted_user_id=row.accepted_user_id,
+            revoked_at=row.revoked_at,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
+
+    def status(self, now: datetime | None = None) -> str:
+        """``pending`` / ``accepted`` / ``revoked`` / ``expired`` — in that precedence.
+
+        Accepted and revoked are terminal facts recorded on the row; expiry is a
+        comparison, so it comes last and is evaluated against the clock the caller
+        passes (tests pin the boundary).
+        """
+        if self.accepted_at is not None:
+            return INVITE_ACCEPTED
+        if self.revoked_at is not None:
+            return INVITE_REVOKED
+        moment = now or datetime.now(UTC)
+        if self.expires_at <= moment:
+            return INVITE_EXPIRED
+        return INVITE_PENDING
+
+    def is_open(self, now: datetime | None = None) -> bool:
+        return self.status(now) == INVITE_PENDING
+
+
+@dataclass(frozen=True)
+class InviteOffer:
+    """What the pre-auth layer needs to send a code to, and accept, an invitee.
+
+    The invite plus the two things only a join can supply — the firm's name and the
+    inviter's — so the sign-in email and the status page can say who is asking.
+    """
+
+    invite: FirmInvite
+    firm_name: str
+    invited_by_name: str | None
 
 
 @dataclass(frozen=True)
@@ -822,6 +904,12 @@ __all__ = [
     "DesignVersion",
     "DesignVersionSummary",
     "Firm",
+    "FirmInvite",
+    "InviteOffer",
+    "INVITE_ACCEPTED",
+    "INVITE_EXPIRED",
+    "INVITE_PENDING",
+    "INVITE_REVOKED",
     "Flag",
     "NewOp",
     "Op",

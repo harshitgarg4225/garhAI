@@ -40,6 +40,14 @@ export interface AppShellProps {
   renderHomeLink?: ((props: { className: string; children: ReactNode }) => ReactNode) | undefined;
   /** Right-aligned header slot: search, "New project", theme toggle. */
   headerActions?: ReactNode | undefined;
+  /**
+   * Router link to `/settings/practice`, rendered as the gear next to the
+   * account chip. A render prop for the same reason as `renderHomeLink`: this
+   * package must not depend on the router. Omit on the settings page itself.
+   */
+  renderSettingsLink?:
+    | ((props: { className: string; children: ReactNode; 'aria-label': string }) => ReactNode)
+    | undefined;
   children: ReactNode;
 }
 
@@ -49,6 +57,7 @@ export function AppShell({
   onSignOut,
   renderHomeLink,
   headerActions,
+  renderSettingsLink,
   children,
 }: AppShellProps): JSX.Element {
   const wordmark = (
@@ -92,6 +101,18 @@ export function AppShell({
               <span className="flex h-8 items-center gap-2 rounded-full bg-surface-muted px-2.5 text-xs text-ink-muted">
                 <Icon name="user" size={14} />
                 <span className="max-w-[10rem] truncate">{userName}</span>
+              </span>
+            </Tooltip>
+          )}
+          {renderSettingsLink === undefined ? null : (
+            <Tooltip content="Settings — practice, team, account" delayMs={300}>
+              <span className="inline-flex">
+                {renderSettingsLink({
+                  className:
+                    'garh-focus-ring inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink',
+                  'aria-label': 'Settings',
+                  children: <Icon name="users" size={16} />,
+                })}
               </span>
             </Tooltip>
           )}
