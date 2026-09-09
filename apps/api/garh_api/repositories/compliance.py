@@ -60,16 +60,23 @@ class ComplianceReportRepository(
         results: list[Any],
         pack_versions: dict[str, Any] | None = None,
         design_version_id: uuid.UUID | None = None,
+        summary: dict[str, Any] | None = None,
     ) -> ComplianceReport:
         """Freeze a rules-engine run.
 
         ``pack_versions`` must name every pack that contributed (``nbc-core`` plus the
         city pack plus ``vastu`` when enabled). Without it a stored report cannot be
         explained later, and bye-laws change.
+
+        ``summary`` is the engine's statement beyond the rows (areas, scores, warnings,
+        disclaimers, notes, pack review), frozen with them so the numbers the sheet
+        printed can be read back without a second evaluation.
         """
         self.ctx.require_write("saving a compliance report")
         if not isinstance(results, list):
             raise RepositoryUsageError("results must be a list of rule results.")
+        if summary is not None and not isinstance(summary, dict):
+            raise RepositoryUsageError("summary must be an object or None.")
         await require_project_in_firm(self._session, self.firm_id, project_id)
         if design_version_id is not None:
             await require_design_version_in_firm(self._session, self.firm_id, design_version_id)
@@ -78,6 +85,7 @@ class ComplianceReportRepository(
             design_version_id=design_version_id,
             pack_versions=pack_versions or {},
             results=results,
+            summary=summary,
         )
         await self._insert(row)
         failures = sum(1 for r in results if isinstance(r, dict) and r.get("status") == "fail")

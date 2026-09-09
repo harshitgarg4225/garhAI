@@ -166,6 +166,11 @@ class AreaStatement:
     parking_required: int | None
     rule_ids: Mapping[str, tuple[str, ...]]
     warnings: tuple[str, ...] = ()
+    #: Rules an architect accepted with a logged reason (``overridden`` rows). The
+    #: statement still prints their numbers — an override is a decision, not a
+    #: correction — and the annexure marks each such rule as overridden so a
+    #: reviewer at the counter sees the acknowledgement, not a silent pass.
+    overridden_rule_ids: tuple[str, ...] = ()
 
     # -- exact achieved ratios --------------------------------------------
     @property
@@ -317,6 +322,7 @@ class AreaStatement:
             "parkingProvided": self.parking_provided,
             "parkingRequired": self.parking_required,
             "ruleIds": {k: list(v) for k, v in sorted(self.rule_ids.items())},
+            "overriddenRuleIds": list(self.overridden_rule_ids),
             "warnings": list(self.warnings),
             "rows": [r.to_json() for r in self.rows()],
         }
@@ -482,6 +488,7 @@ def build_area_statement(
         parking_required=_largest(parking_required),
         rule_ids={k: tuple(sorted(set(v))) for k, v in rule_ids.items() if v},
         warnings=tuple(warnings),
+        overridden_rule_ids=tuple(sorted({r.rule_id for r in results if r.overridden})),
     )
 
 

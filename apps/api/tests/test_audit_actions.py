@@ -41,9 +41,10 @@ API_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #:
 #: Deleting a line from this dict is part of the diff that adds the route.
 PENDING_ACTIONS = {
-    # Golden rule 5: "Architects can override anything; overrides are logged." The
-    # override control is part of the compliance strip.
-    "compliance.overridden": "Phase 2 (rules engine) / Phase 4 (compliance chips UI)",
+    # ``compliance.overridden`` / ``compliance.override_revoked`` used to sit here
+    # ("Phase 4 compliance chips UI"). They no longer do: ``routers/compliance.py``
+    # emits both from the override routes the Compliance tab calls.
+    #
     # UserRepository.set_role exists and is tested; no team-management route is
     # mounted, because member management is not on the MVP route surface (§11).
     #

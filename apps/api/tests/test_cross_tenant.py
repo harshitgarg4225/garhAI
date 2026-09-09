@@ -163,6 +163,14 @@ TENANT_SCOPED_CASES: tuple[Case, ...] = (
         body={"text": "3 bedrooms, one pooja room", "apply": False},
     ),
     Case("GET", "/projects/{project_id}/compliance"),
+    # Rule overrides are decisions on another studio's design; firm B must neither
+    # record one nor learn (via a 404-vs-422 difference) which rules ran.
+    Case(
+        "POST",
+        "/projects/{project_id}/compliance/overrides",
+        body={"ruleId": "nbc.room.habitable.area.min", "reason": "Firm B says so"},
+    ),
+    Case("DELETE", "/projects/{project_id}/compliance/overrides/{rule_id}"),
     # G-5. Firm B must not learn another studio's plot size, buildable envelope or
     # quoted fee — the last of which is a commercial position, not just tenant data.
     Case("GET", "/projects/{project_id}/estimate"),
@@ -474,6 +482,9 @@ async def estate_a(
         "project_id": str(project_a.id),
         "family_id": family,
         "version_id": str(version.id),
+        # A pack rule id, not a tenant object: the override route is scoped by its
+        # project, and firm B must get the same 404 whether or not the rule exists.
+        "rule_id": "nbc.room.habitable.area.min",
         "job_id": str(solver_job.id),
         "render_job_id": str(render_job.id),
         "sheet_id": str(sheet.id),

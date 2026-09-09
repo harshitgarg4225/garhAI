@@ -501,9 +501,13 @@ class ComplianceReport:
     results: list[Any]
     created_at: datetime
     updated_at: datetime
+    #: Area statement, scores, warnings, disclaimers, notes, pack review — frozen with
+    #: the rows. ``None`` on reports stored before the column existed.
+    summary: dict[str, Any] | None = None
 
     @classmethod
     def from_row(cls, row: Any) -> ComplianceReport:
+        raw_summary = getattr(row, "summary", None)
         return cls(
             id=row.id,
             firm_id=row.firm_id,
@@ -513,6 +517,7 @@ class ComplianceReport:
             results=_json_arr(row.results),
             created_at=row.created_at,
             updated_at=row.updated_at,
+            summary=_json_obj(raw_summary) if isinstance(raw_summary, dict) else None,
         )
 
     def failures(self) -> list[Any]:

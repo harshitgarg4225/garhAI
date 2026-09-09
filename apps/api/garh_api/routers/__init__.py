@@ -535,6 +535,7 @@ def api_router() -> APIRouter:
         billing,
         catalog,
         collab,
+        compliance,
         copilot,
         jobs,
         ops,
@@ -546,6 +547,9 @@ def api_router() -> APIRouter:
     router = APIRouter()
     router.include_router(projects.router)
     router.include_router(ops.router)
+    #: Golden rule 5: rule overrides with a reason, stamped and audited server-side;
+    #: the op itself still goes through the op log via dispatch_ops.
+    router.include_router(compliance.router)
     #: Live collaboration SSE (op-log advance + presence). Read-only fan-out; the
     #: publishes it relays come from the op sequencer's post-commit seam.
     router.include_router(collab.router)
