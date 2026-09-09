@@ -26,6 +26,11 @@
  */
 
 import type { Manifold as ManifoldSolid, ManifoldToplevel, Vec2 } from 'manifold-3d';
+// The `.wasm` as a Vite ASSET: served verbatim in dev, fingerprinted into
+// `dist/assets/` by the build. `?url` keeps Vite's own wasm-helper plugin out
+// of the way (that one wants to instantiate the module itself) and gives us
+// the one string Emscripten needs — see `manifoldLocateFile` below.
+import manifoldWasmUrl from 'manifold-3d/manifold.wasm?url';
 
 import type { PrismProfileF } from './extrusion';
 
@@ -80,6 +85,53 @@ export function subscribeBooleanEngine(listener: (s: BooleanEngineStatus) => voi
   };
 }
 
+// ---------------------------------------------------------------------------
+// Locating the .wasm — the bug that kept every session on the fallback
+// ---------------------------------------------------------------------------
+
+/**
+ * Where Emscripten should fetch `manifold.wasm` from.
+ *
+ * WHY THIS EXISTS (found by the browser UAT, 2026-09-09): without a locator,
+ * Emscripten resolves the binary as `new URL('manifold.wasm', import.meta.url)`
+ * — relative to the SCRIPT it is running from. Under Vite that script is the
+ * pre-bundled `/node_modules/.vite/deps/manifold-3d.js`, the sibling `.wasm`
+ * does not exist there, the dev server answers with the SPA fallback, and the
+ * loader reported `CompileError: expected magic word 00 61 73 6d, found
+ * 3c 21 64 6f` — the bytes of `<!do`, i.e. `index.html`. Every session then
+ * ran the honest no-WASM fallback, which is why opening holes had never been
+ * seen on screen. Passing the bundler-resolved asset URL fixes it at the
+ * source; the fallback stays for a genuinely missing capability.
+ *
+ * Any other file Emscripten asks for keeps its default resolution.
+ */
+export function manifoldLocateFile(
+  path: string,
+  scriptDirectory: string,
+  assetUrl: string = manifoldWasmUrl,
+): string {
+  return path.endsWith('.wasm') ? assetUrl : scriptDirectory + path;
+}
+
+/**
+ * Under Node (vitest, the export scripts) Emscripten reads the binary through
+ * `fs` next to `manifold.js`, and Vite's `?url` resolves to an `/@fs/…` HTTP
+ * path that `fs` cannot open — so the locator is a browser-only affair. Same
+ * `ENVIRONMENT_IS_NODE` test the Emscripten glue makes.
+ */
+/** Emscripten's factory as it really behaves (see the cast at the call site). */
+type ManifoldModuleFactory = (config?: {
+  readonly locateFile?: (path: string, scriptDirectory: string) => string;
+}) => Promise<ManifoldToplevel>;
+
+export function runningUnderNode(): boolean {
+  return (
+    typeof process === 'object' &&
+    typeof process.versions === 'object' &&
+    typeof process.versions.node === 'string'
+  );
+}
+
 /**
  * Load the WASM once. Idempotent and re-entrant: concurrent callers share one
  * promise, and a settled engine resolves immediately. Never throws — failure
@@ -94,7 +146,12 @@ export function ensureBooleanEngine(): Promise<BooleanEngineStatus> {
       // The ONE dynamic import. Everything upstream of this line runs with no
       // WASM on the page; Vite splits `manifold-3d` into its own async chunk.
       const mod = await import('manifold-3d');
-      const wasm = await mod.default();
+      // `manifold.d.ts` declares `locateFile: () => string`; Emscripten calls
+      // it as `(path, scriptDirectory)`. The cast states the real signature.
+      const factory = mod.default as unknown as ManifoldModuleFactory;
+      const wasm = await factory(
+        runningUnderNode() ? undefined : { locateFile: manifoldLocateFile },
+      );
       wasm.setup();
       toplevel = wasm;
       setStatus({ state: 'ready' });
