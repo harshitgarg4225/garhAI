@@ -143,7 +143,7 @@ Two smaller gaps found in passing:
   with the projector's assumptions printed under the drawing. `render/labels.py` is now
   the one text measurer for the worker, the harness and the tests, and it boxes dimension
   figures. `test_render.py` pins each of these: `test_plan_opening_tags_are_the_schedule_
-  sheets_tags` (+ the `{}` and wrong-mapping negative controls),
+sheets_tags` (+ the `{}` and wrong-mapping negative controls),
   `test_every_room_on_every_plan_is_labelled_and_a_real_room_gets_all_four_values`,
   `test_site_plan_dimensions_every_side_the_footprint_the_road_and_the_setbacks` (+ the
   1 mm doctored-row refusal), `test_section_is_a_real_cut_through_the_stair`,
