@@ -123,6 +123,36 @@ Two smaller gaps found in passing:
   conflicting. Unreachable today (one user per firm), but it is what a second editor
   would meet.
 
+- **The drawn set was a submission skeleton, not a submission set (audit J08, fixed
+  2026-09-07/09).** An architect opening the ten sheets found no D/W tag on any plan
+  although A-05 tabulated D1–D5/W1–W2/V1; room labels with a name and sq ft only, on top
+  of per-room dimension cross-hairs whose figures sat under the room name (the collision
+  audit could not see them — a chain's figures are not `Text`); a site plan with the four
+  setbacks chained and nothing else, its side-a/side-b names swapped against the rules
+  engine's rows; a Section A-A that was an envelope box with no cut wall, slab, stair or
+  level; and elevations that were an outline with rectangles. Now: every opening carries
+  the schedule's own tag (one `door_window_schedule` feeds A-05 and every plan and
+  elevation); rooms read NAME / 3623 x 2703 / 9.79 m² / 105.4 sq ft, sized down and turned
+  to fit, off the stair treads; A-01 chains every plot edge, the footprint, the road width
+  and each setback under the engine's role for that edge, refusing to draw if a chain
+  disagrees with `providedMm`, with PLOT SIZE in mm and feet-inches and the engine's
+  coverage / FAR / setback rows in a notes block; A-04 and A-03A–D are the tested
+  `sections/` and `elevations/` projectors on the sheet — hatched cut walls, slabs at
+  their thickness, plinth, parapet, the stair riser by riser, level markers, the
+  foundation line 900 below plinth, every opening on its face at its sill and lintel —
+  with the projector's assumptions printed under the drawing. `render/labels.py` is now
+  the one text measurer for the worker, the harness and the tests, and it boxes dimension
+  figures. `test_render.py` pins each of these: `test_plan_opening_tags_are_the_schedule_
+  sheets_tags` (+ the `{}` and wrong-mapping negative controls),
+  `test_every_room_on_every_plan_is_labelled_and_a_real_room_gets_all_four_values`,
+  `test_site_plan_dimensions_every_side_the_footprint_the_road_and_the_setbacks` (+ the
+  1 mm doctored-row refusal), `test_section_is_a_real_cut_through_the_stair`,
+  `test_elevations_project_every_opening_at_its_sill_and_lintel_with_its_tag`,
+  `test_the_collision_audit_sees_dimension_figures`. Still open: a dogleg's return flight
+  is not drawn (the model stores one flight — said on the sheet), a shaft-sized room keeps
+  its name only, the hand-checked dimension reference set is still empty (launch gate),
+  and no DXF has been opened in a human CAD.
+
 ## What a trial needs that is not code
 
 - **The 10-generation free quota.** Each trial account gets 10 solves per billing

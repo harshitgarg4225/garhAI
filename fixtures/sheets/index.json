@@ -86,7 +86,7 @@
             "A-TITL"
           ],
           "number": "A-03A",
-          "primitives": 54,
+          "primitives": 74,
           "scale": 100
         },
         {
@@ -101,7 +101,7 @@
             "A-TITL"
           ],
           "number": "A-03B",
-          "primitives": 58,
+          "primitives": 79,
           "scale": 100
         },
         {
@@ -116,7 +116,7 @@
             "A-TITL"
           ],
           "number": "A-03C",
-          "primitives": 53,
+          "primitives": 70,
           "scale": 100
         },
         {
@@ -131,7 +131,7 @@
             "A-TITL"
           ],
           "number": "A-03D",
-          "primitives": 56,
+          "primitives": 76,
           "scale": 100
         },
         {
@@ -140,12 +140,13 @@
           "layersUsed": [
             "A-WALL",
             "A-WALL-PART",
+            "A-STAIR",
             "A-DIM",
             "A-TEXT",
             "A-TITL"
           ],
           "number": "A-04",
-          "primitives": 58,
+          "primitives": 99,
           "scale": 100
         },
         {
@@ -261,7 +262,7 @@
             "A-TITL"
           ],
           "number": "A-03A",
-          "primitives": 57,
+          "primitives": 82,
           "scale": 100
         },
         {
@@ -276,7 +277,7 @@
             "A-TITL"
           ],
           "number": "A-03B",
-          "primitives": 65,
+          "primitives": 100,
           "scale": 100
         },
         {
@@ -291,7 +292,7 @@
             "A-TITL"
           ],
           "number": "A-03C",
-          "primitives": 58,
+          "primitives": 81,
           "scale": 100
         },
         {
@@ -306,7 +307,7 @@
             "A-TITL"
           ],
           "number": "A-03D",
-          "primitives": 63,
+          "primitives": 91,
           "scale": 100
         },
         {
@@ -315,12 +316,13 @@
           "layersUsed": [
             "A-WALL",
             "A-WALL-PART",
+            "A-STAIR",
             "A-DIM",
             "A-TEXT",
             "A-TITL"
           ],
           "number": "A-04",
-          "primitives": 68,
+          "primitives": 124,
           "scale": 100
         },
         {
@@ -437,7 +439,7 @@
             "A-TITL"
           ],
           "number": "A-03A",
-          "primitives": 63,
+          "primitives": 96,
           "scale": 100
         },
         {
@@ -452,7 +454,7 @@
             "A-TITL"
           ],
           "number": "A-03B",
-          "primitives": 61,
+          "primitives": 91,
           "scale": 100
         },
         {
@@ -468,7 +470,7 @@
             "A-TITL"
           ],
           "number": "A-03C",
-          "primitives": 62,
+          "primitives": 89,
           "scale": 100
         },
         {
@@ -483,7 +485,7 @@
             "A-TITL"
           ],
           "number": "A-03D",
-          "primitives": 61,
+          "primitives": 87,
           "scale": 100
         },
         {
@@ -492,12 +494,13 @@
           "layersUsed": [
             "A-WALL",
             "A-WALL-PART",
+            "A-STAIR",
             "A-DIM",
             "A-TEXT",
             "A-TITL"
           ],
           "number": "A-04",
-          "primitives": 68,
+          "primitives": 124,
           "scale": 100
         },
         {
@@ -596,7 +599,7 @@
             "A-TITL"
           ],
           "number": "A-03A",
-          "primitives": 54,
+          "primitives": 71,
           "scale": 100
         },
         {
@@ -611,7 +614,7 @@
             "A-TITL"
           ],
           "number": "A-03B",
-          "primitives": 58,
+          "primitives": 80,
           "scale": 100
         },
         {
@@ -627,7 +630,7 @@
             "A-TITL"
           ],
           "number": "A-03C",
-          "primitives": 55,
+          "primitives": 74,
           "scale": 100
         },
         {
@@ -642,7 +645,7 @@
             "A-TITL"
           ],
           "number": "A-03D",
-          "primitives": 56,
+          "primitives": 77,
           "scale": 100
         },
         {
@@ -651,12 +654,13 @@
           "layersUsed": [
             "A-WALL",
             "A-WALL-PART",
+            "A-STAIR",
             "A-DIM",
             "A-TEXT",
             "A-TITL"
           ],
           "number": "A-04",
-          "primitives": 58,
+          "primitives": 103,
           "scale": 100
         },
         {

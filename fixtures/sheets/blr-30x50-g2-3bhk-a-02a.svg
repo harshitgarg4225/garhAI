@@ -239,9 +239,9 @@
 </g>
 <g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="257.775,169.300 255.525,180.550 257.775,182.800 260.025,180.550" fill="none"/>
-<line x1="184.025" y1="286.700" x2="184.025" y2="133.300" stroke-dasharray="8.000 1.500 1.500 1.500"/>
-<circle cx="184.025" cy="286.700" r="4.500" fill="none"/>
-<circle cx="184.025" cy="133.300" r="4.500" fill="none"/>
+<line x1="181.025" y1="286.700" x2="181.025" y2="133.300" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<circle cx="181.025" cy="286.700" r="4.500" fill="none"/>
+<circle cx="181.025" cy="133.300" r="4.500" fill="none"/>
 <g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
 <text x="184.025" y="231.900" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">UP 16R</text>
 <text x="192.175" y="172.620" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">UTILITY</text>
@@ -275,8 +275,8 @@
 <text x="182.525" y="193.000" font-size="1.800" text-anchor="middle" dominant-baseline="central">W4</text>
 <text x="257.775" y="189.300" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">FFL +600</text>
 <text x="257.775" y="166.300" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">N</text>
-<text x="184.025" y="286.700" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
-<text x="184.025" y="133.300" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
+<text x="181.025" y="286.700" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
+<text x="181.025" y="133.300" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
 </g>
 </g>
 <g class="layer" data-layer="A-AREA" stroke="#3a3a3a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">

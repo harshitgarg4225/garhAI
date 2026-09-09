@@ -54,8 +54,10 @@ from services.drawings.render.primitives import (  # noqa: E402
     Arc,
     Dim,
     DrawingGroup,
+    Hatch,
     Line,
     Placement,
+    Polyline,
     SheetDrawing,
     Text,
     dim_geometry,
@@ -1354,3 +1356,208 @@ def test_plot_size_note_is_only_written_for_a_rectangle() -> None:
     )
     # A five-sided plot has edge chains but no single size that is true of it.
     assert _plot_size_note([(0, 0), (9144, 0), (9144, 12192), (4000, 14000), (0, 12192)]) is None
+
+
+# ---------------------------------------------------------------------------
+# Section A-A and the elevations: the projectors' output, on the sheet
+# ---------------------------------------------------------------------------
+def _drawing_group(drawing: Any, prefix: str) -> Any:
+    return next(g for g in drawing.groups if g.id.startswith(prefix))
+
+
+def _z_span(primitive: Any) -> tuple[int, int]:
+    ys = [y for _x, y in primitive.points()]
+    return (min(ys), max(ys))
+
+
+def test_section_is_a_real_cut_through_the_stair() -> None:
+    """A-04 shows what the cut passes through, all of it read off the model.
+
+    Hatched walls on both sides of every storey, each floor slab at the thickness its
+    storey carries, the plinth from ground to plinth level, the parapet at both ends,
+    the stair riser by riser, the level markers (ground, plinth, every FFL, sill and
+    lintel, terrace, parapet top), the dashed foundation line 900 below plinth with
+    §7's exact label, one height chain summing to the parapet top, and the projector's
+    assumptions printed as notes. The cut recorded on the sheet's viewport is the cut
+    the floor plan marks A-A.
+    """
+    from services.drawings.elevations.vertical import build_levels
+    from services.drawings.sections import FOUNDATION_LABEL
+
+    checked = 0
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        house = doc.house
+        if not house.stairs:
+            continue
+        drawings = dict(_sheet_sets())[name]
+        section = drawings.by_kind("section")[0]
+        group = _drawing_group(section, "section")
+        prims = group.primitives
+        levels = build_levels(house)
+        texts = [p.text for p in prims if isinstance(p, Text)]
+
+        stair = [p for p in prims if p.layer == "A-STAIR"]
+        assert stair, "%s: no stair profile on the section" % name
+        assert any(len(p.points()) >= 8 for p in stair), "the flight is not stepped"
+        hatched_walls = [p for p in prims if isinstance(p, Hatch) and p.layer == "A-WALL"]
+        assert len(hatched_walls) >= 2 * len(house.storeys) + 1, name  # walls + plinth
+        for storey in levels.storeys[1:]:
+            bands = [
+                p
+                for p in prims
+                if isinstance(p, Polyline)
+                and (p.element_id or "").startswith("slab")
+                and _z_span(p) == (storey.ffl_mm - storey.slab_thickness_mm, storey.ffl_mm)
+            ]
+            assert bands, "%s: no slab band for %s" % (name, storey.name)
+        assert any(
+            isinstance(p, Polyline) and _z_span(p) == (0, levels.plinth_mm) for p in prims
+        ), "no plinth block"
+        parapets = [
+            p
+            for p in prims
+            if isinstance(p, Polyline) and _z_span(p) == (levels.terrace_mm, levels.parapet_top_mm)
+        ]
+        assert len(parapets) == 2, "%s: parapet is not cut at both ends" % name
+        for label in (
+            "GROUND LVL",
+            "PLINTH LVL",
+            "FFL",
+            "SILL",
+            "LINTEL",
+            "TERRACE LVL",
+            "PARAPET TOP",
+        ):
+            assert any(label in t for t in texts), (name, label)
+        foundation_z = levels.plinth_mm - 900
+        assert any(
+            isinstance(p, Line)
+            and p.style == "dashed"
+            and _z_span(p) == (foundation_z, foundation_z)
+            for p in prims
+        ), "no dashed foundation line 900 below plinth"
+        assert FOUNDATION_LABEL in texts
+        assert len(section.chains) == 1
+        assert section.chains[0].overall_mm == levels.parapet_top_mm
+        assert any(isinstance(p, Dim) for p in prims)
+        assert "NOTES" in texts
+        assert any("Terrace slab shown" in t for t in texts), "the slab assumption is not printed"
+        assert not any("chosen by score" in t for t in texts), "a developer note reached the paper"
+        assert not any("stair_" in t for t in texts), "an element id reached the paper"
+
+        # The viewport's cut is the cut the plans mark.
+        cut = section.sheet.viewport.section_line
+        assert cut is not None
+        for plan in drawings.by_kind("floor-plan"):
+            marker = [
+                p
+                for p in _drawing_group(plan, "plan-").primitives
+                if isinstance(p, Line) and p.layer == "A-TEXT" and p.style == "centre"
+            ]
+            assert marker, "no A-A marker on %s" % plan.sheet.number
+            (ax, ay), (bx, by) = cut
+            if ax == bx:
+                assert all(m.a[0] == ax and m.b[0] == ax for m in marker)
+            else:
+                assert all(m.a[1] == ay and m.b[1] == ay for m in marker)
+        checked += 1
+    assert checked, "no fixture with a stair — the section proves nothing"
+
+
+def test_section_without_a_stair_cuts_the_centre_and_says_so() -> None:
+    name, fixture = next((n, f) for n, f in _fixtures() if not _fold(f).house.stairs)
+    section = dict(_sheet_sets())[name].by_kind("section")[0]
+    prims = _drawing_group(section, "section").primitives
+    assert prims, "a house without a stair still gets a section"
+    assert not any(p.layer == "A-STAIR" for p in prims)
+    texts = [p.text for p in prims if isinstance(p, Text)]
+    assert any("No stair in the model" in t for t in texts), texts
+    assert any(isinstance(p, Hatch) and p.layer == "A-WALL" for p in prims)
+
+
+def test_elevations_project_every_opening_at_its_sill_and_lintel_with_its_tag() -> None:
+    """Four faces; every external-wall opening on exactly one of them, framed from
+    ``FFL + sill`` to ``FFL + sill + height`` and tagged with the schedule's tag; the
+    plinth band, the ground line, each floor line and the parapet on all four."""
+    from services.drawings.elevations.vertical import build_levels
+
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        house = doc.house
+        drawings = dict(_sheet_sets())[name]
+        levels = build_levels(house)
+        openings = {o.id: o for o in house.openings}
+        storey_of = _opening_storeys(house)
+        tags = door_window_schedule(house).tag_by_opening_id
+        seen: dict[str, str] = {}
+        elevations = drawings.by_kind("elevation")
+        assert len(elevations) == 4
+        for elevation in elevations:
+            direction = elevation.meta["direction"]
+            prims = _drawing_group(elevation, "elev-").primitives
+            frames = [
+                p
+                for p in prims
+                if isinstance(p, Polyline)
+                and p.layer in ("A-DOOR", "A-WIND")
+                and p.closed
+                and p.element_id in openings
+            ]
+            # Outer frame = the widest ring per opening (the leaf/glazing ring is inset).
+            by_opening: dict[str, Polyline] = {}
+            for frame in frames:
+                current = by_opening.get(frame.element_id)
+                if current is None or _z_span(frame)[1] - _z_span(frame)[0] > (
+                    _z_span(current)[1] - _z_span(current)[0]
+                ):
+                    by_opening[frame.element_id] = frame
+            tag_texts = {
+                p.element_id: p.text
+                for p in prims
+                if isinstance(p, Text) and p.element_id in openings
+            }
+            for opening_id, frame in by_opening.items():
+                opening = openings[opening_id]
+                storey = levels.storey(storey_of[opening_id])
+                assert storey is not None
+                sill = storey.ffl_mm + opening.sill_mm
+                assert _z_span(frame) == (sill, sill + opening.height_mm), (
+                    name,
+                    direction,
+                    opening_id,
+                )
+                assert tag_texts.get(opening_id) == tags[opening_id], (name, direction, opening_id)
+                assert opening_id not in seen, "%s appears on %s and %s" % (
+                    opening_id,
+                    seen.get(opening_id),
+                    direction,
+                )
+                seen[opening_id] = direction
+            assert any(
+                isinstance(p, Polyline)
+                and p.layer == "A-WALL-PART"
+                and _z_span(p) == (0, levels.plinth_mm)
+                for p in prims
+            ), (name, direction, "no plinth band")
+            assert any(
+                isinstance(p, Line) and _z_span(p) == (0, 0) for p in prims
+            ), "no ground line"
+            assert any(
+                isinstance(p, Polyline) and _z_span(p) == (levels.terrace_mm, levels.parapet_top_mm)
+                for p in prims
+            ), (name, direction, "no parapet")
+            for storey in levels.storeys[1:]:
+                z = storey.ffl_mm - storey.slab_thickness_mm
+                assert any(isinstance(p, Line) and _z_span(p) == (z, z) for p in prims), (
+                    name,
+                    direction,
+                    "no floor line for %s" % storey.name,
+                )
+            assert len(elevation.chains) == 1
+            assert elevation.chains[0].overall_mm == levels.parapet_top_mm
+        # Every opening in an external wall is on exactly one face; an internal door
+        # faces no elevation and is rightly absent from all four.
+        walls = {w.id: w for w in house.walls}
+        external = {oid for oid, o in openings.items() if walls[o.wall_id].kind == "external"}
+        assert set(seen) == external, (name, external ^ set(seen))

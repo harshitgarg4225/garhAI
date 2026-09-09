@@ -223,9 +223,9 @@
 </g>
 <g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="257.775,176.775 255.525,188.025 257.775,190.275 260.025,188.025" fill="none"/>
-<line x1="184.025" y1="279.225" x2="184.025" y2="140.775" stroke-dasharray="8.000 1.500 1.500 1.500"/>
-<circle cx="184.025" cy="279.225" r="4.500" fill="none"/>
-<circle cx="184.025" cy="140.775" r="4.500" fill="none"/>
+<line x1="181.025" y1="279.225" x2="181.025" y2="140.775" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<circle cx="181.025" cy="279.225" r="4.500" fill="none"/>
+<circle cx="181.025" cy="140.775" r="4.500" fill="none"/>
 <g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
 <text x="184.025" y="224.425" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">UP 16R</text>
 <text x="194.265" y="226.965" font-size="2.200" text-anchor="middle" dominant-baseline="central" font-weight="600">STAIRCASE</text>
@@ -257,8 +257,8 @@
 <text x="236.905" y="239.445" font-size="1.800" text-anchor="middle" dominant-baseline="central">V1</text>
 <text x="257.775" y="196.775" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">FFL +3600</text>
 <text x="257.775" y="173.775" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">N</text>
-<text x="184.025" y="279.225" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
-<text x="184.025" y="140.775" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
+<text x="181.025" y="279.225" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
+<text x="181.025" y="140.775" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
 </g>
 </g>
 <g class="layer" data-layer="A-AREA" stroke="#3a3a3a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">

@@ -211,9 +211,9 @@
 </g>
 <g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="257.775,175.625 255.525,186.875 257.775,189.125 260.025,186.875" fill="none"/>
-<line x1="184.025" y1="280.375" x2="184.025" y2="139.625" stroke-dasharray="8.000 1.500 1.500 1.500"/>
-<circle cx="184.025" cy="280.375" r="4.500" fill="none"/>
-<circle cx="184.025" cy="139.625" r="4.500" fill="none"/>
+<line x1="181.025" y1="280.375" x2="181.025" y2="139.625" stroke-dasharray="8.000 1.500 1.500 1.500"/>
+<circle cx="181.025" cy="280.375" r="4.500" fill="none"/>
+<circle cx="181.025" cy="139.625" r="4.500" fill="none"/>
 <g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
 <text x="219.195" y="235.285" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">BATH WC</text>
 <text x="219.195" y="238.035" font-size="2.000" text-anchor="middle" dominant-baseline="central">3451 x 1208</text>
@@ -244,8 +244,8 @@
 <text x="204.945" y="216.275" font-size="1.800" text-anchor="middle" dominant-baseline="central">D1</text>
 <text x="257.775" y="195.625" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">FFL +3600</text>
 <text x="257.775" y="172.625" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">N</text>
-<text x="184.025" y="280.375" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
-<text x="184.025" y="139.625" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
+<text x="181.025" y="280.375" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
+<text x="181.025" y="139.625" font-size="2.000" text-anchor="middle" dominant-baseline="central" font-weight="600">A</text>
 </g>
 </g>
 <g class="layer" data-layer="A-AREA" stroke="#3a3a3a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">

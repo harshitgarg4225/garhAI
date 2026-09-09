@@ -54,6 +54,7 @@ Stated plainly so nobody mistakes it for the finished engine:
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Any
 
 from services.drawings.dimensions import (
@@ -65,6 +66,14 @@ from services.drawings.dimensions import (
     DimSegment,
     assert_chains_sum,
 )
+from services.drawings.elevations import ElevationOptions, build_elevation
+from services.drawings.elevations.vertical import (
+    K_HEIGHT_CHAIN,
+    K_HEIGHT_CHAIN_TEXT,
+    K_HEIGHT_CHAIN_TICK,
+    K_OPENING_FRAME,
+    K_TITLE,
+)
 from services.drawings.layers import (
     A_AREA,
     A_DIM,
@@ -75,16 +84,15 @@ from services.drawings.layers import (
     A_WALL_PART,
     A_WIND,
 )
+from services.drawings.render.adapt import from_projection
 from services.drawings.render.frame import frame_group
 from services.drawings.render.labels import Box, first_free, paper_to_model_mm, text_box_mm
 from services.drawings.render.layout import choose_scale, content_rect, fit_placement
 from services.drawings.render.primitives import (
     HATCH_DIAGONAL,
-    HATCH_EARTH,
     HATCH_SOLID,
     STYLE_CENTRE,
     STYLE_DASHED,
-    STYLE_HIDDEN,
     TEXT_HEIGHT_LABEL_PAPER_UM,
     TEXT_HEIGHT_PAPER_UM,
     TEXT_HEIGHT_SMALL_PAPER_UM,
@@ -114,6 +122,15 @@ from services.drawings.revisions import (
     revision_register_group,
 )
 from services.drawings.schedules.door_window import DoorWindowSchedule, build_schedule
+from services.drawings.sections import (
+    FOUNDATION_DEPTH_BELOW_PLINTH_MM as _FOUNDATION_DEPTH_BELOW_PLINTH_MM,
+)
+from services.drawings.sections import (
+    FOUNDATION_LABEL,
+    CutLine,
+    SectionOptions,
+    build_section,
+)
 from services.drawings.sections.stair import stair_geometry
 from services.drawings.sheets import (
     DEFAULT_SCALE,
@@ -143,12 +160,10 @@ __all__ = [
     "site_plan_sheet",
 ]
 
-#: §7: "foundation indicative line (900mm below plinth, dashed, labeled ...)".
-FOUNDATION_DEPTH_BELOW_PLINTH_MM = 900
-FOUNDATION_NOTE = "INDICATIVE - REFER STRUCTURAL"
-
-#: Paper µm. Height of a level-marker triangle on a section/elevation.
-_LEVEL_TICK_PAPER_UM = 1_800
+#: §7: "foundation indicative line (900mm below plinth, dashed, labeled ...)" — the
+#: section projector owns the number and the exact label; re-exported for callers.
+FOUNDATION_DEPTH_BELOW_PLINTH_MM = _FOUNDATION_DEPTH_BELOW_PLINTH_MM
+FOUNDATION_NOTE = FOUNDATION_LABEL
 
 
 # ---------------------------------------------------------------------------
@@ -297,12 +312,6 @@ def _storey_ffl_mm(house: Any, index: int) -> int:
     for storey in house.storeys[:index]:
         ffl += storey.height_mm
     return ffl
-
-
-def _roof_level_mm(house: Any) -> int:
-    if not house.storeys:
-        return house.levels.plinth_mm
-    return _storey_ffl_mm(house, len(house.storeys) - 1) + house.storeys[-1].height_mm
 
 
 def _room_extent(room: Any) -> tuple[int, int, int, int]:
@@ -1229,329 +1238,245 @@ def plan_primitives(
 
 
 # ---------------------------------------------------------------------------
-# Elevations (§7 "Elevations")
+# Elevations and the section (§7 "Elevations", "Section (through stair)")
 # ---------------------------------------------------------------------------
+# Both vertical drawings come from the projectors in services.drawings.elevations
+# and services.drawings.sections — the §7 engines with the hidden-line test, the
+# scored cut, the riser-by-riser stair profile and the level set the two share — via
+# the adapter in services.drawings.render.adapt. Until 2026-09 this module drew its
+# own envelope box instead and those packages shipped nowhere (the two-renderers
+# finding of the J08 audit); now there is one vertical projection, and what its
+# tests prove is what the sheet prints.
 _DIRECTION_NAMES = {"N": "NORTH", "E": "EAST", "S": "SOUTH", "W": "WEST"}
 
+#: Projection kinds the sheet does not carry through the adapter: the height chain is
+#: re-emitted as a :class:`Dim` (a native DIMENSION in DXF, the shared dim_geometry in
+#: SVG) and the drawing title is the sheet's own label.
+_VERTICAL_DROPPED_KINDS = frozenset(
+    {K_HEIGHT_CHAIN, K_HEIGHT_CHAIN_TICK, K_HEIGHT_CHAIN_TEXT, K_TITLE}
+)
+#: Paper µm: line pitch of the notes block under a vertical drawing, and its gap
+#: below the lowest primitive.
+_NOTES_PITCH_PAPER_UM = 3_200
+_NOTES_GAP_PAPER_UM = 9_000
+_NOTES_WRAP_CHARS = 110
 
-def _facade_walls(house: Any, storey_id: str, direction: str) -> list[Any]:
-    """External walls whose outer face lies on the named side of the building."""
-    extent = building_extent(house, storey_id)
-    if extent is None:
-        return []
-    min_x, min_y, max_x, max_y = extent
-    result: list[Any] = []
-    for wall in _orthogonal_only(_walls_of(house, storey_id)):
-        if wall.kind != "external":
+
+def _wrap_note(text: str, width: int = _NOTES_WRAP_CHARS) -> list[str]:
+    words = text.split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = word if not current else current + " " + word
+        if len(candidate) > width and current:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return lines or [""]
+
+
+#: Projector notes that explain the projector to a developer, not the drawing to a
+#: reviewer; they stay in the job's JSON and off the paper.
+_INTERNAL_NOTE_PREFIXES = (
+    "Section line chosen by score",
+    "No cut through this stair also reaches a wet area",
+    "opening(s) hidden: their host wall does not face",
+)
+
+
+def _printable_notes(notes: Sequence[str]) -> tuple[str, ...]:
+    """The notes worth printing under a vertical drawing, without element ids."""
+    out: list[str] = []
+    for note in notes:
+        if any(prefix in note for prefix in _INTERNAL_NOTE_PREFIXES):
             continue
-        half = _half(wall.thickness_mm)
-        line = _wall_line_mm(wall)
-        if (
-            direction == "S"
-            and _is_horizontal(wall)
-            and line - half <= min_y
-            or direction == "N"
-            and _is_horizontal(wall)
-            and line + half >= max_y
-            or direction == "W"
-            and _is_vertical(wall)
-            and line - half <= min_x
-            or direction == "E"
-            and _is_vertical(wall)
-            and line + half >= max_x
-        ):
-            result.append(wall)
-    return result
+        words = []
+        for word in note.split(" "):
+            # "Stair stair_01M1... is a dogleg" -> "Stair is a dogleg": the id means
+            # nothing on paper and the plan shows which stair it is.
+            if word.startswith("stair_") and len(word) > 20:
+                continue
+            words.append(word)
+        out.append(" ".join(words))
+    return tuple(out)
 
 
-def _facade_along(direction: str, extent: tuple[int, int, int, int], point_along: int) -> int:
-    """Map a model coordinate to the facade's left-to-right axis.
+def _notes_block(
+    notes: Sequence[str],
+    *,
+    at: Pt2,
+    scale_denominator: int,
+    heading: str = "NOTES",
+) -> list[Primitive]:
+    """The projector's notes, printed on the sheet: what was assumed and what was not drawn.
 
-    N and E facades are viewed from the opposite side, so their along-axis runs
-    backwards relative to the model — mirroring here is what stops a north elevation
-    from showing a west-side window on the east.
+    A vertical projection says out loud where it used a default (the terrace slab
+    thickness, the foundation depth, a derived mumty, a dogleg's undrawn return flight).
+    Those sentences are the liability boundary of the drawing, so they are on the paper
+    under it, not only in a JSON note nobody prints.
     """
-    min_x, min_y, max_x, max_y = extent
-    if direction == "S":
-        return point_along - min_x
-    if direction == "N":
-        return max_x - point_along
-    if direction == "W":
-        return max_y - point_along
-    return point_along - min_y
-
-
-def elevation_primitives(
-    doc: Any, direction: str, *, scale_denominator: int = 100
-) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
-    """One facade: ground line, plinth, storey lines, openings, level markers, height chain.
-
-    Coordinates in the returned primitives are ``(along_facade_mm, height_above_datum_mm)``
-    — a 2D elevation space, not plan space. Ground level is 0.
-    """
-    house = doc.house
-    if not house.storeys:
-        return ((), ())
-    ground_extent = building_extent(house, house.storeys[0].id)
-    if ground_extent is None:
-        return ((), ())
-    min_x, min_y, max_x, max_y = ground_extent
-    facade_width = (max_x - min_x) if direction in ("S", "N") else (max_y - min_y)
-
-    levels = house.levels
-    plinth = levels.plinth_mm
-    roof = _roof_level_mm(house)
-    parapet_top = roof + levels.parapet_mm
+    if not notes:
+        return []
+    pitch = paper_to_model_mm(_NOTES_PITCH_PAPER_UM, scale_denominator)
     out: list[Primitive] = []
-
-    # Ground line, extended past the building the way an elevation is drawn.
-    out.append(Line((-600, 0), (facade_width + 600, 0), A_WALL))
-    # Plinth band.
+    y = at[1]
     out.append(
-        Polyline(
-            ((0, 0), (facade_width, 0), (facade_width, plinth), (0, plinth)),
-            A_WALL_PART,
-            closed=True,
+        Text(
+            at=(at[0], y),
+            text=heading,
+            layer=A_TEXT,
+            height_paper_um=TEXT_HEIGHT_LABEL_PAPER_UM,
+            bold=True,
         )
     )
-    # Building envelope up to the parapet.
-    out.append(
-        Polyline(
-            ((0, plinth), (facade_width, plinth), (facade_width, parapet_top), (0, parapet_top)),
-            A_WALL,
-            closed=True,
-        )
-    )
-    # Floor lines and the parapet coping.
-    for index in range(len(house.storeys)):
-        ffl = _storey_ffl_mm(house, index)
-        out.append(Line((0, ffl), (facade_width, ffl), A_WALL_PART, style=STYLE_HIDDEN))
-    out.append(Line((0, roof), (facade_width, roof), A_WALL_PART))
-
-    # Openings on this facade, per storey.
-    for index, storey in enumerate(house.storeys):
-        ffl = _storey_ffl_mm(house, index)
-        for wall in sorted(_facade_walls(house, storey.id, direction), key=lambda w: w.id):
-            storey_extent = building_extent(house, storey.id) or ground_extent
-            for opening in _openings_of_wall(house, wall.id):
-                centre_model = _opening_centre_along(wall, opening)
-                along = _facade_along(direction, storey_extent, centre_model)
-                lo = along - opening.width_mm // 2
-                hi = along + opening.width_mm // 2
-                bottom = ffl + opening.sill_mm
-                top = bottom + opening.height_mm
-                layer = A_DOOR if opening.kind == "door" else A_WIND
-                out.append(
-                    Polyline(
-                        ((lo, bottom), (hi, bottom), (hi, top), (lo, top)),
-                        layer,
-                        closed=True,
-                        element_id=opening.id,
-                    )
+    for index, note in enumerate(notes, start=1):
+        for line_index, line in enumerate(_wrap_note(note)):
+            y -= pitch
+            out.append(
+                Text(
+                    at=(at[0], y),
+                    text=("%d. %s" % (index, line)) if line_index == 0 else "   " + line,
+                    layer=A_TEXT,
+                    height_paper_um=TEXT_HEIGHT_LABEL_PAPER_UM,
                 )
-                if opening.kind != "door":
-                    mid = (bottom + top) // 2
-                    out.append(Line((lo, mid), (hi, mid), layer, element_id=opening.id))
-
-    # Level markers (§7: "floor lines ... as level markers, not chains").
-    marker_x = facade_width + 400
-    for label, level in _level_markers(house):
-        out.append(Line((facade_width, level), (marker_x + 900, level), A_DIM, style=STYLE_CENTRE))
-        out.append(
-            Text(
-                at=(marker_x + 200, level + 120),
-                text="%s +%d" % (label, level),
-                layer=A_TEXT,
-                height_paper_um=TEXT_HEIGHT_LABEL_PAPER_UM,
             )
-        )
+    return out
 
-    # Overall height chain: plinth + each storey height + parapet, summing to the top.
-    breaks = [plinth] + [_storey_ffl_mm(house, i) for i in range(1, len(house.storeys))] + [roof]
-    chain = _chain_from_breaks(
-        chain_id="elev-%s-H" % direction,
-        orientation="vertical",
-        level=1,
-        offset_mm=-int(round(LEVEL_1_OFFSET_MM * scale_denominator / 100.0)),
-        lo=0,
-        hi=parapet_top,
-        breaks=breaks,
-    )
-    chains = (chain,) if chain is not None else ()
+
+def _vertical_sheet_primitives(
+    drawing: Any,
+    *,
+    scale_denominator: int,
+    tags: Mapping[str, str] | None = None,
+) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
+    """Adapt a :class:`VerticalDrawing` for a sheet: primitives, native chain, notes, tags.
+
+    ``tags`` is the schedule's ``{opening id: tag}``; an opening frame on the drawing gets
+    its tag written at its centre, the same tag the plan and A-05 carry.
+    """
+    if not drawing.primitives:
+        return ((), ())
+    kept = [p for p in drawing.primitives if getattr(p, "kind", "") not in _VERTICAL_DROPPED_KINDS]
+    out: list[Primitive] = list(from_projection(kept, scale_denominator=scale_denominator))
+    chains = tuple(drawing.chains)
     assert_chains_sum(chains)
     out.extend(
         Dim(chain=c, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM) for c in chains
     )
-
-    # Material callouts, only when a facade kit has actually been applied.
-    facade = house.facade
-    if facade.kit_id:
-        out.append(
-            Text(
-                at=(0, parapet_top + 600),
-                text="FACADE KIT: %s%s"
-                % (
-                    facade.kit_id.upper(),
-                    (" / " + facade.colorway_id.upper()) if facade.colorway_id else "",
-                ),
-                layer=A_TEXT,
-                height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM,
+    if tags:
+        for item in kept:
+            if getattr(item, "kind", "") != K_OPENING_FRAME:
+                continue
+            tag = tags.get(str(getattr(item, "owner_id", "") or ""))
+            if not tag:
+                continue
+            xs = [x for x, _ in item.points]
+            ys = [y for _, y in item.points]
+            out.append(
+                Text(
+                    at=((min(xs) + max(xs)) // 2, (min(ys) + max(ys)) // 2),
+                    text=tag,
+                    layer=A_TEXT,
+                    height_paper_um=TEXT_HEIGHT_LABEL_PAPER_UM,
+                    anchor="middle",
+                    baseline="middle",
+                    element_id=str(item.owner_id),
+                )
+            )
+    extent = _extent_of(out)
+    notes = _printable_notes(drawing.notes)
+    if extent is not None and notes:
+        gap = paper_to_model_mm(_NOTES_GAP_PAPER_UM, scale_denominator)
+        out.extend(
+            _notes_block(
+                notes, at=(extent[0], extent[1] - gap), scale_denominator=scale_denominator
             )
         )
     return (tuple(out), chains)
 
 
-def _level_markers(house: Any) -> tuple[tuple[str, int], ...]:
-    """The level set §7 wants on elevations and sections, deduplicated and sorted."""
-    levels = house.levels
-    markers: list[tuple[str, int]] = [("GL", 0), ("PLINTH", levels.plinth_mm)]
-    for index in range(len(house.storeys)):
-        ffl = _storey_ffl_mm(house, index)
-        markers.append(("FFL %d" % index, ffl))
-        markers.append(("LINTEL %d" % index, ffl + levels.lintel_default_mm))
-    roof = _roof_level_mm(house)
-    markers.append(("ROOF", roof))
-    markers.append(("PARAPET", roof + levels.parapet_mm))
-    seen: dict[int, str] = {}
-    for label, level in markers:
-        seen.setdefault(level, label)
-    return tuple(sorted(((label, level) for level, label in seen.items()), key=lambda p: p[1]))
+def elevation_primitives(
+    doc: Any,
+    direction: str,
+    *,
+    scale_denominator: int = 100,
+    opening_tags: Mapping[str, str] | None = None,
+) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
+    """One facade from :func:`services.drawings.elevations.build_elevation`.
 
-
-# ---------------------------------------------------------------------------
-# Section (§7 "Section (through stair)")
-# ---------------------------------------------------------------------------
-def choose_section_line(doc: Any) -> tuple[Pt2, Pt2] | None:
-    """§7: cut through the stair flight when there is one, else the building centre."""
+    Per storey: the silhouette band and its slab edge; the plinth band and the ground
+    line; every opening that survives the hidden-line test, framed at its sill and
+    lintel with its leaf or glazing, mullion and sill course; balconies; the parapet;
+    level markers down the left (GL, plinth, every FFL, sill and lintel, terrace,
+    parapet top); the one height chain; facade-kit material callouts; and the
+    projector's notes. Coordinates are ``(along_facade_mm, height_above_datum_mm)``.
+    """
     house = doc.house
     if not house.storeys:
-        return None
+        return ((), ())
+    drawing = build_elevation(
+        house,
+        direction,
+        ElevationOptions(scale_denominator=scale_denominator, north_deg=doc.plot.north_deg),
+    )
+    tags = opening_tag_map(house) if opening_tags is None else dict(opening_tags)
+    return _vertical_sheet_primitives(drawing, scale_denominator=scale_denominator, tags=tags)
+
+
+def _section_result(doc: Any, scale_denominator: int) -> Any:
+    """The scored §7 cut through the stair — or, with no stair, through the centre."""
+    house = doc.house
+    options = SectionOptions(scale_denominator=scale_denominator, label="A")
+    result = build_section(house, options=options)
+    if result.line is not None or not house.storeys:
+        return result
     extent = building_extent(house, house.storeys[0].id)
     if extent is None:
+        return result
+    line = CutLine(axis="x", position_mm=(extent[0] + extent[2]) // 2, label="A")
+    fallback = build_section(house, line=line, options=options)
+    notes = (
+        "No stair in the model, so the section is cut through the centre of the building "
+        "instead of through a flight.",
+        *fallback.drawing.notes,
+    )
+    return replace(fallback, drawing=replace(fallback.drawing, notes=notes))
+
+
+def choose_section_line(doc: Any) -> tuple[Pt2, Pt2] | None:
+    """The cut the section was drawn on, in plan coordinates, for the plan's marker.
+
+    Handed over from the section projector rather than recomputed, so the A-A marker
+    on every floor plan and the cut that produced A-04 cannot drift apart.
+    """
+    if not doc.house.storeys:
         return None
-    min_x, min_y, max_x, max_y = extent
-    stairs = [s for s in house.stairs if s.storey_id == house.storeys[0].id]
-    if stairs:
-        stair = sorted(stairs, key=lambda s: s.id)[0]
-        if stair.direction in ("N", "S"):
-            x = stair.origin.x + stair.width_mm // 2
-            return ((x, min_y - 900), (x, max_y + 900))
-        y = stair.origin.y + stair.width_mm // 2
-        return ((min_x - 900, y), (max_x + 900, y))
-    x = (min_x + max_x) // 2
-    return ((x, min_y - 900), (x, max_y + 900))
+    return _section_result(doc, DEFAULT_SCALE.denominator).viewport_line
 
 
 def section_primitives(
     doc: Any, *, scale_denominator: int = 100
 ) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
-    """The section: storey heights chain, sill/lintel levels, plinth, parapet, foundation.
+    """Section A-A from :func:`services.drawings.sections.build_section`.
 
-    Coordinates are ``(along_cut_mm, height_above_datum_mm)``, ground at 0 — the same
-    2D convention as the elevations, so both consume one placement helper.
+    A real cut: every wall the line passes through as hatched masonry from its FFL to
+    the underside of the slab above, with the voids of the openings it cuts (sill and
+    lintel lines); each floor slab at its own thickness minus the stair well; the
+    plinth from datum to plinth level; the terrace slab, the parapet at both ends, a
+    mumty over the top-storey stair well; the stair riser by riser with its landing;
+    the indicative foundation line 900 mm below plinth with §7's exact label; level
+    markers; the storey-height chain. Every default the projector had to assume (the
+    terrace slab, the mumty, a dogleg's undrawn return flight) is printed as a note.
+    Coordinates are ``(along_cut_mm, height_above_datum_mm)``, ground at 0.
     """
     house = doc.house
     if not house.storeys:
         return ((), ())
-    cut = choose_section_line(doc)
-    ground_extent = building_extent(house, house.storeys[0].id)
-    if cut is None or ground_extent is None:
-        return ((), ())
-    min_x, min_y, max_x, max_y = ground_extent
-    vertical_cut = cut[0][0] == cut[1][0]
-    span = (max_y - min_y) if vertical_cut else (max_x - min_x)
-
-    levels = house.levels
-    plinth = levels.plinth_mm
-    roof = _roof_level_mm(house)
-    parapet_top = roof + levels.parapet_mm
-    out: list[Primitive] = []
-
-    # Ground and the indicative foundation (§7, verbatim label).
-    out.append(Line((-900, 0), (span + 900, 0), A_WALL))
-    foundation = -FOUNDATION_DEPTH_BELOW_PLINTH_MM
-    out.append(
-        Polyline(
-            ((0, 0), (span, 0), (span, foundation), (0, foundation)),
-            A_WALL_PART,
-            closed=True,
-            style=STYLE_DASHED,
-        )
-    )
-    out.append(
-        Hatch(
-            outline=((0, 0), (span, 0), (span, foundation), (0, foundation)),
-            layer=A_WALL_PART,
-            pattern=HATCH_EARTH,
-            spacing_mm=300,
-        )
-    )
-    out.append(
-        Text(
-            at=(span // 2, foundation - 250),
-            text=FOUNDATION_NOTE,
-            layer=A_TEXT,
-            height_paper_um=TEXT_HEIGHT_LABEL_PAPER_UM,
-            anchor="middle",
-        )
-    )
-
-    # Cut walls at both ends of the span, plus the slabs.
-    wall_thickness = 230
-    for index, storey in enumerate(house.storeys):
-        ffl = _storey_ffl_mm(house, index)
-        top = ffl + storey.height_mm
-        for x0 in (0, span - wall_thickness):
-            ring = ((x0, ffl), (x0 + wall_thickness, ffl), (x0 + wall_thickness, top), (x0, top))
-            out.append(Hatch(ring, A_WALL, pattern=HATCH_SOLID))
-            out.append(Polyline(ring, A_WALL, closed=True))
-        slab = storey.level.slab_thickness_mm
-        slab_ring = ((0, ffl - slab), (span, ffl - slab), (span, ffl), (0, ffl))
-        out.append(Hatch(slab_ring, A_WALL, pattern=HATCH_DIAGONAL, spacing_mm=120))
-        out.append(Polyline(slab_ring, A_WALL, closed=True))
-        # Sill and lintel lines for this storey (§7: "sill/lintel heights").
-        for label, level in (
-            ("SILL", ffl + levels.sill_default_mm),
-            ("LINTEL", ffl + levels.lintel_default_mm),
-        ):
-            out.append(Line((0, level), (span, level), A_WALL_PART, style=STYLE_HIDDEN))
-            out.append(
-                Text(
-                    at=(span // 2, level + 100),
-                    text="%s +%d" % (label, level),
-                    layer=A_TEXT,
-                    height_paper_um=TEXT_HEIGHT_LABEL_PAPER_UM,
-                    anchor="middle",
-                )
-            )
-
-    # Roof slab and parapet.
-    out.append(
-        Polyline(
-            ((0, roof), (span, roof), (span, parapet_top), (0, parapet_top)),
-            A_WALL_PART,
-            closed=True,
-        )
-    )
-    out.append(Polyline(((0, plinth), (span, plinth)), A_WALL_PART))
-
-    # Storey-height chain.
-    breaks = [plinth] + [_storey_ffl_mm(house, i) for i in range(1, len(house.storeys))] + [roof]
-    chain = _chain_from_breaks(
-        chain_id="section-H",
-        orientation="vertical",
-        level=1,
-        offset_mm=-int(round(LEVEL_1_OFFSET_MM * scale_denominator / 100.0)),
-        lo=foundation,
-        hi=parapet_top,
-        breaks=[0, *breaks],
-    )
-    chains = (chain,) if chain is not None else ()
-    assert_chains_sum(chains)
-    out.extend(
-        Dim(chain=c, layer=A_DIM, text_height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM) for c in chains
-    )
-    return (tuple(out), chains)
+    result = _section_result(doc, scale_denominator)
+    return _vertical_sheet_primitives(result.drawing, scale_denominator=scale_denominator)
 
 
 # ---------------------------------------------------------------------------
@@ -2062,10 +1987,14 @@ def elevation_sheet(
     revisions: Sequence[tuple[str, str, str]] = (),
     register: RevisionHistory | None = None,
     layout: SheetLayout = DEFAULT_SHEET_LAYOUT,
+    opening_tags: Mapping[str, str] | None = None,
 ) -> SheetDrawing:
     frame = layout.frame()
     rect = content_rect(frame)
-    primitives, chains = elevation_primitives(doc, direction, scale_denominator=100)
+    tags = opening_tag_map(doc.house) if opening_tags is None else dict(opening_tags)
+    primitives, chains = elevation_primitives(
+        doc, direction, scale_denominator=100, opening_tags=tags
+    )
     if not primitives:
         raise ValueError("no facade geometry for direction %r" % direction)
     group = DrawingGroup(id="elev-%s" % direction, placement=Placement(100), primitives=primitives)
@@ -2075,7 +2004,9 @@ def elevation_sheet(
     padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
     denominator = choose_scale(padded, rect, preferred=DEFAULT_SCALE.denominator)
     if denominator != 100:
-        primitives, chains = elevation_primitives(doc, direction, scale_denominator=denominator)
+        primitives, chains = elevation_primitives(
+            doc, direction, scale_denominator=denominator, opening_tags=tags
+        )
         group = DrawingGroup(
             id="elev-%s" % direction, placement=Placement(denominator), primitives=primitives
         )
@@ -2131,6 +2062,12 @@ def section_sheet(
     pad = 1_500
     padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
     denominator = choose_scale(padded, rect, preferred=DEFAULT_SCALE.denominator)
+    if denominator != 100:
+        primitives, chains = section_primitives(doc, scale_denominator=denominator)
+        group = DrawingGroup(id="section", placement=Placement(denominator), primitives=primitives)
+        extent = group.extent_model_mm()
+        assert extent is not None
+        padded = (extent[0] - pad, extent[1] - pad, extent[2] + pad, extent[3] + pad)
     scale = Scale(denominator)
     placement = fit_placement(padded, rect, denominator)
     cut = choose_section_line(doc)
@@ -2460,6 +2397,7 @@ def build_sheet_set(
                 title_block=block,
                 revisions=revisions,
                 register=register,
+                opening_tags=tags,
             )
         )
     drawings.append(
