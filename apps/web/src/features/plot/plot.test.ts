@@ -6,6 +6,9 @@
  * than in a demo.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -21,9 +24,12 @@ import {
 
 import {
   checkBoundary,
+  defaultEdgeLengthMode,
   edgeLengthsMm,
+  edgeRoles,
   frontEdgeIndex,
   insertVertexOnEdge,
+  isRectilinear,
   moveVertex,
   rectBoundaryMm,
   remapRoadsAfterInsert,
@@ -137,6 +143,169 @@ describe('setEdgeLengthMm', () => {
     const result = setEdgeLengthMm(RECT, 1, 12192);
     expect(result.ok).toBe(true);
     if (result.ok) expect(polygonsCongruent(result.polygon, RECT)).toBe(true);
+  });
+
+  it('names its mode and reports the opposite side a rectangle resize also moved', () => {
+    const result = setEdgeLengthMm(RECT, 0, 12192);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.mode).toBe('stretch');
+    // Honest: the opposite edge grew too. The perpendicular sides did not.
+    expect(result.sideEffects).toEqual([{ edgeIndex: 2, fromMm: 9144, toMm: 12192 }]);
+  });
+
+  it('reports the far edge an L-shape stretch drags along with it', () => {
+    const result = setEdgeLengthMm(L_SHAPE, 0, 10000);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // Edge 4 (the top of the notch, 5000 → 6000) crossed the cut plane.
+    expect(result.sideEffects).toEqual([{ edgeIndex: 4, fromMm: 5000, toMm: 6000 }]);
+  });
+
+  describe('on a skewed ring (a deed quadrilateral)', () => {
+    const TRAPEZOID = [
+      { x: 0, y: 0 },
+      { x: 12000, y: 0 },
+      { x: 10000, y: 9000 },
+      { x: 2000, y: 9000 },
+    ];
+
+    it('never stretches automatically — only the far corner slides, and the one neighbour that changed is named', () => {
+      expect(defaultEdgeLengthMode(TRAPEZOID)).toBe('end');
+      const result = setEdgeLengthMm(TRAPEZOID, 0, 13000);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.mode).toBe('end');
+      // Corner B moved 1 m east along the edge's own line; nothing else moved.
+      expect(result.polygon).toEqual([
+        { x: 0, y: 0 },
+        { x: 13000, y: 0 },
+        { x: 10000, y: 9000 },
+        { x: 2000, y: 9000 },
+      ]);
+      expect(edgeLengthsMm(result.polygon)[0]).toBe(13000);
+      // Exactly one side effect: edge 1 (B→C) got longer. Edges 2 and 3 are untouched.
+      expect(result.sideEffects).toHaveLength(1);
+      expect(result.sideEffects[0]?.edgeIndex).toBe(1);
+      expect(result.sideEffects[0]?.fromMm).toBe(edgeLengthsMm(TRAPEZOID)[1]);
+      expect(edgeLengthsMm(result.polygon)[2]).toBe(edgeLengthsMm(TRAPEZOID)[2]);
+      expect(edgeLengthsMm(result.polygon)[3]).toBe(edgeLengthsMm(TRAPEZOID)[3]);
+    });
+
+    it('can slide the near corner instead, changing the other neighbour', () => {
+      const result = setEdgeLengthMm(TRAPEZOID, 0, 13000, 'start');
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.mode).toBe('start');
+      expect(result.polygon[0]).toEqual({ x: -1000, y: 0 });
+      expect(result.sideEffects.map((s) => s.edgeIndex)).toEqual([3]);
+    });
+
+    it('REFUSES an explicit stretch on a skewed ring rather than shearing the neighbours', () => {
+      // Negative control for the old behaviour: the stretch used to silently move
+      // corners C and D and change edges 1 and 3.
+      const result = setEdgeLengthMm(TRAPEZOID, 0, 13000, 'stretch');
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.reason).toMatch(/shear/);
+    });
+
+    it('lands within 1 mm of the request on a diagonal edge and re-measures the committed ring', () => {
+      // Edge 1 runs (12000,0)→(10000,9000): length 9219.5 → 9220 mm.
+      const result = setEdgeLengthMm(TRAPEZOID, 1, 10000);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(Math.abs(edgeLengthsMm(result.polygon)[1]! - 10000)).toBeLessThanOrEqual(1);
+      for (const p of result.polygon) {
+        expect(Number.isSafeInteger(p.x)).toBe(true);
+        expect(Number.isSafeInteger(p.y)).toBe(true);
+      }
+    });
+
+    it('refuses a length that would collapse the neighbouring edge', () => {
+      // Edge 3 (D→A) on a shape where sliding A along edge 0 would land on D.
+      const ring = [
+        { x: 0, y: 0 },
+        { x: 12000, y: 0 },
+        { x: 10000, y: 9000 },
+        { x: 3000, y: 0 }, // D sits ON the line of edge 0, west of B
+      ];
+      // Not a valid ring for the editor anyway (collinear D), but the guard must
+      // fire before checkBoundary does: 'start' would put A on D.
+      const result = setEdgeLengthMm(ring, 0, 9000, 'start');
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.reason).toMatch(/collapse edge 4/);
+    });
+  });
+});
+
+describe('isRectilinear', () => {
+  it('is true for rect/L/T, false for anything skewed or empty', () => {
+    expect(isRectilinear(RECT)).toBe(true);
+    expect(isRectilinear(L_SHAPE)).toBe(true);
+    expect(
+      isRectilinear([
+        { x: 0, y: 0 },
+        { x: 12000, y: 0 },
+        { x: 10000, y: 9000 },
+      ]),
+    ).toBe(false);
+    expect(isRectilinear([])).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Edge roles — the same fixture the rules engine asserts
+// ---------------------------------------------------------------------------
+
+describe('edgeRoles (mirror of compliance.py::_edge_roles)', () => {
+  interface RoleCase {
+    readonly name: string;
+    readonly boundary: readonly (readonly [number, number])[];
+    readonly roads: readonly { edgeIndex: number; widthMm: number | null }[];
+    readonly roles: readonly string[];
+    readonly parityRoles?: readonly string[];
+  }
+  const fixture = JSON.parse(
+    readFileSync(
+      join(__dirname, '..', '..', '..', '..', '..', 'fixtures', 'model', 'edge-roles.json'),
+      'utf8',
+    ),
+  ) as { cases: RoleCase[] };
+
+  it('has cases', () => {
+    expect(fixture.cases.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it.each(fixture.cases.map((c) => [c.name, c] as const))('%s', (_name, c) => {
+    const boundary = c.boundary.map(([x, y]) => ({ x, y }));
+    const roads = c.roads.map((r) => road(r.edgeIndex, r.widthMm));
+    expect(edgeRoles(boundary, roads)).toEqual(c.roles);
+  });
+
+  it('negative control: the index-parity rule this replaced disagrees on the L-plot', () => {
+    const c = fixture.cases.find((k) => k.parityRoles !== undefined);
+    expect(c).toBeDefined();
+    if (c === undefined) return;
+    expect(c.parityRoles).not.toEqual(c.roles);
+    const boundary = c.boundary.map(([x, y]) => ({ x, y }));
+    expect(
+      edgeRoles(
+        boundary,
+        c.roads.map((r) => road(r.edgeIndex, r.widthMm)),
+      ),
+    ).not.toEqual(c.parityRoles);
+  });
+
+  it('is exact past 2^53 (a 200 m plot squares its edge vectors)', () => {
+    const big = [
+      { x: 0, y: 0 },
+      { x: 200_000, y: 0 },
+      { x: 200_000, y: 200_000 },
+      { x: 0, y: 200_000 },
+    ];
+    expect(edgeRoles(big, [road(0, 9000)])).toEqual(['front', 'side-a', 'rear', 'side-b']);
   });
 });
 

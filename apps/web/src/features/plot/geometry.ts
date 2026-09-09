@@ -8,13 +8,23 @@
  * float arithmetic is inside `ptRound`-guarded projections, exactly as
  * `@garh/model`'s own geometry module does it.
  *
- * Edge-length editing uses the CAD "stretch" semantic: a cut plane
- * perpendicular to the edge through its midpoint; every vertex strictly beyond
- * the plane translates along the edge direction by the length delta. For the
- * axis-aligned rect/L/T plots the MVP accepts (§5.1) this is exact and keeps
- * rectangles rectangular; for a skewed edge the translation rounds to whole mm
- * and the achieved length can differ from the request by ≤1 mm — the committed
- * polygon, not the request, is what the labels re-display.
+ * Edge-length editing has TWO semantics, chosen by the ring's shape and always
+ * named in the result:
+ *
+ *   - `stretch` (rectilinear rings only): a cut plane perpendicular to the edge
+ *     through its midpoint; every vertex strictly beyond the plane translates
+ *     along the edge direction by the length delta. Exact for rect/L/T plots
+ *     and keeps rectangles rectangular — typing a new width on a 30×40 moves
+ *     the whole far side, which is what an architect means.
+ *   - `end` / `start` (any ring): only the edge's far (or near) corner slides
+ *     along the edge's own line. Exactly one neighbouring edge changes as a
+ *     consequence, and the result says which and by how much. On a skewed ring
+ *     the stretch would silently shear every neighbour, so it is never chosen
+ *     automatically there.
+ *
+ * On a skewed edge the translation rounds to whole mm and the achieved length
+ * can differ from the request by ≤1 mm — the committed polygon, not the
+ * request, is what the labels re-display.
  */
 
 import {
@@ -122,48 +132,125 @@ export type PolygonEditResult =
 // Edge-length editing (click a dimension, type a value — §15 "no dead text")
 // ---------------------------------------------------------------------------
 
+/** True when every edge is axis-aligned (the rect/L/T family). */
+export function isRectilinear(poly: Polygon): boolean {
+  if (poly.length < 3) return false;
+  for (let i = 0; i < poly.length; i += 1) {
+    const a = ringAt(poly, i);
+    const b = ringAt(poly, i + 1);
+    if (a.x !== b.x && a.y !== b.y) return false;
+  }
+  return true;
+}
+
+export type EdgeLengthMode = 'stretch' | 'end' | 'start';
+
+/** An edge other than the one edited whose length changed as a consequence. */
+export interface EdgeSideEffect {
+  readonly edgeIndex: number;
+  readonly fromMm: number;
+  readonly toMm: number;
+}
+
+export type EdgeLengthResult =
+  | {
+      readonly ok: true;
+      readonly polygon: Pt[];
+      readonly mode: EdgeLengthMode;
+      /** Every OTHER edge whose length changed (a rectangle's opposite side, a slid corner's neighbour). */
+      readonly sideEffects: readonly EdgeSideEffect[];
+    }
+  | { readonly ok: false; readonly reason: string };
+
+/** Which mode `'auto'` picks for this ring — the UI names it before the edit. */
+export function defaultEdgeLengthMode(poly: Polygon): EdgeLengthMode {
+  return isRectilinear(poly) ? 'stretch' : 'end';
+}
+
+function sideEffectsOf(before: Polygon, after: Polygon, edited: number): EdgeSideEffect[] {
+  const out: EdgeSideEffect[] = [];
+  for (let i = 0; i < before.length; i += 1) {
+    if (i === edited) continue;
+    const fromMm = edgeLengthMm(before, i);
+    const toMm = edgeLengthMm(after, i);
+    if (fromMm !== toMm) out.push({ edgeIndex: i, fromMm, toMm });
+  }
+  return out;
+}
+
 /**
- * Set edge `edgeIndex` to `newLengthMm` by stretching the polygon along the
- * edge's own direction (see module docstring for the semantics). Rejects
- * non-positive lengths and any result that stops being a simple ring.
+ * Set edge `edgeIndex` to `newLengthMm`. `mode` defaults to `'auto'`: stretch
+ * on a rectilinear ring, otherwise slide the far corner (see module docstring).
+ * Rejects non-positive lengths, a neighbour collapsing to nothing, and any
+ * result that stops being a simple ring — and never distorts silently: the
+ * neighbours that changed are listed in `sideEffects`.
  */
 export function setEdgeLengthMm(
   poly: Polygon,
   edgeIndex: number,
   newLengthMm: number,
-): PolygonEditResult {
+  mode: EdgeLengthMode | 'auto' = 'auto',
+): EdgeLengthResult {
   if (poly.length < 3) return { ok: false, reason: 'Draw the boundary first.' };
   if (!Number.isSafeInteger(newLengthMm) || newLengthMm <= 0) {
     return { ok: false, reason: 'An edge length has to be a positive distance.' };
   }
-  const a = ringAt(poly, edgeIndex);
-  const b = ringAt(poly, edgeIndex + 1);
+  const n = poly.length;
+  const i = ((edgeIndex % n) + n) % n;
+  const a = ringAt(poly, i);
+  const b = ringAt(poly, i + 1);
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const lenSq = dx * dx + dy * dy;
   if (lenSq === 0) return { ok: false, reason: 'This edge has no length to change.' };
 
+  const chosen: EdgeLengthMode = mode === 'auto' ? defaultEdgeLengthMode(poly) : mode;
+  if (chosen === 'stretch' && !isRectilinear(poly)) {
+    return {
+      ok: false,
+      reason:
+        'Stretching only works on a boundary whose edges all run north–south or east–west; ' +
+        'on this plot it would shear the neighbouring edges. Move one corner instead.',
+    };
+  }
+
   const currentLen = distMm(a, b);
   const delta = newLengthMm - currentLen;
-  if (delta === 0) return { ok: true, polygon: poly.slice() };
+  if (delta === 0) return { ok: true, polygon: poly.slice(), mode: chosen, sideEffects: [] };
 
   const len = Math.sqrt(lenSq);
   const t = ptRound((dx / len) * delta, (dy / len) * delta);
   if (t.x === 0 && t.y === 0) {
     // Sub-millimetre request on a skewed edge rounded away to nothing.
-    return { ok: true, polygon: poly.slice() };
+    return { ok: true, polygon: poly.slice(), mode: chosen, sideEffects: [] };
   }
 
-  // Vertices strictly beyond the edge's midpoint (measured along the edge
-  // direction) translate. Exact integer predicate: 2·((v−a)·d) > |d|².
-  const next = poly.map((v) => {
-    const proj2 = 2 * ((v.x - a.x) * dx + (v.y - a.y) * dy);
-    return proj2 > lenSq ? { x: v.x + t.x, y: v.y + t.y } : { x: v.x, y: v.y };
-  });
+  let next: Pt[];
+  if (chosen === 'stretch') {
+    // Vertices strictly beyond the edge's midpoint (measured along the edge
+    // direction) translate. Exact integer predicate: 2·((v−a)·d) > |d|².
+    next = poly.map((v) => {
+      const proj2 = 2 * ((v.x - a.x) * dx + (v.y - a.y) * dy);
+      return proj2 > lenSq ? { x: v.x + t.x, y: v.y + t.y } : { x: v.x, y: v.y };
+    });
+  } else {
+    const moving = chosen === 'end' ? (i + 1) % n : i;
+    const sign = chosen === 'end' ? 1 : -1;
+    next = poly.map((v, k) =>
+      k === moving ? { x: v.x + sign * t.x, y: v.y + sign * t.y } : { x: v.x, y: v.y },
+    );
+    const neighbour = chosen === 'end' ? (i + 1) % n : (i - 1 + n) % n;
+    if (edgeLengthMm(next, neighbour) === 0) {
+      return {
+        ok: false,
+        reason: `That length would collapse edge ${String(neighbour + 1)} to nothing — move its far corner first.`,
+      };
+    }
+  }
 
   const check = checkBoundary(next);
   if (!check.ok) return { ok: false, reason: check.reason };
-  return { ok: true, polygon: next };
+  return { ok: true, polygon: next, mode: chosen, sideEffects: sideEffectsOf(poly, next, i) };
 }
 
 // ---------------------------------------------------------------------------
@@ -309,6 +396,86 @@ export function frontEdgeIndex(roads: readonly Road[]): number | null {
     }
   }
   return best === null ? null : best.edgeIndex;
+}
+
+// ---------------------------------------------------------------------------
+// Edge roles — the ONE definition the rules engine and the editor share
+//
+// MIRRORS `_edge_roles` in `apps/api/garh_api/compliance.py` exactly, and
+// `fixtures/model/edge-roles.json` is asserted by both. Pure integer
+// arithmetic (BigInt where a product can pass 2^53) so the two languages
+// cannot round differently.
+// ---------------------------------------------------------------------------
+
+export type EdgeRole = 'front' | 'rear' | 'side-a' | 'side-b' | 'other';
+
+export const EDGE_ROLE_LABELS: Readonly<Record<EdgeRole, string>> = {
+  front: 'Front',
+  rear: 'Rear',
+  'side-a': 'Side A',
+  'side-b': 'Side B',
+  other: '—',
+};
+
+/**
+ * Assign front/rear/side-a/side-b to every edge from GEOMETRY, not index
+ * parity:
+ *   - front  = the edge with the widest road (ties → lowest index);
+ *   - rear   = every other edge whose outward normal points within 45° of
+ *              directly away from the front (an L-plot's two back faces are
+ *              both rear, which is what the rear setback governs);
+ *   - side-a / side-b = the rest, split by which half of the plot they sit
+ *              in: the half the front edge runs TOWARDS (its CCW direction) is
+ *              side A, the half behind its start is side B. On a rectangle
+ *              with the road at the bottom, A is the right-hand side.
+ * With no road at all every edge is `other`, so road-banded rules go
+ * `not_applicable` rather than silently passing.
+ */
+export function edgeRoles(boundary: Polygon, roads: readonly Road[]): EdgeRole[] {
+  const n = boundary.length;
+  const roles: EdgeRole[] = new Array<EdgeRole>(n).fill('other');
+  if (n < 3) return roles;
+  const front = frontEdgeIndex(roads.filter((r) => r.edgeIndex >= 0 && r.edgeIndex < n));
+  if (front === null) return roles;
+  roles[front] = 'front';
+
+  // CW rings can exist (a triangle's corner dragged across its opposite edge),
+  // so the outward normal is orientation-aware on both sides of the mirror.
+  const orient = polygonDoubledAreaMm2(boundary) < 0 ? -1 : 1;
+  const fa = ringAt(boundary, front);
+  const fb = ringAt(boundary, front + 1);
+  const fdx = fb.x - fa.x;
+  const fdy = fb.y - fa.y;
+  // Outward normal of a→b for a CCW ring is (dy, −dx).
+  const fnx = orient * fdy;
+  const fny = orient * -fdx;
+  const fLenSq = BigInt(fdx * fdx + fdy * fdy);
+  const fmx2 = fa.x + fb.x; // doubled midpoint of the front edge
+  const fmy2 = fa.y + fb.y;
+
+  for (let i = 0; i < n; i += 1) {
+    if (i === front) continue;
+    const a = ringAt(boundary, i);
+    const b = ringAt(boundary, i + 1);
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const nx = orient * dy;
+    const ny = orient * -dx;
+    const dotp = nx * fnx + ny * fny;
+    if (dotp < 0) {
+      // cos θ ≤ −cos 45°  ⇔  2·dot² ≥ |n|²·|f|²  (with dot < 0)
+      const dotB = BigInt(dotp);
+      const lenSq = BigInt(dx * dx + dy * dy);
+      if (2n * dotB * dotB >= lenSq * fLenSq) {
+        roles[i] = 'rear';
+        continue;
+      }
+    }
+    // Which half of the plot, measured along the front edge from its midpoint.
+    const along = (a.x + b.x - fmx2) * fdx + (a.y + b.y - fmy2) * fdy;
+    roles[i] = along >= 0 ? 'side-a' : 'side-b';
+  }
+  return roles;
 }
 
 // ---------------------------------------------------------------------------
