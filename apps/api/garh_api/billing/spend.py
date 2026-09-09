@@ -116,6 +116,15 @@ FLAT_PRICES: Final[Mapping[str, int]] = {
 #: into a stack that runs on fixtures.
 FREE_PROVIDERS: Final[frozenset[str]] = frozenset({"mock", "stub", "none", ""})
 
+#: Kinds that are OUR OWN COMPUTE. No provider is involved, so the solver and export
+#: call sites write no ``provider`` key at all — and for these kinds an absent key must
+#: not read as "free": the CPU seconds were spent whichever stack ran them. Before this
+#: distinction every solver and export row was priced at 0 from every real route, while
+#: :data:`FLAT_PRICES` and this module's docstring claimed otherwise (a silent 0 — bug
+#: class 1). Only an EXPLICIT ``mock``/``stub``/``none`` still prices these at 0, which
+#: is how a fixture-driven test says so on purpose.
+OWN_COMPUTE_KINDS: Final[frozenset[str]] = frozenset({"solver", "export"})
+
 
 def _per_token(tokens: int, micros_per_mtok: int) -> int:
     """``tokens × rate``, floored once. Integer throughout — no float ever."""
@@ -155,7 +164,8 @@ def cost_micros_for(kind: str, *, qty: int = 1, meta: Mapping[str, object] | Non
     """
     facts = meta or {}
     provider = str(facts.get("provider", "")).lower()
-    if provider in FREE_PROVIDERS:
+    own_compute = kind in OWN_COMPUTE_KINDS and provider == ""
+    if provider in FREE_PROVIDERS and not own_compute:
         return 0
 
     if kind == "llm":
@@ -201,6 +211,7 @@ __all__ = [
     "FREE_PROVIDERS",
     "LLM_PRICES",
     "MICROS_PER_USD",
+    "OWN_COMPUTE_KINDS",
     "TokenPrice",
     "assert_prices_cover_configured_model",
     "cost_micros_for",
