@@ -16,7 +16,9 @@ Usage::
 from __future__ import annotations
 
 import functools
-from typing import Annotated, Any, Literal
+from datetime import date
+from decimal import Decimal, InvalidOperation
+from typing import Annotated, Any, Final, Literal
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -43,6 +45,49 @@ DEV_APP_URL = "http://localhost:5173"
 
 class ConfigError(RuntimeError):
     """Configuration is unusable. Raised at boot, never mid-request."""
+
+
+class RateValueError(ValueError):
+    """``BILLING_USD_INR_RATE`` / ``_AS_OF`` is not a rate or a date."""
+
+
+#: The most decimals a rate may carry. Four is what a bank quotes; more is noise.
+USD_INR_RATE_MAX_DECIMALS: Final = 4
+
+
+def validate_usd_inr_rate(text: object) -> str:
+    """``"84.00"`` → ``"84.00"``; refuses ``0``, negatives, ``"abc"``, exponents, five
+    decimals. Returns the normalised string so the wire carries what was validated.
+
+    Stdlib only, and here rather than in ``billing/fx.py``, because a ``Settings``
+    validator must not import the billing package (which imports this module).
+    """
+    if isinstance(text, bool) or text is None:
+        raise RateValueError("BILLING_USD_INR_RATE must be a decimal like 84.00.")
+    raw = str(text).strip()
+    try:
+        value = Decimal(raw)
+    except InvalidOperation as exc:
+        raise RateValueError("BILLING_USD_INR_RATE must be a decimal like 84.00.") from exc
+    if not value.is_finite() or value <= 0:
+        raise RateValueError("BILLING_USD_INR_RATE must be a positive number of rupees.")
+    if "e" in raw.lower():
+        raise RateValueError("BILLING_USD_INR_RATE must be plain decimal notation.")
+    if -value.as_tuple().exponent > USD_INR_RATE_MAX_DECIMALS:
+        raise RateValueError(
+            "BILLING_USD_INR_RATE may carry at most %d decimals." % USD_INR_RATE_MAX_DECIMALS
+        )
+    return format(value, "f")
+
+
+def validate_usd_inr_rate_date(text: object) -> str:
+    """``"2026-09-01"`` → the same; refuses anything :func:`date.fromisoformat` will not."""
+    raw = str(text or "").strip()
+    try:
+        parsed = date.fromisoformat(raw)
+    except ValueError as exc:
+        raise RateValueError("BILLING_USD_INR_RATE_AS_OF must be a date like 2026-09-01.") from exc
+    return parsed.isoformat()
 
 
 class Settings(BaseSettings):
@@ -153,6 +198,11 @@ class Settings(BaseSettings):
     #: Who may change platform-wide settings such as the fee: a comma-separated list of
     #: sign-in emails. Empty means nobody — the endpoint refuses everyone, on purpose.
     platform_owner_emails: str = ""
+    #: One US dollar in rupees, for DISPLAY only. The ledger stays micro-USD; the web
+    #: derives every rupee it shows from this number and names the date beside it.
+    #: Hand-set and dated, never fetched — see ``billing/fx.py``. Update the pair together.
+    billing_usd_inr_rate: str = "84.00"
+    billing_usd_inr_rate_as_of: str = "2026-09-01"
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
 
@@ -240,6 +290,18 @@ class Settings(BaseSettings):
                 return tuple(json.loads(text))
             return tuple(part.strip() for part in value.split(",") if part.strip())
         return value
+
+    @field_validator("billing_usd_inr_rate", mode="before")
+    @classmethod
+    def _check_usd_inr_rate(cls, value: Any) -> Any:
+        """A positive decimal with at most four places — or refuse to boot. ``₹NaN`` on
+        every usage card is not a display bug an architect should be the one to find."""
+        return validate_usd_inr_rate(value)
+
+    @field_validator("billing_usd_inr_rate_as_of", mode="before")
+    @classmethod
+    def _check_usd_inr_rate_date(cls, value: Any) -> Any:
+        return validate_usd_inr_rate_date(value)
 
     @field_validator("jwt_private_key", "jwt_public_key", mode="before")
     @classmethod

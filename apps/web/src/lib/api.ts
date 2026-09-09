@@ -361,6 +361,12 @@ export const usageLineSchema = z.object({
   /** `null` = unlimited on this plan. */
   allowance: z.number().int().nonnegative().nullable().default(null),
   remaining: z.number().int().nonnegative().nullable().default(null),
+  /**
+   * Whether the API actually refuses over this allowance. False for a kind whose
+   * gate is not mounted (export, today), so the page can say "not enforced yet"
+   * instead of showing a wall that is not there. Defaults to true for an older api.
+   */
+  enforced: z.boolean().default(true),
 });
 export const spendBudgetSchema = z.object({
   capUsd: z.string(),
@@ -376,6 +382,13 @@ export const spendBudgetSchema = z.object({
   /** What the same work cost before the fee — the provider ledger. */
   providerCostUsd: z.string().default('$0.00'),
   providerCostMicros: z.number().int().default(0),
+  /**
+   * One dollar in rupees and the date that number was taken — hand-set on the
+   * server, never fetched. Empty from an older api, in which case the UI shows
+   * dollars rather than inventing a rate. Every rupee on screen derives from this.
+   */
+  usdInrRate: z.string().default(''),
+  usdInrRateAsOf: z.string().default(''),
 });
 export const usageSchema = z.object({
   planCode: z.string(),
@@ -388,6 +401,208 @@ export const usageSchema = z.object({
 export type Usage = z.infer<typeof usageSchema>;
 export type UsageLine = z.infer<typeof usageLineSchema>;
 export type SpendBudget = z.infer<typeof spendBudgetSchema>;
+
+// ---------------------------------------------------------------------------
+// The platform fee (GET/PUT /admin/billing/markup)
+// ---------------------------------------------------------------------------
+// The owner's percentage on every charge. Anyone signed in may read it (the usage
+// card shows it to every architect); `canSet` is the server saying whether THIS
+// caller may change it — a hint the fee page uses to decide what to render, never
+// the gate, which is the PUT's own 403.
+
+export const platformMarkupSchema = z.object({
+  /** A percentage string ("5", "7.25") so nothing here parses a float. */
+  percent: z.string(),
+  bps: z.number().int().nonnegative(),
+  source: z.enum(['setting', 'default']).catch('default'),
+  updatedAt: z.string().nullable().default(null),
+  updatedBy: z.string().nullable().default(null),
+  updatedByEmail: z.string().nullable().default(null),
+  canSet: z.boolean().default(false),
+});
+export type PlatformMarkup = z.infer<typeof platformMarkupSchema>;
+
+// ---------------------------------------------------------------------------
+// The Billing page (GET /billing/plans … POST /billing/payments/verify)
+// ---------------------------------------------------------------------------
+// Money on the wire: whole rupees suffixed `Inr` for anything invoiced, integer
+// micro-USD suffixed `Micros` for anything the providers charged. Never mixed —
+// the rupee view of a charge is derived in `features/billing/money.ts` at the
+// dated rate `usageSchema.spend` carries.
+
+const wholeInr = z.number().int().nonnegative();
+
+export const planAllowanceSchema = z.object({
+  kind: z.string(),
+  /** `null` = unmetered on this plan; `0` = not included. */
+  allowance: z.number().int().nonnegative().nullable().default(null),
+});
+export const planSchema = z.object({
+  code: z.string(),
+  name: z.string(),
+  priceInrPerMonth: wholeInr,
+  includedEditorSeats: z.number().int().nonnegative(),
+  extraSeatInrPerMonth: wholeInr.nullable().default(null),
+  summary: z.string().default(''),
+  allowances: z.array(planAllowanceSchema).default([]),
+});
+export const planListSchema = z.object({
+  plans: z.array(planSchema),
+  currentPlanCode: z.string(),
+});
+export const subscriptionSchema = z.object({
+  planCode: z.string(),
+  planName: z.string(),
+  effectivePlanCode: z.string(),
+  status: z.string(),
+  currentPeriodStart: z.string(),
+  currentPeriodEnd: z.string(),
+  extraSeats: z.number().int().nonnegative(),
+  seatsEntitled: z.number().int().nonnegative(),
+  cancelAtPeriodEnd: z.boolean().default(false),
+  monthlyChargeInr: wholeInr,
+  provider: z.string().default('mock'),
+});
+export const billingAccountSchema = z.object({
+  legalName: z.string(),
+  gstin: z.string().nullable().default(null),
+  stateCode: z.string(),
+  stateName: z.string().default(''),
+  addressLine: z.string().default(''),
+  city: z.string().default(''),
+  postalCode: z.string().default(''),
+  billingEmail: z.string().default(''),
+});
+export const gstStateSchema = z.object({ code: z.string(), name: z.string() });
+export const invoiceLineSchema = z.object({
+  description: z.string(),
+  hsnSac: z.string().default(''),
+  quantity: z.number().int(),
+  unitPriceInr: z.number().int(),
+  amountInr: z.number().int(),
+});
+export const invoiceSchema = z.object({
+  id: z.string(),
+  invoiceNumber: z.string(),
+  status: z.string(),
+  issuedOn: z.string(),
+  periodStart: z.string(),
+  periodEnd: z.string(),
+  supplierLegalName: z.string().default(''),
+  supplierGstin: z.string().default(''),
+  supplierStateCode: z.string().default(''),
+  supplierAddress: z.string().default(''),
+  customerLegalName: z.string().default(''),
+  customerGstin: z.string().nullable().default(null),
+  customerAddress: z.string().default(''),
+  placeOfSupplyCode: z.string().default(''),
+  placeOfSupply: z.string().default(''),
+  interstate: z.boolean().default(false),
+  currency: z.string().default('INR'),
+  ratePercentX100: z.number().int().default(0),
+  taxableInr: z.number().int(),
+  cgstInr: z.number().int().default(0),
+  sgstInr: z.number().int().default(0),
+  igstInr: z.number().int().default(0),
+  taxTotalInr: z.number().int().default(0),
+  totalInr: z.number().int(),
+  totalInWords: z.string().default(''),
+  lines: z.array(invoiceLineSchema).default([]),
+  paidAt: z.string().nullable().default(null),
+});
+export const checkoutSchema = z.object({
+  invoiceId: z.string(),
+  invoiceNumber: z.string(),
+  provider: z.string(),
+  orderId: z.string(),
+  amountInr: z.number().int(),
+  amountPaise: z.number().int(),
+  currency: z.string().default('INR'),
+  /** Publishable key id for the gateway widget; empty under the mock. */
+  keyId: z.string().default(''),
+});
+export const mockPaySchema = z.object({
+  orderId: z.string(),
+  paymentId: z.string(),
+  signature: z.string(),
+  provider: z.string().default('mock'),
+});
+export const paymentSchema = z.object({
+  id: z.string(),
+  invoiceId: z.string(),
+  provider: z.string(),
+  providerOrderId: z.string(),
+  providerPaymentId: z.string().nullable().default(null),
+  status: z.string(),
+  amountInr: z.number().int(),
+  currency: z.string().default('INR'),
+  signatureVerified: z.boolean().default(false),
+});
+export const paymentSettledSchema = z.object({
+  payment: paymentSchema,
+  invoice: invoiceSchema,
+});
+export const seatSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  seatType: z.string(),
+  assignedBy: z.string().nullable().default(null),
+  createdAt: z.string(),
+});
+export const seatListSchema = z.object({
+  entitled: z.number().int().nonnegative(),
+  editorsUsed: z.number().int().nonnegative(),
+  viewersUsed: z.number().int().nonnegative(),
+  available: z.number().int().nonnegative(),
+  seats: z.array(seatSchema).default([]),
+});
+export const creditEventSchema = z.object({
+  id: z.string(),
+  kind: z.string(),
+  qty: z.number().int(),
+  costMicros: z.number().int(),
+  markupBps: z.number().int().default(0),
+  chargedMicros: z.number().int(),
+  provider: z.string().default(''),
+  detail: z.string().default(''),
+  jobId: z.string().nullable().default(null),
+  refundedAt: z.string().nullable().default(null),
+  createdAt: z.string(),
+});
+
+export type Plan = z.infer<typeof planSchema>;
+export type PlanList = z.infer<typeof planListSchema>;
+export type Subscription = z.infer<typeof subscriptionSchema>;
+export type BillingAccount = z.infer<typeof billingAccountSchema>;
+export type GstState = z.infer<typeof gstStateSchema>;
+export type Invoice = z.infer<typeof invoiceSchema>;
+export type Checkout = z.infer<typeof checkoutSchema>;
+export type MockPay = z.infer<typeof mockPaySchema>;
+export type PaymentSettled = z.infer<typeof paymentSettledSchema>;
+export type SeatList = z.infer<typeof seatListSchema>;
+export type CreditEvent = z.infer<typeof creditEventSchema>;
+
+export interface BillingAccountInput {
+  readonly legalName: string;
+  readonly stateCode: string;
+  readonly gstin?: string | null;
+  readonly addressLine?: string;
+  readonly city?: string;
+  readonly postalCode?: string;
+  readonly billingEmail?: string;
+}
+
+export interface SubscriptionUpdateInput {
+  readonly planCode?: string;
+  readonly extraSeats?: number;
+  readonly cancelAtPeriodEnd?: boolean;
+}
+
+export interface CreditEventsQuery extends CallOptions {
+  readonly cursor?: string | null;
+  readonly limit?: number;
+  readonly kind?: string;
+}
 
 // ---------------------------------------------------------------------------
 // Project templates (GET /templates → POST /projects {templateId})
@@ -815,6 +1030,170 @@ export function createApiClient(client: HttpClient = http) {
       /** Used vs allowed per metered kind, plus the spend budget, for the firm. */
       usage: (opts: CallOptions = {}): Promise<Usage> =>
         client.request({ path: '/billing/usage', parse: parser(usageSchema), ...opts }),
+
+      /** The price list, with the firm's current plan code. */
+      plans: (opts: CallOptions = {}): Promise<PlanList> =>
+        client.request({ path: '/billing/plans', parse: parser(planListSchema), ...opts }),
+
+      subscription: (opts: CallOptions = {}): Promise<Subscription> =>
+        client.request({
+          path: '/billing/subscription',
+          parse: parser(subscriptionSchema),
+          ...opts,
+        }),
+
+      /** Admin only. Applies immediately; billed on the next invoice (no proration). */
+      updateSubscription: (
+        input: SubscriptionUpdateInput,
+        opts: CallOptions = {},
+      ): Promise<Subscription> =>
+        client.request({
+          method: 'PUT',
+          path: '/billing/subscription',
+          body: {
+            ...(input.planCode === undefined ? {} : { planCode: input.planCode }),
+            ...(input.extraSeats === undefined ? {} : { extraSeats: input.extraSeats }),
+            ...(input.cancelAtPeriodEnd === undefined
+              ? {}
+              : { cancelAtPeriodEnd: input.cancelAtPeriodEnd }),
+          },
+          parse: parser(subscriptionSchema),
+          ...opts,
+        }),
+
+      /** GST state codes — the place-of-supply picker's options, server-validated. */
+      states: (opts: CallOptions = {}): Promise<GstState[]> =>
+        client.request({
+          path: '/billing/states',
+          parse: parser(z.array(gstStateSchema)),
+          ...opts,
+        }),
+
+      /** Admin only. 409 `billing_profile_incomplete` until the firm has set one. */
+      account: (opts: CallOptions = {}): Promise<BillingAccount> =>
+        client.request({
+          path: '/billing/account',
+          parse: parser(billingAccountSchema),
+          ...opts,
+        }),
+
+      updateAccount: (
+        input: BillingAccountInput,
+        opts: CallOptions = {},
+      ): Promise<BillingAccount> =>
+        client.request({
+          method: 'PUT',
+          path: '/billing/account',
+          body: {
+            legalName: input.legalName,
+            stateCode: input.stateCode,
+            gstin: input.gstin ?? null,
+            addressLine: input.addressLine ?? '',
+            city: input.city ?? '',
+            postalCode: input.postalCode ?? '',
+            billingEmail: input.billingEmail ?? '',
+          },
+          parse: parser(billingAccountSchema),
+          ...opts,
+        }),
+
+      invoices: (query: { cursor?: string | null } & CallOptions = {}): Promise<Page<Invoice>> =>
+        client.request({
+          path: '/billing/invoices',
+          query: { cursor: query.cursor ?? undefined },
+          parse: pageParser(invoiceSchema),
+          ...(query.signal === undefined ? {} : { signal: query.signal }),
+        }),
+
+      invoice: (invoiceId: string, opts: CallOptions = {}): Promise<Invoice> =>
+        client.request({
+          path: `/billing/invoices/${encodeURIComponent(invoiceId)}`,
+          parse: parser(invoiceSchema),
+          ...opts,
+        }),
+
+      /** Admin only. Issues this period's tax invoice (201), or 409/503 with a reason. */
+      issueInvoice: (opts: CallOptions = {}): Promise<Invoice> =>
+        client.request({
+          method: 'POST',
+          path: '/billing/invoices',
+          body: {},
+          parse: parser(invoiceSchema),
+          ...opts,
+        }),
+
+      /** Admin only. Opens (or re-opens, idempotently) the gateway order for an invoice. */
+      checkout: (invoiceId: string, opts: CallOptions = {}): Promise<Checkout> =>
+        client.request({
+          method: 'POST',
+          path: `/billing/invoices/${encodeURIComponent(invoiceId)}/checkout`,
+          body: {},
+          parse: parser(checkoutSchema),
+          ...opts,
+        }),
+
+      /**
+       * The mock checkout widget: what Razorpay's `checkout.js` would hand back.
+       * 404 `mock_checkout_unavailable` on any deployment with a real gateway.
+       */
+      mockPay: (orderId: string, opts: CallOptions = {}): Promise<MockPay> =>
+        client.request({
+          method: 'POST',
+          path: '/billing/payments/mock',
+          body: { orderId },
+          parse: parser(mockPaySchema),
+          ...opts,
+        }),
+
+      /** Verify the widget's signature server-side and mark the invoice paid. */
+      verifyPayment: (
+        input: { orderId: string; paymentId: string; signature: string },
+        opts: CallOptions = {},
+      ): Promise<PaymentSettled> =>
+        client.request({
+          method: 'POST',
+          path: '/billing/payments/verify',
+          body: { orderId: input.orderId, paymentId: input.paymentId, signature: input.signature },
+          parse: parser(paymentSettledSchema),
+          ...opts,
+        }),
+
+      seats: (opts: CallOptions = {}): Promise<SeatList> =>
+        client.request({ path: '/billing/seats', parse: parser(seatListSchema), ...opts }),
+
+      /** Every charge, newest first, with refunds — the ledger the usage card sums. */
+      creditEvents: (query: CreditEventsQuery = {}): Promise<Page<CreditEvent>> =>
+        client.request({
+          path: '/billing/credit-events',
+          query: { cursor: query.cursor ?? undefined, limit: query.limit, kind: query.kind },
+          parse: pageParser(creditEventSchema),
+          ...(query.signal === undefined ? {} : { signal: query.signal }),
+        }),
+    },
+
+    // ── Platform owner: the fee on every charge ───────────────────────────
+    admin: {
+      markup: {
+        /** The fee in force, who set it and when, and whether the caller may change it. */
+        get: (opts: CallOptions = {}): Promise<PlatformMarkup> =>
+          client.request({
+            path: '/admin/billing/markup',
+            parse: parser(platformMarkupSchema),
+            ...opts,
+          }),
+        /**
+         * Set the fee for every charge from now on. 403 for anyone not on the
+         * owner allowlist; rows already recorded keep the fee they were charged at.
+         */
+        set: (input: { percent: string }, opts: CallOptions = {}): Promise<PlatformMarkup> =>
+          client.request({
+            method: 'PUT',
+            path: '/admin/billing/markup',
+            body: { percent: input.percent },
+            parse: parser(platformMarkupSchema),
+            ...opts,
+          }),
+      },
     },
 
     // ── Project templates (Rayon-parity starters, applied server-side) ─────

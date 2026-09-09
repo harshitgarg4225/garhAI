@@ -413,3 +413,60 @@ async def test_the_budget_shown_is_the_budget_enforced(
     assert shown["remainingUsd"] == "$0.00"
     with pytest.raises(SpendCapExceededError):
         await check_spend_budget(session, firm_a.ctx(), "llm")
+
+
+# ---------------------------------------------------------------------------
+# 5. Our own compute is not free — and a mock still is
+# ---------------------------------------------------------------------------
+#
+# Every solver and export row was priced at 0 from every real route: the call sites
+# write no ``provider`` key (there is no provider — it is our CPU), and ``""`` was in
+# FREE_PROVIDERS. FLAT_PRICES["solver"] existed and applied to nothing. These pin the
+# real call-site meta, byte for byte, so the pricing cannot go quiet again.
+
+SOLVER_ROUTE_META = {"jobId": "6f7e2c1a-1111-4111-8111-111111111111", "projectId": "p"}
+EXPORT_ROUTE_META = {**SOLVER_ROUTE_META, "exportKind": "pdf"}
+
+
+def test_a_solver_run_recorded_the_way_the_route_records_it_costs_something() -> None:
+    from garh_api.billing.spend import FLAT_PRICES
+
+    assert FLAT_PRICES["solver"] > 0 and FLAT_PRICES["export"] > 0
+    assert cost_micros_for("solver", meta=SOLVER_ROUTE_META) == FLAT_PRICES["solver"]
+    assert cost_micros_for("export", meta=EXPORT_ROUTE_META) == FLAT_PRICES["export"]
+    assert cost_micros_for("export", qty=3, meta=EXPORT_ROUTE_META) == 3 * FLAT_PRICES["export"]
+    assert cost_micros_for("solver", meta={}) == FLAT_PRICES["solver"], "no meta at all"
+
+
+def test_a_mock_provider_is_still_free_and_an_explicit_mock_solver_too() -> None:
+    """NEGATIVE CONTROLS: the fixture stack must not start burning budgets."""
+    assert cost_micros_for("render", meta={"provider": "mock"}) == 0
+    assert cost_micros_for("llm", meta={"provider": "mock", "inputTokens": 10_000_000}) == 0
+    # An LLM row with no provider is an unpriced row, not our CPU: still 0.
+    assert cost_micros_for("llm", meta={"model": "claude-opus-5", "inputTokens": 200_000}) == 0
+    assert cost_micros_for("render", meta={}) == 0
+    # A solver row that SAYS it is a mock is free — the only way to make it free.
+    assert cost_micros_for("solver", meta={"provider": "mock"}) == 0
+    assert cost_micros_for("export", meta={"provider": "stub"}) == 0
+
+
+@pytest.mark.integration
+async def test_a_solver_row_from_the_real_route_meta_lands_priced_in_the_ledger(
+    session, firm_a
+) -> None:
+    """Through the repository, not the pricing function: the row that the quota, the
+    budget and the usage card all read carries the price, with the fee on top."""
+    from garh_api.billing.spend import FLAT_PRICES
+    from garh_api.repositories import CreditEventRepository
+
+    repo = CreditEventRepository(session, firm_a.ctx())
+    solver = await repo.record(kind="solver", qty=1, meta=SOLVER_ROUTE_META)
+    export = await repo.record(kind="export", qty=1, meta=EXPORT_ROUTE_META)
+    assert solver.cost_micros == FLAT_PRICES["solver"]
+    assert export.cost_micros == FLAT_PRICES["export"]
+    assert solver.charged_micros == charged_micros(FLAT_PRICES["solver"], 500)
+    assert await repo.spent_micros() == solver.charged_micros + export.charged_micros
+    # NEGATIVE CONTROL: the mock render beside them still contributes nothing.
+    mock = await repo.record(kind="render", meta={"provider": "mock"})
+    assert (mock.cost_micros, mock.charged_micros) == (0, 0)
+    assert await repo.spent_micros() == solver.charged_micros + export.charged_micros

@@ -107,6 +107,20 @@ const CopilotEvalLogPage = lazy(async () => ({
 }));
 
 /**
+ * The platform owner's fee page. Its own chunk: the dashboard's billing links read
+ * the same endpoint through `features/billing`, but the page itself is reached by a
+ * handful of people and should not ride in with the dashboard.
+ */
+const PlatformFeePage = lazy(async () => ({
+  default: (await import('./features/billing/PlatformFeePage')).PlatformFeePage,
+}));
+
+/** Plan, allowances, charges, GST details, invoices, seats — and where a 402 lands. */
+const BillingPage = lazy(async () => ({
+  default: (await import('./features/billing/BillingPage')).BillingPage,
+}));
+
+/**
  * The §13 client viewer. Lazy for the same reason as Plan/3D: it mounts the
  * R3F canvas, and a client tapping a WhatsApp link is the LAST person who
  * should wait on `three` before seeing anything.
@@ -332,6 +346,32 @@ export const routes: RouteObject[] = [
         <RequireAuth>
           <Suspense fallback={<DashboardSkeleton />}>
             <DashboardPage />
+          </Suspense>
+        </RequireAuth>
+      </ErrorBoundary>
+    ),
+  },
+
+  {
+    path: '/billing',
+    element: (
+      <ErrorBoundary region="billing">
+        <RequireAuth>
+          <Suspense fallback={<DashboardSkeleton />}>
+            <BillingPage />
+          </Suspense>
+        </RequireAuth>
+      </ErrorBoundary>
+    ),
+  },
+
+  {
+    path: '/platform/fee',
+    element: (
+      <ErrorBoundary region="platform fee">
+        <RequireAuth>
+          <Suspense fallback={<DashboardSkeleton />}>
+            <PlatformFeePage />
           </Suspense>
         </RequireAuth>
       </ErrorBoundary>

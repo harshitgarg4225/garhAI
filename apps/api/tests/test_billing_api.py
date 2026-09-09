@@ -1357,3 +1357,178 @@ def test_no_billing_module_builds_its_own_sql() -> None:
                     "%s:%d %s.%s(...)" % (path.name, node.lineno, name, node.func.attr)
                 )
     assert not offenders, offenders
+
+
+# ---------------------------------------------------------------------------
+# The ledger an architect may audit, and the mock checkout widget
+# ---------------------------------------------------------------------------
+
+
+async def test_credit_events_list_cost_fee_charge_and_refunds_newest_first(
+    billing_client: httpx.AsyncClient, api: str, session: Any, firm_a: Any, firm_b: Any
+) -> None:
+    """Each row carries the three ledger numbers the usage card sums, plus the refund.
+
+    Negative control at the end: firm B, with rows of its own, sees none of firm A's.
+    """
+    import uuid
+
+    from garh_api.repositories import CreditEventRepository
+
+    repo = CreditEventRepository(session, firm_a.ctx())
+    job_id = uuid.uuid4()
+    first = await repo.record(
+        kind="llm",
+        meta={"provider": "anthropic", "model": "claude-opus-5", "inputTokens": 200_000},
+    )
+    second = await repo.record(
+        kind="solver", meta={"jobId": str(job_id), "projectId": str(uuid.uuid4())}
+    )
+    assert await repo.refund_for_job(job_id, reason="failed") == 1
+    await CreditEventRepository(session, firm_b.ctx()).record(
+        kind="render", meta={"provider": "mock"}
+    )
+    await session.commit()
+
+    response = await billing_client.get("%s/billing/credit-events" % api, headers=firm_a.headers)
+    assert response.status_code == 200, response.text
+    rows = response.json()["items"]
+    # Both rows were written in one transaction and share its ``now()``, so the order
+    # between them is a tie; what matters is that both are here and nothing else is.
+    assert {row["id"] for row in rows} == {str(first.id), str(second.id)}
+    by_kind = {row["kind"]: row for row in rows}
+    refunded, charged = by_kind["solver"], by_kind["llm"]
+    assert refunded["kind"] == "solver" and refunded["provider"] == "local"
+    assert refunded["refundedAt"] is not None and refunded["detail"] == "refunded: failed"
+    assert refunded["jobId"] == str(job_id)
+
+    assert charged["kind"] == "llm" and charged["provider"] == "anthropic"
+    assert charged["detail"] == "claude-opus-5"
+    assert charged["costMicros"] == 1_000_000, "the provider ledger: $1.00 of tokens"
+    assert charged["markupBps"] == 500 and charged["chargedMicros"] == 1_050_000
+    assert charged["refundedAt"] is None
+    assert not any(key.endswith("Inr") for key in charged), "micro-USD only; the web converts"
+
+    only_llm = await billing_client.get(
+        "%s/billing/credit-events" % api, params={"kind": "llm"}, headers=firm_a.headers
+    )
+    assert [row["kind"] for row in only_llm.json()["items"]] == ["llm"]
+
+    other = await billing_client.get("%s/billing/credit-events" % api, headers=firm_b.headers)
+    assert [row["kind"] for row in other.json()["items"]] == ["render"], "firm B sees only its own"
+
+
+async def test_the_mock_checkout_pays_an_invoice_the_way_the_widget_would(
+    billing_client: httpx.AsyncClient, api: str, firm_a: Any, supplier_env: None
+) -> None:
+    """checkout → mock widget → verify: the browser journey, with no keys."""
+    invoice = await _issue_invoice(
+        billing_client, api, firm_a, state_code="29", gstin=KARNATAKA_GSTIN
+    )
+    checkout = (
+        await billing_client.post(
+            "%s/billing/invoices/%s/checkout" % (api, invoice["id"]), headers=firm_a.headers
+        )
+    ).json()
+
+    widget = await billing_client.post(
+        "%s/billing/payments/mock" % api,
+        json={"orderId": checkout["orderId"]},
+        headers=firm_a.headers,
+    )
+    assert widget.status_code == 200, widget.text
+    handed = widget.json()
+    assert handed["orderId"] == checkout["orderId"] and handed["provider"] == "mock"
+    assert handed["paymentId"].startswith("pay_") and len(handed["signature"]) == 64
+
+    settled = await billing_client.post(
+        "%s/billing/payments/verify" % api,
+        json={
+            "orderId": handed["orderId"],
+            "paymentId": handed["paymentId"],
+            "signature": handed["signature"],
+        },
+        headers=firm_a.headers,
+    )
+    assert settled.status_code == 200, settled.text
+    assert settled.json()["invoice"]["status"] == "paid"
+    assert settled.json()["payment"]["signatureVerified"] is True
+
+
+async def test_the_mock_checkout_does_not_exist_under_a_real_gateway(
+    billing_client: httpx.AsyncClient, api: str, firm_a: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """NEGATIVE CONTROL: with Razorpay configured the pretend-payment route is a 404."""
+    from garh_api.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "provider_billing", "razorpay", raising=False)
+    monkeypatch.setattr(settings, "razorpay_key_id", "rzp_test_key", raising=False)
+    monkeypatch.setattr(settings, "razorpay_key_secret", "not-a-real-secret", raising=False)
+
+    response = await billing_client.post(
+        "%s/billing/payments/mock" % api, json={"orderId": "order_abc"}, headers=firm_a.headers
+    )
+    assert response.status_code == 404, response.text
+    assert problem(response)["code"] == "mock_checkout_unavailable"
+
+
+async def test_a_member_cannot_open_the_mock_checkout(
+    billing_client: httpx.AsyncClient, api: str, member_a: Any
+) -> None:
+    response = await billing_client.post(
+        "%s/billing/payments/mock" % api, json={"orderId": "order_abc"}, headers=member_a.headers
+    )
+    assert response.status_code == 403, response.text
+
+
+def test_the_402_names_the_kind_in_an_architects_words() -> None:
+    """ "10 solver" is a column name; "10 plan generations" is a decision."""
+    from garh_api.billing.errors import QuotaExceededError
+
+    spent = QuotaExceededError.for_kind(kind="solver", used=10, allowance=10, plan_code="free")
+    assert "10 plan generations" in str(spent)
+    assert "solver" not in str(spent)
+    none = QuotaExceededError.for_kind(kind="export", used=0, allowance=0, plan_code="free")
+    assert str(none) == "Your free plan doesn't include drawing exports."
+    assert "Billing" in none.problem_action
+
+
+# ---------------------------------------------------------------------------
+# What the usage response says is enforced IS what is mounted
+# ---------------------------------------------------------------------------
+
+
+def test_gated_kinds_equals_what_is_mounted_in_both_directions(
+    app_routes: Any, settings: Any
+) -> None:
+    """``GATED_KINDS`` feeds ``enforced`` on every usage line. It is a constant, so it
+    could drift from the routers (bug class 4); this reads the live dependency graph
+    and requires equality both ways — a kind gated on some route but missing here,
+    or listed here but gated nowhere, is red.
+    """
+    from garh_api.billing.quotas import GATED_KINDS
+
+    mounted: set[str] = set()
+    for route in walk_routes(app_routes):
+        mounted |= _mounted_quota_kinds(route)
+    assert mounted == set(GATED_KINDS), (
+        "GATED_KINDS says %s but require_quota is mounted for %s"
+        % (sorted(GATED_KINDS), sorted(mounted))
+    )
+    # NEGATIVE CONTROL for the guard itself: an extra entry would have failed above.
+    assert "export" not in GATED_KINDS, "export is metered but ungated (see UNGATED_ON_PURPOSE)"
+
+
+async def test_usage_lines_say_which_allowances_are_actually_enforced(
+    billing_client: httpx.AsyncClient, api: str, firm_a: Any
+) -> None:
+    """The free plan's export allowance is 0 by design and ungated in fact: the line must
+    say so, or "0 of 0" reads as a wall the architect will walk into and never does."""
+    response = await billing_client.get("%s/billing/usage" % api, headers=firm_a.headers)
+    assert response.status_code == 200, response.text
+    lines = {row["kind"]: row for row in response.json()["lines"]}
+    assert lines["solver"]["enforced"] is True
+    assert lines["render"]["enforced"] is True
+    assert lines["llm"]["enforced"] is True
+    assert lines["export"]["allowance"] == 0 and lines["export"]["enforced"] is False

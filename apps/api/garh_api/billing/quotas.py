@@ -78,6 +78,16 @@ from garh_api.tenancy import TenantCtx
 
 _log = get_logger(__name__)
 
+#: The kinds ``require_quota`` is actually mounted for somewhere in the app — what the
+#: usage response reports as ``enforced`` per line, so a "not included on this plan"
+#: line can never read as a gate that fires when none does (the free plan's ``export``
+#: allowance is 0 by design, and the export routes are still ungated; see STILL
+#: UNMOUNTED above). NOT a second source of truth: ``tests/test_billing_api.py``
+#: walks the live dependency graph and requires this set to equal what is mounted,
+#: in both directions, so a mount without an entry here — or an entry without a
+#: mount — is a red test, not a quiet lie.
+GATED_KINDS: frozenset[str] = frozenset({"solver", "render", "llm"})
+
 
 @dataclass(frozen=True)
 class QuotaLine:
@@ -278,6 +288,7 @@ def require_spend_budget(kind: str, *, qty: int = 1) -> params.Depends:
 
 
 __all__ = [
+    "GATED_KINDS",
     "QuotaLine",
     "check_quota",
     "check_spend_budget",

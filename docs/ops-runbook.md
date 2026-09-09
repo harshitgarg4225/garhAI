@@ -89,4 +89,65 @@ curl "$APP_URL/api/v1/admin/billing/markup" -H "authorization: Bearer $TOKEN"
 
 Applies to the next charge and every one after; rows already written keep the fee they
 were charged at (`test_markup.py` holds that as a negative control). 0–100, at most two
-decimals. The value lives in `platform_settings` under `billing.markup_bps`.
+decimals. The value lives in `platform_settings` under `billing.markup_bps`, with the
+email of the owner who set it beside it under `billing.markup_set_by`.
+
+**From the app, no curl:** sign in with an address on `PLATFORM_OWNER_EMAILS`, and the
+dashboard header shows a **Platform fee** link (`/platform/fee`) beside **Billing**. The
+link appears only when `GET /admin/billing/markup` answers `canSet: true` for the caller;
+it is a courtesy, not the gate — the page renders read-only for anyone else, and the
+`PUT` answers 403 on its own. The page shows the fee in force, who set it and when (or
+that the boot default is still in force), a field that refuses anything outside 0–100 or
+finer than two decimals before the round trip, and a confirm that states the rule above:
+the change applies from the next metered charge, earlier rows keep theirs. After a change
+the page re-reads `/billing/usage`, so the percentage the usage card names is the one the
+next generation, render, copilot call or export is debited at.
+
+## Going live with Razorpay (the billing provider switch)
+
+`PROVIDER_BILLING` is the switch. There is no feature flag: `billing_live` exists in
+`DEFAULT_FLAGS` and is read by nothing. Under `mock` (the default, CI, the demo seed) no
+money moves, but the security half is real — orders are signed with HMAC-SHA256 over
+`order_id|payment_id` and verified with a constant-time compare, so a tampered signature
+is refused under the mock exactly as it would be live.
+
+**What the switch needs, precisely:**
+
+| Variable                  | Read by                                                          | Required when                                                                                                     |
+| ------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `PROVIDER_BILLING`        | `Settings.provider_billing`                                      | always (`mock` \| `razorpay`)                                                                                     |
+| `RAZORPAY_KEY_ID`         | `Settings.razorpay_key_id`; handed to the checkout as `keyId`    | `razorpay` — the API refuses to boot without it                                                                   |
+| `RAZORPAY_KEY_SECRET`     | `Settings.razorpay_key_secret`; signs/verifies                   | `razorpay` — same boot refusal                                                                                    |
+| `RAZORPAY_WEBHOOK_SECRET` | `razorpay_provider.verify_webhook_signature` only (fails closed) | only once a webhook route exists — **none does today**; do not register a webhook URL in the dashboard until then |
+| `BILLING_SUPPLIER_*`      | `billing/gst.py` at invoice time                                 | to issue any tax invoice (503 `billing_unavailable` otherwise), mock or live                                      |
+
+**What changes when it flips.** `POST /billing/invoices/{id}/checkout` opens a real order
+(`POST /v1/orders`, receipt = our invoice number, firm/invoice ids in `notes`) and answers
+the order id, amount in paise and `keyId`. `POST /billing/payments/verify` checks the
+widget's signature under the key secret, then `GET /v1/payments/{id}` for the server-side
+truth and a capture if the payment is merely authorised. `POST /billing/payments/mock`
+answers 404 — the pretend-payment path does not exist on a deployment that moves money.
+
+**What is NOT wired, stated plainly.** The web's **Pay** button completes the journey
+only under the mock. Under `razorpay` it opens the order and tells the admin to settle it
+through the gateway's own checkout: Razorpay's `checkout.js` is not loaded by the web
+app, so the browser has nothing to hand `keyId`/`orderId` to. That is the piece to build
+before the first live rupee, and it is a client change only — the verify route is ready.
+A payment completed after the browser closes is not settled either (no webhook route);
+an admin re-opens the invoice and pays again, and the idempotent checkout reuses the
+same order.
+
+**The rehearsal before the first customer** (never done on this deployment — the adapter is
+proven only against a strict `httpx.MockTransport` double in `test_billing_core.py`):
+
+1. Test-mode keys (`rzp_test_…`) in `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`,
+   `PROVIDER_BILLING=razorpay`, `BILLING_SUPPLIER_*` set; confirm `/healthz` and that the
+   API refused to boot when one key was blanked (that refusal is the negative control).
+2. From Billing: GST details → Issue this period's invoice → Pay. Take `orderId` and
+   `keyId` from the checkout response and complete the order in Razorpay's hosted
+   test checkout (or `checkout.js` on any page) with a test card/UPI.
+3. `POST /billing/payments/verify` with the three values the widget returned; expect
+   the invoice `paid` and `billing_payments.signature_verified = true`; then re-run
+   with one character of the signature changed and expect 400 `payment_not_verified`.
+4. Only then swap in live keys. Keep the webhook secret empty until a webhook route
+   exists.

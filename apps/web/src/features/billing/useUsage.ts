@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { api, type Usage } from '../../lib/api';
+import { api, type ApiClient, type Usage } from '../../lib/api';
 import { AppError } from '../../lib/errors';
 
 export interface UsageState {
@@ -19,7 +19,7 @@ export interface UsageState {
   readonly refresh: () => void;
 }
 
-export function useUsage(refreshKey: unknown = null): UsageState {
+export function useUsage(refreshKey: unknown = null, client: ApiClient = api): UsageState {
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export function useUsage(refreshKey: unknown = null): UsageState {
     const gen = (generation.current += 1);
     setLoading(true);
     try {
-      const next = await api.billing.usage();
+      const next = await client.billing.usage();
       if (gen !== generation.current) return; // superseded by a newer load
       setUsage(next);
       setError(null);
@@ -40,7 +40,7 @@ export function useUsage(refreshKey: unknown = null): UsageState {
     } finally {
       if (gen === generation.current) setLoading(false);
     }
-  }, []);
+  }, [client]);
 
   useEffect(() => {
     void load();
