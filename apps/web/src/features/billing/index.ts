@@ -15,7 +15,24 @@ export {
 } from './usage';
 export { useUsage } from './useUsage';
 export type { UsageState } from './useUsage';
-export { describeRate, formatInr, formatUsd, inrFor, microsToPaise, parseRate } from './money';
+export {
+  describeRate,
+  formatInr,
+  formatUsd,
+  formatWholeInr,
+  inrFor,
+  microsToPaise,
+  parseRate,
+} from './money';
+export {
+  BILLING_REFUSAL_CODES,
+  billingRouteFor,
+  describeOutOfCredits,
+  firstPlanWithMore,
+  readOutOfCredits,
+} from './outOfCredits';
+export type { OutOfCredits } from './outOfCredits';
+// `BillingPage` is lazy-loaded by path from `routes.tsx`, like `PlatformFeePage`.
 export {
   bpsToPercent,
   describeChange,

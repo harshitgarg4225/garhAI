@@ -103,9 +103,10 @@ class MockBillingProvider:
         """``(payment_id, signature)`` as the checkout widget would hand them back.
 
         MOCK ONLY, and deliberately not on the :class:`~garh_api.billing.provider.
-        BillingProvider` protocol: nothing in ``garh_api`` outside tests and the demo
-        seed may call it, because a production caller of "pretend this was paid" is a
-        fraud path. It exists so the pay-an-invoice journey is walkable end to end with
+        BillingProvider` protocol: the callers are tests, the demo seed and
+        ``POST /billing/payments/mock`` — which refuses with 404 unless the configured
+        provider IS this class — because a production caller of "pretend this was paid"
+        is a fraud path. It exists so the pay-an-invoice journey is walkable end to end with
         no keys — the same reason the render mock draws a watermarked image.
         """
         payment_id = PAYMENT_PREFIX + _digest("payment", order_id)

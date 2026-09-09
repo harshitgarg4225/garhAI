@@ -33,6 +33,7 @@ that coverage guard able to fail.
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, status
 
@@ -42,6 +43,7 @@ from garh_api.billing import seats as seat_service
 from garh_api.billing.errors import (
     BillingProfileIncompleteError,
     InvalidGstDetailsError,
+    MockCheckoutUnavailableError,
     PlanChangeError,
 )
 from garh_api.billing.gst import (
@@ -72,9 +74,13 @@ from garh_api.schemas.billing import (
     BillingAccountIn,
     BillingAccountOut,
     CheckoutOut,
+    CreditEventOut,
+    CreditEventPage,
     GstStateOut,
     InvoiceOut,
     InvoicePage,
+    MockPayIn,
+    MockPayOut,
     PaymentOut,
     PaymentSettledOut,
     PaymentVerifyIn,
@@ -321,6 +327,51 @@ async def get_usage(session: SessionDep, ctx: TenantDep) -> UsageOut:
     )
 
 
+def _credit_event_out(event: Any) -> CreditEventOut:
+    meta = event.meta if isinstance(event.meta, dict) else {}
+    provider = str(meta.get("provider") or "")
+    if not provider and event.kind in ("solver", "export"):
+        provider = "local"  # our own CPU — see ``billing/spend.py``
+    detail = ""
+    for key in ("refund", "model", "preset", "exportKind"):
+        value = meta.get(key)
+        if isinstance(value, str) and value:
+            detail = ("refunded: %s" % value) if key == "refund" else value
+            break
+    return CreditEventOut(
+        id=event.id,
+        kind=event.kind,
+        qty=event.qty,
+        cost_micros=event.cost_micros,
+        markup_bps=event.markup_bps,
+        charged_micros=event.charged_micros,
+        provider=provider,
+        detail=detail,
+        job_id=event.job_id,
+        refunded_at=event.refunded_at,
+        created_at=event.created_at,
+    )
+
+
+@router.get("/credit-events", response_model=CreditEventPage, summary="Every charge, newest first")
+async def list_credit_events(
+    session: SessionDep, ctx: TenantDep, page: PageDep, kind: str | None = None
+) -> CreditEventPage:
+    """The firm's ledger as the architect may audit it: what each job cost, the fee on
+    it, what was charged, and whether it was refunded. Read through the same repository
+    the quota gate and the usage card sum, so a row here is a row they counted."""
+    from garh_api.repositories import CreditEventRepository
+
+    result = await CreditEventRepository(session, ctx).list_recent(
+        limit=page.limit, cursor=page.cursor, kind=kind
+    )
+    return CreditEventPage(
+        items=[_credit_event_out(event) for event in result.items],
+        next_cursor=result.next_cursor,
+        has_more=result.next_cursor is not None,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Billing account (G-3)
 # ---------------------------------------------------------------------------
@@ -452,6 +503,35 @@ async def open_checkout(invoice_id: uuid.UUID, session: SessionDep, ctx: AdminDe
         amount_paise=checkout.amount_paise,
         currency=checkout.currency,
         key_id=checkout.key_id,
+    )
+
+
+@router.post("/payments/mock", response_model=MockPayOut, summary="The mock checkout widget")
+async def mock_pay(body: MockPayIn, session: SessionDep, ctx: AdminDep) -> MockPayOut:
+    """Pretend the gateway's widget completed, and hand back what it would have.
+
+    Exists ONLY while ``PROVIDER_BILLING=mock`` — the one sanctioned caller of
+    ``MockBillingProvider.simulate_payment`` outside tests and the seed, so the
+    pay-an-invoice journey is walkable in a browser with no keys. Under any other
+    provider the route answers 404: a "pretend this was paid" path must not exist on a
+    deployment that moves money, and the verify step would refuse its signature anyway.
+    Nothing is written here; ``/payments/verify`` still decides.
+    """
+    from garh_api.billing.mock import MockBillingProvider
+
+    settings: Settings = get_settings()
+    provider = get_billing_provider(settings)
+    try:
+        if settings.provider_billing != "mock" or not isinstance(provider, MockBillingProvider):
+            raise MockCheckoutUnavailableError()
+        payment_id, signature = provider.simulate_payment(body.order_id.strip())
+    finally:
+        await provider.aclose()
+    return MockPayOut(
+        order_id=body.order_id.strip(),
+        payment_id=payment_id,
+        signature=signature,
+        provider=provider.name,
     )
 
 

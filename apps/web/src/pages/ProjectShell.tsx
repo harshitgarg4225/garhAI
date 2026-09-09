@@ -64,6 +64,7 @@ import type { ShareSection } from '../components';
    ~60-line module whose whole dependency list is the ui store. */
 import { copilotFocusHandler } from '../features/copilot/focus';
 import { CommentsPanel, useComments } from '../features/comments';
+import { billingRouteFor } from '../features/billing';
 import { useSolverJob } from '../features/options';
 import { api } from '../lib/api';
 import { AppError } from '../lib/errors';
@@ -401,18 +402,29 @@ export function ProjectShell(): JSX.Element {
     if (!solver.isRunning) {
       solver.generate().catch((err: unknown) => {
         const error = AppError.from(err);
+        // A 402 (out of generations, budget spent) is a billing decision: "Try
+        // again" would 402 again, so it goes to the Billing page on that reason.
+        const billingRoute = billingRouteFor(error);
         toast({
           severity: 'fail',
-          title: "Couldn't start generating",
+          title: billingRoute === null ? "Couldn't start generating" : 'Out of credits',
           description: error.message,
           // The two 409s here are actionable (no plot boundary / no brief
           // rooms) and the fix lives on a specific tab; anything else retries.
           action:
-            error.code === 'no_brief_rooms'
-              ? { label: 'Open the brief', onClick: () => navigate(`/projects/${projectId}/brief`) }
-              : error.code === 'no_plot_boundary'
-                ? { label: 'Draw the plot', onClick: () => navigate(`/projects/${projectId}/plan`) }
-                : { label: 'Try again', onClick: () => handleGenerate() },
+            billingRoute !== null
+              ? { label: 'See plans', onClick: () => navigate(billingRoute) }
+              : error.code === 'no_brief_rooms'
+                ? {
+                    label: 'Open the brief',
+                    onClick: () => navigate(`/projects/${projectId}/brief`),
+                  }
+                : error.code === 'no_plot_boundary'
+                  ? {
+                      label: 'Draw the plot',
+                      onClick: () => navigate(`/projects/${projectId}/plan`),
+                    }
+                  : { label: 'Try again', onClick: () => handleGenerate() },
         });
       });
     }

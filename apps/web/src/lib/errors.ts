@@ -44,6 +44,11 @@ export const ERROR_CODES = {
   payloadTooLarge: 'payload_too_large',
   unsupportedMediaType: 'unsupported_media_type',
   rateLimited: 'rate_limited',
+  // billing — a 402 is a decision, not a fault; the Billing page is the answer
+  paymentRequired: 'payment_required',
+  quotaExceeded: 'quota_exceeded',
+  spendCapExceeded: 'spend_cap_exceeded',
+  seatLimitReached: 'seat_limit_reached',
   // auth / session
   unauthenticated: 'unauthenticated',
   tokenExpired: 'token_expired',
@@ -392,6 +397,13 @@ function fallbackForStatus(status: number): { code: string; message: string; act
       code: ERROR_CODES.unauthenticated,
       message: "You're not signed in.",
       action: 'Sign in and try again.',
+    };
+  }
+  if (status === 402) {
+    return {
+      code: ERROR_CODES.paymentRequired,
+      message: "Your plan doesn't cover that right now.",
+      action: 'See the plans under Billing.',
     };
   }
   if (status === 403) {

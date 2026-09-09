@@ -134,6 +134,56 @@ class UsageOut(ResponseModel):
     spend: SpendBudgetOut | None = None
 
 
+class CreditEventOut(ResponseModel):
+    """One metered charge as the ledger holds it — cost, fee and charge in micro-USD.
+
+    Integers, never a rupee: the web converts at the dated rate the usage response
+    carries, so this row and the usage card cannot disagree by a paisa. ``refundedAt``
+    set means the job never delivered and every counting reader skips the row; it is
+    kept so the architect can see the attempt happened and that it was given back.
+    """
+
+    id: uuid.UUID
+    kind: StrictStr
+    qty: StrictInt
+    #: What the provider charged us for this row.
+    cost_micros: StrictInt
+    #: The platform fee applied to it, in basis points, and what the budget was debited.
+    markup_bps: StrictInt
+    charged_micros: StrictInt
+    #: Where the money went: ``anthropic``, ``stability``, ``mock``, ``local`` (our CPU).
+    provider: StrictStr = ""
+    #: One line of context: the model, the render preset, the export kind, or the reason
+    #: the row was refunded.
+    detail: StrictStr = ""
+    job_id: uuid.UUID | None = None
+    refunded_at: datetime | None = None
+    created_at: datetime
+
+
+class CreditEventPage(CursorPage[CreditEventOut]):
+    """Cursor page of credit events, newest first."""
+
+
+class MockPayIn(CamelModel):
+    """The order the mock checkout should pretend to pay."""
+
+    order_id: StrictStr = Field(min_length=1, max_length=100)
+
+
+class MockPayOut(ResponseModel):
+    """What the gateway's checkout widget hands the browser — mock edition.
+
+    Only served while ``PROVIDER_BILLING=mock``; the same three values then go to
+    ``POST /billing/payments/verify`` exactly as a real widget's would.
+    """
+
+    order_id: StrictStr
+    payment_id: StrictStr
+    signature: StrictStr
+    provider: StrictStr
+
+
 # ---------------------------------------------------------------------------
 # Billing account (G-3)
 # ---------------------------------------------------------------------------
@@ -301,10 +351,14 @@ __all__ = [
     "BillingAccountIn",
     "BillingAccountOut",
     "CheckoutOut",
+    "CreditEventOut",
+    "CreditEventPage",
     "GstStateOut",
     "InvoiceLineOut",
     "InvoiceOut",
     "InvoicePage",
+    "MockPayIn",
+    "MockPayOut",
     "PaymentOut",
     "PaymentSettledOut",
     "PaymentVerifyIn",

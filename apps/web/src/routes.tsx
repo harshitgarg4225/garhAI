@@ -115,6 +115,11 @@ const PlatformFeePage = lazy(async () => ({
   default: (await import('./features/billing/PlatformFeePage')).PlatformFeePage,
 }));
 
+/** Plan, allowances, charges, GST details, invoices, seats — and where a 402 lands. */
+const BillingPage = lazy(async () => ({
+  default: (await import('./features/billing/BillingPage')).BillingPage,
+}));
+
 /**
  * The §13 client viewer. Lazy for the same reason as Plan/3D: it mounts the
  * R3F canvas, and a client tapping a WhatsApp link is the LAST person who
@@ -341,6 +346,19 @@ export const routes: RouteObject[] = [
         <RequireAuth>
           <Suspense fallback={<DashboardSkeleton />}>
             <DashboardPage />
+          </Suspense>
+        </RequireAuth>
+      </ErrorBoundary>
+    ),
+  },
+
+  {
+    path: '/billing',
+    element: (
+      <ErrorBoundary region="billing">
+        <RequireAuth>
+          <Suspense fallback={<DashboardSkeleton />}>
+            <BillingPage />
           </Suspense>
         </RequireAuth>
       </ErrorBoundary>

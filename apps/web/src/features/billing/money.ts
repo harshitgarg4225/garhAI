@@ -66,6 +66,11 @@ export function formatInr(paise: number): string {
   return `₹${digits}.${String(frac).padStart(2, '0')}`;
 }
 
+/** Whole rupees as invoiced: `4999` → "₹4,999" — no paise on a price list. */
+export function formatWholeInr(rupees: number): string {
+  return formatInr(Math.max(0, Math.trunc(rupees)) * PAISE_PER_INR).slice(0, -3);
+}
+
 /** Rupees for `micros` at `rate`, or null when there is no usable rate. */
 export function inrFor(micros: number, rate: string): string | null {
   const scaled = parseRate(rate);

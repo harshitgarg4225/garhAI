@@ -53,6 +53,20 @@ class SpendCapExceededError(ApiError):
         )
 
 
+#: The metered kinds in the words an architect uses. The raw kind ("solver", "llm")
+#: is a column name, and a 402 that says "10 solver" reads as a bug, not a decision.
+KIND_LABELS: dict[str, str] = {
+    "solver": "plan generations",
+    "render": "renders",
+    "llm": "copilot calls",
+    "export": "drawing exports",
+}
+
+
+def kind_label(kind: str) -> str:
+    return KIND_LABELS.get(kind, kind)
+
+
 class QuotaExceededError(ApiError):
     """The firm has used its monthly allowance for this metered kind."""
 
@@ -65,9 +79,21 @@ class QuotaExceededError(ApiError):
     def for_kind(
         cls, *, kind: str, used: int, allowance: int, plan_code: str
     ) -> QuotaExceededError:
+        label = kind_label(kind)
+        if allowance <= 0:
+            message = "Your %s plan doesn't include %s." % (plan_code, label)
+            action = "Move to a plan that includes them under Billing."
+        else:
+            message = "Your %s plan includes %d %s per billing period and %d have been used." % (
+                plan_code,
+                allowance,
+                label,
+                used,
+            )
+            action = cls.action
         return cls(
-            "Your %s plan includes %d %s per billing period and %d have been used."
-            % (plan_code, allowance, kind, used),
+            message,
+            action=action,
             extra={
                 "kind": kind,
                 "used": used,
@@ -75,6 +101,19 @@ class QuotaExceededError(ApiError):
                 "planCode": plan_code,
             },
         )
+
+
+class MockCheckoutUnavailableError(ApiError):
+    """The pretend-payment affordance exists only while the billing provider is the mock.
+
+    404 rather than 403: under a real gateway the route does not exist as far as any
+    caller is concerned, and saying "forbidden" would advertise a fraud-shaped path.
+    """
+
+    http_status = 404
+    code = "mock_checkout_unavailable"
+    default_message = "There is no mock checkout on this deployment."
+    action = "Pay through the gateway's checkout instead."
 
 
 class SeatLimitError(ApiError):
@@ -150,9 +189,12 @@ __all__ = [
     "BillingUnavailableError",
     "InvalidGstDetailsError",
     "InvoiceStateError",
+    "KIND_LABELS",
+    "MockCheckoutUnavailableError",
     "PaymentVerificationError",
     "PlanChangeError",
     "QuotaExceededError",
     "SeatLimitError",
     "SpendCapExceededError",
+    "kind_label",
 ]
