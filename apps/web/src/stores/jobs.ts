@@ -189,7 +189,7 @@ export interface JobsState extends JobsSlice {
   startExport: (
     projectId: string,
     kind: ExportKind,
-    params?: Record<string, unknown>,
+    options?: Record<string, unknown>,
   ) => Promise<JobDTO>;
 
   clearError: () => void;
@@ -347,9 +347,9 @@ export const useJobsStore = create<JobsState>()((set, get) => ({
     return toJobDTO(job);
   },
 
-  startExport: async (projectId, kind, params = {}) => {
-    const job = await api.exports.create(projectId, { kind, params });
-    get().track(projectId, job, () => api.exports.create(projectId, { kind, params }));
+  startExport: async (projectId, kind, options = {}) => {
+    const job = await api.exports.create(projectId, { kind, options });
+    get().track(projectId, job, () => api.exports.create(projectId, { kind, options }));
     return toJobDTO(job);
   },
 

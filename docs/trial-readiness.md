@@ -411,6 +411,19 @@ Two smaller gaps found in passing:
   sanitised, and a round trip through the local object store answers with the
   attachment header. `JobCard.test.tsx`: a finished export renders the link, a
   running one does not, and `toJobVM` names the kind.
+- **Every export request died with a 422 before a job existed (found by the browser
+  UAT, run 9, 2026-09-07).** With the link and the disposition fixed, the harness still
+  saw no download: the api log held `api.validation_failed fields=["params"]` for each
+  click. The client posted `{kind, params: {}}`; the server's `ExportIn` names
+  `kind`, `designVersionId`, `sheetIds`, `includeDisclaimer` and `options`, and every
+  request schema forbids unknown keys, so the stray `params` was a 422 on every export,
+  and the Sheets tab showed "Preparing your download" over a request that had already
+  been refused. Nothing had ever compared the client's body with the server's model.
+  The client now sends the model's own fields (`options` carries renderer options),
+  and `api.exports.test.ts` reads the field names out of `schemas/jobs.py` on every run
+  and asserts each key the client sends is one of them, with `params` as the negative
+  control — renaming a server field turns the test red instead of turning the button
+  into a 422.
 - **Production connections, as read from the deployed stack's own boot lines
   (2026-09-07, Railway project `garhai`, environment `production`).** Live: the
   copilot provider is `anthropic` (key set on the api service), the render provider is

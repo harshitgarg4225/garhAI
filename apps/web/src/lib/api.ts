@@ -1661,15 +1661,36 @@ export function createApiClient(client: HttpClient = http) {
     },
 
     exports: {
+      /**
+       * The body is `ExportIn` (`apps/api/garh_api/schemas/jobs.py`) and nothing
+       * else: the server forbids unknown keys, so a stray field here is a 422 on
+       * every export — which is exactly how the first PDF-set click died. Options
+       * that steer a renderer ride in `options`; the top level carries only what
+       * the schema names.
+       */
       create: (
         projectId: string,
-        input: { kind: ExportKind; params?: Record<string, unknown> },
+        input: {
+          kind: ExportKind;
+          designVersionId?: string | null;
+          sheetIds?: string[];
+          includeDisclaimer?: boolean;
+          options?: Record<string, unknown>;
+        },
         opts: CallOptions = {},
       ): Promise<ExportJob> =>
         client.request({
           method: 'POST',
           path: projectPath(projectId, '/export'),
-          body: { kind: input.kind, params: input.params ?? {} },
+          body: {
+            kind: input.kind,
+            ...(input.designVersionId ? { designVersionId: input.designVersionId } : {}),
+            ...(input.sheetIds?.length ? { sheetIds: input.sheetIds } : {}),
+            ...(input.includeDisclaimer === undefined
+              ? {}
+              : { includeDisclaimer: input.includeDisclaimer }),
+            options: input.options ?? {},
+          },
           parse: parser(exportJobSchema),
           ...opts,
         }),

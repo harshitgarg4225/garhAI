@@ -28,12 +28,21 @@ The run needs `DEV_ECHO_OTP=1` on the api (the sign-up step reads the code from 
 response the way the dev stack echoes it) and the mock render provider; it spends two
 generations of the trial allowance on the account it creates.
 
-## What the first seven runs found
+## What the first ten runs found
 
 Every failure was a product defect, not a test defect, and each is recorded in
 `docs/trial-readiness.md`: the compliance report thrown away over vastu rows; Generate
 answering "no plan cleared" for a plan the solver had produced (single-seed search);
 a zero-option run still charged; a reload during a token refresh signing the architect
 out; three delivered plans dropped by the options screen's scalar-only rule schema;
-"Generate the set" refusing a project that never saved a version; and the Sheets tab
-listening for the drawn set on a stream the API never served.
+"Generate the set" refusing a project that never saved a version; the Sheets tab
+listening for the drawn set on a stream the API never served; a terminal job event
+outrunning the row it announced ("still generating" over a delivered plan); and the
+download step failing three different ways in three runs — the signed link dropped by
+the view-model, a Content-Disposition on the redirect that browsers discard, and the
+export request itself refused with a 422 because the client sent a key the server's
+schema had never declared.
+
+One test-side defect too: the sheet-list regex missed the lettered sheet numbers
+(`A-02A`) and reported a rendered set as missing. Read a failing step's screenshot
+before believing it.
