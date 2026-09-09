@@ -43,6 +43,7 @@ from services.drawings.dimensions import (  # noqa: E402
 )
 from services.drawings.layers import LAYER_NAMES  # noqa: E402
 from services.drawings.render.frame import frame_group  # noqa: E402
+from services.drawings.render.labels import Box, label_boxes, text_box_mm  # noqa: E402
 from services.drawings.render.layout import (  # noqa: E402
     PaperRect,
     choose_scale,
@@ -53,18 +54,29 @@ from services.drawings.render.primitives import (  # noqa: E402
     Arc,
     Dim,
     DrawingGroup,
+    Hatch,
     Line,
     Placement,
+    Polyline,
+    SheetDrawing,
     Text,
     dim_geometry,
     div_round,
     sort_by_layer,
 )
 from services.drawings.render.reference_sheets import (  # noqa: E402
+    _opening_centre_along,
+    _room_label_block,
+    _sheet,
     build_schedule_rows,
     build_sheet_set,
+    building_extent,
+    door_window_schedule,
     inner_chains,
     outer_chains,
+    plan_primitives,
+    room_label_lines,
+    site_plan_primitives,
 )
 from services.drawings.render.sanitize import (  # noqa: E402
     SvgSanitizeError,
@@ -74,7 +86,13 @@ from services.drawings.render.sanitize import (  # noqa: E402
 )
 from services.drawings.render.svg import normalize_svg, render_sheet_svg  # noqa: E402
 from services.drawings.render.tables import Column, table_primitives  # noqa: E402
-from services.drawings.sheets import PAPER_SIZES, TitleBlock, default_frame  # noqa: E402
+from services.drawings.sheets import (  # noqa: E402
+    PAPER_SIZES,
+    Scale,
+    TitleBlock,
+    Viewport,
+    default_frame,
+)
 
 INPUT_DIR = os.path.join(_REPO_ROOT, "fixtures", "sheets", "inputs")
 RULEPACK_DIR = os.path.join(_REPO_ROOT, "rulepacks")
@@ -172,7 +190,10 @@ def test_every_chain_sums_exactly() -> None:
                     cursor = segment.end_mm
                 assert cursor == chain.overall_mm
                 checked += 1
-    assert checked >= 40, "expected a substantial number of chains, got %d" % checked
+    # Two fixtures' worth of outer chains (three levels a side), elevations and the
+    # section. The per-room chains that used to inflate this count are now printed in
+    # the room labels (see plan_primitives), so the floor is what the outer chains give.
+    assert checked >= 30, "expected a substantial number of chains, got %d" % checked
 
 
 def test_chain_consistency_error_is_raised_not_corrected() -> None:
@@ -586,40 +607,74 @@ def test_normalize_svg_is_idempotent_and_only_touches_whitespace() -> None:
 def test_no_overlapping_text_labels_on_any_sheet() -> None:
     """§16: "collision-free assertion (no overlapping text bboxes)".
 
-    Measured in paper micrometres — the only space where an overlap is real. The width
-    metric is the same 0.58-em estimate ``scripts/sheet_goldens.py`` uses, kept in step
-    with it deliberately so the test and the harness cannot disagree about what passes.
+    Measured in paper micrometres — the only space where an overlap is real. The boxes
+    come from :func:`label_boxes`, the one measurer the worker's pipeline and
+    ``scripts/sheet_goldens.py`` also use, so the test and the harness cannot disagree
+    about what passes; and it boxes the figures inside dimension chains, so a room
+    label sitting on a dimension is a collision here, which it was not while only
+    ``Text`` primitives were measured.
     """
     for name, drawings in _sheet_sets():
         for drawing in drawings:
-            boxes: list[LabelBox] = []
-            for group in drawing.groups:
-                for primitive in group.primitives:
-                    if not isinstance(primitive, Text) or not primitive.text.strip():
-                        continue
-                    x_um, y_um = group.placement.to_paper_um(primitive.at)
-                    height = primitive.height_paper_um
-                    width = int(len(primitive.text) * height * 58 / 100)
-                    if primitive.anchor == "middle":
-                        x_um -= width // 2
-                    elif primitive.anchor == "end":
-                        x_um -= width
-                    boxes.append(
-                        LabelBox(
-                            x_um,
-                            y_um - height,
-                            width,
-                            height,
-                            primitive.element_id or primitive.text[:24],
-                        )
-                    )
-            collisions = find_label_collisions(boxes)
+            collisions = find_label_collisions(label_boxes(drawing))
             assert not collisions, "%s sheet %s has %d overlapping label pair(s): %s" % (
                 name,
                 drawing.sheet.number,
                 len(collisions),
                 collisions[:3],
             )
+
+
+def test_the_collision_audit_sees_dimension_figures() -> None:
+    """Negative control for the measurer: a room name on a dimension figure is caught.
+
+    The figure of a chain is not a ``Text`` primitive — it is exploded from the ``Dim``
+    at render time — and the old audit therefore never saw it. This builds a sheet with
+    exactly one text sitting on exactly one figure and requires one collision; then
+    moves the text clear and requires none.
+    """
+    chain = DimChain(
+        id="probe",
+        orientation="horizontal",
+        level=1,
+        offset_mm=0,
+        origin_mm=0,
+        segments=(DimSegment(0, 3000),),
+        overall_mm=3000,
+    )
+    dim = Dim(chain=chain, layer="A-DIM", text_height_paper_um=2_000)
+    sheet = _sheet(
+        sheet_id="probe",
+        kind="floor-plan",
+        number="A-00",
+        title="Probe",
+        viewport=Viewport(storey_id="s"),
+        scale=Scale(100),
+        title_block=TitleBlock(),
+    )
+
+    def drawing_with(label_at: tuple[int, int]) -> SheetDrawing:
+        label = Text(
+            at=label_at, text="BEDROOM", layer="A-TEXT", anchor="middle", baseline="middle"
+        )
+        return SheetDrawing(
+            sheet=sheet,
+            groups=(
+                DrawingGroup(
+                    id="plan",
+                    placement=Placement(100, origin_paper_um=(100_000, 100_000)),
+                    primitives=(dim, label),
+                ),
+            ),
+            chains=(chain,),
+        )
+
+    # The figure "3000" sits centred on the chain, one text gap above the line.
+    on_the_figure = find_label_collisions(label_boxes(drawing_with((1500, 250))))
+    assert len(on_the_figure) == 1, on_the_figure
+    assert "probe" in on_the_figure[0][0] + on_the_figure[0][1]
+    clear = find_label_collisions(label_boxes(drawing_with((1500, 2000))))
+    assert not clear, clear
 
 
 def test_label_box_touching_is_allowed_overlapping_is_not() -> None:
@@ -963,3 +1018,546 @@ if __name__ == "__main__":  # pragma: no cover
                 traceback.print_exc()
     print("\n%d failure(s)" % failures)
     sys.exit(1 if failures else 0)
+
+
+# ---------------------------------------------------------------------------
+# Opening tags: the plan prints what A-05 tabulates, and nothing else
+# ---------------------------------------------------------------------------
+def _opening_storeys(house: Any) -> dict[str, str]:
+    wall_storey = {wall.id: wall.storey_id for wall in house.walls}
+    return {opening.id: wall_storey[opening.wall_id] for opening in house.openings}
+
+
+def _tag_texts(primitives: Any, opening_ids: set[str]) -> list[Text]:
+    return [p for p in primitives if isinstance(p, Text) and p.element_id in opening_ids]
+
+
+def test_plan_opening_tags_are_the_schedule_sheets_tags() -> None:
+    """Every opening on every plan carries exactly the tag A-05 gives its group.
+
+    Folds each fixture once, builds the schedule the A-05 sheet prints, then reads the
+    tags off every floor-plan sheet and requires: one tag per opening on its storey,
+    equal to the schedule's ``tag_by_opening_id``; per-storey counts of each tag equal
+    to the schedule row's count column; and every row's tag present on some plan. The
+    class-4 bug at data level ("the schedule assigns tags, the plan prints none") is
+    exactly what this could not pass through.
+    """
+    from collections import Counter
+
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        house = doc.house
+        assert house.openings, "%s has no openings, so it proves nothing here" % name
+        schedule = door_window_schedule(house)
+        rows = {row.tag: row for row in build_schedule_rows(house)}
+        storey_of = _opening_storeys(house)
+        drawings = dict(_sheet_sets())[name]
+        seen_tags: set[str] = set()
+        for drawing in drawings.by_kind("floor-plan"):
+            storey_id = drawing.meta["storeyId"]
+            plan = next(g for g in drawing.groups if g.id.startswith("plan-"))
+            expected = {oid for oid, sid in storey_of.items() if sid == storey_id}
+            texts = _tag_texts(plan.primitives, expected)
+            tagged = {t.element_id: t.text for t in texts}
+            assert set(tagged) == expected, (name, storey_id, set(tagged) ^ expected)
+            assert len(texts) == len(expected), "an opening was tagged twice"
+            for opening_id, tag in tagged.items():
+                assert tag == schedule.tag_by_opening_id[opening_id], (name, opening_id, tag)
+            counts = Counter(tagged.values())
+            for tag, count in counts.items():
+                assert rows[tag].counts_by_storey.get(storey_id, 0) == count, (name, tag)
+            seen_tags |= set(counts)
+        assert seen_tags == set(rows), (name, seen_tags ^ set(rows))
+
+
+def test_the_plan_prints_the_mapping_it_is_given_not_its_own() -> None:
+    """Negative controls for the agreement above.
+
+    An empty mapping draws no tags at all, and a deliberately wrong mapping is printed
+    verbatim — so the positive test passes because the plan and the schedule share one
+    source, not because the plan happens to compute the same thing.
+    """
+    _name, fixture = _fixtures()[-1]
+    doc = _fold(fixture)
+    storey_id = doc.house.storeys[0].id
+    opening_ids = {oid for oid, sid in _opening_storeys(doc.house).items() if sid == storey_id}
+    assert opening_ids
+
+    none, _ = plan_primitives(doc, storey_id, opening_tags={})
+    assert not _tag_texts(none, opening_ids)
+
+    victim = sorted(opening_ids)[0]
+    wrong, _ = plan_primitives(doc, storey_id, opening_tags={victim: "Z9"})
+    texts = _tag_texts(wrong, opening_ids)
+    assert [t.text for t in texts] == ["Z9"]
+    assert "Z9" not in door_window_schedule(doc.house).tag_by_opening_id.values()
+
+
+def test_tags_sit_beside_their_opening_and_inside_the_building() -> None:
+    """A tag is within one door-width of its opening's centre, inside the building line,
+    and touches no other label on the plan — the greedy placer's contract."""
+    for _name, fixture in _fixtures():
+        doc = _fold(fixture)
+        house = doc.house
+        openings = {o.id: o for o in house.openings}
+        walls = {w.id: w for w in house.walls}
+        for storey in house.storeys:
+            extent = building_extent(house, storey.id)
+            if extent is None:
+                continue
+            primitives, _ = plan_primitives(doc, storey.id, scale_denominator=100)
+            boxes = [text_box_mm(p, 100) for p in primitives if isinstance(p, Text)]
+            for index, a in enumerate(boxes):
+                for b in boxes[index + 1 :]:
+                    assert not a.overlaps(b), (storey.name, a, b)
+            for text in _tag_texts(primitives, set(openings)):
+                opening = openings[text.element_id]
+                wall = walls[opening.wall_id]
+                along = _opening_centre_along(wall, opening)
+                centre = (along, wall.a.y) if wall.a.y == wall.b.y else (wall.a.x, along)
+                dx = abs(text.at[0] - centre[0])
+                dy = abs(text.at[1] - centre[1])
+                assert max(dx, dy) <= opening.width_mm + 500, (text, centre)
+                min_x, min_y, max_x, max_y = extent
+                assert min_x <= text.at[0] <= max_x and min_y <= text.at[1] <= max_y, text
+
+
+# ---------------------------------------------------------------------------
+# Room labels: name, clear dimensions, m² and sq ft, inside the room
+# ---------------------------------------------------------------------------
+class _FakePt:
+    def __init__(self, x: int, y: int) -> None:
+        self.x, self.y = x, y
+
+
+class _FakeRoom:
+    def __init__(self, width: int, depth: int, name: str = "BEDROOM") -> None:
+        self.id = "room_fake"
+        self.storey_id = "s"
+        self.type = "bedroom"
+        self.name = name
+        self.polygon = (_FakePt(0, 0), _FakePt(width, 0), _FakePt(width, depth), _FakePt(0, depth))
+        self.area_mm2 = width * depth
+
+
+def test_room_label_lines_are_the_polygon_extent_and_both_area_formats() -> None:
+    from garh_model.units import format_sqft, format_sqm
+
+    room = _FakeRoom(3623, 2703)
+    assert room_label_lines(room) == (
+        "BEDROOM",
+        "3623 x 2703",
+        format_sqm(3623 * 2703, 2),
+        format_sqft(3623 * 2703, 1),
+    )
+    assert room_label_lines(room)[2].endswith("m²")
+    assert room_label_lines(room)[3].endswith("sq ft")
+
+
+def test_room_label_block_fits_its_room_and_sheds_lines_only_when_it_must() -> None:
+    """The ladder: a bedroom gets four lines at full size; a passage turns; a shaft
+    keeps its name. Every line drawn lies inside the room."""
+    texts, boxes, complete = _room_label_block(_FakeRoom(3600, 3000), scale_denominator=100)
+    assert complete and len(texts) == 4
+    assert texts[0].bold and texts[0].height_paper_um == 2_500
+    assert all(box.inside(Box(0, 0, 3600, 3000)) for box in boxes)
+    assert all(text.rotation_deg == 0 for text in texts)
+
+    # Deeper than wide, and too narrow for the block upright: it turns.
+    texts, boxes, complete = _room_label_block(
+        _FakeRoom(1000, 3000, "PASSAGE"), scale_denominator=100
+    )
+    assert complete, [t.text for t in texts]
+    assert all(text.rotation_deg == 90 for text in texts)
+    assert all(box.inside(Box(0, 0, 1000, 3000)) for box in boxes)
+
+    # A shallow utility: the areas share a line rather than vanish.
+    texts, _boxes, complete = _room_label_block(
+        _FakeRoom(2400, 863, "UTILITY"), scale_denominator=100
+    )
+    assert complete
+    assert [t.text for t in texts][:2] == ["UTILITY", "2400 x 863"]
+    assert "m²" in texts[2].text and "sq ft" in texts[2].text
+
+    # A shaft: the name, and honestly reported as incomplete.
+    texts, _boxes, complete = _room_label_block(_FakeRoom(863, 633, "SHAFT"), scale_denominator=100)
+    assert not complete
+    assert [t.text for t in texts] == ["SHAFT"]
+
+
+def test_room_label_block_keeps_off_a_stair_flight() -> None:
+    room = _FakeRoom(2128, 2703, "STAIRCASE")
+    flight = Box(0, 0, 900, 1750)  # a dogleg's drawn flight up the left side
+    texts, boxes, _complete = _room_label_block(room, scale_denominator=100, obstacles=(flight,))
+    assert texts
+    assert all(not box.overlaps(flight) for box in boxes), boxes
+    assert all(box.inside(Box(0, 0, 2128, 2703)) for box in boxes)
+    # Negative control: without the obstacle the block is centred on the flight.
+    _texts, centred, _ = _room_label_block(room, scale_denominator=100)
+    assert any(box.overlaps(flight) for box in centred)
+
+
+def test_every_room_on_every_plan_is_labelled_and_a_real_room_gets_all_four_values() -> None:
+    """Corpus gate: rooms of 2 m² and more carry name, dimensions, m² and sq ft, inside
+    the room; smaller ones carry at least their name and are listed, not lost."""
+    partial: list[tuple[str, str, int]] = []
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        for storey in doc.house.storeys:
+            if not [w for w in doc.house.walls if w.storey_id == storey.id]:
+                continue
+            primitives, _ = plan_primitives(doc, storey.id, scale_denominator=100)
+            for room in doc.house.rooms:
+                if room.storey_id != storey.id:
+                    continue
+                lines = room_label_lines(room)
+                texts = [p for p in primitives if isinstance(p, Text) and p.element_id == room.id]
+                printed = " | ".join(t.text for t in texts)
+                assert texts and texts[0].text == lines[0], (name, room.name)
+                xs = [p.x for p in room.polygon]
+                ys = [p.y for p in room.polygon]
+                room_box = Box(min(xs), min(ys), max(xs), max(ys))
+                for text in texts:
+                    assert text_box_mm(text, 100).inside(room_box), (name, room.name, text)
+                if all(value in printed for value in lines[1:]):
+                    continue
+                partial.append((name, room.name, room.area_mm2))
+                assert room.area_mm2 < 2_000_000, (
+                    "%s: %s is %d mm² and lost part of its label: %r"
+                    % (name, room.name, room.area_mm2, printed)
+                )
+
+
+# ---------------------------------------------------------------------------
+# Site plan: every side, the footprint, the road and the setbacks, dimensioned
+# ---------------------------------------------------------------------------
+def _site_chains(drawings: Any) -> dict[str, Any]:
+    site = drawings.by_kind("site-plan")[0]
+    return {chain.id: chain for chain in site.chains}
+
+
+def _site_texts(drawings: Any) -> list[str]:
+    site = drawings.by_kind("site-plan")[0]
+    return [p.text for g in site.groups for p in g.primitives if isinstance(p, Text)]
+
+
+def test_site_plan_dimensions_every_side_the_footprint_the_road_and_the_setbacks() -> None:
+    """The numbers a sanction desk reads off A-01, each equal to what it measures.
+
+    Plot edges equal the boundary's edge lengths, the footprint chains equal the
+    ground storey's building line, each road chain equals its width, and each setback
+    chain is named by the rules engine's role for that edge and equals the engine's
+    ``providedMm`` — the same row the compliance tab shows.
+    """
+    from garh_model.units import format_ft_in
+    from garh_rules.formatting import format_ratio
+
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        statement = _statement(doc)
+        drawings = dict(_sheet_sets())[name]
+        chains = _site_chains(drawings)
+        boundary = [(p.x, p.y) for p in doc.plot.boundary]
+        for index, a in enumerate(boundary):
+            b = boundary[(index + 1) % len(boundary)]
+            if a[0] != b[0] and a[1] != b[1]:
+                continue
+            chain = chains["site-plot-edge-%d" % index]
+            assert chain.overall_mm == abs(b[0] - a[0]) + abs(b[1] - a[1]), (name, index)
+        min_x, min_y, max_x, max_y = building_extent(doc.house, doc.house.storeys[0].id)
+        assert chains["site-footprint-W"].overall_mm == max_x - min_x, name
+        assert chains["site-footprint-D"].overall_mm == max_y - min_y, name
+        for road in doc.plot.roads:
+            if road.width_mm is not None:
+                assert chains["site-road-%d" % road.edge_index].overall_mm == road.width_mm
+        assert statement.setbacks, name
+        for row in statement.setbacks:
+            key = "site-setback-%s" % row.role
+            if row.provided_mm == 0:
+                assert key not in chains, (name, key)
+            else:
+                assert chains[key].overall_mm == row.provided_mm, (name, key)
+        texts = _site_texts(drawings)
+        xs = sorted({x for x, _ in boundary})
+        ys = sorted({y for _, y in boundary})
+        assert (
+            "PLOT SIZE: %d x %d mm (%s x %s)"
+            % (
+                xs[1] - xs[0],
+                ys[1] - ys[0],
+                format_ft_in(xs[1] - xs[0]),
+                format_ft_in(ys[1] - ys[0]),
+            )
+            in texts
+        ), texts
+        assert any(
+            t.startswith("FAR ACHIEVED: %s" % format_ratio(statement.far_achieved)) for t in texts
+        )
+        for row in statement.setbacks:
+            expected = "%s SETBACK: %d mm" % (row.role.upper().replace("-", " "), row.provided_mm)
+            assert any(t.startswith(expected) for t in texts), (name, expected, texts)
+            if row.required_mm is not None:
+                assert any(
+                    t == "%s (required %d mm)" % (expected, row.required_mm) for t in texts
+                ), (name, expected)
+        assert "N" in texts, "no north arrow"
+
+
+def test_site_plan_refuses_a_setback_that_disagrees_with_the_compliance_report() -> None:
+    """Negative control: one millimetre of disagreement and A-01 is not drawn.
+
+    The chain lengths are measured off the model; the rows come from the evaluation.
+    They agree on every fixture (the test above). Doctor one row by 1 mm and the site
+    plan refuses, naming the edge and both numbers, rather than printing a setback the
+    compliance tab contradicts.
+    """
+    from dataclasses import replace
+
+    _name, fixture = _fixtures()[-1]
+    doc = _fold(fixture)
+    statement = _statement(doc)
+    row = next(r for r in statement.setbacks if r.provided_mm > 0)
+    doctored = replace(
+        statement,
+        setbacks=tuple(
+            replace(r, provided_mm=r.provided_mm + 1) if r is row else r for r in statement.setbacks
+        ),
+    )
+    try:
+        site_plan_primitives(doc, statement=doctored, scale_denominator=100)
+    except ValueError as exc:
+        message = str(exc)
+        assert row.role in message and str(row.provided_mm + 1) in message, message
+    else:
+        raise AssertionError("a doctored setback row drew a site plan")
+    primitives, chains = site_plan_primitives(doc, statement=statement, scale_denominator=100)
+    assert primitives and any(c.id == "site-setback-%s" % row.role for c in chains)
+
+
+def test_site_plan_without_a_statement_names_setbacks_by_edge_and_prints_no_engine_numbers() -> (
+    None
+):
+    _name, fixture = _fixtures()[-1]
+    doc = _fold(fixture)
+    primitives, chains = site_plan_primitives(doc, statement=None, scale_denominator=100)
+    ids = {c.id for c in chains}
+    assert any(i.startswith("site-setback-edge-") for i in ids), ids
+    assert not any(i.startswith("site-setback-front") for i in ids)
+    texts = [p.text for p in primitives if isinstance(p, Text)]
+    assert any(t.startswith("PLOT SIZE: ") for t in texts)
+    assert not any("FAR" in t or "SETBACK:" in t for t in texts), texts
+
+
+def test_plot_size_note_is_only_written_for_a_rectangle() -> None:
+    from services.drawings.render.reference_sheets import _plot_size_note
+
+    assert _plot_size_note([(0, 0), (9144, 0), (9144, 12192), (0, 12192)]) == (
+        "PLOT SIZE: 9144 x 12192 mm (30'-0\" x 40'-0\")"
+    )
+    # A five-sided plot has edge chains but no single size that is true of it.
+    assert _plot_size_note([(0, 0), (9144, 0), (9144, 12192), (4000, 14000), (0, 12192)]) is None
+
+
+# ---------------------------------------------------------------------------
+# Section A-A and the elevations: the projectors' output, on the sheet
+# ---------------------------------------------------------------------------
+def _drawing_group(drawing: Any, prefix: str) -> Any:
+    return next(g for g in drawing.groups if g.id.startswith(prefix))
+
+
+def _z_span(primitive: Any) -> tuple[int, int]:
+    ys = [y for _x, y in primitive.points()]
+    return (min(ys), max(ys))
+
+
+def test_section_is_a_real_cut_through_the_stair() -> None:
+    """A-04 shows what the cut passes through, all of it read off the model.
+
+    Hatched walls on both sides of every storey, each floor slab at the thickness its
+    storey carries, the plinth from ground to plinth level, the parapet at both ends,
+    the stair riser by riser, the level markers (ground, plinth, every FFL, sill and
+    lintel, terrace, parapet top), the dashed foundation line 900 below plinth with
+    §7's exact label, one height chain summing to the parapet top, and the projector's
+    assumptions printed as notes. The cut recorded on the sheet's viewport is the cut
+    the floor plan marks A-A.
+    """
+    from services.drawings.elevations.vertical import build_levels
+    from services.drawings.sections import FOUNDATION_LABEL
+
+    checked = 0
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        house = doc.house
+        if not house.stairs:
+            continue
+        drawings = dict(_sheet_sets())[name]
+        section = drawings.by_kind("section")[0]
+        group = _drawing_group(section, "section")
+        prims = group.primitives
+        levels = build_levels(house)
+        texts = [p.text for p in prims if isinstance(p, Text)]
+
+        stair = [p for p in prims if p.layer == "A-STAIR"]
+        assert stair, "%s: no stair profile on the section" % name
+        assert any(len(p.points()) >= 8 for p in stair), "the flight is not stepped"
+        hatched_walls = [p for p in prims if isinstance(p, Hatch) and p.layer == "A-WALL"]
+        assert len(hatched_walls) >= 2 * len(house.storeys) + 1, name  # walls + plinth
+        for storey in levels.storeys[1:]:
+            bands = [
+                p
+                for p in prims
+                if isinstance(p, Polyline)
+                and (p.element_id or "").startswith("slab")
+                and _z_span(p) == (storey.ffl_mm - storey.slab_thickness_mm, storey.ffl_mm)
+            ]
+            assert bands, "%s: no slab band for %s" % (name, storey.name)
+        assert any(
+            isinstance(p, Polyline) and _z_span(p) == (0, levels.plinth_mm) for p in prims
+        ), "no plinth block"
+        parapets = [
+            p
+            for p in prims
+            if isinstance(p, Polyline) and _z_span(p) == (levels.terrace_mm, levels.parapet_top_mm)
+        ]
+        assert len(parapets) == 2, "%s: parapet is not cut at both ends" % name
+        for label in (
+            "GROUND LVL",
+            "PLINTH LVL",
+            "FFL",
+            "SILL",
+            "LINTEL",
+            "TERRACE LVL",
+            "PARAPET TOP",
+        ):
+            assert any(label in t for t in texts), (name, label)
+        foundation_z = levels.plinth_mm - 900
+        assert any(
+            isinstance(p, Line)
+            and p.style == "dashed"
+            and _z_span(p) == (foundation_z, foundation_z)
+            for p in prims
+        ), "no dashed foundation line 900 below plinth"
+        assert FOUNDATION_LABEL in texts
+        assert len(section.chains) == 1
+        assert section.chains[0].overall_mm == levels.parapet_top_mm
+        assert any(isinstance(p, Dim) for p in prims)
+        assert "NOTES" in texts
+        assert any("Terrace slab shown" in t for t in texts), "the slab assumption is not printed"
+        assert not any("chosen by score" in t for t in texts), "a developer note reached the paper"
+        assert not any("stair_" in t for t in texts), "an element id reached the paper"
+
+        # The viewport's cut is the cut the plans mark.
+        cut = section.sheet.viewport.section_line
+        assert cut is not None
+        for plan in drawings.by_kind("floor-plan"):
+            marker = [
+                p
+                for p in _drawing_group(plan, "plan-").primitives
+                if isinstance(p, Line) and p.layer == "A-TEXT" and p.style == "centre"
+            ]
+            assert marker, "no A-A marker on %s" % plan.sheet.number
+            (ax, ay), (bx, by) = cut
+            if ax == bx:
+                assert all(m.a[0] == ax and m.b[0] == ax for m in marker)
+            else:
+                assert all(m.a[1] == ay and m.b[1] == ay for m in marker)
+        checked += 1
+    assert checked, "no fixture with a stair — the section proves nothing"
+
+
+def test_section_without_a_stair_cuts_the_centre_and_says_so() -> None:
+    name, fixture = next((n, f) for n, f in _fixtures() if not _fold(f).house.stairs)
+    section = dict(_sheet_sets())[name].by_kind("section")[0]
+    prims = _drawing_group(section, "section").primitives
+    assert prims, "a house without a stair still gets a section"
+    assert not any(p.layer == "A-STAIR" for p in prims)
+    texts = [p.text for p in prims if isinstance(p, Text)]
+    assert any("No stair in the model" in t for t in texts), texts
+    assert any(isinstance(p, Hatch) and p.layer == "A-WALL" for p in prims)
+
+
+def test_elevations_project_every_opening_at_its_sill_and_lintel_with_its_tag() -> None:
+    """Four faces; every external-wall opening on exactly one of them, framed from
+    ``FFL + sill`` to ``FFL + sill + height`` and tagged with the schedule's tag; the
+    plinth band, the ground line, each floor line and the parapet on all four."""
+    from services.drawings.elevations.vertical import build_levels
+
+    for name, fixture in _fixtures():
+        doc = _fold(fixture)
+        house = doc.house
+        drawings = dict(_sheet_sets())[name]
+        levels = build_levels(house)
+        openings = {o.id: o for o in house.openings}
+        storey_of = _opening_storeys(house)
+        tags = door_window_schedule(house).tag_by_opening_id
+        seen: dict[str, str] = {}
+        elevations = drawings.by_kind("elevation")
+        assert len(elevations) == 4
+        for elevation in elevations:
+            direction = elevation.meta["direction"]
+            prims = _drawing_group(elevation, "elev-").primitives
+            frames = [
+                p
+                for p in prims
+                if isinstance(p, Polyline)
+                and p.layer in ("A-DOOR", "A-WIND")
+                and p.closed
+                and p.element_id in openings
+            ]
+            # Outer frame = the widest ring per opening (the leaf/glazing ring is inset).
+            by_opening: dict[str, Polyline] = {}
+            for frame in frames:
+                current = by_opening.get(frame.element_id)
+                if current is None or _z_span(frame)[1] - _z_span(frame)[0] > (
+                    _z_span(current)[1] - _z_span(current)[0]
+                ):
+                    by_opening[frame.element_id] = frame
+            tag_texts = {
+                p.element_id: p.text
+                for p in prims
+                if isinstance(p, Text) and p.element_id in openings
+            }
+            for opening_id, frame in by_opening.items():
+                opening = openings[opening_id]
+                storey = levels.storey(storey_of[opening_id])
+                assert storey is not None
+                sill = storey.ffl_mm + opening.sill_mm
+                assert _z_span(frame) == (sill, sill + opening.height_mm), (
+                    name,
+                    direction,
+                    opening_id,
+                )
+                assert tag_texts.get(opening_id) == tags[opening_id], (name, direction, opening_id)
+                assert opening_id not in seen, "%s appears on %s and %s" % (
+                    opening_id,
+                    seen.get(opening_id),
+                    direction,
+                )
+                seen[opening_id] = direction
+            assert any(
+                isinstance(p, Polyline)
+                and p.layer == "A-WALL-PART"
+                and _z_span(p) == (0, levels.plinth_mm)
+                for p in prims
+            ), (name, direction, "no plinth band")
+            assert any(
+                isinstance(p, Line) and _z_span(p) == (0, 0) for p in prims
+            ), "no ground line"
+            assert any(
+                isinstance(p, Polyline) and _z_span(p) == (levels.terrace_mm, levels.parapet_top_mm)
+                for p in prims
+            ), (name, direction, "no parapet")
+            for storey in levels.storeys[1:]:
+                z = storey.ffl_mm - storey.slab_thickness_mm
+                assert any(isinstance(p, Line) and _z_span(p) == (z, z) for p in prims), (
+                    name,
+                    direction,
+                    "no floor line for %s" % storey.name,
+                )
+            assert len(elevation.chains) == 1
+            assert elevation.chains[0].overall_mm == levels.parapet_top_mm
+        # Every opening in an external wall is on exactly one face; an internal door
+        # faces no elevation and is rightly absent from all four.
+        walls = {w.id: w for w in house.walls}
+        external = {oid for oid, o in openings.items() if walls[o.wall_id].kind == "external"}
+        assert set(seen) == external, (name, external ^ set(seen))

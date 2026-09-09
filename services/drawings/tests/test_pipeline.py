@@ -393,6 +393,39 @@ def test_the_site_plan_note_prints_the_engines_far_and_coverage():
     assert "GROUND COVERAGE" in svg and "PLOT AREA" in svg
 
 
+def test_transport_statement_carries_the_engines_setback_rows_verbatim():
+    """The site plan names its setback chains by these rows and checks their values,
+    so the codec must hand them over unchanged — and cope with a frozen report from
+    before the list existed (edge-index names, no refusal)."""
+    payload = load_areas(load_document())
+    statement = TransportStatement.from_json(payload)
+    assert [(r.edge_index, r.role, r.provided_mm, r.required_mm) for r in statement.setbacks] == [
+        (int(r["edgeIndex"]), str(r["role"]), int(r["providedMm"]), r["requiredMm"])
+        for r in payload["setbacks"]
+    ]
+    assert statement.setbacks, "the demo evaluation has setback rows"
+
+    older = dict(payload)
+    del older["setbacks"]
+    result = build_sheets(make_bundle(areas=TransportStatement.from_json(older), kinds=("site",)))
+    assert result.sheets and result.sheets[0].kind == "site", result.skipped
+    assert any(str(c["id"]).startswith("site-setback-edge-") for c in result.sheets[0].chains)
+
+
+def test_the_site_plan_is_skipped_with_a_reason_when_a_setback_row_disagrees():
+    """The refusal reaches the job as a named skip, not a crash of the whole set."""
+    payload = load_areas(load_document())
+    doctored = dict(payload)
+    doctored["setbacks"] = [
+        dict(row, providedMm=int(row["providedMm"]) + 1) if int(row["providedMm"]) > 0 else row
+        for row in payload["setbacks"]
+    ]
+    result = build_sheets(make_bundle(areas=TransportStatement.from_json(doctored)))
+    assert all(sheet.kind != "site" for sheet in result.sheets)
+    skipped = [s for s in result.skipped if s["kind"] == "site"]
+    assert skipped and "compliance" in skipped[0]["reason"], result.skipped
+
+
 def test_transport_statement_rejects_an_empty_evaluation():
     try:
         TransportStatement.from_json({"warnings": []})

@@ -42,13 +42,56 @@ A-AREA, A-TITL, Defpoints`. Content arrives as an INSERT (block reference),
   under real pytest with real ezdxf; plus the api-side sheet routes inside the
   1,923-test api run.
 
+## 1b. What the sheets draw — re-verified 2026-09-09 (audit J08)
+
+Run: `PYTHONPATH=.:apps/api .venv/bin/python -m pytest services/drawings/tests -q`
+(537 passed) and `PYTHONPATH=.:apps/api .venv/bin/python scripts/sheet_goldens.py`
+(4 models, 42 sheets, 137 chains, 0 label collisions, DXF audits clean, diff-clean).
+
+- **EXECUTED** — every opening on every floor plan and elevation carries the tag
+  A-05 assigns it; one `door_window_schedule()` feeds all three
+  (`test_plan_opening_tags_are_the_schedule_sheets_tags`, with `{}` and a wrong
+  mapping as negative controls).
+- **EXECUTED** — room labels: NAME / clear W x D / m² / sq ft inside every room,
+  the block stepping down 2.5→1.8 mm and turning 90° before shedding lines; a
+  room of 2 m² or more never loses a value, and a shaft keeps its name
+  (`test_every_room_on_every_plan_is_labelled_and_a_real_room_gets_all_four_values`).
+  The per-room dimension cross-hairs are gone; the outer three levels remain.
+- **EXECUTED** — the collision audit boxes dimension figures too, through one
+  measurer (`render/labels.py`) shared by the worker, the harness and the test;
+  it caught the "115" level-2 end stubs and the section bubbles on level 3, both
+  fixed (`test_the_collision_audit_sees_dimension_figures`).
+- **EXECUTED** — A-01: plot edges, footprint, road width and each setback
+  chained; setbacks named by the rules engine's role for the edge and equal to
+  its `providedMm` or the sheet is refused; PLOT SIZE in mm and ft-in; the
+  engine's coverage / FAR / setback rows printed
+  (`test_site_plan_dimensions_every_side_the_footprint_the_road_and_the_setbacks`,
+  `test_site_plan_refuses_a_setback_that_disagrees_with_the_compliance_report`).
+- **EXECUTED** — A-04 is `services.drawings.sections.build_section` on the sheet:
+  hatched cut walls, slabs at their thickness minus the stair well, plinth,
+  terrace slab, parapet at both ends, the stair riser by riser, level markers,
+  the dashed foundation line 900 below plinth with §7's exact label, the height
+  chain as a native DIMENSION; assumptions printed as NOTES
+  (`test_section_is_a_real_cut_through_the_stair`,
+  `test_section_without_a_stair_cuts_the_centre_and_says_so`).
+- **EXECUTED** — A-03A–D are `services.drawings.elevations.build_elevation` on
+  the sheet: every external-wall opening on exactly one face at FFL + sill to
+  FFL + sill + height, leaf/glazing, mullion, sill course, plinth band, ground
+  line, floor lines, parapet, level markers, one height chain
+  (`test_elevations_project_every_opening_at_its_sill_and_lintel_with_its_tag`).
+- **TRACED** — the "two renderers" finding is closed for the vertical drawings
+  and the schedule (the pipeline now imports `sections/`, `elevations/`,
+  `schedules/door_window`); `autodim/`, `projection/` and `blocks/` are still
+  exercised only by their own tests.
+- **UNVERIFIED** — a dogleg's return flight (the model stores one flight; the
+  section says so in its notes), the empty hand-checked dimension set, and a
+  DXF opened in a human CAD — unchanged.
+
 ## 2. Known gaps (the honest edge)
 
-- **UNVERIFIED — PDF.** `formatsAvailable` came back `["dxf","svg"]`;
-  `services/drawings/export/pdf.py` exists but no run has produced a PDF.
-  Settles it: the export-job path (`POST` the export with a pdf format — find
-  the exact body in `routers/jobs.py`) against the live stack, then open the
-  bytes.
+- **EXECUTED (2026-09-07) — PDF.** `scripts/sheet_goldens.py --pdf` produces the
+  set through rsvg-convert + qpdf (42 pages); the per-sheet PDF from the UI's own
+  Generate is still the open item (defaults are svg+dxf).
 - **UNVERIFIED — glTF / PNG / WhatsApp preset.** Same shape:
   `export/{gltf,png}.py` exist, never run.
 - **UNVERIFIED — annotation anchoring + review tray.** Routes exist
@@ -63,9 +106,8 @@ A-AREA, A-TITL, Defpoints`. Content arrives as an INSERT (block reference),
   `services/drawings/dxf.py` carry superseded `NotImplementedError` stubs;
   the live pipeline imports `autodim/` and `export/dxf.py` instead. Candidates
   for deletion once nothing imports them (check before removing).
-- **Human-blocked — sheet text face.** Canvas/sheet labels reference the
-  missing `inter-medium.woff` (OFL, human fetch); SVG text currently renders in
-  a fallback face. `make asset-audit` flags it every run.
+- **RESOLVED (2026-08-26) — sheet text face.** The Inter face landed with its
+  OFL text; `make asset-audit` runs clean.
 
 ## 3. Fixes first execution forced (all committed)
 

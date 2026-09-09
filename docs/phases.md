@@ -235,7 +235,7 @@ env flag; renders carry a version id; concurrent job limit and queue UI states w
 
 ---
 
-## Phase 8 — Drawings + exports 🟡 (the moat — core pipeline EXECUTED 2026-08-25: live project → 9 municipal sheets, 17 dim chains sum exactly, DXF passes ezdxf.audit with 0 errors; open: PDF/glTF/PNG export paths, review tray, goldens)
+## Phase 8 — Drawings + exports 🟡 (the moat — core pipeline EXECUTED 2026-08-25: live project → 9 municipal sheets, DXF passes ezdxf.audit with 0 errors; 2026-09-09: tags on every plan, labelled rooms, a dimensioned site plan, a real section and elevations, 137 chains and 42 sheet goldens diff-clean; open: glTF/PNG export paths, review tray, the hand-checked dimension set)
 
 §7 exactly: sheet model, auto-dimensioning engine, the 6 municipal sheets, title
 block editor, annotation anchoring with a review tray after solver re-runs; exports —
