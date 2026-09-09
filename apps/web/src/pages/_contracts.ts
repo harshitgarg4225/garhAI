@@ -29,8 +29,10 @@
  */
 
 import { formatFtIn, formatMetres, type UnitsDisplay } from '@garh/model';
+import { hasClientAutofix } from '../features/compliance/autofix';
 import type {
   ComplianceIssueVM,
+  ComplianceValueVM,
   JobKind,
   JobStatus,
   JobVM,
@@ -321,9 +323,47 @@ export interface ComplianceResultDTO {
    * which is always undefined, so "Fix it" never appeared on any chip.
    */
   fixAvailable?: boolean | null | undefined;
+  /** The pack's `autofix` block; with `fixAvailable`, decides whether "Fix it" shows. */
+  autofix?: { opType: string; strategy: string } | null | undefined;
+  checkType?: string | null | undefined;
+  packId?: string | null | undefined;
+  title?: string | null | undefined;
+  severity?: string | null | undefined;
+  declaredSeverity?: string | null | undefined;
+  hard?: boolean | null | undefined;
+  actual?: ComplianceValueVM | undefined;
+  limit?: ComplianceValueVM | undefined;
+  unit?: string | null | undefined;
+  originalLimit?: ComplianceValueVM | undefined;
+  valueOverridden?: boolean | null | undefined;
+  overrideValueKeys?: readonly string[] | null | undefined;
+  overridden?: boolean | null | undefined;
+  overrideReason?: string | null | undefined;
+  relaxedToWarn?: boolean | null | undefined;
+  citeUrl?: string | null | undefined;
+  note?: string | null | undefined;
+  notApplicableReason?: string | null | undefined;
+  instances?:
+    | readonly {
+        elementId?: string | null | undefined;
+        label?: string | null | undefined;
+        status: 'pass' | 'warn' | 'fail' | 'not_applicable';
+        actual?: ComplianceValueVM | undefined;
+        limit?: ComplianceValueVM | undefined;
+        message?: string | null | undefined;
+        note?: string | null | undefined;
+      }[]
+    | null
+    | undefined;
 }
 
+/**
+ * Wire row → view model. `fixAvailable` is the engine's claim ANDed with this
+ * client's ability to compute the strategy: the VM flag must mean "a button
+ * here will do something", never "the pack thinks so" (§15, no dead buttons).
+ */
 export function toComplianceIssue(dto: ComplianceResultDTO): ComplianceIssueVM {
+  const autofix = dto.autofix ?? undefined;
   return {
     ruleId: dto.ruleId,
     status: dto.status,
@@ -331,8 +371,37 @@ export function toComplianceIssue(dto: ComplianceResultDTO): ComplianceIssueVM {
     cite: dto.cite ?? undefined,
     confidence: dto.confidence ?? undefined,
     elementIds: dto.elements ?? [],
-    fixAvailable: dto.fixAvailable === true,
+    fixAvailable: dto.fixAvailable === true && hasClientAutofix(autofix, dto.checkType),
     fixHint: dto.fixHint ?? undefined,
+    packId: dto.packId ?? undefined,
+    title: dto.title ?? undefined,
+    severity: dto.severity ?? undefined,
+    declaredSeverity: dto.declaredSeverity ?? undefined,
+    hard: dto.hard === true,
+    actual: dto.actual ?? null,
+    limit: dto.limit ?? null,
+    unit: dto.unit ?? undefined,
+    originalLimit: dto.valueOverridden === true ? (dto.originalLimit ?? null) : undefined,
+    valueOverridden: dto.valueOverridden === true,
+    overrideValueKeys: dto.overrideValueKeys ?? [],
+    overridden: dto.overridden === true,
+    overrideReason: dto.overrideReason ?? undefined,
+    relaxedToWarn: dto.relaxedToWarn === true,
+    checkType: dto.checkType ?? undefined,
+    autofix:
+      autofix === undefined ? undefined : { opType: autofix.opType, strategy: autofix.strategy },
+    citeUrl: dto.citeUrl ?? undefined,
+    note: dto.note ?? undefined,
+    notApplicableReason: dto.notApplicableReason ?? undefined,
+    instances: (dto.instances ?? []).map((i) => ({
+      elementId: i.elementId ?? null,
+      label: i.label ?? '',
+      status: i.status,
+      actual: i.actual ?? null,
+      limit: i.limit ?? null,
+      message: i.message ?? undefined,
+      note: i.note ?? undefined,
+    })),
   };
 }
 

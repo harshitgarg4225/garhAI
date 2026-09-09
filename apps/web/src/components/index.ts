@@ -84,7 +84,10 @@ export type { UnitsToggleProps } from './UnitsToggle';
 
 export { PROJECT_STAGES, STAGE_STATES, complianceIssueKey } from './types';
 export type {
+  ComplianceAutofixVM,
+  ComplianceInstanceVM,
   ComplianceIssueVM,
+  ComplianceValueVM,
   ComplianceResultStatus,
   DiffOpKind,
   DiffOpVM,

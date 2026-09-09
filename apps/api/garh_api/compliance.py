@@ -726,6 +726,7 @@ def evaluate_document(
     payload = report.to_json()
     existing = list(payload.get("notes") or [])
     payload["notes"] = existing + ["projection: %s" % note for note in _NOTES]
+    payload["packReview"] = pack_review_status(packs)
     _log.info(
         "compliance.evaluated",
         packs=",".join(packs),
@@ -735,13 +736,87 @@ def evaluate_document(
     return payload, dict(report.pack_versions)
 
 
+#: The keys of ``evaluate_document``'s payload that are NOT rule rows and that a
+#: frozen report must keep beside them (``compliance_reports.summary``). The area
+#: statement is the one the sheet prints; the rest is what an architect reading the
+#: report later needs to judge it — which packs, reviewed by whom, with what caveats.
+SUMMARY_KEYS: tuple[str, ...] = (
+    "areas",
+    "scores",
+    "vastuScore",
+    "warnings",
+    "disclaimers",
+    "notes",
+    "packReview",
+    "worstStatus",
+    "packs",
+)
+
+
+def report_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """The part of a report payload that is frozen alongside its rows."""
+    return {key: payload[key] for key in SUMMARY_KEYS if key in payload}
+
+
+def pack_review_status(packs: Sequence[str]) -> dict[str, dict[str, Any]]:
+    """Per pack: ``{status, lastReviewedAt, nextReviewDue}`` from the pack's own
+    ``review`` block, so the UI can say when a pack is past its review date. A pack
+    with no block (or an unloadable one) reports ``unreviewed`` with no dates — the
+    honest reading of a seed pack, not a crash in the report.
+    """
+    out: dict[str, dict[str, Any]] = {}
+    try:
+        from garh_rules import load_pack_set
+        from garh_rules.errors import GarhRulesError
+
+        pack_set = load_pack_set(packs)
+    except (ImportError, GarhRulesError):  # pragma: no cover - packs already loaded above
+        pack_set = None
+    for pack_id in packs:
+        review: Mapping[str, Any] = {}
+        if pack_set is not None:
+            pack = pack_set.packs.get(pack_id)
+            raw = pack.raw.get("review") if pack is not None else None
+            if isinstance(raw, Mapping):
+                review = raw
+        out[pack_id] = {
+            "status": str(review.get("status") or "unreviewed"),
+            "lastReviewedAt": review.get("lastReviewedAt"),
+            "nextReviewDue": review.get("nextReviewDue"),
+        }
+    return out
+
+
+def pack_rule_ids(document: Mapping[str, Any]) -> frozenset[str]:
+    """Every rule id the packs this document loads would evaluate.
+
+    The override route validates against this: an acknowledgement for a rule id no
+    loaded pack carries would sit in the profile forever, silently, doing nothing —
+    a typo that looks like a decision.
+    """
+    try:
+        from garh_rules import load_pack_set
+        from garh_rules.errors import GarhRulesError
+    except ImportError as exc:  # pragma: no cover - garh_rules is in the same image
+        raise ComplianceUnavailable("garh_rules is not importable: %s" % exc) from exc
+    try:
+        pack_set = load_pack_set(packs_for(document))
+    except GarhRulesError as exc:
+        raise ComplianceUnavailable("rule packs could not be loaded: %s" % exc) from exc
+    return frozenset(rule.id for rule in pack_set.rules)
+
+
 __all__ = [
     "BASE_PACKS",
     "CITY_PACK_IDS",
     "ComplianceUnavailable",
     "DEFAULT_BUILDING_USE",
+    "SUMMARY_KEYS",
     "build_evaluation_context",
     "cannot_evaluate_reason",
     "evaluate_document",
+    "pack_review_status",
+    "pack_rule_ids",
     "packs_for",
+    "report_summary",
 ]

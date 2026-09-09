@@ -8,6 +8,7 @@ place that decides what leaves the building — notably that ``firm_id`` never d
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
@@ -448,17 +449,81 @@ class ComplianceOut(ResponseModel):
         description="Approximations the projection made, verbatim from the engine's "
         "report. An architect reading a stored report years later needs these.",
     )
+    areas: dict[str, Any] | None = Field(
+        default=None,
+        description="The area statement (garh_rules.areas.AreaStatement.to_json): FAR "
+        "consumed vs allowed, coverage, per-storey built-up, setbacks — derived from the "
+        "SAME rule results as the rows, which is why it travels with them. Null on a "
+        "report frozen before the statement was stored with it.",
+    )
+    scores: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Scoring packs' totals (the Vastu score with its groups).",
+    )
+    vastu_score: int | float | None = Field(
+        default=None, description="The Vastu pack's total, only when the pack was loaded."
+    )
+    warnings: list[StrictStr] = Field(
+        default_factory=list,
+        description="Engine warnings: a room type no rule reaches, a value-override key "
+        "nothing reads. Shown, not swallowed — each one is a check that did not happen.",
+    )
+    disclaimers: list[dict[str, Any]] = Field(
+        default_factory=list, description="Per pack: {packId, text}."
+    )
+    pack_review: dict[str, dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Per pack: {status, lastReviewedAt, nextReviewDue} from the pack's "
+        "review block, so a pack past its review date is visibly stale.",
+    )
+
+    @classmethod
+    def _with_summary(cls, out: ComplianceOut, summary: Mapping[str, Any] | None) -> ComplianceOut:
+        """Copy the frozen/live summary block onto a response, tolerating absence."""
+        if not summary:
+            return out
+        areas = summary.get("areas")
+        scores = summary.get("scores")
+        disclaimers = summary.get("disclaimers")
+        pack_review = summary.get("packReview")
+        vastu = summary.get("vastuScore")
+        return out.model_copy(
+            update={
+                "areas": dict(areas) if isinstance(areas, Mapping) else None,
+                "scores": [dict(s) for s in scores if isinstance(s, Mapping)]
+                if isinstance(scores, list)
+                else [],
+                "vastu_score": vastu if isinstance(vastu, int | float) else None,
+                "warnings": [str(w) for w in (summary.get("warnings") or [])],
+                "disclaimers": [dict(d) for d in disclaimers if isinstance(d, Mapping)]
+                if isinstance(disclaimers, list)
+                else [],
+                "pack_review": {
+                    str(k): dict(v) for k, v in pack_review.items() if isinstance(v, Mapping)
+                }
+                if isinstance(pack_review, Mapping)
+                else {},
+                "notes": [str(n) for n in (summary.get("notes") or [])] or out.notes,
+                "worst_status": (
+                    str(summary.get("worstStatus"))
+                    if summary.get("worstStatus")
+                    else out.worst_status
+                ),
+            }
+        )
 
     @classmethod
     def of(cls, project_id: uuid.UUID, report: Any) -> ComplianceOut:
         results = list(report.results)
-        counts = {"pass": 0, "warn": 0, "fail": 0, "not_applicable": 0}
+        counts = {"pass": 0, "warn": 0, "fail": 0, "not_applicable": 0, "overridden": 0}
         for item in results:
             if isinstance(item, dict):
                 status = str(item.get("status") or "")
                 if status in counts:
                     counts[status] += 1
-        return cls(
+                if item.get("overridden") is True:
+                    counts["overridden"] += 1
+        out = cls(
             evaluated=True,
             project_id=project_id,
             design_version_id=report.design_version_id,
@@ -468,6 +533,9 @@ class ComplianceOut(ResponseModel):
             counts=counts,
             created_at=report.created_at,
         )
+        # Reports frozen before ``summary`` existed carry none; the response then
+        # says so with ``areas: null`` rather than re-evaluating under newer packs.
+        return cls._with_summary(out, getattr(report, "summary", None))
 
     @classmethod
     def live_run(
@@ -489,13 +557,15 @@ class ComplianceOut(ResponseModel):
         fetch this again.
         """
         results = [r for r in (payload.get("results") or []) if isinstance(r, dict)]
-        counts = {"pass": 0, "warn": 0, "fail": 0, "not_applicable": 0}
+        # ``overridden`` rides along: it is the engine's own count of rows an
+        # architect accepted with a reason, and the tab's header shows it.
+        counts = {"pass": 0, "warn": 0, "fail": 0, "not_applicable": 0, "overridden": 0}
         raw_counts = payload.get("counts")
         if isinstance(raw_counts, dict):
             for key, value in raw_counts.items():
                 if key in counts and isinstance(value, int):
                     counts[key] = value
-        return cls(
+        out = cls(
             evaluated=True,
             live=True,
             project_id=project_id,
@@ -505,6 +575,8 @@ class ComplianceOut(ResponseModel):
             worst_status=(str(payload.get("worstStatus")) if payload.get("worstStatus") else None),
             notes=[str(n) for n in (payload.get("notes") or [])],
         )
+        # The live payload carries the same summary keys a frozen row stores.
+        return cls._with_summary(out, payload)
 
     @classmethod
     def not_evaluated(

@@ -75,6 +75,35 @@ export interface ProjectSummaryVM {
 /** Mirrors the rules-engine result status. */
 export type ComplianceResultStatus = 'pass' | 'warn' | 'fail' | 'not_applicable';
 
+/**
+ * What a rule measured / measured against. Scalars for almost every rule; the
+ * vastu zone rules report a list of compass zones and an `{allow}` object.
+ */
+export type ComplianceValueVM =
+  | number
+  | string
+  | boolean
+  | null
+  | readonly unknown[]
+  | Readonly<Record<string, unknown>>;
+
+/** The pack's `autofix` block: which op, which strategy. */
+export interface ComplianceAutofixVM {
+  readonly opType: string;
+  readonly strategy: string;
+}
+
+/** One evaluated element of a scoped rule — "Bedroom 2: 8.9 m² of 9.5 m²". */
+export interface ComplianceInstanceVM {
+  readonly elementId: string | null;
+  readonly label: string;
+  readonly status: ComplianceResultStatus;
+  readonly actual: ComplianceValueVM;
+  readonly limit: ComplianceValueVM;
+  readonly message?: string | undefined;
+  readonly note?: string | undefined;
+}
+
 export interface ComplianceIssueVM {
   /** Rule id from the pack: "blr.setback.front.9m". */
   ruleId: string;
@@ -87,10 +116,47 @@ export interface ComplianceIssueVM {
   confidence?: 'seed' | 'reviewed' | 'verified' | undefined;
   /** Element ids to highlight on the canvas when the chip is clicked. */
   elementIds: readonly string[];
-  /** True when the pack supplies a computable auto-fix op. */
+  /**
+   * True when the pack supplies an auto-fix AND this client can compute it
+   * (`features/compliance/autofix.ts`). Both must hold: a button that does
+   * nothing is worse than a hint.
+   */
   fixAvailable: boolean;
   /** Human hint shown when there is no computable fix. */
   fixHint?: string | undefined;
+
+  // -- the numbers an architect needs on the Compliance tab -----------------
+  /** Which pack the rule came from: "nbc-core", "blr", "vastu". */
+  packId?: string | undefined;
+  /** Short title from the pack, e.g. "Habitable room minimum area". */
+  title?: string | undefined;
+  /** Effective severity ("fail" | "warn" | "info"), after any vastu-mode ceiling. */
+  severity?: string | undefined;
+  /** The pack's own severity before a ceiling relaxed it. */
+  declaredSeverity?: string | undefined;
+  /** The pack's `hard` flag — a rule no mode may soften to a warning. */
+  hard?: boolean | undefined;
+  actual?: ComplianceValueVM | undefined;
+  limit?: ComplianceValueVM | undefined;
+  /** "mm" | "mm2" | "ratio" | "count" | "bool" | "zone" | … */
+  unit?: string | undefined;
+  /** The pack's own limit when a value override replaced it. */
+  originalLimit?: ComplianceValueVM | undefined;
+  valueOverridden?: boolean | undefined;
+  overrideValueKeys?: readonly string[] | undefined;
+  /** An architect accepted this rule's failure with a logged reason. */
+  overridden?: boolean | undefined;
+  overrideReason?: string | undefined;
+  relaxedToWarn?: boolean | undefined;
+  /** Engine check type: "room_area_min", "setback_min", … */
+  checkType?: string | undefined;
+  autofix?: ComplianceAutofixVM | undefined;
+  citeUrl?: string | undefined;
+  /** A note the check attached ("Counting window + ventilator."). */
+  note?: string | undefined;
+  notApplicableReason?: string | undefined;
+  /** Per-element detail; the engine emits it for violated rules. */
+  instances?: readonly ComplianceInstanceVM[] | undefined;
 }
 
 /**

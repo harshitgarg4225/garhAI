@@ -62,6 +62,8 @@ import type { ComplianceIssueVM, JobVM, SaveState, StoreyTab } from '../componen
 import type { ShareSection } from '../components';
 /* The panel itself is lazy (below); only the `/` handler is eager, and it is a
    ~60-line module whose whole dependency list is the ui store. */
+import { computeAutofix } from '../features/compliance/autofix';
+import type { ComplianceReportVM } from '../features/compliance/report';
 import { copilotFocusHandler } from '../features/copilot/focus';
 import { CommentsPanel, useComments } from '../features/comments';
 import { billingRouteFor } from '../features/billing';
@@ -120,12 +122,25 @@ export interface ProjectOutletContext {
   jobs: readonly JobVM[];
   /** Compliance results for the current version, or `null` before any run. */
   compliance: readonly ComplianceIssueVM[] | null;
+  /** The whole report — area statement, warnings, pack versions — or `null`. */
+  complianceReport: ComplianceReportVM | null;
   /**
    * A re-check is in flight. The Plan tab's on-canvas markers need this as
    * well as the strip, so it is part of the contract rather than re-derived by
    * calling `useLiveCompliance` a second time (which would double the polling).
    */
   complianceChecking: boolean;
+  /**
+   * The last re-check failed; `compliance` is whatever the previous successful
+   * run said and may be stale. The tab shows this and offers `recheckCompliance`.
+   */
+  complianceError: AppError | null;
+  recheckCompliance: () => void;
+  /**
+   * Apply a rule's computed auto-fix as ONE undo group through the model store.
+   * The strip and the tab share this so "Fix it" means the same thing in both.
+   */
+  applyFix: (issue: ComplianceIssueVM) => void;
   /** Open the share dialog from inside a tab (renders and sheets both do). */
   openShare: () => void;
   /** Kick off a solver run from inside a tab. */
@@ -192,7 +207,54 @@ export function ProjectShell(): JSX.Element {
   // Live compliance: re-fetched (debounced ≤500ms, §14) every time the server
   // confirms an op group — which is what makes "changing city preset
   // re-validates live" true. `null` = nothing evaluated yet, never a pass.
-  const { issues: compliance, checking: complianceChecking } = useLiveCompliance(projectId);
+  const {
+    issues: compliance,
+    report: complianceReport,
+    checking: complianceChecking,
+    error: complianceError,
+    recheck: recheckCompliance,
+  } = useLiveCompliance(projectId);
+
+  /**
+   * "Fix it" (§15): compute the pack's suggested op group against the document
+   * as it is NOW and dispatch it as one undo group. The strip re-checks when the
+   * server confirms the group, and the chip clears by itself if the fix held.
+   * A `null` plan means the element changed since the last check (or the pack
+   * over-claimed); the honest answer is a toast, never a silent no-op.
+   */
+  function applyFix(issue: ComplianceIssueVM): void {
+    const model = useModelStore.getState();
+    const plan = computeAutofix(issue, model.doc);
+    if (plan === null) {
+      toast({
+        severity: 'fail',
+        title: "Couldn't compute this fix",
+        description:
+          'The element may have changed since the last check. Re-check, then follow the hint on the Compliance tab.',
+        action: { label: 'Re-check', onClick: recheckCompliance },
+      });
+      return;
+    }
+    const result = model.dispatch(plan.ops, { label: plan.label, source: 'manual' });
+    if (!result.ok) {
+      toast({
+        severity: 'fail',
+        title: "Couldn't apply the fix",
+        description: result.issues.map((i) => i.message).join(' '),
+        action: {
+          label: 'Open Compliance',
+          onClick: () => navigate(`/projects/${projectId}/compliance`),
+        },
+      });
+      return;
+    }
+    toast({
+      severity: 'pass',
+      title: plan.label,
+      description: `${plan.summary}. Re-checking…`,
+      action: { label: 'Undo', onClick: () => void useModelStore.getState().undo() },
+    });
+  }
 
   // Phase 4: the tool rail, the snap toggle and the storey tabs are all views
   // of the `ui` store, not local state. They have to be — the keyboard map
@@ -386,7 +448,11 @@ export function ProjectShell(): JSX.Element {
     units,
     jobs,
     compliance,
+    complianceReport,
     complianceChecking,
+    complianceError,
+    recheckCompliance,
+    applyFix,
     openShare: () => setShareOpen(true),
     generate: () => handleGenerate(),
   };
@@ -619,6 +685,9 @@ export function ProjectShell(): JSX.Element {
             issues={compliance ?? []}
             notRun={compliance === null && !(complianceChecking && hasBoundary)}
             checking={complianceChecking}
+            error={complianceError}
+            onRetry={recheckCompliance}
+            onApplyFix={applyFix}
             /* The strip lives here and the camera lives inside the Plan tab's
                canvas, with a router `<Outlet>` between them. The request goes
                through the `ui` store rather than a prop chain nobody can

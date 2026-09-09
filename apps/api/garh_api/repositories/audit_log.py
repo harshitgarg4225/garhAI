@@ -38,7 +38,12 @@ ACTION_EXPORT_DOWNLOADED = "export.downloaded"
 ACTION_SHARE_CREATED = "share.created"
 ACTION_SHARE_REVOKED = "share.revoked"
 ACTION_REG_PROFILE_OVERRIDDEN = "reg_profile.overridden"
+#: Golden rule 5: an architect accepted a failing rule with a reason (the row stays
+#: red in the report; the solver gate stops blocking on it). Emitted by
+#: ``POST /projects/:id/compliance/overrides``; the revocation has its own action so
+#: the trail reads as two decisions, not one edit.
 ACTION_COMPLIANCE_OVERRIDDEN = "compliance.overridden"
+ACTION_COMPLIANCE_OVERRIDE_REVOKED = "compliance.override_revoked"
 ACTION_USER_ROLE_CHANGED = "user.role_changed"
 ACTION_USER_REMOVED = "user.removed"
 ACTION_FIRM_SETTINGS_CHANGED = "firm.settings_changed"
@@ -66,6 +71,7 @@ AUDIT_ACTIONS: tuple[str, ...] = (
     ACTION_SHARE_REVOKED,
     ACTION_REG_PROFILE_OVERRIDDEN,
     ACTION_COMPLIANCE_OVERRIDDEN,
+    ACTION_COMPLIANCE_OVERRIDE_REVOKED,
     ACTION_USER_ROLE_CHANGED,
     ACTION_USER_REMOVED,
     ACTION_FIRM_SETTINGS_CHANGED,
@@ -167,6 +173,7 @@ __all__ = [
     "ACTION_AUTH_SIGNUP",
     "ACTION_AUTH_TOKEN_REFRESHED",
     "ACTION_COMPLIANCE_OVERRIDDEN",
+    "ACTION_COMPLIANCE_OVERRIDE_REVOKED",
     "ACTION_EXPORT_CREATED",
     "ACTION_EXPORT_DOWNLOADED",
     "ACTION_FIRM_SETTINGS_CHANGED",

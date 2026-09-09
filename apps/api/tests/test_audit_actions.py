@@ -41,14 +41,14 @@ API_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #:
 #: Deleting a line from this dict is part of the diff that adds the route.
 PENDING_ACTIONS = {
-    # Golden rule 5: "Architects can override anything; overrides are logged." The
-    # override control is part of the compliance strip.
-    "compliance.overridden": "Phase 2 (rules engine) / Phase 4 (compliance chips UI)",
-    # ``user.role_changed`` and ``firm.settings_changed`` used to sit here beside it,
-    # and ``user.removed`` before them. None do now: J01's ``routers/team.py``
-    # mounts the role change and the profile edit, and F-6's DPDP erasure route
-    # (``POST /privacy/erasure``) removes the seat — so each entry would be the
-    # stale "not implemented yet" note this dict's own docstring warns about.
+    # Empty on purpose. ``compliance.overridden`` / ``compliance.override_revoked``
+    # used to sit here ("Phase 4 compliance chips UI"): ``routers/compliance.py`` now
+    # emits both from the override routes the Compliance tab calls.
+    # ``user.role_changed`` and ``firm.settings_changed`` used to sit here too, and
+    # ``user.removed`` before them: ``routers/team.py`` mounts the role change and the
+    # profile edit, and F-6's DPDP erasure route (``POST /privacy/erasure``) removes
+    # the seat — so each entry would be the stale "not implemented yet" note this
+    # dict's own docstring warns about.
 }
 
 #: One action per §13 category, so the test names the requirement it defends.

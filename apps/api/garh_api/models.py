@@ -837,6 +837,12 @@ class ComplianceReport(UuidPk, Timestamps, TenantOwned, Base):
         JSONB, nullable=False, server_default=JSON_OBJ
     )
     results: Mapped[list[Any]] = mapped_column(JSONB, nullable=False, server_default=JSON_ARR)
+    #: Everything the engine said beyond the rows — the area statement (FAR, coverage,
+    #: setbacks, per-storey built-up), scores, warnings, disclaimers, projection notes
+    #: and pack review status — frozen WITH the rows so a stored report can state the
+    #: same numbers the sheet printed without re-running the engine (§7, one source).
+    #: Null on rows frozen before this column existed.
+    summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     __table_args__ = (
         CheckConstraint(

@@ -33,6 +33,7 @@ from garh_api.compliance import (
     ComplianceUnavailable,
     cannot_evaluate_reason,
     evaluate_document,
+    report_summary,
 )
 from garh_api.config import get_settings
 from garh_api.estimator import build_estimate
@@ -668,24 +669,35 @@ async def get_compliance(
 
     ``evaluated: false`` is an honest "nobody has run the rules against this version
     yet". It is never rendered as a pass.
+
+    Without ``version`` this answers for the WORKING STATE. A frozen report is served
+    only when it describes exactly that state — its design version ends at the branch
+    head. It used to be served whenever one existed, so from the first named version
+    onwards every later edit got the old snapshot back: a green strip that described a
+    state several edits old, presented as current. Now a report behind the head means
+    a live run, and ``live: true`` says which the client got.
     """
     await require_project(session, ctx, project_id)
     ctx.require_scope("compliance")
     repo = ComplianceReportRepository(session, ctx)
-    report = (
-        await repo.latest_for_version(project_id, version)
-        if version is not None
-        else await repo.latest_for_project(project_id)
-    )
-    if report is not None:
-        return ComplianceOut.of(project_id, report)
+    branch = await active_branch(session, ctx, project_id)
 
-    # Nothing frozen for this version. Rather than answering "not checked" forever
+    if version is not None:
+        report = await repo.latest_for_version(project_id, version)
+        if report is not None:
+            return ComplianceOut.of(project_id, report)
+    else:
+        report = await repo.latest_for_project(project_id)
+        if report is not None and await _frozen_report_is_current(
+            session, ctx, project_id, branch, report
+        ):
+            return ComplianceOut.of(project_id, report)
+
+    # Nothing frozen for this state. Rather than answering "not checked" forever
     # (which is what happened while garh_rules was unwired), run the engine now and
     # return the result WITHOUT persisting it: an unnamed working state is not a
     # version, and freezing every editor keystroke would fill compliance_reports with
     # rows nothing ever quotes. `live: true` tells the client which it got.
-    branch = await active_branch(session, ctx, project_id)
     try:
         state = await load_project_state(session, ctx, project_id, branch)
     except ApiError:
@@ -703,6 +715,32 @@ async def get_compliance(
     return ComplianceOut.live_run(project_id, payload, pack_versions)
 
 
+async def _frozen_report_is_current(
+    session: Any,
+    ctx: Any,
+    project_id: uuid.UUID,
+    branch: uuid.UUID,
+    report: Any,
+) -> bool:
+    """Does this frozen report describe the branch's working state?
+
+    True only when the report's design version is on the active branch and its op
+    range ends at the branch head — i.e. nothing has been appended since it was
+    frozen. ``op_seq_end`` is the global op ``seq`` the freeze recorded
+    (``OpRepository.head_seq``), so it is compared with today's ``head_seq``, not
+    with the per-branch ``idx``. A report with no version (or a version with no
+    recorded end) cannot vouch for the head and is treated as stale, so the caller
+    runs the engine live.
+    """
+    if report.design_version_id is None:
+        return False
+    version = await DesignVersionRepository(session, ctx).get(report.design_version_id)
+    if version is None or version.version_branch != branch or version.op_seq_end is None:
+        return False
+    head_seq = await OpRepository(session, ctx).head_seq(project_id, branch)
+    return head_seq is not None and int(version.op_seq_end) == int(head_seq)
+
+
 async def freeze_compliance_report(
     session: Any,
     ctx: Any,
@@ -715,6 +753,11 @@ async def freeze_compliance_report(
     Never raises into the caller: a version must still save when the rules engine
     cannot run (a plot not drawn yet is the common case). The absence of a row is the
     honest signal, and ``GET /compliance`` renders it as "not checked yet".
+
+    The area statement, scores, warnings, disclaimers, notes and pack review status
+    are frozen WITH the rows (``summary``): they came out of the same evaluation, and
+    a report that quoted rows but had to re-run the engine for its FAR figure would
+    be two sources of the number the sheet prints.
     """
     blocked = cannot_evaluate_reason(document)
     if blocked is not None:
@@ -731,6 +774,7 @@ async def freeze_compliance_report(
         results=list(results) if isinstance(results, list) else [],
         pack_versions=pack_versions,
         design_version_id=design_version_id,
+        summary=report_summary(payload),
     )
 
 

@@ -34,6 +34,13 @@ export interface ComplianceStripProps {
   checking?: boolean | undefined;
   /** Nothing has been checked yet (no plot / no plan). */
   notRun?: boolean | undefined;
+  /**
+   * The last re-check failed. The chips shown are from the previous successful
+   * run and may be stale; the strip says so rather than presenting them as
+   * current. `onRetry` is the way back.
+   */
+  error?: { readonly message: string } | null | undefined;
+  onRetry?: (() => void) | undefined;
   /** Highlight the offending elements on the canvas. */
   onSelectElements?: ((elementIds: readonly string[]) => void) | undefined;
   /** Apply the pack's auto-fix op group. Shown only when `fixAvailable`. */
@@ -47,6 +54,8 @@ export function ComplianceStrip({
   issues,
   checking = false,
   notRun = false,
+  error = null,
+  onRetry,
   onSelectElements,
   onApplyFix,
   onOpenAll,
@@ -111,6 +120,11 @@ export function ComplianceStrip({
           <Skeleton className="h-6 w-32" shape="block" />
           <Skeleton className="h-6 w-36" shape="block" />
         </span>
+      ) : issues.length === 0 && error !== null && error !== undefined ? (
+        /* Nothing was ever checked successfully and the last attempt failed:
+           "All 0 checks passed" here would be the strip lying with a tick. The
+           badge on the right carries the failure and the retry. */
+        <span className="text-xs text-ink-muted">The compliance check could not run.</span>
       ) : failures.length === 0 && warnings.length === 0 ? (
         <span className="flex items-center gap-2 text-xs text-pass-ink">
           <Icon name="check-circle" size={14} />
@@ -165,6 +179,23 @@ export function ComplianceStrip({
         {checking && issues.length > 0 ? (
           <span className="text-2xs text-ink-subtle" role="status">
             Re-checking…
+          </span>
+        ) : null}
+        {error !== null && error !== undefined && !checking ? (
+          /* Stale chips must never pass for current ones: the last run failed,
+             and what is on screen describes an older state. Say so, offer the
+             retry, keep the chips (a blank strip would read as "all passed"). */
+          <span className="flex items-center gap-1.5" role="status" data-testid="compliance-error">
+            <Tooltip delayMs={150} content={error.message}>
+              <Badge tone="fail" icon="alert-triangle">
+                {issues.length > 0 ? 'Last check failed — results may be stale' : 'Check failed'}
+              </Badge>
+            </Tooltip>
+            {onRetry === undefined ? null : (
+              <Button size="sm" variant="ghost" onClick={onRetry}>
+                Retry
+              </Button>
+            )}
           </span>
         ) : null}
         {hasSeed ? (
