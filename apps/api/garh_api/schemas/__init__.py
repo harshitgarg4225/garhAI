@@ -28,7 +28,15 @@ import uuid
 from datetime import datetime
 from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictInt,
+    StrictStr,
+    field_validator,
+)
 from pydantic.alias_generators import to_camel
 
 #: A length/coordinate/thickness in integer millimetres. The whole product's unit.
@@ -127,6 +135,17 @@ class RoadEdge(CamelModel):
 
     edge_index: StrictInt = Field(ge=0)
     width_mm: Mm | None = Field(default=None, gt=0)
+    #: The road's name as it will print on the site plan ("12th Cross"). Nullable
+    #: like the op payload; whitespace-only is the same as absent.
+    name: StrictStr | None = Field(default=None, max_length=120)
+
+    @field_validator("name")
+    @classmethod
+    def _blank_name_is_none(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        return stripped or None
 
 
 class Ack(ResponseModel):

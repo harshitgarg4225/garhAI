@@ -420,14 +420,17 @@ async def put_plot(
         )
     if body.north_deg is not None:
         ops.append(OpIn(type="plot.set_north", payload={"deg": body.north_deg}))
+    # The roads and the profile are mirrored into ``plots`` in EXACTLY the shape the
+    # ops carry, so the projection can never disagree with the folded document: a
+    # road keeps its name, and a profile is always {cityPack, overrides}.
+    roads_mirror: list[dict[str, Any]] | None = None
     if body.roads is not None:
+        roads_mirror = []
         for road in body.roads:
-            ops.append(
-                OpIn(
-                    type="plot.set_road",
-                    payload={"edgeIndex": road.edge_index, "widthMm": road.width_mm},
-                )
-            )
+            payload = {"edgeIndex": road.edge_index, "widthMm": road.width_mm, "name": road.name}
+            ops.append(OpIn(type="plot.set_road", payload=payload))
+            roads_mirror.append(dict(payload))
+    reg_profile_mirror: dict[str, Any] | None = None
     if body.reg_profile is not None:
         city_pack = body.reg_profile.get("cityPack") or project.city_pack
         overrides = body.reg_profile.get("overrides")
@@ -435,12 +438,8 @@ async def put_plot(
             # A profile posted without the {cityPack, overrides} shape is treated as
             # overrides wholesale rather than silently dropped.
             overrides = {k: v for k, v in body.reg_profile.items() if k != "cityPack"}
-        ops.append(
-            OpIn(
-                type="plot.set_reg_profile",
-                payload={"cityPack": city_pack, "overrides": overrides},
-            )
-        )
+        reg_profile_mirror = {"cityPack": city_pack, "overrides": overrides}
+        ops.append(OpIn(type="plot.set_reg_profile", payload=dict(reg_profile_mirror)))
         await AuditLogRepository(session, ctx).record(
             ACTION_REG_PROFILE_OVERRIDDEN,
             entity="plot",
@@ -458,12 +457,8 @@ async def put_plot(
             [{"x": p.x, "y": p.y} for p in body.boundary] if body.boundary is not None else None
         ),
         north_deg=body.north_deg,
-        roads=(
-            [{"edgeIndex": r.edge_index, "widthMm": r.width_mm} for r in body.roads]
-            if body.roads is not None
-            else None
-        ),
-        reg_profile=body.reg_profile,
+        roads=roads_mirror,
+        reg_profile=reg_profile_mirror,
         source=body.source,
     )
     return PlotOut.of(plot)
