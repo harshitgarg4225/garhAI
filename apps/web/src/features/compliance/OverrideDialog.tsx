@@ -4,8 +4,9 @@
  * Golden rule 5: compliance informs, never blocks; an architect overrides for
  * good reasons and the override is logged, not prevented. The dialog says
  * exactly what accepting does (the row stays red on the report and the
- * annexure; the solver stops treating it as a blocker; the reason is stamped
- * with who and when) so the button is a decision, not a dismissal.
+ * annexure; the export check stops counting it as blocking while Generate's
+ * own gate does not read acknowledgements at all; the reason is stamped with
+ * who and when) so the button is a decision, not a dismissal.
  *
  * The reason is required — the server refuses fewer than three characters —
  * because an unexplained override is the one a municipal reviewer will query.
@@ -125,7 +126,10 @@ export function OverrideDialog({
           <li>
             The rule keeps evaluating and stays marked as failing on the report and the annexure.
           </li>
-          <li>Generate stops treating it as a blocker until the override is revoked.</li>
+          <li>
+            The export check stops counting it as blocking until the override is revoked. Generate's
+            own gate is separate and still rejects generated options that fail this rule.
+          </li>
           <li>The decision is written to the project's audit log.</li>
         </ul>
       </form>

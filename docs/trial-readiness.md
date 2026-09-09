@@ -186,10 +186,13 @@ Two smaller gaps found in passing:
   Bengaluru 30 × 50 G+2 3BHK, Bengaluru 40 × 60 G+2 4BHK. `test_plan_library.py` pins
   that each is flat, folds to the captured counts, renders to the stored thumbnail, and
   creates a project whose compliance report has no `fail`. That last gate dropped a
-  30 × 40 2BHK that passed the solver's hard-rule gate but fails
-  `nbc.ventilation.habitable.min` on the tab (the gate blocks only on `hard: true`; the
-  tab shows every `fail`), and no NCR-pack brief cleared `ncr.parking.ecs`. Both are
-  open items. Seeding lesson: a brief that declares no `carParking` fails every city
+  30 × 40 2BHK that passed the solver's gate but fails
+  `nbc.ventilation.habitable.min` on the tab (the solver's own evaluation measured the
+  room 1 mm narrower than the model's room detection does — the 57/58 wall convention
+  of CLAUDE.md bug 8 — so its row passed while the tab's failed; the gate itself rejects
+  any `fail` row, not only `hard` ones, see the 2026-09-09 bullet below), and no
+  NCR-pack brief cleared `ncr.parking.ecs`. Both are open items. Seeding lesson: a
+  brief that declares no `carParking` fails every city
   pack's parking rule, so the seeder declares it — the same trap `solver_enqueue.py`
   documents for the web app's `parkingCount`.
 - **The first library plans could not be walked through, and neither could any
@@ -233,15 +236,17 @@ Two smaller gaps found in passing:
   control). Still open from the same review, as tasks: shafts sized under the
   room-detection threshold with ventilators credited into sealed cavities; the
   parking rule passing on a brief declaration while its message says spaces are
-  shown; the solver gate blocking only `hard` rules while the tab shows every fail.
+  shown; the solver gate ignoring rule acknowledgements while the API's presentability
+  check honours them (task #46, scoped precisely in the 2026-09-09 bullet below).
 - **Two re-captured plans failed the tab's ventilation rule by under 0.06% (fixed
   2026-09-03).** `hyd-30x40-g1-3bhk` and `blr-30x50-g2-3bhk` came back from the fixed
   solver with every room reachable and one `fail` each: a master bedroom with 1.9068 m²
   of window against a 1.907152 m² requirement, a living-dining 1,046 mm² short. The
   solver sizes windows on its physical clear polygon (a 115 mm wall split 57/58 so the
   faces sum exactly); the model's room detection floors both faces to 57, so the tab
-  divides by a room 1 mm wider on one side. `nbc.ventilation.habitable.min` is not
-  `hard`, so the solver's own gate let both through. Windows are now sized against the
+  divides by a room 1 mm wider on one side, so the solver's own ventilation row passed
+  and its gate (which rejects any `fail` row) saw nothing to reject; the tab's row
+  failed. Windows are now sized against the
   detected polygon (`clear_polygon(..., as_detected=True)`), and `test_walls` folds
   real wall ops through the model and requires the two conventions to agree to the
   millimetre, with the physical polygon as the control that must not. The library was
@@ -250,6 +255,42 @@ Two smaller gaps found in passing:
   first library push turned the golden job red for want of goldens — the library plans
   now ARE the sheet-golden corpus, every ready-made plan renders its nine municipal
   sheets on every push.
+- **The Compliance tab could not be acted on, and after the first saved version it
+  was reading a snapshot (fixed 2026-09-09).** Four things a professional needed:
+  (1) "Fix it" existed on the chip and nothing was wired behind it — and the packs
+  default `computable: true`, so ~35 rules claimed a fix the client could not build;
+  `features/compliance/autofix.ts` now computes one op group per strategy (storey
+  height by the room's shortfall, opening width, stair riser by re-counting the flight
+  because the model holds risers × riser to the storey ±10 mm, projection) and the
+  button appears only when both the pack and the client say yes; the `wall.move`
+  "grow the room" strategies stay hints. (2) Rule acknowledgements: the engine had
+  honoured `{ruleId: {reason}}` since Phase 2 and nothing wrote one; `POST/DELETE
+/projects/:id/compliance/overrides` stamp who/when server-side, validate the rule
+  id against the loaded packs, append the op and emit the `compliance.overridden` /
+  `compliance.override_revoked` audit rows that had been "pending" since Phase 2; the
+  tab shows who/when/why with Revoke, and the area statement lists overridden rules.
+  (3) The numbers: measured vs limit in the project's units, the pack's own limit
+  under a value override, per-element instances, severity and the pack's `hard`
+  flag, the area statement / Vastu score / engine warnings / pack review standing —
+  `ComplianceOut` had been dropping `areas`, `scores`, `warnings` and `disclaimers`,
+  and a frozen report never stored them; `compliance_reports.summary` (migration
+  `0016_compliance_summary`) now freezes them with the rows. (4) `GET /compliance`
+  without `?version` served the latest frozen report whenever one existed, so from
+  the first named version onwards every later edit got the old snapshot back — a
+  green strip describing a state several edits old, presented as current; a frozen
+  report is now served only while its version's `op_seq_end` equals the branch's
+  `head_seq`, and a failed re-check is named on the strip and the tab with a retry.
+  **What `hard` means, reconciled (task #46):** the pack flag `hard: true` (one rule,
+  `vastu.toilet.never_ne`) means "no mode may relax this to a warning"; it is NOT what
+  the solver gate keys on. `services/solver/gates.py` rejects an option on ANY
+  `status == "fail"` row and never reads `overridden`, while the engine's
+  `blocking_failures()` (the API's presentability / export check) excludes accepted
+  rows. So an acknowledgement un-blocks export, not Generate; the dialog and the Hard
+  badge say exactly that, and the wording elsewhere in this file that described a
+  hard-only gate has been corrected. The remaining gap — the solver honouring
+  acknowledgements — is the solver's search and is left to task #46. CLAUDE.md still
+  carries the old "blocks only `hard` rules" phrasing in bug 8 and the plan-library
+  section. Ledger: `docs/phase-2-verification.md` §7.
 - **The 230 mm door pier made stage A and stage B disagree (fixed 2026-09-03).**
   Raising the wall-end margin for doors left stage A floor-planning passages and
   stair arrivals at a naive 900 mm and giving circulation rooms no frontage floor at

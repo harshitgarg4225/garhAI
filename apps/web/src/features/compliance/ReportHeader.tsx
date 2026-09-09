@@ -27,6 +27,9 @@ export function ReportHeader({ report, checking = false, today }: ReportHeaderPr
   const [showNotes, setShowNotes] = useState(false);
   const packIds = Object.keys(report.packVersions);
   const noteCount = report.warnings.length + report.notes.length;
+  // What the API's presentability check counts: fails the architect has NOT
+  // accepted. Generate's own gate is stricter (every fail, acknowledged or not).
+  const blocking = report.issues.filter((i) => i.status === 'fail' && i.overridden !== true).length;
 
   return (
     <Card className="p-4" data-testid="report-header">
@@ -62,8 +65,12 @@ export function ReportHeader({ report, checking = false, today }: ReportHeaderPr
           <p className="text-xs text-ink-muted">
             {report.createdAt === null ? null : `Run ${formatDateTime(report.createdAt)} · `}
             <span data-testid="report-counts">
-              {report.counts.fail} failing · {report.counts.warn} advisory · {report.counts.pass}{' '}
-              passing · {report.counts.not_applicable} not applicable
+              {report.counts.fail} failing
+              {report.counts.fail > 0 && blocking !== report.counts.fail
+                ? ` (${blocking} not yet accepted)`
+                : ''}{' '}
+              · {report.counts.warn} advisory · {report.counts.pass} passing ·{' '}
+              {report.counts.not_applicable} not applicable
               {report.counts.overridden > 0 ? ` · ${report.counts.overridden} overridden` : ''}
             </span>
           </p>

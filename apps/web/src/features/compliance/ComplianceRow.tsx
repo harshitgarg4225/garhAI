@@ -110,7 +110,7 @@ export function ComplianceRow({
           {issue.hard === true ? (
             <Tooltip
               delayMs={150}
-              content="The pack marks this rule hard: no mode can soften it to an advisory. Every un-overridden fail blocks Generate; this one cannot be relaxed."
+              content="The pack marks this rule hard: no mode (Vastu advisory included) can soften it to a warning. Generate's gate rejects any failing rule, hard or not; 'hard' is about relaxation, not blocking."
             >
               <Badge tone="fail" icon="alert-triangle">
                 Hard
