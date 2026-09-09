@@ -57,7 +57,7 @@ from garh_api.billing.gst import (
 from garh_api.billing.money import amount_in_words
 from garh_api.billing.plans import PLANS, QUOTA_KINDS, plan_for, seat_entitlement
 from garh_api.billing.provider import get_billing_provider
-from garh_api.billing.quotas import usage_lines
+from garh_api.billing.quotas import GATED_KINDS, usage_lines
 from garh_api.billing.repositories import (
     BillingAccount,
     BillingAccountRepository,
@@ -321,6 +321,7 @@ async def get_usage(session: SessionDep, ctx: TenantDep) -> UsageOut:
                 used=line.used,
                 allowance=line.allowance,
                 remaining=line.remaining,
+                enforced=line.kind in GATED_KINDS,
             )
             for line in lines
         ],

@@ -1492,3 +1492,43 @@ def test_the_402_names_the_kind_in_an_architects_words() -> None:
     none = QuotaExceededError.for_kind(kind="export", used=0, allowance=0, plan_code="free")
     assert str(none) == "Your free plan doesn't include drawing exports."
     assert "Billing" in none.problem_action
+
+
+# ---------------------------------------------------------------------------
+# What the usage response says is enforced IS what is mounted
+# ---------------------------------------------------------------------------
+
+
+def test_gated_kinds_equals_what_is_mounted_in_both_directions(
+    app_routes: Any, settings: Any
+) -> None:
+    """``GATED_KINDS`` feeds ``enforced`` on every usage line. It is a constant, so it
+    could drift from the routers (bug class 4); this reads the live dependency graph
+    and requires equality both ways — a kind gated on some route but missing here,
+    or listed here but gated nowhere, is red.
+    """
+    from garh_api.billing.quotas import GATED_KINDS
+
+    mounted: set[str] = set()
+    for route in walk_routes(app_routes):
+        mounted |= _mounted_quota_kinds(route)
+    assert mounted == set(GATED_KINDS), (
+        "GATED_KINDS says %s but require_quota is mounted for %s"
+        % (sorted(GATED_KINDS), sorted(mounted))
+    )
+    # NEGATIVE CONTROL for the guard itself: an extra entry would have failed above.
+    assert "export" not in GATED_KINDS, "export is metered but ungated (see UNGATED_ON_PURPOSE)"
+
+
+async def test_usage_lines_say_which_allowances_are_actually_enforced(
+    billing_client: httpx.AsyncClient, api: str, firm_a: Any
+) -> None:
+    """The free plan's export allowance is 0 by design and ungated in fact: the line must
+    say so, or "0 of 0" reads as a wall the architect will walk into and never does."""
+    response = await billing_client.get("%s/billing/usage" % api, headers=firm_a.headers)
+    assert response.status_code == 200, response.text
+    lines = {row["kind"]: row for row in response.json()["lines"]}
+    assert lines["solver"]["enforced"] is True
+    assert lines["render"]["enforced"] is True
+    assert lines["llm"]["enforced"] is True
+    assert lines["export"]["allowance"] == 0 and lines["export"]["enforced"] is False

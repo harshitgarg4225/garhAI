@@ -87,6 +87,10 @@ class UsageLineOut(ResponseModel):
     #: ``null`` = unmetered on this plan.
     allowance: StrictInt | None = None
     remaining: StrictInt | None = None
+    #: Whether ``require_quota`` is mounted for this kind anywhere in the app. False
+    #: for ``export`` today: the free plan's 0 is the catalogue's intent, not a gate
+    #: that fires, and a UI must say so rather than show a wall that is not there.
+    enforced: StrictBool = True
 
 
 class SpendBudgetOut(ResponseModel):

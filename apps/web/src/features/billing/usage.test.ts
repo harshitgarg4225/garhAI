@@ -87,6 +87,18 @@ describe('usage schema', () => {
     expect(hasRate(usage.spend)).toBe(false);
   });
 
+  it('reads `enforced` per line, and assumes enforced when an older api omits it', () => {
+    const usage = usageSchema.parse({
+      ...WIRE,
+      lines: [
+        { kind: 'solver', used: 2, allowance: 10, remaining: 8 },
+        { kind: 'export', used: 1, allowance: 0, remaining: 0, enforced: false },
+      ],
+    });
+    expect(lineFor(usage, 'solver')?.enforced).toBe(true);
+    expect(lineFor(usage, 'export')?.enforced).toBe(false);
+  });
+
   it('refuses a body that dropped the lines', () => {
     expect(() => usageSchema.parse({ ...WIRE, lines: 'nope' })).toThrow();
   });

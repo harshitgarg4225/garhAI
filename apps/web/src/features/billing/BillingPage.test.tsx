@@ -67,7 +67,7 @@ const USAGE = {
     { kind: 'solver', used: 2, allowance: 150, remaining: 148 },
     { kind: 'render', used: 0, allowance: 100, remaining: 100 },
     { kind: 'llm', used: 3, allowance: 1500, remaining: 1497 },
-    { kind: 'export', used: 1, allowance: 100, remaining: 99 },
+    { kind: 'export', used: 1, allowance: 100, remaining: 99, enforced: false },
   ],
   spend: {
     capUsd: '$5.00',
@@ -372,6 +372,10 @@ describe('BillingPage', () => {
 
     expect(container.querySelector('[data-testid="allowance-solver"]')?.textContent).toContain(
       '2 of 150 used',
+    );
+    // A kind the API does not refuse over says so — never a wall that is not there.
+    expect(container.querySelector('[data-testid="allowance-export"]')?.textContent).toContain(
+      '1 of 100 used (not enforced yet)',
     );
 
     const llm = container.querySelector('[data-testid="ledger-llm"]');

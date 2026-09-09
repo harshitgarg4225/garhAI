@@ -518,12 +518,18 @@ function AllowancesSection({ usage }: { usage: Usage | null }): JSX.Element {
           <ul className="grid gap-3 sm:grid-cols-2" data-testid="allowances">
             {usage.lines.map((line) => {
               const label = kindLabel(line.kind);
+              // A 0 that the API does not refuse over is the catalogue's intent, not a
+              // wall: say so, or the line is a gate that does not fire (bug class 1).
               const detail =
                 line.allowance === null
                   ? `${line.used} used, unmetered`
                   : line.allowance === 0
-                    ? 'Not included on this plan'
-                    : `${line.used} of ${line.allowance} used`;
+                    ? line.enforced
+                      ? 'Not included on this plan'
+                      : `Not included on this plan — not enforced yet, ${line.used} used`
+                    : line.enforced
+                      ? `${line.used} of ${line.allowance} used`
+                      : `${line.used} of ${line.allowance} used (not enforced yet)`;
               const value =
                 line.allowance === null
                   ? null

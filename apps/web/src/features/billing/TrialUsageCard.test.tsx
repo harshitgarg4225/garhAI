@@ -81,7 +81,10 @@ describe('TrialUsageCard', () => {
   });
 
   it('turns red and says so when the allowance is used up', () => {
-    const spent = { ...USAGE, lines: [{ kind: 'solver', used: 10, allowance: 10, remaining: 0 }] };
+    const spent = {
+      ...USAGE,
+      lines: [{ kind: 'solver', used: 10, allowance: 10, remaining: 0, enforced: true }],
+    };
     act(() => root.render(<TrialUsageCard usage={spent} />));
     const section = container.querySelector('section');
     expect(section?.className).toContain('border-fail-line');

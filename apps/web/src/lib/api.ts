@@ -361,6 +361,12 @@ export const usageLineSchema = z.object({
   /** `null` = unlimited on this plan. */
   allowance: z.number().int().nonnegative().nullable().default(null),
   remaining: z.number().int().nonnegative().nullable().default(null),
+  /**
+   * Whether the API actually refuses over this allowance. False for a kind whose
+   * gate is not mounted (export, today), so the page can say "not enforced yet"
+   * instead of showing a wall that is not there. Defaults to true for an older api.
+   */
+  enforced: z.boolean().default(true),
 });
 export const spendBudgetSchema = z.object({
   capUsd: z.string(),
