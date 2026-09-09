@@ -49,8 +49,11 @@ is the sentence the UI prints and this module is what makes it true.
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 import uuid
 from collections.abc import Sequence
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -211,6 +214,69 @@ def fresh_sheet_url(
         settings=cfg,
         response_headers=attachment_headers(attachment_filename),
     )
+
+
+#: File extension per export kind — one table, shared by the download branch and
+#: the file-naming helper, so a kind cannot get a name and an extension that disagree.
+EXPORT_FILE_EXTENSIONS: dict[str, str] = {
+    "pdf-set": "pdf",
+    "dxf": "dxf",
+    "gltf": "glb",
+    "png-pack": "zip",
+}
+
+#: What the artefact is called in the file name. An architect files "drawing-set",
+#: never "pdf-set" — the kind is API vocabulary, the label is theirs.
+EXPORT_FILE_LABELS: dict[str, str] = {
+    "pdf-set": "drawing-set",
+    "dxf": "drawings",
+    "gltf": "model",
+    "png-pack": "renders",
+}
+
+_SLUG_SEPARATORS = re.compile(r"[^a-z0-9]+")
+_SHEET_LABEL_SEPARATORS = re.compile(r"[^A-Za-z0-9]+")
+
+
+def file_slug(text: str | None, *, fallback: str = "project", max_length: int = 48) -> str:
+    """A project name as a file-name fragment: ASCII, lower-case, hyphen-separated.
+
+    "Sunrise Villa — Phase 2!" → ``sunrise-villa-phase-2``; accents fold to their base
+    letters ("Café" → ``cafe``); anything left with no letters or digits answers the
+    fallback rather than an empty stem. Capped so a long name cannot push the file past
+    what Windows' 260-character paths tolerate once a Downloads folder is in front.
+    """
+    folded = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode()
+    slug = _SLUG_SEPARATORS.sub("-", folded.lower()).strip("-")
+    if len(slug) > max_length:
+        slug = slug[:max_length].rstrip("-")
+    return slug or fallback
+
+
+def export_filename(project_name: str | None, kind: str, when: datetime) -> str:
+    """``<project>-<what>-<YYYY-MM-DD>.<ext>`` — the name an architect files it under.
+
+    "garh-export.pdf" said nothing about which project or which day, so two exports
+    of two houses landed in Downloads as "garh-export (1).pdf". The date is the export
+    date, frozen with the name at export time: a later rename of the project does not
+    rename a file already sent to a municipal office.
+    """
+    return "%s-%s-%s.%s" % (
+        file_slug(project_name),
+        EXPORT_FILE_LABELS.get(kind, file_slug(kind, fallback="export")),
+        when.strftime("%Y-%m-%d"),
+        EXPORT_FILE_EXTENSIONS.get(kind, "bin"),
+    )
+
+
+def sheet_filename(project_name: str | None, sheet_label: str | None, fmt: str) -> str:
+    """``<project>-<sheet number>.<fmt>``, the sheet number keeping its own case.
+
+    Sheet numbers are read the way they are printed in the title block (``A-02A``),
+    so they are sanitised for a file system but never lower-cased.
+    """
+    label = _SHEET_LABEL_SEPARATORS.sub("-", sheet_label or "").strip("-") or "sheet"
+    return "%s-%s.%s" % (file_slug(project_name), label, fmt)
 
 
 def attachment_headers(filename: str | None) -> dict[str, str] | None:

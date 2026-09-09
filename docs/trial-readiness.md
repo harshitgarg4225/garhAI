@@ -424,6 +424,21 @@ Two smaller gaps found in passing:
   and asserts each key the client sends is one of them, with `params` as the negative
   control — renaming a server field turns the test red instead of turning the button
   into a 422.
+- **Downloads were named `garh-export.pdf` and `A-01.pdf` (browser UAT run 10,
+  2026-09-09).** The first saved PDF set said nothing about which house or which day;
+  every project's A-01 was the same file name, so two exports of two houses would have
+  landed as "garh-export (1).pdf". Export files are now
+  `<project>-<drawing-set | drawings | model | renders>-<YYYY-MM-DD>.<ext>` and sheets
+  `<project>-<sheet number>.<fmt>`, the name decided at export time with the project
+  in hand and frozen on the export record (the download route is unauthenticated and
+  has no project to ask); a later rename does not rename a file already sent to a
+  municipal office. `test_export_filename.py`: the slug rules (accents fold, punctuation
+  collapses, never empty, capped), every export kind has both a label and an extension
+  (one table missing a kind would ship `.bin`), the export and sheet redemptions carry
+  the name in the signed disposition, a record written before names were kept still
+  redeems under the generic stem, and a sheet token naming another firm is a 404, not
+  a name (the project lookup added for the name goes through the firm-scoped
+  repository).
 - **Production connections, as read from the deployed stack's own boot lines
   (2026-09-07, Railway project `garhai`, environment `production`).** Live: the
   copilot provider is `anthropic` (key set on the api service), the render provider is

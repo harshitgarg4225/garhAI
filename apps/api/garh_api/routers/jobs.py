@@ -79,6 +79,7 @@ from garh_api.repositories import (
     CreditEventRepository,
     DesignVersionRepository,
     OpRepository,
+    ProjectRepository,
     RenderJobRepository,
     SheetRepository,
     SolverJobRepository,
@@ -139,13 +140,6 @@ _EXPORT_CONTENT_TYPES: dict[str, str] = {
     "dxf": "application/dxf",
     "gltf": "model/gltf-binary",
     "png-pack": "application/zip",
-}
-
-_EXPORT_EXTENSIONS: dict[str, str] = {
-    "pdf-set": "pdf",
-    "dxf": "dxf",
-    "gltf": "glb",
-    "png-pack": "zip",
 }
 
 
@@ -1001,7 +995,7 @@ async def start_export(
     receives, so who produced it and when is worth keeping.
     """
     ctx.require_write("exporting")
-    await require_project(session, ctx, project_id)
+    project = await require_project(session, ctx, project_id)
 
     guard = IdempotencyGuard(scope="export", key=idempotency_key, firm_id=ctx.firm_id)
     replayed = await guard.begin()
@@ -1036,6 +1030,11 @@ async def start_export(
         export_assets, export_outputs = await sheets_support.build_export_job(
             session, ctx, project_id, design_version_id, job_id=job_id, kind=body.kind
         )
+        # The file's name is decided here, with the project in hand, and frozen on the
+        # record: the download route is unauthenticated (the token is the credential)
+        # and has no project to ask. The worker's envelope does not carry it — the
+        # worker names nothing, it writes to a deterministic key.
+        file_name = sheets_support.export_filename(project.name, body.kind, datetime.now(UTC))
         record = await queue.put_export_job(
             queue.ExportJob(
                 id=job_id,
@@ -1044,7 +1043,7 @@ async def start_export(
                 kind=body.kind,
                 status="queued",
                 design_version_id=str(design_version_id) if design_version_id else None,
-                params=payload,
+                params={**payload, "fileName": file_name},
             )
         )
         await _enqueue_or_rollback(
@@ -1190,12 +1189,17 @@ async def redeem_download(token: str, request: Request) -> Response:
         from garh_api.routers.imports import _sigv4_presign
         from garh_api.routers.sheets import (
             EXPORT_ARTEFACTS,
+            EXPORT_FILE_EXTENSIONS,
             attachment_headers,
             export_object_key,
         )
 
         settings = get_settings()
-        filename = "garh-export.%s" % _EXPORT_EXTENSIONS.get(record.kind, "bin")
+        # Named at export time from the project (``start_export``); the generic stem is
+        # only for a record written before names were kept.
+        filename = str(dict(record.params or {}).get("fileName") or "") or (
+            "garh-export.%s" % EXPORT_FILE_EXTENSIONS.get(record.kind, "bin")
+        )
         # The render client pack also lands as a `png-pack` export record, but it built
         # its own zip under `renders/{firm}/packs/{pack}.zip` — re-signing the drawings
         # key for it would 404. Its `packId` param is the discriminator.
@@ -1232,9 +1236,12 @@ async def redeem_download(token: str, request: Request) -> Response:
                 # link may be redeemed the next morning. `fresh_sheet_url` re-signs from
                 # the key, and passes a `file://` developer path straight through —
                 # exactly what `renders.fresh_image_url` does for the same reason.
-                from garh_api.routers.sheets import fresh_sheet_url
+                from garh_api.routers.sheets import fresh_sheet_url, sheet_filename
 
-                filename = "%s.%s" % (sheet.number or sheet.kind, fmt)
+                # The project is loaded through the same firm-scoped repository, so a
+                # token for another firm's sheet still answers 404 here, not a name.
+                project = await ProjectRepository(session, ctx).require(sheet.project_id)
+                filename = sheet_filename(project.name, sheet.number or sheet.kind, fmt)
                 target = fresh_sheet_url(
                     sheet, fmt, firm_id, get_settings(), attachment_filename=filename
                 )
