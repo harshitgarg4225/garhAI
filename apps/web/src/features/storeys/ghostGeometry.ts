@@ -200,7 +200,9 @@ export function buildStoreyGhost(
     const symbol = stairSymbol(stair);
     pushRing(lines, symbol.ringMm, elevationMm);
     for (const [from, to] of symbol.treads) pushSegment(lines, from, to, elevationMm);
-    pushSegment(lines, symbol.arrow[0], symbol.arrow[1], elevationMm);
+    for (const [from, to] of symbol.edges) pushSegment(lines, from, to, elevationMm);
+    pushPolyline(lines, symbol.arrow, elevationMm);
+    for (const [from, to] of symbol.arrowHead) pushSegment(lines, from, to, elevationMm);
   }
 
   // ── columns: solid, because a column you cannot see is a column you build

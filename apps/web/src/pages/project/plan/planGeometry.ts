@@ -63,6 +63,8 @@ import {
   type Wall,
 } from '@garh/model';
 
+import { stairSymbol } from '../../../features/canvas/tools/stairSymbol';
+
 /** Float millimetres. RENDER ONLY — never an op payload. See the header. */
 export interface PtF {
   readonly x: number;
@@ -351,61 +353,17 @@ export function directionVector(direction: Direction4): { x: number; y: number }
   return DIRECTION_VECTOR[direction];
 }
 
-export interface StairSymbol {
-  readonly stairId: string;
-  /** Footprint ring, integer mm — pickable and outline-able. */
-  readonly ringMm: readonly Pt[];
-  /** One line per riser, across the flight. */
-  readonly treads: readonly (readonly [Pt, Pt])[];
-  /** UP arrow, [tail, head]. */
-  readonly arrow: readonly [Pt, Pt];
-}
-
 /**
- * A stair in plan: footprint, riser lines, UP arrow.
+ * A stair in plan: footprint, riser lines, landing edges, the UP arrow.
  *
- * MVP honesty: the flight is drawn as ONE straight run of `risersCount` treads
- * even for `dogleg`/`L`/`U` kinds, because the model stores a single origin,
- * direction and landing block rather than a per-flight path. Drawing an
- * invented turn would put a shape on a municipal drawing that the model does
- * not contain. The landing, when present, is drawn as the tail of the run.
+ * Derived in `features/canvas/tools/stairSymbol.ts` and re-exported here so the
+ * drawing and the stair tool's preview are ONE derivation — dogleg, L and U
+ * flights are laid out from the model's single riser count exactly as the
+ * fold's slab well is (`ceil(n/2)` risers before the landing), and that module's
+ * header says what is derived and what the model does not store.
  */
-export function stairSymbol(stair: Stair): StairSymbol {
-  const dir = DIRECTION_VECTOR[stair.direction];
-  // Right-hand perpendicular, so width runs across the direction of travel.
-  const perp = { x: dir.y, y: -dir.x };
-
-  const runMm = stair.risersCount * stair.treadMm;
-  const landingMm = stair.landing === null ? 0 : stair.landing.depthMm;
-  const totalMm = runMm + landingMm;
-  const widthMm = stair.widthMm;
-
-  const corner = (alongMm: number, acrossMm: number): Pt => ({
-    x: Math.round(stair.origin.x + dir.x * alongMm + perp.x * acrossMm),
-    y: Math.round(stair.origin.y + dir.y * alongMm + perp.y * acrossMm),
-  });
-
-  const ringMm: Pt[] = [
-    corner(0, 0),
-    corner(totalMm, 0),
-    corner(totalMm, widthMm),
-    corner(0, widthMm),
-  ];
-
-  const treads: (readonly [Pt, Pt])[] = [];
-  for (let i = 1; i <= stair.risersCount; i += 1) {
-    const alongMm = i * stair.treadMm;
-    if (alongMm > runMm) break;
-    treads.push([corner(alongMm, 0), corner(alongMm, widthMm)] as const);
-  }
-
-  const arrow: readonly [Pt, Pt] = [
-    corner(stair.treadMm / 2, widthMm / 2),
-    corner(Math.max(stair.treadMm, runMm - stair.treadMm / 2), widthMm / 2),
-  ];
-
-  return { stairId: stair.id, ringMm, treads, arrow };
-}
+export { stairSymbol };
+export type { StairSymbol } from '../../../features/canvas/tools/stairSymbol';
 
 // ---------------------------------------------------------------------------
 // Columns
