@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import signal
 import time
 from abc import ABC, abstractmethod
@@ -46,6 +47,12 @@ from services.common.errors import (
     user_facing,
 )
 from services.common.health import HealthServer, HealthStatus
+from services.common.heartbeat import (
+    heartbeat_key,
+    heartbeat_payload,
+    heartbeat_ttl_seconds,
+    instance_id,
+)
 from services.common.jobstore import JobResult, JobStatusSink, NullJobStatusSink
 from services.common.logging import (
     bind_job_context,
@@ -160,6 +167,10 @@ class Worker:
         self._reservations: dict[asyncio.Task[None], Reservation] = {}
         self._health: HealthServer | None = None
         self._redis_ok = False
+        #: §18 liveness the API can read without reaching this container: one
+        #: Redis key per process, refreshed by the sweep loop, expiring on its own.
+        self.instance = instance_id()
+        self.heartbeat_key = heartbeat_key(name, self.instance)
 
     # ------------------------------------------------------------------
     # lifecycle
@@ -196,6 +207,7 @@ class Worker:
         log.info(
             "worker.started",
             queue=self.queue_name,
+            instance=self.instance,
             concurrency=self.settings.worker_concurrency,
             kinds=list(self.handler.kinds),
             provider_llm=self.settings.provider_llm,
@@ -214,6 +226,7 @@ class Worker:
             with contextlib.suppress(asyncio.CancelledError):
                 await sweeper
             await self._drain(queue)
+            await self.retire_heartbeat()
             if self._health is not None:
                 await self._health.stop()
             await self.blobs.aclose()
@@ -531,12 +544,47 @@ class Worker:
                 self.metrics.queue_depth_processing = depth.processing
                 self.metrics.queue_depth_dead = depth.dead
                 self._redis_ok = True
+                await self.publish_heartbeat()
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
                 self._redis_ok = False
                 log.warning("worker.sweep_failed", error=str(exc))
             await asyncio.sleep(self.settings.queue_sweep_interval_seconds)
+
+    async def publish_heartbeat(self) -> None:
+        """Write this process's heartbeat key (see ``services/common/heartbeat.py``).
+
+        Called from the sweep loop, so it inherits that loop's cadence and its error
+        handling: a Redis hiccup logs ``worker.sweep_failed`` and the key simply ages
+        out, which is the honest signal. The expiry is the whole mechanism — a worker
+        that stops calling this disappears from the ops page on its own.
+        """
+        if self._redis is None:
+            return
+        payload = heartbeat_payload(
+            metrics=self.metrics,
+            instance=self.instance,
+            interval_seconds=self.settings.queue_sweep_interval_seconds,
+            env=self.settings.env,
+            provider_llm=self.settings.provider_llm,
+            provider_render=self.settings.provider_render,
+            sentry_enabled=bool(self.settings.sentry_dsn),
+            draining=self._stopping.is_set(),
+        )
+        await self._redis.set(
+            self.heartbeat_key,
+            json.dumps(payload, sort_keys=True),
+            ex=heartbeat_ttl_seconds(self.settings.queue_sweep_interval_seconds),
+        )
+
+    async def retire_heartbeat(self) -> None:
+        """Delete the key on a clean stop, so a deploy's old replica vanishes at once
+        instead of lingering as "seen 20 s ago" until the expiry."""
+        if self._redis is None:
+            return
+        with contextlib.suppress(Exception):
+            await self._redis.delete(self.heartbeat_key)
 
     async def _probe(self) -> HealthStatus:
         """``/healthz``: healthy when Redis answers. Honest, not decorative."""
