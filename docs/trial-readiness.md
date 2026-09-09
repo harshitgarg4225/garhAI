@@ -93,14 +93,16 @@ architect's phrasing needs the Stability key and a human panel.
 `scripts/collab_journey.py` — 10/10, and the result is not what the feature list
 suggests.
 
-**Two colleagues cannot share a project.** `AuthService.signup` only ever calls
-`create_firm_with_owner`, which is the single place a `User` row is constructed;
-`POST /billing/seats` assigns a seat to a user that must already exist; and there is no
-invite endpoint anywhere. Every signup creates a NEW firm with exactly one admin, and
-the tenancy layer then correctly hides every project from everyone else.
+**Two colleagues could not share a project (closed 2026-09-07, see below).** Until
+then `AuthService.signup` was the only caller of `create_firm_with_owner`, the single
+place a `User` row was constructed; `POST /billing/seats` assigned a seat to a user that
+had to already exist; and there was no invite endpoint anywhere. Every signup created a
+NEW firm with exactly one admin, and the tenancy layer then correctly hid every project
+from everyone else.
 
 So presence, live cursors, op streaming between people and in-project comments between
-colleagues are all built, all firm-scoped, and today **unreachable by any two humans**.
+colleagues were all built, all firm-scoped, and **unreachable by any two humans** — the
+row at the bottom of this table was the whole finding.
 
 |                                                      |                              |
 | ---------------------------------------------------- | ---------------------------- |
@@ -111,7 +113,7 @@ colleagues are all built, all firm-scoped, and today **unreachable by any two hu
 | Client comments through the link → architect sees it | works                        |
 | Revoke the link → client loses access                | works (`share_link_invalid`) |
 | Another firm reading your project                    | 404, correct                 |
-| **Invite a colleague into your firm**                | **no such endpoint**         |
+| Invite a colleague into your firm                    | works (`POST /firm/invites`) |
 
 Two smaller gaps found in passing:
 
@@ -363,6 +365,33 @@ Two smaller gaps found in passing:
   addresses — was rejected because it opens an enumeration oracle, and
   `test_auth_resend_scope.py` pins both properties with a negative control in each
   direction (revert the fix → the live-defect test reds; over-fix → the oracle guard reds).
+- **A practice is one person until it can invite a second (closed 2026-09-07 → 09).**
+  The J01/J10 audits scored sign-in 5.5 and collaboration 5 for the same reason: no
+  route could add a member, no screen existed for the team, the firm or the account,
+  and the sign-up copy promised all three. `POST /firm/invites` (admin; role + seat)
+  emails a link through the same mailer as the OTP; the invitee accepts by the ORDINARY
+  sign-in — a code to the invited address creates the member in the inviting firm with
+  the invited role and the promised seat. The link resolves only to an honest pre-auth
+  status page (pending / expired / withdrawn / used); it is never the credential, and
+  only its `sha256` is stored. Two properties pull against each other and both are
+  pinned in `test_team_invites.py` with the negative control that catches the over-fix:
+  an expired or withdrawn invite refuses honestly on the status page while
+  `POST /auth/otp` stays a uniform 202, and inviting an address that belongs to
+  ANOTHER practice is byte-for-byte the same 201 as a fresh one (the admin is not an
+  enumeration oracle) while inviting your own member is a firm-scoped 409. The resend
+  cooldown is a third `OtpRoute` (`invite`) — the sign-in/sign-up lesson applied again —
+  so an admin's resend never spends the colleague's own sign-in cooldown. Editor
+  invites count against the plan's seats at creation (402), viewers are free. Members
+  can be promoted, demoted (never the last admin) and removed (never yourself; the
+  seat is released and every live session ends now, asserted on a real bearer and
+  refresh cookie). `GET/PATCH /firm` holds name, address, GSTIN (check digit
+  enforced), registration and phone; a rename reaches the sheet title block because
+  that reads `firms.name`. The web gained `/settings/{practice,team,account}` and a
+  login page matched to the server's error contract code by code — no invented
+  "tries left", the server's Retry-After on the countdown, a step for
+  `two_factor_required`, an invite banner, and no discarded mobile field.
+  `docs/team-verification.md` is the ledger; what is still UNVERIFIED there is the
+  invite email through Brevo on the deployed stack and the loop in a real browser.
 - **Four more OTP findings closed the same day (from the delivery audit).** All
   execution finds on the deployed stack, all invisible to a suite that had never run
   with a mailer installed: (1) the response echoed the code whenever the dev echo was
