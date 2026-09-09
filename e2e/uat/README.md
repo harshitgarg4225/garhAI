@@ -47,6 +47,17 @@ One test-side defect too: the sheet-list regex missed the lettered sheet numbers
 (`A-02A`) and reported a rendered set as missing. Read a failing step's screenshot
 before believing it.
 
-Runs 10 and 11 passed all twelve steps; run 11 also confirmed the downloads arrive
+Runs 10, 11 and 12 passed all twelve steps; run 11 confirmed the downloads arrive
 under the project's name (`<project>-drawing-set-<date>.pdf`) rather than a generic
-stem.
+stem, and run 12 was the first on the merged build wave (drawings, billing, team,
+compliance).
+
+Read the console, not only the steps. Run 12's twelve green steps carried a real
+defect in their console: the Manifold WebAssembly module behind opening holes in 3D
+never compiled ("expected magic word 00 61 73 6d, found 3c 21 64 6f" — the bytes of
+`<!do`, an HTML page). The loader resolves `manifold.wasm` relative to the bundled
+script, the dev server answers with the SPA fallback, and every session has silently
+run the no-holes fallback. The other console lines are known noise: the six 404s are
+`GET /projects/:id/underlay` for a project with no underlay (the client treats that
+`no_underlay` answer as null by design), the React Router v7 future-flag warnings, and
+headless Chromium's software-WebGL notice.
