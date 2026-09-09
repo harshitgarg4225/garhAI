@@ -258,9 +258,9 @@ def _edge_roles(boundary: Sequence[Point], road_widths: Mapping[int, int | None]
     * front  = the edge with the widest road (ties → lowest index);
     * rear   = every other edge whose outward normal points within 45° of directly
       away from the front (an L-plot's two back faces are both rear);
-    * side-a / side-b = the rest, split by which half of the plot they sit in
-      measured along the front edge from its midpoint (A = the half the front edge
-      runs towards);
+    * side-a / side-b = the rest, split by which half of the plot they sit in as seen
+      FROM THE ROAD looking into the plot: A is the left half, B the right (the
+      engine's copy calls them "left side" / "right side");
     * with no road at all every edge is ``other``.
     """
     edge_count = len(boundary)
@@ -293,6 +293,10 @@ def _edge_roles(boundary: Sequence[Point], road_widths: Mapping[int, int | None]
     f_len_sq = fdx * fdx + fdy * fdy
     fmx2 = fa[0] + fb[0]  # doubled midpoint of the front edge
     fmy2 = fa[1] + fb[1]
+    # "Left" for someone standing on the road looking into the plot: the inward
+    # direction (−f) rotated 90° anticlockwise = (f.y, −f.x). Orientation-free.
+    left_x = fny
+    left_y = -fnx
 
     for i in range(edge_count):
         if i == front:
@@ -308,9 +312,10 @@ def _edge_roles(boundary: Sequence[Point], road_widths: Mapping[int, int | None]
         if dotp < 0 and 2 * dotp * dotp >= (dx * dx + dy * dy) * f_len_sq:
             roles[i] = "rear"
             continue
-        # Which half of the plot, measured along the front edge from its midpoint.
-        along = (a[0] + b[0] - fmx2) * fdx + (a[1] + b[1] - fmy2) * fdy
-        roles[i] = "side-a" if along >= 0 else "side-b"
+        # Which half of the plot the edge's midpoint sits in, left or right of the
+        # front edge's midpoint as seen from the road.
+        to_left = (a[0] + b[0] - fmx2) * left_x + (a[1] + b[1] - fmy2) * left_y
+        roles[i] = "side-a" if to_left > 0 else "side-b"
     return roles
 
 

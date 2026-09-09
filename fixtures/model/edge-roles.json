@@ -1,36 +1,36 @@
 {
-  "$comment": "Plot-edge roles (front / rear / side-a / side-b / other) as the rules engine and the plot editor must BOTH derive them. Hand-written from the definition in apps/api/garh_api/compliance.py::_edge_roles (mirrored by apps/web/src/features/plot/geometry.ts::edgeRoles): front = widest road (ties -> lowest index); rear = outward normal within 45 deg of directly away from the front; the rest side-a / side-b by which half of the plot they sit in along the front edge (A = the half the front edge runs towards). Asserted by apps/api/tests/test_edge_roles.py and apps/web/src/features/plot/plot.test.ts. Rings are integer mm.",
+  "$comment": "Plot-edge roles (front / rear / side-a / side-b / other) as the rules engine and the plot editor must BOTH derive them. Hand-written from the definition in apps/api/garh_api/compliance.py::_edge_roles (mirrored by apps/web/src/features/plot/geometry.ts::edgeRoles): front = widest road (ties -> lowest index); rear = outward normal within 45 deg of directly away from the front; the rest side-a / side-b by which half of the plot they sit in as seen FROM THE ROAD looking in (A = left, B = right — the engine's copy says 'left side' / 'right side'). Asserted by apps/api/tests/test_edge_roles.py and apps/web/src/features/plot/plot.test.ts. Rings are integer mm.",
   "cases": [
     {
-      "name": "30x40 rectangle, road on the bottom edge",
+      "name": "30x40 rectangle, road on the bottom edge: left (west) is side A",
       "boundary": [[0, 0], [9144, 0], [9144, 12192], [0, 12192]],
       "roads": [{ "edgeIndex": 0, "widthMm": 9000 }],
-      "roles": ["front", "side-a", "rear", "side-b"]
+      "roles": ["front", "side-b", "rear", "side-a"]
     },
     {
-      "name": "rectangle, road on the right-hand edge",
+      "name": "rectangle, road on the east edge: looking west, the south edge is on the left",
       "boundary": [[0, 0], [9144, 0], [9144, 12192], [0, 12192]],
       "roads": [{ "edgeIndex": 1, "widthMm": 9000 }],
-      "roles": ["side-b", "front", "side-a", "rear"]
+      "roles": ["side-a", "front", "side-b", "rear"]
     },
     {
       "name": "L-plot: both back faces are rear, the notch's side is a side (parity picked edge 3 as rear)",
       "boundary": [[0, 0], [9000, 0], [9000, 6000], [5000, 6000], [5000, 12000], [0, 12000]],
       "roads": [{ "edgeIndex": 0, "widthMm": 9000 }],
-      "roles": ["front", "side-a", "rear", "side-a", "rear", "side-b"],
+      "roles": ["front", "side-b", "rear", "side-b", "rear", "side-a"],
       "parityRoles": ["front", "side-a", "side-b", "rear", "side-a", "side-b"]
     },
     {
       "name": "trapezoid: skewed sides are sides, the top is rear",
       "boundary": [[0, 0], [12000, 0], [10000, 9000], [2000, 9000]],
       "roads": [{ "edgeIndex": 0, "widthMm": 9000 }],
-      "roles": ["front", "side-a", "rear", "side-b"]
+      "roles": ["front", "side-b", "rear", "side-a"]
     },
     {
       "name": "right triangle: the hypotenuse faces away enough to be rear",
       "boundary": [[0, 0], [10000, 0], [0, 8000]],
       "roads": [{ "edgeIndex": 0, "widthMm": 6000 }],
-      "roles": ["front", "rear", "side-b"]
+      "roles": ["front", "rear", "side-a"]
     },
     {
       "name": "no road at all: every edge is other",
@@ -45,7 +45,7 @@
         { "edgeIndex": 0, "widthMm": 9000 },
         { "edgeIndex": 1, "widthMm": 12000 }
       ],
-      "roles": ["side-b", "front", "side-a", "rear"]
+      "roles": ["side-a", "front", "side-b", "rear"]
     },
     {
       "name": "two equal roads: the lower edge index is the front",
@@ -54,10 +54,10 @@
         { "edgeIndex": 2, "widthMm": 9000 },
         { "edgeIndex": 0, "widthMm": 9000 }
       ],
-      "roles": ["front", "side-a", "rear", "side-b"]
+      "roles": ["front", "side-b", "rear", "side-a"]
     },
     {
-      "name": "clockwise rectangle (a dragged corner can flip a ring): normals still point outward",
+      "name": "clockwise rectangle (a dragged corner can flip a ring): normals still point outward, left is still west",
       "boundary": [[0, 0], [0, 12192], [9144, 12192], [9144, 0]],
       "roads": [{ "edgeIndex": 3, "widthMm": 9000 }],
       "roles": ["side-a", "rear", "side-b", "front"]

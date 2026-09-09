@@ -305,7 +305,7 @@ describe('edgeRoles (mirror of compliance.py::_edge_roles)', () => {
       { x: 200_000, y: 200_000 },
       { x: 0, y: 200_000 },
     ];
-    expect(edgeRoles(big, [road(0, 9000)])).toEqual(['front', 'side-a', 'rear', 'side-b']);
+    expect(edgeRoles(big, [road(0, 9000)])).toEqual(['front', 'side-b', 'rear', 'side-a']);
   });
 });
 
@@ -566,7 +566,9 @@ describe('rulepack resolution', () => {
       overridden: false,
     });
     expect(resolved.values.setbackRearMm?.value).toBe(1000);
-    expect(resolved.values.setbackSideMm?.value).toBe(1000);
+    // A `sides` rule binds both sides; each has its own key for the engine.
+    expect(resolved.values.setbackSideAMm?.value).toBe(1000);
+    expect(resolved.values.setbackSideBMm?.value).toBe(1000);
     expect(resolved.values.coveragePct?.value).toBe(70);
     expect(resolved.values.farX100?.value).toBe(225);
     expect(resolved.values.heightMaxMm?.value).toBe(15000);
@@ -663,6 +665,46 @@ describe('value overrides', () => {
 
   it('refuses non-integers (the op validator would too)', () => {
     expect(() => withValueOverride({}, 'farX100', 1.75)).toThrow();
+  });
+
+  it('reads a legacy single side key as both sides, and retires it on the first side write', () => {
+    // Written before the sides were split: the engine applies it to either side
+    // whose specific key is absent, so the panel must show it on both.
+    const legacy = { values: { setbackSideMm: 1200 } };
+    expect(readValueOverrides(legacy)).toEqual({ setbackSideAMm: 1200, setbackSideBMm: 1200 });
+    // A specific key wins on its own side only.
+    expect(readValueOverrides({ values: { setbackSideMm: 1200, setbackSideBMm: 900 } })).toEqual({
+      setbackSideAMm: 1200,
+      setbackSideBMm: 900,
+    });
+    // Writing side A expands the legacy value into side B and drops the old key,
+    // so clearing A later cannot resurrect a value the panel no longer shows.
+    const next = withValueOverride(legacy, 'setbackSideAMm', 1500);
+    expect(next).toEqual({ values: { setbackSideAMm: 1500, setbackSideBMm: 1200 } });
+    const cleared = withValueOverride(next, 'setbackSideAMm', null);
+    expect(readValueOverrides(cleared)).toEqual({ setbackSideBMm: 1200 });
+  });
+
+  it('side-a and side-b pack rules resolve independently', () => {
+    const cornerPack = rulepackDocSchema.parse({
+      pack: 'test',
+      rules: [
+        {
+          id: 'test.setback.side-a',
+          title: 'Left side',
+          check: { type: 'setback_min', edge: 'side-a', valueMm: 1000 },
+        },
+        {
+          id: 'test.setback.side-b',
+          title: 'Right side (road side)',
+          check: { type: 'setback_min', edge: 'side-b', valueMm: 1800 },
+        },
+      ],
+    });
+    const facts = buildRegFacts({ boundaryAreaMm2: AREA_30x40, roads: [road(0, 9000)] });
+    const resolved = resolveRegValues(cornerPack, facts);
+    expect(resolved.values.setbackSideAMm?.value).toBe(1000);
+    expect(resolved.values.setbackSideBMm?.value).toBe(1800);
   });
 
   it('ignores malformed stored values instead of guessing', () => {

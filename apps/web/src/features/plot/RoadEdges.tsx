@@ -10,7 +10,7 @@
 import { formatLength } from '@garh/model';
 import { Chip, Input, LengthInput, PanelSection, SkeletonText, Tooltip, cn } from '@garh/ui';
 
-import { edgeFacing, edgeLengthMm, frontEdgeIndex } from './geometry';
+import { EDGE_ROLE_LABELS, edgeFacing, edgeLengthMm, edgeRoles, frontEdgeIndex } from './geometry';
 import { useModelReady, usePlotActions, usePlotDoc, useUnitsDisplay } from './usePlot';
 
 /**
@@ -52,12 +52,14 @@ export function RoadEdges({ className }: RoadEdgesProps): JSX.Element {
 
   const front = frontEdgeIndex(plot.roads);
   const roadByEdge = new Map(plot.roads.map((r) => [r.edgeIndex, r]));
+  const roles = edgeRoles(boundary, plot.roads);
 
   return (
     <PanelSection title="Roads" className={className ?? ''}>
       <p className="mb-2 text-2xs leading-4 text-ink-subtle">
         Mark every edge that touches a road. The widest one becomes the entry (front) edge — the
-        bye-law tables band on its width.
+        bye-law tables band on its width — and every other edge is then rear, side A (left, seen
+        from the road) or side B (right), which is how the setback rows name them.
       </p>
       <ul className="space-y-2">
         {boundary.map((_, i) => {
@@ -94,6 +96,12 @@ export function RoadEdges({ className }: RoadEdgesProps): JSX.Element {
                   <Tooltip content="The widest road wins; the solver places the entry here and the setback tables read this width.">
                     <Chip severity="info" size="sm" icon="home">
                       Front · entry
+                    </Chip>
+                  </Tooltip>
+                ) : roles[i] !== undefined && roles[i] !== 'other' ? (
+                  <Tooltip content="Which setback governs this edge — the same classification the compliance report uses.">
+                    <Chip severity="neutral" size="sm" data-testid={`edge-role-${String(i)}`}>
+                      {EDGE_ROLE_LABELS[roles[i]]}
                     </Chip>
                   </Tooltip>
                 ) : null}

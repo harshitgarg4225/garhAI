@@ -425,9 +425,10 @@ export const EDGE_ROLE_LABELS: Readonly<Record<EdgeRole, string>> = {
  *              directly away from the front (an L-plot's two back faces are
  *              both rear, which is what the rear setback governs);
  *   - side-a / side-b = the rest, split by which half of the plot they sit
- *              in: the half the front edge runs TOWARDS (its CCW direction) is
- *              side A, the half behind its start is side B. On a rectangle
- *              with the road at the bottom, A is the right-hand side.
+ *              in as seen FROM THE ROAD looking into the plot: A is the left
+ *              half, B the right (the engine's copy calls them "left side" and
+ *              "right side"). On a rectangle with the road at the bottom, A is
+ *              the west edge.
  * With no road at all every edge is `other`, so road-banded rules go
  * `not_applicable` rather than silently passing.
  */
@@ -452,6 +453,10 @@ export function edgeRoles(boundary: Polygon, roads: readonly Road[]): EdgeRole[]
   const fLenSq = BigInt(fdx * fdx + fdy * fdy);
   const fmx2 = fa.x + fb.x; // doubled midpoint of the front edge
   const fmy2 = fa.y + fb.y;
+  // "Left" for someone standing on the road looking into the plot: the inward
+  // direction (−f) rotated 90° anticlockwise = (f.y, −f.x). Orientation-free.
+  const leftX = fny;
+  const leftY = -fnx;
 
   for (let i = 0; i < n; i += 1) {
     if (i === front) continue;
@@ -471,9 +476,10 @@ export function edgeRoles(boundary: Polygon, roads: readonly Road[]): EdgeRole[]
         continue;
       }
     }
-    // Which half of the plot, measured along the front edge from its midpoint.
-    const along = (a.x + b.x - fmx2) * fdx + (a.y + b.y - fmy2) * fdy;
-    roles[i] = along >= 0 ? 'side-a' : 'side-b';
+    // Which half of the plot the edge's midpoint sits in, left or right of the
+    // front edge's midpoint as seen from the road.
+    const toLeft = (a.x + b.x - fmx2) * leftX + (a.y + b.y - fmy2) * leftY;
+    roles[i] = toLeft > 0 ? 'side-a' : 'side-b';
   }
   return roles;
 }
