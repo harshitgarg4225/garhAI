@@ -981,6 +981,25 @@ export const complianceSchema = z.object({
 });
 export type ComplianceReport = z.infer<typeof complianceSchema>;
 
+/** `POST /projects/:id/compliance/overrides` — the acknowledgement as stored. */
+export const complianceOverrideSchema = z.object({
+  ruleId: z.string(),
+  reason: z.string(),
+  byUserId: z.string().nullable().default(null),
+  byName: z.string().nullable().default(null),
+  at: z.string(),
+  /** The op log head after the override op landed; the model store pulls to it. */
+  headIdx: z.number().int(),
+});
+export type ComplianceOverride = z.infer<typeof complianceOverrideSchema>;
+
+export const complianceOverrideRevokedSchema = z.object({
+  ruleId: z.string(),
+  revoked: z.boolean().default(true),
+  headIdx: z.number().int(),
+});
+export type ComplianceOverrideRevoked = z.infer<typeof complianceOverrideRevokedSchema>;
+
 // ---------------------------------------------------------------------------
 // DXF boundary import (Phase 2 F1; garh_api/schemas/imports.py field for field)
 // ---------------------------------------------------------------------------

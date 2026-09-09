@@ -39,6 +39,8 @@ import {
   briefParseSchema,
   briefSchema,
   commentSchema,
+  complianceOverrideRevokedSchema,
+  complianceOverrideSchema,
   complianceSchema,
   copilotDecisionSchema,
   copilotProposeSchema,
@@ -80,6 +82,8 @@ import {
   type Brief,
   type BriefParse,
   type Comment,
+  type ComplianceOverride,
+  type ComplianceOverrideRevoked,
   type ComplianceReport,
   type CopilotPropose,
   type DxfImportJob,
@@ -1457,6 +1461,36 @@ export function createApiClient(client: HttpClient = http) {
           query: { version: options.version ?? undefined },
           parse: parser(complianceSchema),
           ...(options.signal === undefined ? {} : { signal: options.signal }),
+        }),
+      /**
+       * Accept a failing rule with a reason (golden rule 5: logged, never
+       * silenced). The server stamps who/when, validates the rule id against
+       * the packs the project loads, appends the `plot.set_reg_profile` op and
+       * writes the audit row. The caller then `pull()`s the model store so the
+       * op lands locally and the strip re-checks.
+       */
+      override: (
+        projectId: string,
+        input: { ruleId: string; reason: string },
+        opts: CallOptions = {},
+      ): Promise<ComplianceOverride> =>
+        client.request({
+          method: 'POST',
+          path: projectPath(projectId, '/compliance/overrides'),
+          body: input,
+          parse: parser(complianceOverrideSchema),
+          ...opts,
+        }),
+      revokeOverride: (
+        projectId: string,
+        ruleId: string,
+        opts: CallOptions = {},
+      ): Promise<ComplianceOverrideRevoked> =>
+        client.request({
+          method: 'DELETE',
+          path: projectPath(projectId, `/compliance/overrides/${encodeURIComponent(ruleId)}`),
+          parse: parser(complianceOverrideRevokedSchema),
+          ...opts,
         }),
     },
 
