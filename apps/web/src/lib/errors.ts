@@ -66,6 +66,14 @@ export const ERROR_CODES = {
   opRejected: 'op_rejected',
   // share links
   shareLinkInvalid: 'share_link_invalid',
+  // second factor (routers/sessions.py) and the team surface (routers/team.py)
+  twoFactorRequired: 'two_factor_required',
+  twoFactorInvalid: 'two_factor_invalid',
+  invitePending: 'invite_pending',
+  alreadyAMember: 'already_a_member',
+  inviteInvalid: 'invite_invalid',
+  lastAdmin: 'last_admin',
+  seatLimitReached: 'seat_limit_reached',
   // client-side only: there was no response to read a code from
   network: 'network_error',
   timeout: 'request_timeout',

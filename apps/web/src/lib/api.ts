@@ -617,6 +617,151 @@ export function toOpEnvelopes(ops: readonly Op[], groupId?: string): OpEnvelope[
  * Build the client. The app uses the {@link api} singleton; tests build their
  * own over a stub `HttpClient` so no global state leaks between cases.
  */
+// ---------------------------------------------------------------------------
+// The practice: profile, members, invites, devices, second factor (J01)
+// ---------------------------------------------------------------------------
+
+const teamId = z.string().min(1);
+
+export const memberSchema = z.object({
+  id: teamId,
+  email: z.string(),
+  name: z.string().default(''),
+  role: z.enum(['admin', 'member']).catch('member'),
+  coaNumber: z.string().nullable().default(null),
+  seat: z.object({ id: teamId, seatType: z.string() }).nullable().default(null),
+  /** Null until the first completed sign-in — the Team page says "never". */
+  lastSignInAt: z.string().nullable().default(null),
+  createdAt: z.string(),
+});
+export type Member = z.infer<typeof memberSchema>;
+
+export const membersSchema = z.object({
+  items: z.array(memberSchema),
+  count: z.number().int().nonnegative(),
+  /** 1 means nobody can be demoted or removed from the admin role. */
+  admins: z.number().int().nonnegative(),
+});
+export type Members = z.infer<typeof membersSchema>;
+
+export const inviteSchema = z.object({
+  id: teamId,
+  email: z.string(),
+  name: z.string().default(''),
+  role: z.enum(['admin', 'member']).catch('member'),
+  seatType: z.string(),
+  status: z.string(),
+  invitedBy: z.string().nullable().default(null),
+  invitedByName: z.string().nullable().default(null),
+  expiresAt: z.string(),
+  lastSentAt: z.string(),
+  sendCount: z.number().int().nonnegative(),
+  createdAt: z.string(),
+  /** Present ONCE — on create and resend. Never in a list. */
+  url: z.string().nullable().default(null),
+});
+export type Invite = z.infer<typeof inviteSchema>;
+
+export const invitesSchema = z.object({
+  items: z.array(inviteSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const inviteStatusSchema = z.object({
+  status: z.string(),
+  firmName: z.string(),
+  invitedByName: z.string().nullable().default(null),
+  role: z.string(),
+  email: z.string(),
+  expiresAt: z.string(),
+});
+export type InviteStatus = z.infer<typeof inviteStatusSchema>;
+
+export const practiceProfileSchema = z.object({
+  address: z.string().default(''),
+  gstin: z.string().default(''),
+  registrationNumber: z.string().default(''),
+  phone: z.string().default(''),
+});
+export type PracticeProfile = z.infer<typeof practiceProfileSchema>;
+
+export const firmProfileSchema = z.object({
+  id: teamId,
+  name: z.string(),
+  logoUrl: z.string().nullable().default(null),
+  practice: practiceProfileSchema.default({}),
+});
+export type FirmProfile = z.infer<typeof firmProfileSchema>;
+
+export const seatsSchema = z.object({
+  entitled: z.number().int().nonnegative(),
+  editorsUsed: z.number().int().nonnegative(),
+  viewersUsed: z.number().int().nonnegative(),
+  available: z.number().int().nonnegative(),
+  seats: z.array(z.object({ id: teamId, userId: z.string(), seatType: z.string() })).default([]),
+});
+export type Seats = z.infer<typeof seatsSchema>;
+
+export const deviceSchema = z.object({
+  /** Refresh-family id — what DELETE /auth/sessions/{id} takes. */
+  id: z.string().min(1),
+  current: z.boolean(),
+  startedAt: z.number(),
+  lastUsedAt: z.number(),
+  ip: z.string().nullable().default(null),
+  userAgent: z.string().nullable().default(null),
+  device: z.string().default(''),
+});
+export type Device = z.infer<typeof deviceSchema>;
+
+export const devicesSchema = z.object({
+  items: z.array(deviceSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const twoFactorStatusSchema = z.object({
+  enabled: z.boolean(),
+  pending: z.boolean().default(false),
+  confirmedAt: z.string().nullable().default(null),
+  recoveryCodesRemaining: z.number().int().nonnegative().default(0),
+});
+export type TwoFactorStatus = z.infer<typeof twoFactorStatusSchema>;
+
+export const twoFactorEnrolSchema = z.object({
+  secret: z.string(),
+  otpauthUri: z.string(),
+  digits: z.number().int().positive().default(6),
+  periodSeconds: z.number().int().positive().default(30),
+});
+export type TwoFactorEnrolment = z.infer<typeof twoFactorEnrolSchema>;
+
+export const recoveryCodesSchema = z.object({
+  recoveryCodes: z.array(z.string()),
+  enabled: z.boolean().default(true),
+});
+export type RecoveryCodes = z.infer<typeof recoveryCodesSchema>;
+
+const sessionsRevokedSchema = z.object({ sessionsEnded: z.number().int().nonnegative() });
+
+export interface PracticeProfilePatch {
+  address?: string;
+  gstin?: string;
+  registrationNumber?: string;
+  phone?: string;
+}
+
+export interface FirmProfilePatch {
+  name?: string;
+  practice?: PracticeProfilePatch;
+}
+
+export interface InviteInput {
+  email: string;
+  name: string;
+  role: 'admin' | 'member';
+  seatType: 'editor' | 'viewer';
+}
+
 export function createApiClient(client: HttpClient = http) {
   return {
     /** The underlying transport. Exposed for the SSE reader and for tests. */
@@ -735,6 +880,114 @@ export function createApiClient(client: HttpClient = http) {
       /** Who am I — used to re-hydrate the shell after a refresh-only boot. */
       me: (opts: CallOptions = {}): Promise<Session> =>
         client.request({ path: '/auth/me', parse: parser(sessionSchema), ...opts }),
+
+      /** Edit your own name / CoA number. `coaNumber: ''` clears it. */
+      updateProfile: (
+        input: { name?: string; coaNumber?: string },
+        opts: CallOptions = {},
+      ): Promise<Session> =>
+        client.request({
+          method: 'PATCH',
+          path: '/auth/me',
+          body: {
+            ...(input.name === undefined ? {} : { name: input.name }),
+            ...(input.coaNumber === undefined ? {} : { coaNumber: input.coaNumber }),
+          },
+          parse: parser(sessionSchema),
+          ...opts,
+        }),
+
+      /**
+       * Finish a sign-in that answered 403 `two_factor_required`. The challenge
+       * came in that error's `data`; the code is a 6-digit TOTP or a recovery code.
+       * Anonymous by necessity — there is no access token yet.
+       */
+      verifySecondFactor: (
+        input: { challenge: string; code: string },
+        opts: CallOptions = {},
+      ): Promise<Session> =>
+        client.request({
+          method: 'POST',
+          path: '/auth/2fa/verify',
+          auth: 'none',
+          body: { challenge: input.challenge, code: input.code },
+          parse: parser(sessionSchema),
+          ...opts,
+        }),
+
+      /**
+       * What an invite link points at (J01). Honest in every state — `pending`,
+       * `expired`, `revoked`, `accepted` — and a 404 `invite_invalid` for a token
+       * that matches nothing. Anonymous: the token is the authorisation to read
+       * this much, and acceptance is still the ordinary OTP sign-in.
+       */
+      inviteStatus: (token: string, opts: CallOptions = {}): Promise<InviteStatus> =>
+        client.request({
+          path: `/auth/invites/${encodeURIComponent(token)}`,
+          auth: 'none',
+          parse: parser(inviteStatusSchema),
+          ...opts,
+        }),
+
+      /** Signed-in devices (refresh families) and the second factor. */
+      sessions: {
+        list: (opts: CallOptions = {}): Promise<Device[]> =>
+          client.request({
+            path: '/auth/sessions',
+            parse: (data: unknown) => devicesSchema.parse(data).items,
+            ...opts,
+          }),
+        revoke: (familyId: string, opts: CallOptions = {}): Promise<number> =>
+          client.request({
+            method: 'DELETE',
+            path: `/auth/sessions/${encodeURIComponent(familyId)}`,
+            parse: (data: unknown) => sessionsRevokedSchema.parse(data).sessionsEnded,
+            ...opts,
+          }),
+        revokeOthers: (opts: CallOptions = {}): Promise<number> =>
+          client.request({
+            method: 'POST',
+            path: '/auth/sessions/revoke-others',
+            parse: (data: unknown) => sessionsRevokedSchema.parse(data).sessionsEnded,
+            ...opts,
+          }),
+      },
+
+      twoFactor: {
+        status: (opts: CallOptions = {}): Promise<TwoFactorStatus> =>
+          client.request({ path: '/auth/2fa', parse: parser(twoFactorStatusSchema), ...opts }),
+        enrol: (opts: CallOptions = {}): Promise<TwoFactorEnrolment> =>
+          client.request({
+            method: 'POST',
+            path: '/auth/2fa/enrol',
+            parse: parser(twoFactorEnrolSchema),
+            ...opts,
+          }),
+        activate: (code: string, opts: CallOptions = {}): Promise<RecoveryCodes> =>
+          client.request({
+            method: 'POST',
+            path: '/auth/2fa/activate',
+            body: { code },
+            parse: parser(recoveryCodesSchema),
+            ...opts,
+          }),
+        regenerate: (code: string, opts: CallOptions = {}): Promise<RecoveryCodes> =>
+          client.request({
+            method: 'POST',
+            path: '/auth/2fa/recovery-codes',
+            body: { code },
+            parse: parser(recoveryCodesSchema),
+            ...opts,
+          }),
+        disable: (code: string, opts: CallOptions = {}): Promise<TwoFactorStatus> =>
+          client.request({
+            method: 'POST',
+            path: '/auth/2fa/disable',
+            body: { code },
+            parse: parser(twoFactorStatusSchema),
+            ...opts,
+          }),
+      },
     },
 
     // ── Projects ───────────────────────────────────────────────────────────
@@ -815,6 +1068,102 @@ export function createApiClient(client: HttpClient = http) {
       /** Used vs allowed per metered kind, plus the spend budget, for the firm. */
       usage: (opts: CallOptions = {}): Promise<Usage> =>
         client.request({ path: '/billing/usage', parse: parser(usageSchema), ...opts }),
+
+      /** Who holds a seat, and how many the plan still has room for (G-4). */
+      seats: (opts: CallOptions = {}): Promise<Seats> =>
+        client.request({ path: '/billing/seats', parse: parser(seatsSchema), ...opts }),
+    },
+
+    // ── The practice (J01): profile, members, invites ──────────────────────
+    team: {
+      firm: (opts: CallOptions = {}): Promise<FirmProfile> =>
+        client.request({ path: '/firm', parse: parser(firmProfileSchema), ...opts }),
+
+      /** Admin only. Merged, never replaced — a patch naming `gstin` leaves the rest. */
+      updateFirm: (input: FirmProfilePatch, opts: CallOptions = {}): Promise<FirmProfile> =>
+        client.request({
+          method: 'PATCH',
+          path: '/firm',
+          body: {
+            ...(input.name === undefined ? {} : { name: input.name }),
+            ...(input.practice === undefined ? {} : { practice: input.practice }),
+          },
+          parse: parser(firmProfileSchema),
+          ...opts,
+        }),
+
+      members: (opts: CallOptions = {}): Promise<Members> =>
+        client.request({ path: '/firm/members', parse: parser(membersSchema), ...opts }),
+
+      /** Admin only. Refused (409 `last_admin`) for the practice's only admin. */
+      setRole: (
+        userId: string,
+        role: 'admin' | 'member',
+        opts: CallOptions = {},
+      ): Promise<Member> =>
+        client.request({
+          method: 'PATCH',
+          path: `/firm/members/${encodeURIComponent(userId)}`,
+          body: { role },
+          parse: parser(memberSchema),
+          ...opts,
+        }),
+
+      /**
+       * Admin only. Releases their seat and ends every live session they hold —
+       * never yourself, never the last admin.
+       */
+      removeMember: (userId: string, opts: CallOptions = {}): Promise<void> =>
+        client.request({
+          method: 'DELETE',
+          path: `/firm/members/${encodeURIComponent(userId)}`,
+          parse: () => undefined,
+          ...opts,
+        }),
+
+      invites: (opts: CallOptions = {}): Promise<Invite[]> =>
+        client.request({
+          path: '/firm/invites',
+          parse: (data: unknown) => invitesSchema.parse(data).items,
+          ...opts,
+        }),
+
+      /**
+       * Admin only. The response carries the link once; the same link went by
+       * email. Refusals are all about THIS practice: 409 `already_a_member`,
+       * 409 `invite_pending`, 402 `seat_limit_reached`. Deliberately NOT told
+       * apart: whether the address has an account somewhere else.
+       */
+      invite: (input: InviteInput, opts: CallOptions = {}): Promise<Invite> =>
+        client.request({
+          method: 'POST',
+          path: '/firm/invites',
+          body: {
+            email: input.email,
+            name: input.name,
+            role: input.role,
+            seatType: input.seatType,
+          },
+          parse: parser(inviteSchema),
+          ...opts,
+        }),
+
+      /** Admin only. A fresh link and a fresh week; rate-limited per address. */
+      resendInvite: (inviteId: string, opts: CallOptions = {}): Promise<Invite> =>
+        client.request({
+          method: 'POST',
+          path: `/firm/invites/${encodeURIComponent(inviteId)}/resend`,
+          parse: parser(inviteSchema),
+          ...opts,
+        }),
+
+      revokeInvite: (inviteId: string, opts: CallOptions = {}): Promise<void> =>
+        client.request({
+          method: 'DELETE',
+          path: `/firm/invites/${encodeURIComponent(inviteId)}`,
+          parse: () => undefined,
+          ...opts,
+        }),
     },
 
     // ── Project templates (Rayon-parity starters, applied server-side) ─────
