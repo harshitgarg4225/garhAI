@@ -438,7 +438,8 @@ Two smaller gaps found in passing:
   the name in the signed disposition, a record written before names were kept still
   redeems under the generic stem, and a sheet token naming another firm is a 404, not
   a name (the project lookup added for the name goes through the firm-scoped
-  repository).
+  repository). Browser UAT run 11 saved the set as
+  `uat-sharma-residence-drawing-set-2026-09-09.pdf` through the app's own link.
 - **Production connections, as read from the deployed stack's own boot lines
   (2026-09-07, Railway project `garhai`, environment `production`).** Live: the
   copilot provider is `anthropic` (key set on the api service), the render provider is

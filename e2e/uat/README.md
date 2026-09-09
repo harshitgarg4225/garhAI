@@ -28,7 +28,7 @@ The run needs `DEV_ECHO_OTP=1` on the api (the sign-up step reads the code from 
 response the way the dev stack echoes it) and the mock render provider; it spends two
 generations of the trial allowance on the account it creates.
 
-## What the first ten runs found
+## What the first eleven runs found
 
 Every failure was a product defect, not a test defect, and each is recorded in
 `docs/trial-readiness.md`: the compliance report thrown away over vastu rows; Generate
@@ -46,3 +46,7 @@ schema had never declared.
 One test-side defect too: the sheet-list regex missed the lettered sheet numbers
 (`A-02A`) and reported a rendered set as missing. Read a failing step's screenshot
 before believing it.
+
+Runs 10 and 11 passed all twelve steps; run 11 also confirmed the downloads arrive
+under the project's name (`<project>-drawing-set-<date>.pdf`) rather than a generic
+stem.
