@@ -723,6 +723,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(privacy_router.audit_router, prefix=cfg.api_prefix)
     app.include_router(privacy_router.router, prefix=cfg.api_prefix)
 
+    # The platform owner's ops page (§18: queue depth, worker liveness, job
+    # percentiles, providers in force, Sentry state, migration head). Same prefix
+    # as `/admin/billing/markup` and the same owner allowlist; mounted here for the
+    # same reason as the routers above.
+    from garh_api.routers import platform_ops as platform_ops_router
+
+    app.include_router(platform_ops_router.router, prefix=cfg.api_prefix)
+
     _install_meta_route(app, cfg)
 
     _log.info(
