@@ -825,9 +825,18 @@ async def _refine_and_score(
                 stair_anchor_id=candidate.stair_anchor.id,
                 built_up_mm2=footprint,
                 footprint_mm2=footprint,
-                rationale_facts=_rationale_facts(breakdown, option_signature, candidate),
+                rationale_facts=_rationale_facts(
+                    breakdown,
+                    option_signature,
+                    candidate,
+                    params=params,
+                    placements=placements,
+                    model=model,
+                    compliance_rows=compliance_rows,
+                ),
                 assumptions=tuple(envelope.assumptions) + tuple(program.assumptions),
                 compliance=compliance_rows,
+                seed=profile.seed_for(params),
             )
         )
         context.check_cancelled()
@@ -898,11 +907,34 @@ def _option_id(params: SolveParams, candidate: Candidate, option_signature: Sequ
     return "plan_%s" % hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
+#: Placement types counted as bedrooms / baths in the ``bedrooms:``/``baths:`` facts.
+_BEDROOM_TYPES = frozenset({"bedroom_master", "bedroom", "guest_bedroom"})
+_BATH_TYPES = frozenset({"bath", "bath_wc", "wc"})
+
+
 def _rationale_facts(
-    breakdown: ScoreBreakdown, option_signature: Sequence[str], candidate: Candidate
+    breakdown: ScoreBreakdown,
+    option_signature: Sequence[str],
+    candidate: Candidate,
+    *,
+    params: SolveParams | None = None,
+    placements: Sequence[RoomPlacement] = (),
+    model: Mapping[str, Any] | None = None,
+    compliance_rows: Sequence[Mapping[str, Any]] = (),
 ) -> tuple[str, ...]:
-    """Structured facts for the Phase-6 rationale writer. Facts only, no prose:
-    the LLM verbalises these and is forbidden from adding any (§5.5, §10)."""
+    """Structured facts for the rationale writer. Facts only, no prose.
+
+    Every fact is ``kind:value`` with the value in the model's own units (integer
+    mm and mm², 0-100 scores, compass zones) so the writer can put the *numbers* in
+    front of an architect — "62% coverage against a 65% cap" — without inventing
+    one. The web's deterministic template renderer (``features/options/rationale``)
+    is the only verbaliser today; an LLM, if one is ever wired, verbalises these and
+    is forbidden from adding any (§5.5, §10).
+
+    The first five facts are the Phase-3 set and keep their spelling; everything
+    after them is optional and keyed, so an older renderer simply shows fewer
+    sentences.
+    """
     facts = [
         "composite:%d" % breakdown.composite,
         "circulationPercent:%d" % breakdown.circulation_percent,
@@ -913,6 +945,52 @@ def _rationale_facts(
     for room_type, zone in sorted(signature_summary(option_signature).items()):
         if room_type != "stair":
             facts.append("zone:%s@%s" % (room_type, zone))
+
+    # -- the programme, counted from what was actually placed ------------------
+    if placements:
+        storeys = len({p.storey_index for p in placements})
+        facts.append("storeys:%d" % storeys)
+        facts.append("bedrooms:%d" % sum(1 for p in placements if p.room_type in _BEDROOM_TYPES))
+        facts.append("baths:%d" % sum(1 for p in placements if p.room_type in _BATH_TYPES))
+        ground = sum(p.area_mm2 for p in placements if p.storey_index == 0)
+        facts.append("footprint:%d" % ground)
+        facts.append("builtUp:%d" % sum(p.area_mm2 for p in placements))
+    if params is not None:
+        facts.append("plotArea:%d" % params.plot_area_mm2())
+        facts.append("vastuMode:%s" % params.vastu_mode)
+
+    # -- what stage B built: entrance side, stair, openings --------------------
+    meta = dict((model or {}).get("solverMeta") or {})
+    entry = meta.get("entryOutward")
+    if isinstance(entry, str) and params is not None and params.north_deg % 90 == 0:
+        from services.solver.grid import grid_side_to_compass
+
+        compass = grid_side_to_compass(entry, params.north_deg)
+        if compass is not None:
+            facts.append("mainDoor:%s" % compass)
+    for fact in meta.get("facts") or ():
+        text = str(fact)
+        if text.startswith(("stair:", "doors:", "windows:", "ventilators:", "parking:")):
+            facts.append(text)
+
+    # -- the rules pass: the governing coverage / FAR rows and the tally ---------
+    applicable = [
+        row for row in compliance_rows if str(row.get("status")) in ("pass", "warn", "fail")
+    ]
+    if applicable:
+        facts.append(
+            "rules:%d/%d"
+            % (sum(1 for row in applicable if str(row.get("status")) == "pass"), len(applicable))
+        )
+        facts.append("warnings:%d" % sum(1 for r in applicable if str(r.get("status")) == "warn"))
+    for check_type, kind in (("coverage_max", "coverage"), ("far_max", "far")):
+        for row in applicable:
+            if str(row.get("checkType")) != check_type:
+                continue
+            actual, limit = row.get("actual"), row.get("limit")
+            if isinstance(actual, int) and isinstance(limit, int):
+                facts.append("%s:%d/%d" % (kind, actual, limit))
+                break
     return tuple(facts)
 
 
