@@ -1035,9 +1035,35 @@ export const dxfUnitsSchema = z.object({
 });
 export type DxfUnits = z.infer<typeof dxfUnitsSchema>;
 
+/**
+ * A LINE/ARC chain the worker could not close: its straight-line gap and the
+ * two free ends, in drawing-space mm. Reported so the picker can NAME the gap
+ * ("340 mm between (x, y) and (x, y) on PLOT") instead of "not closed".
+ */
+export const dxfOpenChainSchema = z.object({
+  layer: z.string().default('0'),
+  gapMm: z.number().int().nonnegative(),
+  from: pointMmSchema,
+  to: pointMmSchema,
+  segments: z.number().int().nonnegative(),
+  lengthMm: z.number().int().nonnegative(),
+});
+export type DxfOpenChain = z.infer<typeof dxfOpenChainSchema>;
+
+/** How many LINE/ARC/open-polyline entities were chained, into how many rings. */
+export const dxfAssembledSchema = z.object({
+  lines: z.number().int().nonnegative().default(0),
+  arcs: z.number().int().nonnegative().default(0),
+  openPolylines: z.number().int().nonnegative().default(0),
+  rings: z.number().int().nonnegative().default(0),
+});
+export type DxfAssembled = z.infer<typeof dxfAssembledSchema>;
+
 export const dxfImportResultSchema = z.object({
   layers: z.array(dxfLayerSchema).default([]),
   units: dxfUnitsSchema.nullable().default(null),
+  assembled: dxfAssembledSchema.nullable().default(null),
+  openChains: z.array(dxfOpenChainSchema).default([]),
   /** Entities dropped and why (openPolylines, overVertexCap, …). Never fatal. */
   skipped: z.record(z.number().int()).default({}),
 });
