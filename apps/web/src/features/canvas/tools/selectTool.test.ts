@@ -15,7 +15,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { fixedId, makeTwoRoomPlanWithOpenings, validateOpAgainstDoc } from '@garh/model';
+import {
+  applyGroup,
+  fixedId,
+  makeTwoRoomPlanWithOpenings,
+  validateOpAgainstDoc,
+} from '@garh/model';
 
 import { DRAG_THRESHOLD_PX, HINTS } from './constants';
 import { pointInsidePolygon, SelectTool } from './selectTool';
@@ -344,5 +349,85 @@ describe('pointInsidePolygon', () => {
 
   it('is false for a degenerate ring', () => {
     expect(pointInsidePolygon({ x: 0, y: 0 }, [{ x: 0, y: 0 }])).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Columns and stairs move like walls do
+// ---------------------------------------------------------------------------
+
+describe('dragging a column', () => {
+  const COLUMN = fixedId('column', 'C9');
+  const STAIR = fixedId('stair', 'S9');
+  const withColumn = () =>
+    makeCtx({
+      doc: applyGroup(makeTwoRoomPlanWithOpenings(), [
+        {
+          type: 'column.set',
+          payload: { action: 'add', id: COLUMN, storeyId: GROUND, pt: { x: 1150, y: 1150 } },
+        },
+        {
+          type: 'stair.add',
+          payload: {
+            id: STAIR,
+            storeyId: GROUND,
+            kind: 'straight',
+            origin: { x: 4000, y: 500 },
+            direction: 'N',
+            riserMm: 167,
+            treadMm: 250,
+            widthMm: 900,
+            risersCount: 18,
+            landing: null,
+          },
+        },
+      ]).model,
+      selectedIds: [COLUMN],
+    });
+
+  it('picks the column under the pointer with no mesh mounted', () => {
+    const ctx = withColumn();
+    const tool = new SelectTool();
+    expect(tool.onPointerDown(ctx, ptr(1200, 1100)).selection ?? null).toBeNull();
+    expect(tool.onPointerUp(ctx, ptr(1200, 1100)).selection).toEqual({
+      mode: 'replace',
+      ids: [COLUMN],
+    });
+  });
+
+  it('moves the selected column by whole modules, as one column.set move', () => {
+    const ctx = withColumn();
+    const tool = new SelectTool();
+    tool.onPointerDown(ctx, ptr(1150, 1150));
+    tool.onPointerMove(ctx, ptr(1150 + DRAG_THRESHOLD_PX * 2, 1150));
+    tool.onPointerMove(ctx, ptr(1150 + 690, 1150));
+    const up = tool.onPointerUp(ctx, ptr(1150 + 690, 1150));
+    const commit = up.commit;
+    expect(commit?.label).toBe('Column moved');
+    const op = opOfType(commit?.ops[0], 'column.set');
+    expect(op.payload).toEqual({ action: 'move', id: COLUMN, pt: { x: 1840, y: 1150 } });
+    expect(validateOpAgainstDoc(ctx.doc, op)).toEqual([]);
+  });
+
+  it('moves a selected stair by its origin', () => {
+    const ctx = makeCtx({ doc: withColumn().doc, selectedIds: [STAIR] });
+    const tool = new SelectTool();
+    tool.onPointerDown(ctx, ptr(4200, 700, { hit: hitOn('stair', STAIR, GROUND) }));
+    // The first move past the threshold arms the drag; the second moves it.
+    tool.onPointerMove(ctx, ptr(4200, 700 + DRAG_THRESHOLD_PX * 2));
+    tool.onPointerMove(ctx, ptr(4200, 700 + 460));
+    const up = tool.onPointerUp(ctx, ptr(4200, 700 + 460));
+    const op = opOfType(up.commit?.ops[0], 'stair.edit');
+    expect(op.payload).toEqual({ stairId: STAIR, patch: { origin: { x: 4000, y: 960 } } });
+    expect(up.commit?.label).toBe('Stair moved');
+  });
+
+  it('includes columns in a marquee', () => {
+    const ctx = makeCtx({ doc: withColumn().doc, selectedIds: [] });
+    const tool = new SelectTool();
+    tool.onPointerDown(ctx, ptr(1000, 1000));
+    tool.onPointerMove(ctx, ptr(1300, 1300));
+    const up = tool.onPointerUp(ctx, ptr(1300, 1300));
+    expect(up.selection?.ids).toEqual([COLUMN]);
   });
 });

@@ -61,6 +61,8 @@ import {
   furnitureTransformOp,
   openingMoveOp,
   previewWall,
+  translateColumnsOps,
+  translateStairsOps,
   translateWallsOps,
   validateCommit,
   wallMoveOp,
@@ -101,6 +103,8 @@ type Drag =
       readonly deltaMm: Pt;
       readonly wallIds: readonly string[];
       readonly furnitureIds: readonly string[];
+      readonly columnIds: readonly string[];
+      readonly stairIds: readonly string[];
     }
   | {
       readonly kind: 'opening';
@@ -294,9 +298,15 @@ export class SelectTool extends BaseTool {
             }),
           ];
         }),
+        ...translateColumnsOps(ctx.doc, drag.columnIds, drag.deltaMm),
+        ...translateStairsOps(ctx.doc, drag.stairIds, drag.deltaMm),
       ];
       label = ops.length === 1 ? 'Wall moved' : `${String(ops.length)} things moved`;
-      if (drag.wallIds.length === 0 && drag.furnitureIds.length > 0) label = 'Furniture moved';
+      if (ops.length === 1 && drag.wallIds.length === 0) {
+        if (drag.furnitureIds.length > 0) label = 'Furniture moved';
+        else if (drag.columnIds.length > 0) label = 'Column moved';
+        else if (drag.stairIds.length > 0) label = 'Stair moved';
+      }
     } else if (drag.kind === 'opening') {
       const opening = ctx.doc.house.openings.find((o) => o.id === drag.openingId);
       if (opening === undefined) return null;
@@ -385,7 +395,7 @@ export class SelectTool extends BaseTool {
       return {
         shape: {
           kind: 'transform',
-          targetIds: [...drag.wallIds, ...drag.furnitureIds],
+          targetIds: [...drag.wallIds, ...drag.furnitureIds, ...drag.columnIds, ...drag.stairIds],
           ghosts,
           deltaMm: drag.deltaMm,
         },
@@ -486,7 +496,14 @@ export class SelectTool extends BaseTool {
 
     const wallIds = ids.filter((id) => idType(id) === 'wall');
     const furnitureIds = ids.filter((id) => idType(id) === 'furniture');
-    if (wallIds.length === 0 && furnitureIds.length === 0) {
+    const columnIds = ids.filter((id) => idType(id) === 'column');
+    const stairIds = ids.filter((id) => idType(id) === 'stair');
+    if (
+      wallIds.length === 0 &&
+      furnitureIds.length === 0 &&
+      columnIds.length === 0 &&
+      stairIds.length === 0
+    ) {
       return { kind: 'marquee', startMm: armed.startMm, currentMm: point };
     }
     return {
@@ -495,6 +512,8 @@ export class SelectTool extends BaseTool {
       deltaMm: { x: 0, y: 0 },
       wallIds,
       furnitureIds,
+      columnIds,
+      stairIds,
     };
   }
 
@@ -581,6 +600,17 @@ export class SelectTool extends BaseTool {
     }
     if (best !== null) return best.id;
 
+    // Columns next: small, deliberate, and usually sitting on a wall junction
+    // — the §12 priority table puts them above walls for the same reason.
+    for (const column of ctx.doc.house.columns) {
+      if (column.storeyId !== storeyId) continue;
+      const halfW = Math.ceil(column.sizeMm.xMm / 2) + tolerance;
+      const halfD = Math.ceil(column.sizeMm.yMm / 2) + tolerance;
+      if (Math.abs(point.x - column.pt.x) <= halfW && Math.abs(point.y - column.pt.y) <= halfD) {
+        return column.id;
+      }
+    }
+
     for (const wall of ctx.doc.house.walls) {
       if (wall.storeyId !== storeyId) continue;
       const projection = projectOnSegment(point, wall.a, wall.b);
@@ -633,6 +663,10 @@ export class SelectTool extends BaseTool {
     for (const stair of ctx.doc.house.stairs) {
       if (stair.storeyId !== storeyId) continue;
       if (inside(stair.origin)) ids.push(stair.id);
+    }
+    for (const column of ctx.doc.house.columns) {
+      if (column.storeyId !== storeyId) continue;
+      if (inside(column.pt)) ids.push(column.id);
     }
     for (const balcony of ctx.doc.house.balconies) {
       if (balcony.storeyId !== storeyId) continue;

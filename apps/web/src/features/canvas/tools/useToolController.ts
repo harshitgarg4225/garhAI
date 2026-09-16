@@ -338,6 +338,8 @@ export function useToolController(options: ToolControllerOptions): ToolControlle
       'tool.balcony': setTool('balcony'),
       'tool.measure': setTool('measure'),
       'tool.furniture': setTool('furniture'),
+      'tool.column': setTool('column'),
+      'tool.split': setTool('split'),
 
       'edit.undo': () => {
         toolRef.current?.cancel();

@@ -22,7 +22,9 @@ import {
   DEFAULT_BALCONY_SLAB_MM,
   DEFAULT_RAILING_HEIGHT_MM,
   DEFAULT_WALL_THICKNESS_MM,
+  MAX_COLUMN_SIDE_MM,
   MAX_TOOL_WALL_THICKNESS_MM,
+  MIN_COLUMN_SIDE_MM,
   PREFERRED_RISER_MM,
   WALL_THICKNESS_PRESETS,
 } from './constants';
@@ -62,7 +64,13 @@ export const DEFAULT_TOOL_SETTINGS: ToolSettings = {
   // catalogue has loaded and an item has been chosen.
   furnitureCatalogId: null,
   furnitureRotationDeg: 0,
+
+  columnSizeMm: DEFAULTS.columnSizeMm,
 };
+
+function clampSide(mm: number): number {
+  return Math.min(MAX_COLUMN_SIDE_MM, Math.max(MIN_COLUMN_SIDE_MM, roundMm(mm)));
+}
 
 /** Clamp anything the options bar or a typed value could get wrong. */
 function sanitise(patch: Partial<ToolSettings>): Partial<ToolSettings> {
@@ -85,6 +93,16 @@ function sanitise(patch: Partial<ToolSettings>): Partial<ToolSettings> {
       ? {}
       : {
           furnitureRotationDeg: ((Math.round(patch.furnitureRotationDeg) % 360) + 360) % 360,
+        }),
+    // Same door as the wall thickness: this pair is copied into a `column.set`
+    // payload, so it is whole millimetres inside a sane range or nothing.
+    ...(patch.columnSizeMm === undefined
+      ? {}
+      : {
+          columnSizeMm: {
+            xMm: clampSide(patch.columnSizeMm.xMm),
+            yMm: clampSide(patch.columnSizeMm.yMm),
+          },
         }),
   };
 }
@@ -120,5 +138,6 @@ export function readToolSettings(): ToolSettings {
     balconySlabThicknessMm: s.balconySlabThicknessMm,
     furnitureCatalogId: s.furnitureCatalogId,
     furnitureRotationDeg: s.furnitureRotationDeg,
+    columnSizeMm: s.columnSizeMm,
   };
 }

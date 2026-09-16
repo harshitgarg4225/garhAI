@@ -82,6 +82,13 @@ const ACTIVATE: Readonly<Record<ToolId, (tool: Tool, ctx: ToolContext) => void>>
   furniture: (tool, ctx) => {
     tool.onPointerMove(ctx, ptr(2000, 2000));
   },
+  column: (tool, ctx) => {
+    tool.onPointerMove(ctx, ptr(1150, 1150));
+  },
+  split: (tool, ctx) => {
+    // On the south wall's centreline, 1500 along.
+    tool.onPointerMove(ctx, ptr(1500, 0));
+  },
 };
 
 function activated(id: ToolId): { tool: Tool; ctx: ToolContext } {
@@ -96,8 +103,8 @@ function activated(id: ToolId): { tool: Tool; ctx: ToolContext } {
 // ---------------------------------------------------------------------------
 
 describe('the registry', () => {
-  it('builds all eight tools, each answering to its own id', () => {
-    expect(TOOL_IDS).toHaveLength(8);
+  it('builds all ten tools, each answering to its own id', () => {
+    expect(TOOL_IDS).toHaveLength(10);
     for (const id of TOOL_IDS) {
       expect(createTool(id).id).toBe(id);
     }

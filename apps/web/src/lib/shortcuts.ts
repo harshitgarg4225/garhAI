@@ -148,6 +148,8 @@ export function defaultCommandHandlers(): CommandHandlers {
     'tool.balcony': deferToTools(arm('balcony')),
     'tool.measure': deferToTools(arm('measure')),
     'tool.furniture': deferToTools(arm('furniture')),
+    'tool.column': deferToTools(arm('column')),
+    'tool.split': deferToTools(arm('split')),
 
     'edit.undo': deferToTools(() => undo()),
     'edit.redo': deferToTools(() => redo()),

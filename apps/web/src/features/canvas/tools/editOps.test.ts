@@ -19,6 +19,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  applyGroup,
   DEFAULTS,
   FIXTURE_IDS,
   fixedId,
@@ -36,6 +37,13 @@ import {
   angleDeg,
   balconyAddOp,
   clampOpeningOffset,
+  clampSplitAt,
+  columnAddOp,
+  columnMoveOp,
+  splitWallOps,
+  stairMoveOp,
+  translateColumnsOps,
+  wallSplitWindow,
   defaultOpeningParams,
   deleteLabel,
   deleteOps,
@@ -536,5 +544,108 @@ describe('opening defaults and swing', () => {
     }
     expect(seen).toEqual(['in-right', 'out-right', 'out-left', 'in-left']);
     expect(SWING_CYCLE).toHaveLength(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// wall.split — the window mirrors the validator exactly
+// ---------------------------------------------------------------------------
+
+describe('wallSplitWindow / clampSplitAt', () => {
+  it('is strictly inside the wall, like WALL_SPLIT_OUT_OF_RANGE', () => {
+    expect(wallSplitWindow(6000)).toEqual({ minMm: 1, maxMm: 5999 });
+    expect(clampSplitAt(0, 6000)).toBe(1);
+    expect(clampSplitAt(6000, 6000)).toBe(5999);
+    expect(clampSplitAt(2300, 6000)).toBe(2300);
+  });
+
+  it('has no window on a wall shorter than 2 mm', () => {
+    expect(wallSplitWindow(1)).toBeNull();
+    expect(clampSplitAt(1, 1)).toBeNull();
+  });
+});
+
+describe('splitWallOps', () => {
+  const doc = makeTwoRoomPlan();
+  const newId = nthId('wall', 7);
+
+  it('emits one op the real validator accepts', () => {
+    const ops = splitWallOps(doc, FIXTURE_IDS.wallSouth, 2300, newId);
+    expect(ops).toHaveLength(1);
+    const op = opOfType(ops[0], 'wall.split');
+    expect(op.payload).toEqual({ wallId: FIXTURE_IDS.wallSouth, atMm: 2300, newWallId: newId });
+    expect(validateOpAgainstDoc(doc, op)).toEqual([]);
+  });
+
+  it('emits nothing at the ends, off the wall, or for an unknown wall', () => {
+    expect(splitWallOps(doc, FIXTURE_IDS.wallSouth, 0, newId)).toEqual([]);
+    expect(splitWallOps(doc, FIXTURE_IDS.wallSouth, 6000, newId)).toEqual([]);
+    expect(splitWallOps(doc, FIXTURE_IDS.wallSouth, 2300.5, newId)).toEqual([]);
+    expect(splitWallOps(doc, nthId('wall', 8), 2300, newId)).toEqual([]);
+  });
+
+  it('is the same op the validator would refuse just outside the window', () => {
+    // The negative control for the window: 6000 IS refused by the fold.
+    const op = {
+      type: 'wall.split',
+      payload: { wallId: FIXTURE_IDS.wallSouth, atMm: 6000, newWallId: newId },
+    } as const;
+    expect(validateOpAgainstDoc(doc, op).map((i) => i.code)).toContain('WALL_SPLIT_OUT_OF_RANGE');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// column.set — add, move, resize, translate
+// ---------------------------------------------------------------------------
+
+describe('column ops', () => {
+  const doc = makeTwoRoomPlan();
+  const id = nthId('column', 1);
+
+  it('adds a column with an explicit size the fold keeps', () => {
+    const op = columnAddOp({
+      id,
+      storeyId: FIXTURE_IDS.groundStorey,
+      pt: { x: 1150, y: 1150 },
+      sizeMm: { xMm: 230, yMm: 450 },
+    });
+    expect(validateOpAgainstDoc(doc, op)).toEqual([]);
+    const after = applyGroup(doc, [op]).model;
+    expect(after.house.columns.find((c) => c.id === id)?.sizeMm).toEqual({ xMm: 230, yMm: 450 });
+  });
+
+  it('moves and resizes through action: move, always carrying the centre', () => {
+    expect(columnMoveOp(id, { x: 1, y: 2 }).payload).toEqual({
+      action: 'move',
+      id,
+      pt: { x: 1, y: 2 },
+    });
+    expect(columnMoveOp(id, { x: 1, y: 2 }, { xMm: 300, yMm: 300 }).payload).toEqual({
+      action: 'move',
+      id,
+      pt: { x: 1, y: 2 },
+      sizeMm: { xMm: 300, yMm: 300 },
+    });
+  });
+
+  it('translates by a delta and skips ids that are not columns here', () => {
+    const with1 = applyGroup(doc, [
+      columnAddOp({
+        id,
+        storeyId: FIXTURE_IDS.groundStorey,
+        pt: { x: 1150, y: 1150 },
+        sizeMm: { xMm: 230, yMm: 230 },
+      }),
+    ]).model;
+    const ops = translateColumnsOps(with1, [id, nthId('column', 2)], { x: 115, y: -230 });
+    expect(ops).toHaveLength(1);
+    expect(opOfType(ops[0], 'column.set').payload.pt).toEqual({ x: 1265, y: 920 });
+  });
+
+  it('moves a stair by its origin only', () => {
+    expect(stairMoveOp(nthId('stair', 1), { x: 10, y: 20 }).payload).toEqual({
+      stairId: nthId('stair', 1),
+      patch: { origin: { x: 10, y: 20 } },
+    });
   });
 });

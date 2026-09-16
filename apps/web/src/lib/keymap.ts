@@ -31,7 +31,11 @@
 
 import { useEffect } from 'react';
 
-/** The eight direct-manipulation tools (§F4). */
+/**
+ * The direct-manipulation tools: §F4's eight, plus the two daily-CAD tools
+ * the first architects asked for — a column to place by hand, and a split to
+ * cut a wall where a partition will meet it.
+ */
 export const TOOL_IDS = [
   'select',
   'wall',
@@ -41,6 +45,8 @@ export const TOOL_IDS = [
   'balcony',
   'measure',
   'furniture',
+  'column',
+  'split',
 ] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
 
@@ -53,6 +59,8 @@ export const COMMAND_IDS = [
   'tool.balcony',
   'tool.measure',
   'tool.furniture',
+  'tool.column',
+  'tool.split',
   'edit.undo',
   'edit.redo',
   'edit.delete',
@@ -180,6 +188,26 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
     label: 'F',
     description: 'Place furniture.',
     tool: 'furniture',
+  },
+  {
+    command: 'tool.column',
+    key: 'c',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'C',
+    description: 'Place a column.',
+    tool: 'column',
+  },
+  // K, the knife: the letter every editor with a split tool has settled on,
+  // and the one unmodified letter left that is not a browser's.
+  {
+    command: 'tool.split',
+    key: 'k',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'K',
+    description: 'Split a wall where you click.',
+    tool: 'split',
   },
 
   // ── Undo / redo (§15 "everything undoable, visibly") ────────────────────

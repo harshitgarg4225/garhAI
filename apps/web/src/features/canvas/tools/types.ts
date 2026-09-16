@@ -135,6 +135,9 @@ export interface ToolSettings {
   /** Catalogue id to place. `null` until the architect picks one. */
   readonly furnitureCatalogId: string | null;
   readonly furnitureRotationDeg: number;
+
+  /** Column footprint, x across and y along the plan. `X` swaps them. */
+  readonly columnSizeMm: SizeMm;
 }
 
 // ---------------------------------------------------------------------------
@@ -361,7 +364,21 @@ export type PreviewShape =
       readonly ghosts: readonly PreviewWall[];
       readonly deltaMm: Pt;
     }
-  | { readonly kind: 'marquee'; readonly rect: MarqueeRectMm };
+  | { readonly kind: 'marquee'; readonly rect: MarqueeRectMm }
+  | {
+      /** A column about to be placed: its footprint, centred on `centreMm`. */
+      readonly kind: 'column';
+      readonly centreMm: Pt;
+      readonly sizeMm: SizeMm;
+    }
+  | {
+      /** A wall about to be split: the cut line across it at `pointMm`. */
+      readonly kind: 'split';
+      readonly wallId: string;
+      readonly pointMm: Pt;
+      /** The cut, across the wall's thickness. */
+      readonly cut: readonly [Pt, Pt];
+    };
 
 /** A number the HUD shows while drawing: "Length 3,600 mm · 12'-0"". */
 export interface Readout {

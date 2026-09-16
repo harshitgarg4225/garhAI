@@ -160,6 +160,20 @@ const MIRRORED: Readonly<Record<CommandId, MirroredSpec>> = {
     run: armTool('furniture'),
     enabled: inPlanView,
   },
+  'tool.column': {
+    group: 'Tools',
+    icon: 'column',
+    keywords: ['column', 'post', 'structure', 'rcc'],
+    run: armTool('column'),
+    enabled: inPlanView,
+  },
+  'tool.split': {
+    group: 'Tools',
+    icon: 'split',
+    keywords: ['split', 'cut', 'break', 'divide wall'],
+    run: armTool('split'),
+    enabled: inPlanView,
+  },
 
   'edit.undo': {
     group: 'Edit',

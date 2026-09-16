@@ -15,10 +15,12 @@
 import { TOOL_IDS, TOOL_SHORTCUT, type ToolId } from '../../../lib/keymap';
 
 import { BalconyTool } from './balconyTool';
+import { ColumnTool } from './columnTool';
 import { FurnitureTool } from './furnitureTool';
 import { MeasureTool } from './measureTool';
 import { OpeningTool } from './openingTool';
 import { SelectTool } from './selectTool';
+import { SplitTool } from './splitTool';
 import { StairTool } from './stairTool';
 import type { Tool } from './types';
 import { WallTool } from './wallTool';
@@ -94,6 +96,20 @@ export const TOOL_META: Readonly<Record<ToolId, ToolMeta>> = {
     shortcut: TOOL_SHORTCUT.furniture,
     mutates: true,
   },
+  column: {
+    id: 'column',
+    label: 'Column',
+    description: 'Place a column. X turns it.',
+    shortcut: TOOL_SHORTCUT.column,
+    mutates: true,
+  },
+  split: {
+    id: 'split',
+    label: 'Split',
+    description: 'Cut a wall in two where you click.',
+    shortcut: TOOL_SHORTCUT.split,
+    mutates: true,
+  },
 };
 
 /** Build the machine for a tool id. Always a new instance — see the header. */
@@ -113,6 +129,10 @@ export function createTool(id: ToolId): Tool {
       return new MeasureTool();
     case 'furniture':
       return new FurnitureTool();
+    case 'column':
+      return new ColumnTool();
+    case 'split':
+      return new SplitTool();
     case 'select':
     default:
       return new SelectTool();

@@ -121,12 +121,19 @@ export { BalconyTool, maxDistanceOutside } from './balconyTool';
 export { MeasureTool } from './measureTool';
 export { FurnitureTool, normaliseRotationDeg } from './furnitureTool';
 export { SelectTool, pointInsidePolygon } from './selectTool';
+export { ColumnTool } from './columnTool';
+export { SplitTool } from './splitTool';
+export { stairSymbol, risersBeforeLanding } from './stairSymbol';
+export type { StairSymbol, StairFlightGeometry } from './stairSymbol';
 
 // ── THE COMMIT PATH (shared with the dimension-first overlay) ─────────────
 export {
   angleDeg,
   balconyAddOp,
   clampOpeningOffset,
+  clampSplitAt,
+  columnAddOp,
+  columnMoveOp,
   defaultOpeningParams,
   deleteLabel,
   deleteOps,
@@ -143,17 +150,24 @@ export {
   previewWall,
   ringAreaMm2,
   setWallLengthOps,
+  splitWallOps,
   stairAddOp,
+  stairMoveOp,
   SWING_CYCLE,
   toBlock,
+  translateColumnsOps,
+  translateStairsOps,
   translateWallsOps,
   validateCommit,
   wallAddOp,
   wallMoveOp,
+  wallSplitOp,
+  wallSplitWindow,
   wallThicknessOp,
 } from './editOps';
 export type {
   BalconyAddInput,
+  ColumnAddInput,
   OpeningAddInput,
   StairAddInput,
   WallAddInput,
@@ -214,6 +228,7 @@ export type { FlightInput, FlightIssue, FlightResult, FlightSolution } from './s
 
 // ── Constants worth sharing ───────────────────────────────────────────────
 export {
+  COLUMN_SIZE_PRESETS,
   DEFAULT_WALL_THICKNESS_MM,
   DRAG_THRESHOLD_PX,
   HINTS,

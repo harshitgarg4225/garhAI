@@ -33,7 +33,13 @@ import {
 
 import type { FurnitureItem } from '../../../lib/schemas';
 import { useUiStore } from '../../../stores/ui';
-import { MAX_TOOL_WALL_THICKNESS_MM, WALL_THICKNESS_PRESETS } from './constants';
+import {
+  COLUMN_SIZE_PRESETS,
+  MAX_COLUMN_SIDE_MM,
+  MAX_TOOL_WALL_THICKNESS_MM,
+  MIN_COLUMN_SIDE_MM,
+  WALL_THICKNESS_PRESETS,
+} from './constants';
 import type { OpeningParams } from './types';
 import { useToolSettings } from './useToolSettings';
 
@@ -360,6 +366,78 @@ export function ToolOptionsBar({
               Rotate {settings.furnitureRotationDeg}°
             </Button>
           </>
+        );
+
+      case 'column': {
+        const size = settings.columnSizeMm;
+        return (
+          <>
+            <fieldset className="flex items-center gap-1">
+              <legend className="sr-only">Column size</legend>
+              <span className="text-2xs uppercase tracking-wide text-ink-subtle">Size</span>
+              {COLUMN_SIZE_PRESETS.map(([xMm, yMm]) => {
+                const active = size.xMm === xMm && size.yMm === yMm;
+                return (
+                  <Button
+                    key={`${String(xMm)}x${String(yMm)}`}
+                    size="sm"
+                    variant={active ? 'primary' : 'secondary'}
+                    aria-pressed={active}
+                    onClick={() => {
+                      settings.patch({ columnSizeMm: { xMm, yMm } });
+                    }}
+                  >
+                    {xMm}×{yMm}
+                  </Button>
+                );
+              })}
+            </fieldset>
+            <div className="w-28">
+              <LengthInput
+                label="Width"
+                valueMm={size.xMm}
+                onCommitMm={(mm) => {
+                  settings.patch({ columnSizeMm: { xMm: mm, yMm: size.yMm } });
+                }}
+                display={unitsDisplay}
+                bareUnit="mm"
+                minMm={MIN_COLUMN_SIDE_MM}
+                maxMm={MAX_COLUMN_SIDE_MM}
+              />
+            </div>
+            <div className="w-28">
+              <LengthInput
+                label="Depth"
+                valueMm={size.yMm}
+                onCommitMm={(mm) => {
+                  settings.patch({ columnSizeMm: { xMm: size.xMm, yMm: mm } });
+                }}
+                display={unitsDisplay}
+                bareUnit="mm"
+                minMm={MIN_COLUMN_SIDE_MM}
+                maxMm={MAX_COLUMN_SIDE_MM}
+              />
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                settings.patch({ columnSizeMm: { xMm: size.yMm, yMm: size.xMm } });
+              }}
+              title="X turns the column"
+            >
+              Turn
+            </Button>
+          </>
+        );
+      }
+
+      case 'split':
+        return (
+          <p className="text-xs text-ink-muted">
+            Hover a wall and click where it should split. Type a distance from the wall start to cut
+            exactly there; a wall that meets it snaps the cut to the junction.
+          </p>
         );
 
       case 'measure':
