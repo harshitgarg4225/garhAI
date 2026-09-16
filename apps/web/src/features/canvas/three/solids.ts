@@ -57,6 +57,7 @@ import {
   ensureCcwF,
   floorSlabOf,
   openingCutProfileF,
+  openingFallbackPanelProfileF,
   openingPanelProfileF,
   parapetSegmentFootprintsF,
   regularPolygonF,
@@ -78,6 +79,15 @@ export interface SolidSpec {
   readonly profile: PrismProfileF;
   /** Prisms to boolean-subtract (opening cuts, slab stair wells). Empty = none. */
   readonly cuts: readonly PrismProfileF[];
+  /**
+   * The profile to draw INSTEAD of `profile` while the boolean engine is
+   * absent, or null when the solid looks the same either way. Opening panels
+   * use it: a 40 mm panel centred in an uncut 230 mm wall is buried, so the
+   * fallback panel stands proud of both faces (`OPENING_FALLBACK_PROUD_MM`).
+   * Never used once holes are cut — `geometryBuild` swaps it in only when
+   * `cutter === null`, the same condition that drives `holesApplied`.
+   */
+  readonly fallbackProfile: PrismProfileF | null;
   /** Fixed pick target, or null for registered-but-unselectable structure. */
   readonly pick: PickTarget | null;
   /** True ⇒ resolve the pick by point-in-room lookup instead of `pick`. */
@@ -107,6 +117,7 @@ interface SolidInit {
   readonly key: string;
   readonly profile: PrismProfileF;
   readonly cuts?: readonly PrismProfileF[];
+  readonly fallbackProfile?: PrismProfileF | null;
   readonly pick?: PickTarget | null;
   readonly pickRoomByPoint?: boolean;
   readonly surface: SurfaceGroup;
@@ -121,6 +132,7 @@ function solid(init: SolidInit): SolidSpec {
     key: init.key,
     profile: init.profile,
     cuts: init.cuts ?? NO_CUTS,
+    fallbackProfile: init.fallbackProfile ?? null,
     pick: init.pick ?? null,
     pickRoomByPoint: init.pickRoomByPoint ?? false,
     surface: init.surface,
@@ -193,6 +205,7 @@ export function storeySolids(house: HouseModel, storeyId: string): SolidSpec[] {
       solid({
         key: `opening:${opening.id}`,
         profile: panel,
+        fallbackProfile: openingFallbackPanelProfileF(wall, opening, span.baseMm, span.wallTopMm),
         pick: { kind: 'opening', id: opening.id, storeyId },
         surface: openingSurface(opening),
         elementId: opening.id,

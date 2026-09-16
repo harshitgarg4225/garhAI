@@ -15,7 +15,10 @@ import {
   type ProjectDoc,
 } from '@garh/model';
 
-import { buildGroup } from './geometryBuild';
+import { WORLD_UNITS_PER_MM } from '../core/constants';
+import type { PrismCutter } from './booleans';
+import { OPENING_FALLBACK_PROUD_MM, OPENING_PANEL_THICKNESS_MM } from './extrusion';
+import { buildGroup, type BuiltBucket, type GroupBuild } from './geometryBuild';
 import {
   ROOF_GROUP_KEY,
   groupKeysOf,
@@ -253,5 +256,83 @@ describe('buildGroup (no engine): honest fallback', () => {
     const { house } = baseDoc();
     expect(solidsOfGroup(house, storeyGroupKey(GF)).storeyId).toBe(GF);
     expect(solidsOfGroup(house, ROOF_GROUP_KEY).storeyId).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The no-WASM fallback must still SHOW the openings
+// ---------------------------------------------------------------------------
+
+describe('opening panels in the no-WASM fallback', () => {
+  // Fixture: the south wall runs (0,0)→(6000,0), 230 thick, so "across the
+  // wall" is model y (world −z). The door D1 sits on it.
+  const DOOR_KEY = `opening:${fixedId('opening', 'D1')}`;
+  const WALL_THICKNESS_MM = 230;
+
+  const yExtentMm = (profile: { polygon: readonly { y: number }[] }): number => {
+    const ys = profile.polygon.map((p) => p.y);
+    return Math.max(...ys) - Math.min(...ys);
+  };
+
+  it('the panel spec carries a fallback profile proud of BOTH wall faces', () => {
+    const { house } = baseDoc();
+    const door = storeySolids(house, GF).find((s) => s.key === DOOR_KEY);
+    if (door === undefined) throw new Error('no door panel');
+    const fallback = door.fallbackProfile;
+    if (fallback === null) throw new Error('no fallback profile');
+    expect(yExtentMm(door.profile)).toBe(OPENING_PANEL_THICKNESS_MM);
+    expect(yExtentMm(fallback)).toBe(WALL_THICKNESS_MM + 2 * OPENING_FALLBACK_PROUD_MM);
+    // The real panel is buried inside the wall; the fallback is not.
+    expect(yExtentMm(door.profile)).toBeLessThan(WALL_THICKNESS_MM);
+    expect(yExtentMm(fallback)).toBeGreaterThan(WALL_THICKNESS_MM);
+  });
+
+  /** Across-wall extent of a bucket's vertices, back in mm. */
+  const bucketDepthMm = (bucket: BuiltBucket): number => {
+    let min = Infinity;
+    let max = -Infinity;
+    for (let i = 2; i < bucket.positions.length; i += 3) {
+      const z = bucket.positions[i] ?? 0;
+      if (z < min) min = z;
+      if (z > max) max = z;
+    }
+    return (max - min) / WORLD_UNITS_PER_MM;
+  };
+
+  const doorOf = (build: GroupBuild): BuiltBucket => {
+    const bucket = build.buckets.find((b) => b.surface === 'door');
+    if (bucket === undefined) throw new Error('no door bucket');
+    return bucket;
+  };
+
+  it('buildGroup draws the proud plate WITHOUT an engine, the 40 mm panel WITH one', () => {
+    const { house } = baseDoc();
+    const withoutEngine = buildGroup(house, storeyGroupKey(GF), null, new Set());
+    // Any cutter at all: the panel swap keys on the engine's presence, not on
+    // what the cutter returns for the walls.
+    const anyCutter: PrismCutter = { cut: () => ({ positionsMm: new Float32Array(9) }) };
+    const withEngine = buildGroup(house, storeyGroupKey(GF), anyCutter, new Set());
+
+    expect(bucketDepthMm(doorOf(withoutEngine))).toBeCloseTo(
+      WALL_THICKNESS_MM + 2 * OPENING_FALLBACK_PROUD_MM,
+      3,
+    );
+    expect(bucketDepthMm(doorOf(withEngine))).toBeCloseTo(OPENING_PANEL_THICKNESS_MM, 3);
+    expect(withoutEngine.holesApplied).toBe(false);
+    expect(withEngine.holesApplied).toBe(true);
+  });
+
+  it('solids without a fallback draw the same profile either way (negative control)', () => {
+    const { house } = baseDoc();
+    const plinth = storeySolids(house, GF).find((s) => s.key === 'plinth');
+    expect(plinth?.fallbackProfile).toBeNull();
+    const a = buildGroup(house, storeyGroupKey(GF), null, new Set());
+    const cutter: PrismCutter = { cut: () => null };
+    const b = buildGroup(house, storeyGroupKey(GF), cutter, new Set());
+    const plinthOf = (build: GroupBuild): BuiltBucket | undefined =>
+      build.buckets.find((x) => x.surface === 'plinth');
+    expect(Array.from(plinthOf(a)?.positions ?? [])).toEqual(
+      Array.from(plinthOf(b)?.positions ?? []),
+    );
   });
 });

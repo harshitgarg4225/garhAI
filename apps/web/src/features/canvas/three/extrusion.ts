@@ -81,6 +81,16 @@ export const OPENING_CUT_SLACK_MM = 10;
 /** Thickness of the pickable panel drawn inside an opening (glazing / leaf). */
 export const OPENING_PANEL_THICKNESS_MM = 40;
 
+/**
+ * How far the NO-WASM fallback panel stands proud of each wall face. Without
+ * the boolean engine the wall is a solid prism, so a 40 mm panel centred in
+ * a 230 mm wall is buried and every opening vanishes from the view. The
+ * fallback panel spans the whole wall thickness plus this much on each face
+ * — an applied plate that reads as "a door is here" until the engine
+ * arrives, and is never used once holes are cut.
+ */
+export const OPENING_FALLBACK_PROUD_MM = 12;
+
 /** Parapet band thickness — DEFAULTS.parapetThicknessMm restated locally so
  * this module has no dependency on the defaults object's shape. */
 export const PARAPET_THICKNESS_MM = 115;
@@ -262,6 +272,27 @@ export function openingPanelProfileF(
   wallTopMm: number,
 ): PrismProfileF | null {
   return openingProfileF(wall, opening, storeyBaseMm, wallTopMm, OPENING_PANEL_THICKNESS_MM / 2);
+}
+
+/**
+ * The panel drawn when the boolean engine is ABSENT: same placement, but
+ * spanning the full wall thickness plus `OPENING_FALLBACK_PROUD_MM` on each
+ * face, so it shows on an uncut wall. `buildGroup` swaps it in only while no
+ * cutter exists; with holes cut, the 40 mm panel inside the reveal is used.
+ */
+export function openingFallbackPanelProfileF(
+  wall: Wall,
+  opening: Opening,
+  storeyBaseMm: number,
+  wallTopMm: number,
+): PrismProfileF | null {
+  return openingProfileF(
+    wall,
+    opening,
+    storeyBaseMm,
+    wallTopMm,
+    wall.thicknessMm / 2 + OPENING_FALLBACK_PROUD_MM,
+  );
 }
 
 function openingProfileF(
