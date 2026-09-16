@@ -25,8 +25,9 @@
  *                    clicked the floor of" is the 2D behaviour anyway.
  *   mumty          → kind 'stair', the stair it covers (it has no id of its own)
  *   OHT            → kind 'room',  the shaft room it serves
- *   roof/parapet/plinth → pick: null. These derive from levels + envelope and
- *                    have NO model element to select. They are still
+ *   roof/parapet/plinth/terrace → pick: null. These derive from levels +
+ *                    envelope (the set-back terrace from TWO envelopes —
+ *                    `terrace.ts`) and have NO model element to select. They are still
  *                    REGISTERED with the PickRegistry (with a null-resolving
  *                    target), so the decision is visible in the registry
  *                    rather than being a mesh that silently never registered
@@ -41,6 +42,7 @@
 import {
   bbox,
   ensureCcw,
+  pointInPolygon,
   stairFootprintPolygon,
   type HouseModel,
   type Opening,
@@ -67,6 +69,7 @@ import {
   wallFootprintF,
   type PrismProfileF,
 } from './extrusion';
+import { exposedTerraceFaces } from './terrace';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -248,6 +251,67 @@ export function storeySolids(house: HouseModel, storeyId: string): SolidSpec[] {
           storeyId,
         }),
       );
+    }
+
+    // ── terrace over the set-back: the exposed portion of THIS storey's
+    //    outline under a smaller storey above (terrace.ts). The top storey's
+    //    roof is `roofSolids`'; every intermediate exposed roof lives here,
+    //    in the storey it covers, so the storey filter shows it with the
+    //    storey and an edit above re-meshes exactly this group (dirty.ts).
+    const above = house.storeys[index + 1];
+    if (above !== undefined) {
+      const aboveSlab = floorSlabOf(house, above.id);
+      const terraceTop = span.ceilingMm;
+      const terraceBase = terraceTop - span.slabAboveThicknessMm;
+      const storeyStairs = house.stairs.filter((s) => s.storeyId === storeyId);
+      const faces = exposedTerraceFaces(slab.polygon, aboveSlab?.polygon ?? []);
+      faces.forEach((face, i) => {
+        const cuts: PrismProfileF[] = [];
+        // A stair arriving on this terrace needs its well — same slack as
+        // the roof slab's stair cuts.
+        for (const stair of storeyStairs) {
+          if (pointInPolygon(stair.origin, face.ring) === 'outside') continue;
+          const well = stairFootprintPolygon(stair);
+          if (well.length < 3) continue;
+          cuts.push({ polygon: ensureCcw(well), baseMm: terraceBase - 10, topMm: terraceTop + 10 });
+        }
+        if (face.hole !== null) {
+          cuts.push({ polygon: face.hole, baseMm: terraceBase - 10, topMm: terraceTop + 10 });
+        }
+        out.push(
+          solid({
+            key: `terrace:${storeyId}:${String(i)}`,
+            profile: { polygon: face.ring, baseMm: terraceBase, topMm: terraceTop },
+            cuts,
+            // The hole case without an engine: the uncut slab would share
+            // its top face with the storey above's floor slab and z-fight
+            // it. Two millimetres lower is invisible on the terrace and
+            // hidden under the floor — until the engine cuts the real hole.
+            fallbackProfile:
+              face.hole === null
+                ? null
+                : { polygon: face.ring, baseMm: terraceBase, topMm: terraceTop - 2 },
+            surface: 'roof',
+            storeyId,
+          }),
+        );
+        const bands = parapetSegmentFootprintsF(face.ring);
+        bands.forEach((band, e) => {
+          if (face.exposedEdges[e] !== true) return;
+          out.push(
+            solid({
+              key: `terrace-parapet:${storeyId}:${String(i)}:${String(e)}`,
+              profile: {
+                polygon: band,
+                baseMm: terraceTop,
+                topMm: terraceTop + house.levels.parapetMm,
+              },
+              surface: 'parapet',
+              storeyId,
+            }),
+          );
+        });
+      });
     }
   }
 

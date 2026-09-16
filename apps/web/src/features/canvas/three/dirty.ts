@@ -105,11 +105,26 @@ export function storeySignature(house: HouseModel, storeyId: string): string {
       `O:${o.id}:${o.wallId}:${o.kind}:${String(o.widthMm)}:${String(o.heightMm)}:${String(o.sillMm)}:${String(o.offsetMm)}`,
     );
   }
+  let ownRing = '';
   for (const s of house.slabs) {
     if (s.storeyId !== storeyId) continue;
+    if (s.kind === 'floor') ownRing = ringSig(s.polygon);
     parts.push(
       `SL:${s.id}:${s.kind}:${String(s.thicknessMm)}:${ringSig(s.polygon)}:${s.cutouts.map(ringSig).join('#')}`,
     );
+  }
+  // The terrace over this storey's set-back (terrace.ts) reads the storey
+  // ABOVE's outline — so an envelope edit upstairs re-meshes this group.
+  // Its parapet reads `levels.parapetMm`, which joins the signature only
+  // when the outlines differ: identical outlines have no terrace, and a
+  // parapet edit must not re-mesh storeys it cannot change.
+  if (above !== undefined) {
+    let aboveRing = '';
+    for (const s of house.slabs) {
+      if (s.storeyId === above.id && s.kind === 'floor') aboveRing = ringSig(s.polygon);
+    }
+    parts.push(`slabAboveRing:${aboveRing}`);
+    if (aboveRing !== ownRing) parts.push(`parapet:${String(house.levels.parapetMm)}`);
   }
   const elementIds: string[] = [...wallIds];
   for (const s of house.stairs) {
