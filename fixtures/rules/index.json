@@ -11,7 +11,7 @@
   "counts": {
     "packs": 5,
     "rules": 118,
-    "fixtures": 238
+    "fixtures": 245
   },
   "packs": [
     {
@@ -596,7 +596,11 @@
           "fail": [
             "blr/blr.parking.plot.le240.fail.json"
           ],
-          "extra": []
+          "extra": [
+            "blr/blr.parking.plot.le240.extra-measured-bay.json",
+            "blr/blr.parking.plot.le240.extra-declared-only.json",
+            "blr/blr.parking.plot.le240.extra-undersized-bay.json"
+          ]
         },
         {
           "packId": "blr",
@@ -823,7 +827,10 @@
           "fail": [
             "ncr/ncr.parking.ecs.fail.json"
           ],
-          "extra": []
+          "extra": [
+            "ncr/ncr.parking.ecs.extra-measured-bay.json",
+            "ncr/ncr.parking.ecs.extra-declared-only.json"
+          ]
         },
         {
           "packId": "ncr",
@@ -1193,7 +1200,10 @@
           "fail": [
             "hyd/hyd.parking.plot.le200.fail.json"
           ],
-          "extra": []
+          "extra": [
+            "hyd/hyd.parking.plot.le200.extra-measured-bay.json",
+            "hyd/hyd.parking.plot.le200.extra-declared-only.json"
+          ]
         },
         {
           "packId": "hyd",
@@ -3256,6 +3266,62 @@
       "kind": "extra",
       "path": "vastu/vastu.toilet.never_ne.extra-advisory.json",
       "expectStatus": "warn"
+    },
+    {
+      "fixtureId": "blr.parking.plot.le240.extra-measured-bay",
+      "packId": "blr",
+      "ruleId": "blr.parking.plot.le240",
+      "kind": "extra",
+      "path": "blr/blr.parking.plot.le240.extra-measured-bay.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "blr.parking.plot.le240.extra-declared-only",
+      "packId": "blr",
+      "ruleId": "blr.parking.plot.le240",
+      "kind": "extra",
+      "path": "blr/blr.parking.plot.le240.extra-declared-only.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "blr.parking.plot.le240.extra-undersized-bay",
+      "packId": "blr",
+      "ruleId": "blr.parking.plot.le240",
+      "kind": "extra",
+      "path": "blr/blr.parking.plot.le240.extra-undersized-bay.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "ncr.parking.ecs.extra-measured-bay",
+      "packId": "ncr",
+      "ruleId": "ncr.parking.ecs",
+      "kind": "extra",
+      "path": "ncr/ncr.parking.ecs.extra-measured-bay.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "ncr.parking.ecs.extra-declared-only",
+      "packId": "ncr",
+      "ruleId": "ncr.parking.ecs",
+      "kind": "extra",
+      "path": "ncr/ncr.parking.ecs.extra-declared-only.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "hyd.parking.plot.le200.extra-measured-bay",
+      "packId": "hyd",
+      "ruleId": "hyd.parking.plot.le200",
+      "kind": "extra",
+      "path": "hyd/hyd.parking.plot.le200.extra-measured-bay.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "hyd.parking.plot.le200.extra-declared-only",
+      "packId": "hyd",
+      "ruleId": "hyd.parking.plot.le200",
+      "kind": "extra",
+      "path": "hyd/hyd.parking.plot.le200.extra-declared-only.json",
+      "expectStatus": "fail"
     }
   ]
 }

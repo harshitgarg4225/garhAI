@@ -22,7 +22,7 @@ type                       scope        actual vs limit
 ``stair_width_min``        stair         ``widthMm`` >= ``valueMm``
 ``headroom_min``           stair         ``headroomMm`` >= ``valueMm``
 ``projection_max``         projection    ``projectionMm`` <= ``valueMm``
-``parking_min``            project       provided >= ``max(ceil(rate * basis), minSpaces)``
+``parking_min``            project       conforming measured bays (else declared) >= ``max(ceil(rate * basis), minSpaces)``
 ``opening_width_min``      opening       ``widthMm`` >= ``valueMm``
 ``zone_check``             zone          target's zone/facing in ``allow`` / not in ``deny``
 ``custom``                 per fn        see :mod:`garh_rules.customfns`
@@ -41,7 +41,7 @@ nothing slips through on a rounding artefact.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fractions import Fraction
 from typing import Any
 
@@ -56,7 +56,7 @@ from .context import (
 from .customfns import custom_result_unit, run_custom
 from .errors import ContextError, EvaluationError
 from .packs import DEFAULT_COUNT_KINDS, Check
-from .ratio import Ratio
+from .ratio import Ratio, require_int
 from .scope import CheckEnv, Instance, Outcome
 from .zones import facing_of
 
@@ -166,11 +166,21 @@ def check_floors_max(check: Check, instance: Instance, env: CheckEnv) -> Outcome
 
 
 def check_parking_min(check: Check, instance: Instance, env: CheckEnv) -> Outcome:
-    """``required = max(ceil(rate * basis), minSpaces)``.
+    """``required = max(ceil(rate * basis), minSpaces)``; ``actual`` is measured.
 
     ``basis: built-up-area`` makes the rate spaces per mm2 — "2 ECS per 100 m2" is
     ``{num: 2, den: 100000000}``. Integer cross-multiplication throughout, so the
     familiar rate never becomes 1.9999 spaces.
+
+    **What counts as a space.** When the context carries ``model.parkingSpaces`` —
+    the bays the model layer measured off the plan — ``actual`` is the number of
+    them that are at least ``spaceSizeMm`` in both directions (either way round)
+    and reachable from a road. A bay that is too small or walled in is named in
+    ``elements[]`` so the report points at it. Only a context with NO measurement
+    (``parkingSpaces`` absent — a synthetic fixture, an older caller) falls back
+    to ``profile.parkingSpacesProvided``, the brief's declaration; the API always
+    measures, so in the product a promised car that is not drawn does not count.
+    The rule's message says "{actual} car space(s) are shown", and now that is true.
     """
     rate = check.ratio_param("rate")
     basis = check.str_param("basis")
@@ -181,7 +191,35 @@ def check_parking_min(check: Check, instance: Instance, env: CheckEnv) -> Outcom
     else:  # pragma: no cover - rejected at pack load
         raise EvaluationError("unknown parking basis %r" % basis)
     required = max(rate.ceil_of(quantity), check.opt_int_param("minSpaces", 0))
-    return Outcome.at_least(env.context.profile.parking_spaces_provided, required)
+
+    spaces = env.context.model.parking_spaces
+    if spaces is None:
+        return Outcome.at_least(env.context.profile.parking_spaces_provided, required)
+
+    size = _space_size_mm(check)
+    conforming = 0
+    rejected: list[str] = []
+    for space in spaces:
+        short, long = sorted((space.width_mm, space.length_mm))
+        fits = size is None or (short >= size[0] and long >= size[1])
+        if fits and space.reachable:
+            conforming += 1
+        else:
+            rejected.append(space.id)
+    outcome = Outcome.at_least(conforming, required)
+    if not outcome.satisfied and rejected:
+        return replace(outcome, elements=tuple(rejected))
+    return outcome
+
+
+def _space_size_mm(check: Check) -> tuple[int, int] | None:
+    """``spaceSizeMm: [w, l]`` as ``(shorter, longer)``; ``None`` when the pack sets none."""
+    raw = check.params.get("spaceSizeMm")
+    if not isinstance(raw, list | tuple) or len(raw) != 2:
+        return None
+    a = require_int(raw[0], "check.spaceSizeMm[0]")
+    b = require_int(raw[1], "check.spaceSizeMm[1]")
+    return (min(a, b), max(a, b))
 
 
 # ---------------------------------------------------------------------------

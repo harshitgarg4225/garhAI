@@ -1,7 +1,7 @@
 # Rule fixtures
 
 The gate on the rules engine. Playbook §16: **every rule has at least one passing and at least one
-failing fixture.** 118 rules, 238 fixtures.
+failing fixture.** 118 rules, 245 fixtures.
 
 ```
 fixtures/rules/
@@ -29,10 +29,15 @@ input contract**, so the engine's context builder and these fixtures are held to
 
 `fixtureId` always equals the filename without `.json`.
 
-Two extras exist today, both for Vastu behaviour that pass/fail cannot express:
+Nine extras exist today. Two are Vastu behaviour that pass/fail cannot express:
 `vastu.kitchen.zone.extra-fallback` (kitchen in NW → half score, `warn`) and
 `vastu.toilet.never_ne.extra-advisory` (the same NE toilet that is `fail` in strict mode, clamped to
-`warn` in advisory mode).
+`warn` in advisory mode). Seven are parking **measured off the model** (`model.parkingSpaces`), one
+rule per city pack: `extra-measured-bay` (bays drawn, brief declares none → `pass`),
+`extra-declared-only` (brief declares the count, no bay drawn → `fail` — the declaration never
+rescues a measured context) and, for BBMP, `extra-undersized-bay` (bays 100 mm narrow of
+`spaceSizeMm` → `fail`, every bay named in `elements`). Each sets the declaration to the OPPOSITE of
+the drawing, so an engine that read the number instead of the bays fails all seven.
 
 ## What a fixture asserts
 
@@ -53,7 +58,7 @@ cap, because a storey cannot be added without height.
 
 ## Why the corpus is generated
 
-238 fixtures written by hand would be inconsistent, and the interesting property is uniformity: a
+245 fixtures written by hand would be inconsistent, and the interesting property is uniformity: a
 passing fixture sits **on** the limit and a failing one misses it **by one unit**, for the single input
 the rule measures, inside a context whose other values were resolved from the pack's own tables to be
 compliant. `_tools/generate_fixtures.py` does that mechanically.

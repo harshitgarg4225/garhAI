@@ -299,7 +299,7 @@
       "stair_width_min":       { "scope": "stair",      "resultUnit": "mm",      "actual": "stair.widthMm" },
       "headroom_min":          { "scope": "stair",      "resultUnit": "mm",      "actual": "stair.headroomMm" },
       "projection_max":        { "scope": "projection", "resultUnit": "mm",      "actual": "projection.projectionMm (only projections whose element matches, and whose intoSetback matches when check.intoSetbackOnly is true)" },
-      "parking_min":           { "scope": "project",    "resultUnit": "count",   "actual": "profile.parkingSpacesProvided", "limit": "max(ceil(rate.num * basisQuantity / rate.den), minSpaces or 0); basisQuantity = profile.dwellingUnits | model.builtUpAreaMm2" },
+      "parking_min":           { "scope": "project",    "resultUnit": "count",   "actual": "count of model.parkingSpaces that are >= spaceSizeMm both ways (either orientation) and reachable, when model.parkingSpaces is present; profile.parkingSpacesProvided (the brief's declaration) only when it is absent", "limit": "max(ceil(rate.num * basisQuantity / rate.den), minSpaces or 0); basisQuantity = profile.dwellingUnits | model.builtUpAreaMm2" },
       "opening_width_min":     { "scope": "opening",    "resultUnit": "mm",      "actual": "opening.widthMm" },
       "zone_check":            { "scope": "zone",       "resultUnit": "zone",    "actual": "sorted unique zone/facing labels of the matched targets", "limit": "{allow, deny, fallback}" },
       "custom":                { "scope": "declared by check.scope", "resultUnit": "per fn (rwh_required -> boolean, brahmasthan_open -> bp10000)" }
