@@ -23,6 +23,31 @@ All of these default OFF. The api and workers log a single INFO line at boot for
 each provider they actually enabled; absence of that line means the flip did not
 take.
 
+## Services and their start commands
+
+Eight Railway services, one config file each under `deploy/railway/` (attach it per
+service under Settings → Config-as-code). `apps/api/tests/test_deploy_config.py`
+reads this table, those files and `docker-compose.yml` and fails on any drift, so
+what is written here is what runs.
+
+| Service                      | Config file                           | Start command                                                                                                         |
+| ---------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `api`                        | `deploy/railway/api.json`             | `python -m garh_api.migrate --seed && exec uvicorn garh_api.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 4` |
+| `web`                        | `deploy/railway/web.json`             | image `CMD` — nginx, the `prod-railway` stage                                                                         |
+| `worker-solver`              | `deploy/railway/worker-solver.json`   | `python -m services.solver.worker`                                                                                    |
+| `worker-render`              | `deploy/railway/worker-render.json`   | `python -m services.render.worker`                                                                                    |
+| `worker-drawings`            | `deploy/railway/worker-drawings.json` | `python -m services.drawings.worker`                                                                                  |
+| `backup`                     | `deploy/railway/backup.json`          | `/app/scripts/backup_db.sh backup-s3` — cron `30 20 * * *` (02:00 IST)                                                |
+| `postgres`, `redis`, `minio` | managed / marketplace                 | —                                                                                                                     |
+
+`python -m garh_api.migrate` is the one boot step that touches the schema: it takes a
+Postgres advisory lock before `alembic upgrade head` (the lock lives in
+`migrations/env.py`, so a bare `alembic upgrade head` is guarded too), and `--seed`
+creates the demo firm once and writes nothing on every boot after — an audit row
+included. The api can therefore run with more than one replica; raise `numReplicas`
+in `api.json` when the load says so. Compose runs the same command when
+`API_MIGRATE_ON_BOOT=true`.
+
 ## Backups
 
 A backup that has never been restored is a hope, not a backup. Three commands, one
