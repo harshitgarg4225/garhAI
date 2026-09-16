@@ -113,7 +113,7 @@ describe('alarmsFor', () => {
     off.sentry = 'off';
     off.observability = { ...off.observability, sentry: 'off' };
     const sentryAlarm = alarmsFor(off).find((a) => a.key === 'sentry');
-    expect(sentryAlarm?.action).toContain('SENTRY_DSN');
+    expect(sentryAlarm?.action).toContain('Sentry DSN variable');
 
     const workerOff = allClear();
     workerOff.workers = workerOff.workers.map((w, i) => (i === 0 ? { ...w, sentry: 'off' } : w));

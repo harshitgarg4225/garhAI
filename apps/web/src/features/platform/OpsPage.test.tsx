@@ -113,7 +113,9 @@ describe('OpsPage', () => {
       'alarm-dead-render',
       'alarm-migrations',
     ]);
-    expect(text('[data-testid="alarm-sentry"]')).toContain('Set SENTRY_DSN on the api service');
+    expect(text('[data-testid="alarm-sentry"]')).toContain(
+      'Set the Sentry DSN variable on the api service',
+    );
     expect(text('[data-testid="alarm-workers-missing"]')).toContain('No heartbeat from drawings');
     expect(text('[aria-label="Findings"]')).toContain(
       '5 things to act on before trusting this deployment.',

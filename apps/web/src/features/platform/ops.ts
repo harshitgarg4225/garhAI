@@ -85,7 +85,8 @@ export function alarmsFor(status: PlatformStatus): Alarm[] {
       title: 'Redis did not answer',
       detail:
         'Queue depths and worker heartbeats are unknown — the empty lists below are not idle.',
-      action: 'Check the Redis service and REDIS_URL on the api; every job path depends on it.',
+      action:
+        'Check the Redis service and the api’s Redis connection setting; every job path depends on it.',
     });
   }
   if (obs.database === 'down') {
@@ -93,7 +94,7 @@ export function alarmsFor(status: PlatformStatus): Alarm[] {
       key: 'database',
       title: 'Postgres did not answer',
       detail: 'Job counts and the migration head could not be read.',
-      action: 'Check the Postgres service and DATABASE_URL on the api.',
+      action: 'Check the Postgres service and the api’s database connection setting.',
     });
   }
   if (obs.sentry === 'off') {
@@ -101,9 +102,9 @@ export function alarmsFor(status: PlatformStatus): Alarm[] {
       key: 'sentry',
       title: 'Error tracking is off on the api',
       detail:
-        'No SENTRY_DSN is set, so an exception in production is a log line nobody is paged for.',
+        'No Sentry DSN is set, so an exception in production is a log line nobody is paged for.',
       action:
-        'Set SENTRY_DSN on the api service (and each worker); /healthz then reads sentry: on.',
+        'Set the Sentry DSN variable on the api service (and each worker); /healthz then reads sentry: on.',
     });
   }
   const workersWithSentryOff = status.workers.filter((w) => w.sentry === 'off');
@@ -114,7 +115,7 @@ export function alarmsFor(status: PlatformStatus): Alarm[] {
         workersWithSentryOff.length === 1 ? '' : 's'
       }`,
       detail: workersWithSentryOff.map((w) => w.instance).join(', '),
-      action: 'Set SENTRY_DSN on every worker service, not only the api.',
+      action: 'Set the Sentry DSN variable on every worker service, not only the api.',
     });
   }
   if (obs.redis === 'ok' && obs.workersMissing.length > 0) {
