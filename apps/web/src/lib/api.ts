@@ -426,6 +426,92 @@ export const platformMarkupSchema = z.object({
 });
 export type PlatformMarkup = z.infer<typeof platformMarkupSchema>;
 
+/**
+ * `GET /admin/ops` — the deployment's operational state, for the platform owner.
+ * Mirrors `PlatformStatusOut` in `apps/api/garh_api/routers/platform_ops.py`;
+ * `api.ops.test.ts` reads that file's field names so the two cannot drift.
+ */
+export const opsQueueSchema = z.object({
+  name: z.string(),
+  worker: z.string(),
+  pending: z.number().int().nonnegative(),
+  delayed: z.number().int().nonnegative(),
+  processing: z.number().int().nonnegative(),
+  dead: z.number().int().nonnegative(),
+});
+export const opsWorkerSchema = z.object({
+  worker: z.string(),
+  instance: z.string(),
+  hostname: z.string().nullable().default(null),
+  sentAt: z.string(),
+  ageSeconds: z.number().int().nonnegative(),
+  intervalSeconds: z.number().int().positive(),
+  stale: z.boolean(),
+  draining: z.boolean().default(false),
+  uptimeSeconds: z.number().int().nonnegative().default(0),
+  inFlight: z.number().int().nonnegative().default(0),
+  concurrency: z.number().int().nonnegative().default(1),
+  jobsReceived: z.number().int().nonnegative().default(0),
+  jobsSucceeded: z.number().int().nonnegative().default(0),
+  jobsFailed: z.number().int().nonnegative().default(0),
+  jobsRetried: z.number().int().nonnegative().default(0),
+  jobsDeadLettered: z.number().int().nonnegative().default(0),
+  p50DurationMs: z.number().int().nonnegative().default(0),
+  p95DurationMs: z.number().int().nonnegative().default(0),
+  providerLlm: z.string().nullable().default(null),
+  providerRender: z.string().nullable().default(null),
+  sentry: z.enum(['on', 'off']).catch('off'),
+  release: z.string().nullable().default(null),
+  env: z.string().nullable().default(null),
+});
+export const opsJobKindSchema = z.object({
+  kind: z.string(),
+  counts: z.record(z.number().int().nonnegative()),
+  terminalCount: z.number().int().nonnegative(),
+  p50Ms: z.number().int().nonnegative(),
+  p95Ms: z.number().int().nonnegative(),
+  maxMs: z.number().int().nonnegative(),
+});
+export const opsMigrationSchema = z.object({
+  current: z.array(z.string()),
+  heads: z.array(z.string()),
+  upToDate: z.boolean(),
+  reason: z.string().nullable().default(null),
+});
+export const opsObservabilitySchema = z.object({
+  sentry: z.enum(['on', 'off']).catch('off'),
+  logFormat: z.string(),
+  workersReporting: z.number().int().nonnegative(),
+  workersMissing: z.array(z.string()),
+  workersStale: z.array(z.string()),
+  redis: z.enum(['ok', 'down']).catch('down'),
+  database: z.enum(['ok', 'down']).catch('down'),
+});
+export const platformStatusSchema = z.object({
+  generatedAt: z.string(),
+  env: z.string(),
+  version: z.string(),
+  release: z.string().nullable().default(null),
+  providers: z.object({
+    llm: z.string(),
+    render: z.string(),
+    billing: z.string(),
+    mail: z.string(),
+  }),
+  sentry: z.enum(['on', 'off']).catch('off'),
+  migrations: opsMigrationSchema,
+  queues: z.array(opsQueueSchema).default([]),
+  workers: z.array(opsWorkerSchema).default([]),
+  jobs: z.array(opsJobKindSchema).default([]),
+  exportJobsLive: z.number().int().nonnegative().default(0),
+  jobWindowHours: z.number().int().positive().default(24),
+  observability: opsObservabilitySchema,
+});
+export type PlatformStatus = z.infer<typeof platformStatusSchema>;
+export type OpsQueue = z.infer<typeof opsQueueSchema>;
+export type OpsWorker = z.infer<typeof opsWorkerSchema>;
+export type OpsJobKind = z.infer<typeof opsJobKindSchema>;
+
 // ---------------------------------------------------------------------------
 // The Billing page (GET /billing/plans … POST /billing/payments/verify)
 // ---------------------------------------------------------------------------
@@ -1445,6 +1531,15 @@ export function createApiClient(client: HttpClient = http) {
             parse: parser(platformMarkupSchema),
             ...opts,
           }),
+      },
+      /**
+       * The ops page: queue depths, worker heartbeats, 24 h job counts and
+       * percentiles, providers in force, Sentry state, migration head. 403 for
+       * anyone not on the owner allowlist — there is no read-only variant.
+       */
+      ops: {
+        get: (opts: CallOptions = {}): Promise<PlatformStatus> =>
+          client.request({ path: '/admin/ops', parse: parser(platformStatusSchema), ...opts }),
       },
     },
 

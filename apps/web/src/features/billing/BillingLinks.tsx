@@ -1,7 +1,7 @@
 /**
  * BillingLinks — the app shell's way into billing.
  *
- * "Billing" for every signed-in user. "Platform fee" only when the server's
+ * "Billing" for every signed-in user. "Platform fee" and "Operations" only when the server's
  * `GET /admin/billing/markup` says this caller may set it — hiding the entry is a
  * courtesy to everyone else, not a gate: the PUT's 403 decides, and the page itself
  * renders read-only for a non-owner who types the URL.
@@ -28,9 +28,14 @@ export function BillingLinks({ client = api }: BillingLinksProps): JSX.Element {
         Billing
       </Link>
       {fee.markup?.canSet === true ? (
-        <Link to="/platform/fee" className={LINK_CLASS} data-testid="platform-fee-link">
-          Platform fee
-        </Link>
+        <>
+          <Link to="/platform/fee" className={LINK_CLASS} data-testid="platform-fee-link">
+            Platform fee
+          </Link>
+          <Link to="/platform/ops" className={LINK_CLASS} data-testid="platform-ops-link">
+            Operations
+          </Link>
+        </>
       ) : null}
     </nav>
   );

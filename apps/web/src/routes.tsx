@@ -120,6 +120,14 @@ const PlatformFeePage = lazy(async () => ({
   default: (await import('./features/billing/PlatformFeePage')).PlatformFeePage,
 }));
 
+/**
+ * The platform owner's ops page: queues, workers, jobs, providers, Sentry, the
+ * schema head. Its own chunk for the same reason as the fee page.
+ */
+const OpsPage = lazy(async () => ({
+  default: (await import('./features/platform/OpsPage')).OpsPage,
+}));
+
 /** Plan, allowances, charges, GST details, invoices, seats — and where a 402 lands. */
 const BillingPage = lazy(async () => ({
   default: (await import('./features/billing/BillingPage')).BillingPage,
@@ -409,6 +417,19 @@ export const routes: RouteObject[] = [
         <RequireAuth>
           <Suspense fallback={<DashboardSkeleton />}>
             <PlatformFeePage />
+          </Suspense>
+        </RequireAuth>
+      </ErrorBoundary>
+    ),
+  },
+
+  {
+    path: '/platform/ops',
+    element: (
+      <ErrorBoundary region="operations">
+        <RequireAuth>
+          <Suspense fallback={<DashboardSkeleton />}>
+            <OpsPage />
           </Suspense>
         </RequireAuth>
       </ErrorBoundary>
