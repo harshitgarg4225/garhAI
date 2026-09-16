@@ -23,7 +23,10 @@ import {
   moreLikeThisParams,
   newSeedParams,
   noPlanClearedCopy,
+  parseSeedInput,
   perFloorParams,
+  seedOf,
+  seedParams,
   regenerateOthersParams,
   roomMultiset,
   vastuWheel,
@@ -396,5 +399,26 @@ describe('noPlanClearedCopy', () => {
     expect(copy.gateLine).toBe(
       '1 layout was tried and 1 was discarded by the checks (room minimums, circulation, furniture fit, parking).',
     );
+  });
+});
+
+describe('seed controls', () => {
+  it('parses what an architect types, and refuses what the API would 422', () => {
+    expect(parseSeedInput('42')).toBe(42);
+    expect(parseSeedInput(' 1,234 ')).toBe(1234);
+    expect(parseSeedInput('0')).toBe(0);
+    expect(parseSeedInput('2147483647')).toBe(2_147_483_647);
+    expect(parseSeedInput('2147483648')).toBeNull();
+    expect(parseSeedInput('-1')).toBeNull();
+    expect(parseSeedInput('4.5')).toBeNull();
+    expect(parseSeedInput('abc')).toBeNull();
+    expect(parseSeedInput('')).toBeNull();
+  });
+
+  it("builds the exact-seed request and reads a job's seed back", () => {
+    expect(seedParams(99)).toEqual({ seed: 99 });
+    expect(seedOf({ seed: 7, optionCount: 3 })).toBe(7);
+    expect(seedOf({ optionCount: 3 })).toBeNull();
+    expect(seedOf({ seed: '7' })).toBeNull();
   });
 });

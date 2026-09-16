@@ -430,6 +430,31 @@ export function newSeedParams(random: () => number = Math.random): SolveRequestP
   return { seed: Math.floor(random() * 2_147_483_647) };
 }
 
+/** The API's seed range (`SolveIn.seed`, a StrictInt the worker clamps to 0..2^31-1). */
+export const MAX_SEED = 2_147_483_647;
+
+/**
+ * A seed the architect typed. Integer, 0..2^31-1, commas and spaces tolerated;
+ * anything else is `null` — the field shows its old value again rather than
+ * sending a NaN the API would 422.
+ */
+export function parseSeedInput(raw: string): number | null {
+  const cleaned = raw.replace(/[,\s]/g, '');
+  if (!/^\d+$/.test(cleaned)) return null;
+  const n = Number(cleaned);
+  return Number.isSafeInteger(n) && n >= 0 && n <= MAX_SEED ? n : null;
+}
+
+/** Re-run the search under exactly this seed — the same params give the same family. */
+export function seedParams(seed: number): SolveRequestParams {
+  return { seed };
+}
+
+/** The seed a job ran under, when its params carry one. */
+export function seedOf(params: Readonly<Record<string, unknown>>): number | null {
+  return readSeed(params);
+}
+
 // ---------------------------------------------------------------------------
 // Assumption chips → ops (the locked golden rule: edits dispatch ops)
 // ---------------------------------------------------------------------------

@@ -70,8 +70,11 @@ export {
   keyStats,
   moreLikeThisParams,
   newSeedParams,
+  parseSeedInput,
   perFloorParams,
   regenerateOthersParams,
+  seedOf,
+  seedParams,
   vastuWheel,
 } from './stats';
 export type { ComplianceSummary, KeyStats, OptionComparison, SolveRequestParams } from './stats';

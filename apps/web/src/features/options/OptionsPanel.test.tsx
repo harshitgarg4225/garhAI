@@ -134,6 +134,19 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/** Type into a React-controlled input the way a person would. */
+function typeInto(input: HTMLInputElement, value: string): void {
+  act(() => {
+    // Through the prototype setter so React's value tracker sees the change.
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+
+function button(scope: ParentNode, label: RegExp): HTMLButtonElement | undefined {
+  return [...scope.querySelectorAll('button')].find((b) => label.test(b.textContent ?? ''));
+}
+
 function panel(): ReactElement {
   return (
     <ToastProvider>
@@ -263,5 +276,64 @@ describe('OptionsPanel with options', () => {
     expect(chips[0]).toBe('seed 4242');
     expect(chips).toContain('zone:kitchen@SE');
     expect(chips).toContain('stairAnchor:se-1');
+  });
+
+  it('offers the seed as a control: rerun exactly, or draw another', async () => {
+    useJobsStore.setState({ byProject: { [PROJECT_ID]: [job('succeeded')] } });
+    serveRow({
+      id: JOB_ID,
+      status: 'succeeded',
+      options: [option('plan_a', 0)],
+      params: { seed: 4242 },
+    });
+    const start = vi.spyOn(api.solver, 'start').mockResolvedValue({
+      id: 'job-solver-2',
+      kind: 'solver',
+      status: 'queued',
+      progress: 0,
+      createdAt: '2026-09-09T10:05:00Z',
+    } as never);
+
+    await mount(panel());
+
+    const seedInput = (): HTMLInputElement => {
+      const found = container.querySelector<HTMLInputElement>('input[aria-label="Seed"]');
+      expect(found).not.toBeNull();
+      return found as HTMLInputElement;
+    };
+    // Prefilled with the seed the shown options ran under.
+    expect(seedInput().value).toBe('4242');
+
+    // Nonsense is refused before it reaches the API.
+    typeInto(seedInput(), 'lucky');
+    expect(seedInput().getAttribute('aria-invalid')).toBe('true');
+    expect(button(container, /run this seed/i)?.disabled).toBe(true);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('whole number');
+    expect(start).not.toHaveBeenCalled();
+
+    // A typed seed is sent exactly. Starting a solve makes the new job the panel's
+    // current one, so the options grid gives way to the theater — as it should.
+    typeInto(seedInput(), '99');
+    act(() => button(container, /run this seed/i)?.click());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(start.mock.calls[0]?.[0]).toEqual({ projectId: PROJECT_ID, params: { seed: 99 } });
+    expect(container.querySelector('input[aria-label="Seed"]')).toBeNull();
+
+    // Back on the finished job, "Try another seed" draws a fresh integer.
+    await act(async () => {
+      useJobsStore.setState({ byProject: { [PROJECT_ID]: [job('succeeded')] } });
+      await Promise.resolve();
+    });
+    act(() => button(container, /try another seed/i)?.click());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(start).toHaveBeenCalledTimes(2);
+    const second = start.mock.calls[1]?.[0] as unknown as { params: { seed: unknown } };
+    expect(Number.isInteger(second.params.seed)).toBe(true);
+    expect(second.params.seed).not.toBe(99);
   });
 });

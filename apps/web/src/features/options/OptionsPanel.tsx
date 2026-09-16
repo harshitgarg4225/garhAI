@@ -42,6 +42,9 @@ import {
   moreLikeThisParams,
   newSeedParams,
   noPlanClearedCopy,
+  parseSeedInput,
+  seedOf,
+  seedParams,
 } from './stats';
 import type { SolveOutcome } from './types';
 import { theaterFromJob } from './theater';
@@ -209,7 +212,16 @@ export function OptionsPanel({
                 : undefined
             }
             demoAction={{ notApplicable: 'Generation runs on your own plot and brief.' }}
-          />
+          >
+            {briefReady ? (
+              <SeedControls
+                initialSeed={null}
+                disabled={false}
+                onRunSeed={(seed) => startGenerate(seedParams(seed))}
+                onNewSeed={() => startGenerate(newSeedParams())}
+              />
+            ) : null}
+          </EmptyState>
         ) : null}
 
         {job !== null && (isRunning || failed || job.status === 'cancelled') ? (
@@ -310,6 +322,8 @@ export function OptionsPanel({
             </div>
 
             <RegenControls
+              currentSeed={outcome !== null ? seedOf(outcome.params) : null}
+              onRunSeed={(seed) => startGenerate(seedParams(seed))}
               lockableRooms={actions.lockableRooms}
               onToggleRoomLock={(roomId, locked) => {
                 actions.setRoomLocked(roomId, locked);
@@ -369,6 +383,9 @@ export function OptionsPanel({
 // ---------------------------------------------------------------------------
 
 interface RegenControlsProps {
+  /** The seed the shown options ran under, prefilled so a rerun repeats it. */
+  readonly currentSeed: number | null;
+  readonly onRunSeed: (seed: number) => void;
   readonly lockableRooms: readonly {
     readonly roomId: string;
     readonly label: string;
@@ -383,6 +400,8 @@ interface RegenControlsProps {
 }
 
 function RegenControls({
+  currentSeed,
+  onRunSeed,
   lockableRooms,
   onToggleRoomLock,
   onRegenerateOthers,
@@ -459,12 +478,80 @@ function RegenControls({
       )}
 
       <div className="border-t border-line pt-2">
-        <Button size="sm" variant="ghost" disabled={disabled} onClick={onNewSeed}>
-          <Icon name="sparkles" size={14} />
-          Try a fresh direction
-        </Button>
+        <SeedControls
+          initialSeed={currentSeed}
+          disabled={disabled}
+          onRunSeed={onRunSeed}
+          onNewSeed={onNewSeed}
+        />
       </div>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Seed controls — the search is reproducible, so the seed is an architect's knob
+// ---------------------------------------------------------------------------
+
+interface SeedControlsProps {
+  readonly initialSeed: number | null;
+  readonly disabled: boolean;
+  readonly onRunSeed: (seed: number) => void;
+  readonly onNewSeed: () => void;
+}
+
+/**
+ * A seed field plus two buttons. "Run this seed" repeats a search exactly (the
+ * same plot, brief and seed give the same family — §5's determinism contract);
+ * "Try another seed" draws a random one, which is what "no plan cleared" or "none
+ * of these" both want. The field refuses anything that is not an integer in the
+ * API's range rather than sending a request that would 422.
+ */
+function SeedControls({
+  initialSeed,
+  disabled,
+  onRunSeed,
+  onNewSeed,
+}: SeedControlsProps): JSX.Element {
+  const [raw, setRaw] = useState<string>(initialSeed !== null ? String(initialSeed) : '');
+  const parsed = parseSeedInput(raw);
+  const invalid = raw.trim() !== '' && parsed === null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+        Seed
+        <input
+          type="text"
+          inputMode="numeric"
+          aria-label="Seed"
+          aria-invalid={invalid}
+          value={raw}
+          placeholder="any number"
+          onChange={(event) => setRaw(event.target.value)}
+          className="garh-nums w-28 rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink"
+        />
+      </label>
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={disabled || parsed === null}
+        onClick={() => {
+          if (parsed !== null) onRunSeed(parsed);
+        }}
+      >
+        <Icon name="refresh" size={14} />
+        Run this seed
+      </Button>
+      <Button size="sm" variant="ghost" disabled={disabled} onClick={onNewSeed}>
+        <Icon name="sparkles" size={14} />
+        Try another seed
+      </Button>
+      {invalid ? (
+        <span role="alert" className="text-2xs text-fail-ink">
+          A seed is a whole number from 0 to 2,147,483,647.
+        </span>
+      ) : null}
+    </div>
   );
 }
 
