@@ -212,10 +212,13 @@ describe('wall ops dirty exactly the host storey', () => {
     });
   });
 
-  it('moving the TOP storey envelope rebuilds FF and the roof, never GF', () => {
+  it('moving the TOP storey envelope rebuilds FF, the roof — and GF, whose terrace reads it', () => {
     // Deepen the FF envelope 4000 → 4500 keeping it closed: the derived FF
-    // slab changes, and the roof reads that envelope for its terrace slab,
-    // parapet ring and mumty placement.
+    // slab changes, the roof reads that envelope for its terrace slab,
+    // parapet ring and mumty placement — and since 2026-09-16 the storey
+    // BELOW reads it too: the exposed part of GF's outline under a smaller
+    // FF is GF's terrace (terrace.ts), so GF re-meshes. Before, GF kept a
+    // stale mesh and the massing above a set-back was open to the sky.
     expectPlan(
       gPlusOneDoc(),
       [
@@ -232,8 +235,54 @@ describe('wall ops dirty exactly the host storey', () => {
           payload: { wallId: FF_WEST, a: { x: 0, y: 4500 }, b: { x: 0, y: 0 } },
         },
       ],
-      { rebuild: [FF_KEY, ROOF_GROUP_KEY] },
+      { rebuild: [GF_KEY, FF_KEY, ROOF_GROUP_KEY] },
     );
+  });
+
+  it('a GF-only wall edit under an identical FF still rebuilds GF alone', () => {
+    // The storey below reads the outline above, not the other way round:
+    // GF's terrace cannot change what FF draws.
+    expectPlan(
+      gPlusOneDoc(),
+      [{ type: 'wall.set_thickness', payload: { wallId: WALL_SPINE, thicknessMm: 230 } }],
+      { rebuild: [GF_KEY] },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The terrace over a set-back (terrace.ts) and the parapet height
+// ---------------------------------------------------------------------------
+
+describe('the set-back terrace reads levels.parapetMm only where a terrace exists', () => {
+  /** G+1 with the FF set back at the rear: FF is 6000×2500 on a 6000×4000 GF. */
+  function setBackDoc(): ProjectDoc {
+    return withOps(gPlusOneDoc(), [
+      {
+        type: 'wall.move',
+        payload: { wallId: FF_EAST, a: { x: 6000, y: 0 }, b: { x: 6000, y: 2500 } },
+      },
+      {
+        type: 'wall.move',
+        payload: { wallId: FF_NORTH, a: { x: 6000, y: 2500 }, b: { x: 0, y: 2500 } },
+      },
+      {
+        type: 'wall.move',
+        payload: { wallId: FF_WEST, a: { x: 0, y: 2500 }, b: { x: 0, y: 0 } },
+      },
+    ]);
+  }
+
+  it('levels.set parapetMm rebuilds the roof AND the ground floor that carries a terrace', () => {
+    expectPlan(setBackDoc(), [{ type: 'levels.set', payload: { parapetMm: 1200 } }], {
+      rebuild: [GF_KEY, ROOF_GROUP_KEY],
+    });
+  });
+
+  it('negative control: with identical outlines the same edit rebuilds the roof only', () => {
+    expectPlan(gPlusOneDoc(), [{ type: 'levels.set', payload: { parapetMm: 1200 } }], {
+      rebuild: [ROOF_GROUP_KEY],
+    });
   });
 });
 

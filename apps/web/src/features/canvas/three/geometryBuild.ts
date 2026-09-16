@@ -330,7 +330,12 @@ export function buildGroup(
 
     const target = spec.pickRoomByPoint ? null : spec.pick;
     if (spec.cuts.length === 0) {
-      appendPrism(acc, spec.profile, target);
+      // Engine absent ⇒ the honest substitute shape, when the solid has one
+      // (opening panels stand proud of the uncut wall). Engine present ⇒ the
+      // real profile, whatever any other solid's cut did.
+      const profile =
+        cutter === null && spec.fallbackProfile !== null ? spec.fallbackProfile : spec.profile;
+      appendPrism(acc, profile, target);
       continue;
     }
 

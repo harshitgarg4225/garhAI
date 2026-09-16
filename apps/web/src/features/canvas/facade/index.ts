@@ -40,6 +40,7 @@ export { boxesForComponent, balconyOpenEdges, externalCentroid, wallFrame } from
 export type { OrientedBoxMm, WallFrame } from './componentBoxes';
 export { buildBoxTriangles, hexToRgb, SELECTION_BOOST, WORLD_PER_MM } from './geometry3d';
 export type { BoxTriangleData } from './geometry3d';
+export { createFacadeMaterial, FACADE_MESH_SHADOW } from './material3d';
 export { FacadeLayer } from './FacadeLayer';
 export type { FacadeLayerProps } from './FacadeLayer';
 export { FacadeKitPanel } from './FacadeKitPanel';

@@ -53,14 +53,19 @@ export type { GroupSolids, SolidSpec } from './solids';
 export { buildGroup } from './geometryBuild';
 export type { BuiltBucket, GroupBuild } from './geometryBuild';
 
+export { exposedTerraceFaces } from './terrace';
+export type { TerraceFace } from './terrace';
+
 export {
   balconyRailingFootprintsF,
   fflOfIndexMm,
   MUMTY_HEIGHT_MM,
   OHT_HEIGHT_MM,
   OPENING_CUT_SLACK_MM,
+  OPENING_FALLBACK_PROUD_MM,
   OPENING_PANEL_THICKNESS_MM,
   openingCutProfileF,
+  openingFallbackPanelProfileF,
   openingPanelProfileF,
   PARAPET_THICKNESS_MM,
   parapetSegmentFootprintsF,

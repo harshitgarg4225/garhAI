@@ -25,8 +25,9 @@
  *                    clicked the floor of" is the 2D behaviour anyway.
  *   mumty          → kind 'stair', the stair it covers (it has no id of its own)
  *   OHT            → kind 'room',  the shaft room it serves
- *   roof/parapet/plinth → pick: null. These derive from levels + envelope and
- *                    have NO model element to select. They are still
+ *   roof/parapet/plinth/terrace → pick: null. These derive from levels +
+ *                    envelope (the set-back terrace from TWO envelopes —
+ *                    `terrace.ts`) and have NO model element to select. They are still
  *                    REGISTERED with the PickRegistry (with a null-resolving
  *                    target), so the decision is visible in the registry
  *                    rather than being a mesh that silently never registered
@@ -41,6 +42,7 @@
 import {
   bbox,
   ensureCcw,
+  pointInPolygon,
   stairFootprintPolygon,
   type HouseModel,
   type Opening,
@@ -57,6 +59,7 @@ import {
   ensureCcwF,
   floorSlabOf,
   openingCutProfileF,
+  openingFallbackPanelProfileF,
   openingPanelProfileF,
   parapetSegmentFootprintsF,
   regularPolygonF,
@@ -66,6 +69,7 @@ import {
   wallFootprintF,
   type PrismProfileF,
 } from './extrusion';
+import { exposedTerraceFaces } from './terrace';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -78,6 +82,15 @@ export interface SolidSpec {
   readonly profile: PrismProfileF;
   /** Prisms to boolean-subtract (opening cuts, slab stair wells). Empty = none. */
   readonly cuts: readonly PrismProfileF[];
+  /**
+   * The profile to draw INSTEAD of `profile` while the boolean engine is
+   * absent, or null when the solid looks the same either way. Opening panels
+   * use it: a 40 mm panel centred in an uncut 230 mm wall is buried, so the
+   * fallback panel stands proud of both faces (`OPENING_FALLBACK_PROUD_MM`).
+   * Never used once holes are cut — `geometryBuild` swaps it in only when
+   * `cutter === null`, the same condition that drives `holesApplied`.
+   */
+  readonly fallbackProfile: PrismProfileF | null;
   /** Fixed pick target, or null for registered-but-unselectable structure. */
   readonly pick: PickTarget | null;
   /** True ⇒ resolve the pick by point-in-room lookup instead of `pick`. */
@@ -107,6 +120,7 @@ interface SolidInit {
   readonly key: string;
   readonly profile: PrismProfileF;
   readonly cuts?: readonly PrismProfileF[];
+  readonly fallbackProfile?: PrismProfileF | null;
   readonly pick?: PickTarget | null;
   readonly pickRoomByPoint?: boolean;
   readonly surface: SurfaceGroup;
@@ -121,6 +135,7 @@ function solid(init: SolidInit): SolidSpec {
     key: init.key,
     profile: init.profile,
     cuts: init.cuts ?? NO_CUTS,
+    fallbackProfile: init.fallbackProfile ?? null,
     pick: init.pick ?? null,
     pickRoomByPoint: init.pickRoomByPoint ?? false,
     surface: init.surface,
@@ -193,6 +208,7 @@ export function storeySolids(house: HouseModel, storeyId: string): SolidSpec[] {
       solid({
         key: `opening:${opening.id}`,
         profile: panel,
+        fallbackProfile: openingFallbackPanelProfileF(wall, opening, span.baseMm, span.wallTopMm),
         pick: { kind: 'opening', id: opening.id, storeyId },
         surface: openingSurface(opening),
         elementId: opening.id,
@@ -235,6 +251,67 @@ export function storeySolids(house: HouseModel, storeyId: string): SolidSpec[] {
           storeyId,
         }),
       );
+    }
+
+    // ── terrace over the set-back: the exposed portion of THIS storey's
+    //    outline under a smaller storey above (terrace.ts). The top storey's
+    //    roof is `roofSolids`'; every intermediate exposed roof lives here,
+    //    in the storey it covers, so the storey filter shows it with the
+    //    storey and an edit above re-meshes exactly this group (dirty.ts).
+    const above = house.storeys[index + 1];
+    if (above !== undefined) {
+      const aboveSlab = floorSlabOf(house, above.id);
+      const terraceTop = span.ceilingMm;
+      const terraceBase = terraceTop - span.slabAboveThicknessMm;
+      const storeyStairs = house.stairs.filter((s) => s.storeyId === storeyId);
+      const faces = exposedTerraceFaces(slab.polygon, aboveSlab?.polygon ?? []);
+      faces.forEach((face, i) => {
+        const cuts: PrismProfileF[] = [];
+        // A stair arriving on this terrace needs its well — same slack as
+        // the roof slab's stair cuts.
+        for (const stair of storeyStairs) {
+          if (pointInPolygon(stair.origin, face.ring) === 'outside') continue;
+          const well = stairFootprintPolygon(stair);
+          if (well.length < 3) continue;
+          cuts.push({ polygon: ensureCcw(well), baseMm: terraceBase - 10, topMm: terraceTop + 10 });
+        }
+        if (face.hole !== null) {
+          cuts.push({ polygon: face.hole, baseMm: terraceBase - 10, topMm: terraceTop + 10 });
+        }
+        out.push(
+          solid({
+            key: `terrace:${storeyId}:${String(i)}`,
+            profile: { polygon: face.ring, baseMm: terraceBase, topMm: terraceTop },
+            cuts,
+            // The hole case without an engine: the uncut slab would share
+            // its top face with the storey above's floor slab and z-fight
+            // it. Two millimetres lower is invisible on the terrace and
+            // hidden under the floor — until the engine cuts the real hole.
+            fallbackProfile:
+              face.hole === null
+                ? null
+                : { polygon: face.ring, baseMm: terraceBase, topMm: terraceTop - 2 },
+            surface: 'roof',
+            storeyId,
+          }),
+        );
+        const bands = parapetSegmentFootprintsF(face.ring);
+        bands.forEach((band, e) => {
+          if (face.exposedEdges[e] !== true) return;
+          out.push(
+            solid({
+              key: `terrace-parapet:${storeyId}:${String(i)}:${String(e)}`,
+              profile: {
+                polygon: band,
+                baseMm: terraceTop,
+                topMm: terraceTop + house.levels.parapetMm,
+              },
+              surface: 'parapet',
+              storeyId,
+            }),
+          );
+        });
+      });
     }
   }
 

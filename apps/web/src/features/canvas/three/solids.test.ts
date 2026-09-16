@@ -15,7 +15,14 @@ import {
   type ProjectDoc,
 } from '@garh/model';
 
-import { buildGroup } from './geometryBuild';
+import { WORLD_UNITS_PER_MM } from '../core/constants';
+import type { PrismCutter } from './booleans';
+import {
+  OPENING_FALLBACK_PROUD_MM,
+  OPENING_PANEL_THICKNESS_MM,
+  PARAPET_THICKNESS_MM,
+} from './extrusion';
+import { buildGroup, type BuiltBucket, type GroupBuild } from './geometryBuild';
 import {
   ROOF_GROUP_KEY,
   groupKeysOf,
@@ -253,5 +260,202 @@ describe('buildGroup (no engine): honest fallback', () => {
     const { house } = baseDoc();
     expect(solidsOfGroup(house, storeyGroupKey(GF)).storeyId).toBe(GF);
     expect(solidsOfGroup(house, ROOF_GROUP_KEY).storeyId).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The terrace over a set-back lower storey
+// ---------------------------------------------------------------------------
+
+describe('terrace over a set-back first floor', () => {
+  const FF = fixedId('storey', 'FF');
+  const ffWall = (tag: string, ax: number, ay: number, bx: number, by: number): Op => ({
+    type: 'wall.add',
+    payload: {
+      id: fixedId('wall', tag),
+      storeyId: FF,
+      a: { x: ax, y: ay },
+      b: { x: bx, y: by },
+      thicknessMm: 230,
+      kind: 'external',
+    },
+  });
+  const STOREY_FF: Op = {
+    type: 'storey.add',
+    payload: { id: FF, index: 1, name: 'First Floor', heightMm: 3000 },
+  };
+
+  /** FF shares the south frontage and stops at y = 2500: a rear terrace. */
+  function setBackDoc(): ProjectDoc {
+    return withOps(baseDoc(), [
+      STOREY_FF,
+      ffWall('F1', 0, 0, 6000, 0),
+      ffWall('F2', 6000, 0, 6000, 2500),
+      ffWall('F3', 6000, 2500, 0, 2500),
+      ffWall('F4', 0, 2500, 0, 0),
+    ]);
+  }
+
+  /** FF covers the GF exactly: nothing is exposed. */
+  function flushDoc(): ProjectDoc {
+    return withOps(baseDoc(), [
+      STOREY_FF,
+      ffWall('F1', 0, 0, 6000, 0),
+      ffWall('F2', 6000, 0, 6000, 4000),
+      ffWall('F3', 6000, 4000, 0, 4000),
+      ffWall('F4', 0, 4000, 0, 0),
+    ]);
+  }
+
+  it('the ground storey gets a terrace slab over its exposed rear, at the FF slab level', () => {
+    const { house } = setBackDoc();
+    const solids = storeySolids(house, GF);
+    const terraces = solids.filter((s) => s.key.startsWith('terrace:'));
+    expect(terraces).toHaveLength(1);
+    const terrace = terraces[0]!;
+    expect(terrace.surface).toBe('roof');
+    expect(terrace.pick).toBeNull();
+    expect(terrace.storeyId).toBe(GF);
+    // FF FFL = 600 + 3000 = 3600; its floor slab is 150 ⇒ the terrace IS that
+    // slab continued over the exposed strip: 3450..3600.
+    expect(terrace.profile.topMm).toBe(3600);
+    expect(terrace.profile.baseMm).toBe(3450);
+    // Derived slab outlines are the walls' OUTER faces (centreline ± 115 for
+    // 230 walls): the exposed strip runs from the FF's north face at 2615
+    // to the GF's north face at 4115, across the GF's full outer width.
+    const xs = terrace.profile.polygon.map((p) => p.x);
+    const ys = terrace.profile.polygon.map((p) => p.y);
+    expect(Math.min(...ys)).toBe(2615);
+    expect(Math.max(...ys)).toBe(4115);
+    expect(Math.min(...xs)).toBe(-115);
+    expect(Math.max(...xs)).toBe(6115);
+    expect(terrace.cuts).toEqual([]);
+    expect(terrace.fallbackProfile).toBeNull();
+  });
+
+  it('a parapet stands on the three perimeter edges — none against the FF wall', () => {
+    const { house } = setBackDoc();
+    const parapets = storeySolids(house, GF).filter((s) => s.key.startsWith('terrace-parapet:'));
+    expect(parapets).toHaveLength(3);
+    for (const band of parapets) {
+      expect(band.surface).toBe('parapet');
+      expect(band.pick).toBeNull();
+      expect(band.profile.baseMm).toBe(3600);
+      expect(band.profile.topMm).toBe(3600 + house.levels.parapetMm);
+      // Every band lies in the exposed strip, and none sits ON the FF's
+      // north face line (y = 2615) — that wall is the parapet there.
+      const ys = band.profile.polygon.map((p) => p.y);
+      expect(Math.min(...ys)).toBeGreaterThanOrEqual(2615 - PARAPET_THICKNESS_MM);
+      const onFfWall = ys.every((y) => Math.abs(y - 2615) <= PARAPET_THICKNESS_MM);
+      expect(onFfWall).toBe(false);
+    }
+  });
+
+  it('negative control: an FF that covers the GF exactly produces no terrace and no parapet', () => {
+    const { house } = flushDoc();
+    const solids = storeySolids(house, GF);
+    expect(solids.filter((s) => s.key.startsWith('terrace'))).toEqual([]);
+  });
+
+  it('the top storey never carries a terrace of its own — that is the roof group', () => {
+    const { house } = setBackDoc();
+    expect(storeySolids(house, FF).filter((s) => s.key.startsWith('terrace'))).toEqual([]);
+    expect(roofSolids(house).find((s) => s.key === 'roof-slab')?.profile.topMm).toBe(6600);
+  });
+
+  it('an FF with no walls yet leaves the whole GF outline as terrace', () => {
+    const { house } = withOps(baseDoc(), [STOREY_FF]);
+    const solids = storeySolids(house, GF);
+    const terraces = solids.filter((s) => s.key.startsWith('terrace:'));
+    expect(terraces).toHaveLength(1);
+    expect(solids.filter((s) => s.key.startsWith('terrace-parapet:'))).toHaveLength(
+      terraces[0]!.profile.polygon.length,
+    );
+  });
+
+  it('builds without an engine (the terrace is plain prisms; no cut wanted)', () => {
+    const { house } = setBackDoc();
+    const build = buildGroup(house, storeyGroupKey(GF), null, new Set());
+    expect(build.holesApplied).toBe(false); // the door + window still want cuts
+    expect(build.buckets.some((b) => b.surface === 'roof')).toBe(true);
+    expect(build.buckets.some((b) => b.surface === 'parapet')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The no-WASM fallback must still SHOW the openings
+// ---------------------------------------------------------------------------
+
+describe('opening panels in the no-WASM fallback', () => {
+  // Fixture: the south wall runs (0,0)→(6000,0), 230 thick, so "across the
+  // wall" is model y (world −z). The door D1 sits on it.
+  const DOOR_KEY = `opening:${fixedId('opening', 'D1')}`;
+  const WALL_THICKNESS_MM = 230;
+
+  const yExtentMm = (profile: { polygon: readonly { y: number }[] }): number => {
+    const ys = profile.polygon.map((p) => p.y);
+    return Math.max(...ys) - Math.min(...ys);
+  };
+
+  it('the panel spec carries a fallback profile proud of BOTH wall faces', () => {
+    const { house } = baseDoc();
+    const door = storeySolids(house, GF).find((s) => s.key === DOOR_KEY);
+    if (door === undefined) throw new Error('no door panel');
+    const fallback = door.fallbackProfile;
+    if (fallback === null) throw new Error('no fallback profile');
+    expect(yExtentMm(door.profile)).toBe(OPENING_PANEL_THICKNESS_MM);
+    expect(yExtentMm(fallback)).toBe(WALL_THICKNESS_MM + 2 * OPENING_FALLBACK_PROUD_MM);
+    // The real panel is buried inside the wall; the fallback is not.
+    expect(yExtentMm(door.profile)).toBeLessThan(WALL_THICKNESS_MM);
+    expect(yExtentMm(fallback)).toBeGreaterThan(WALL_THICKNESS_MM);
+  });
+
+  /** Across-wall extent of a bucket's vertices, back in mm. */
+  const bucketDepthMm = (bucket: BuiltBucket): number => {
+    let min = Infinity;
+    let max = -Infinity;
+    for (let i = 2; i < bucket.positions.length; i += 3) {
+      const z = bucket.positions[i] ?? 0;
+      if (z < min) min = z;
+      if (z > max) max = z;
+    }
+    return (max - min) / WORLD_UNITS_PER_MM;
+  };
+
+  const doorOf = (build: GroupBuild): BuiltBucket => {
+    const bucket = build.buckets.find((b) => b.surface === 'door');
+    if (bucket === undefined) throw new Error('no door bucket');
+    return bucket;
+  };
+
+  it('buildGroup draws the proud plate WITHOUT an engine, the 40 mm panel WITH one', () => {
+    const { house } = baseDoc();
+    const withoutEngine = buildGroup(house, storeyGroupKey(GF), null, new Set());
+    // Any cutter at all: the panel swap keys on the engine's presence, not on
+    // what the cutter returns for the walls.
+    const anyCutter: PrismCutter = { cut: () => ({ positionsMm: new Float32Array(9) }) };
+    const withEngine = buildGroup(house, storeyGroupKey(GF), anyCutter, new Set());
+
+    expect(bucketDepthMm(doorOf(withoutEngine))).toBeCloseTo(
+      WALL_THICKNESS_MM + 2 * OPENING_FALLBACK_PROUD_MM,
+      3,
+    );
+    expect(bucketDepthMm(doorOf(withEngine))).toBeCloseTo(OPENING_PANEL_THICKNESS_MM, 3);
+    expect(withoutEngine.holesApplied).toBe(false);
+    expect(withEngine.holesApplied).toBe(true);
+  });
+
+  it('solids without a fallback draw the same profile either way (negative control)', () => {
+    const { house } = baseDoc();
+    const plinth = storeySolids(house, GF).find((s) => s.key === 'plinth');
+    expect(plinth?.fallbackProfile).toBeNull();
+    const a = buildGroup(house, storeyGroupKey(GF), null, new Set());
+    const cutter: PrismCutter = { cut: () => null };
+    const b = buildGroup(house, storeyGroupKey(GF), cutter, new Set());
+    const plinthOf = (build: GroupBuild): BuiltBucket | undefined =>
+      build.buckets.find((x) => x.surface === 'plinth');
+    expect(Array.from(plinthOf(a)?.positions ?? [])).toEqual(
+      Array.from(plinthOf(b)?.positions ?? []),
+    );
   });
 });

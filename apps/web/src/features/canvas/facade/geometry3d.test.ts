@@ -77,16 +77,59 @@ describe('buildBoxTriangles', () => {
     expect(maxZ).toBeCloseTo(300 * WORLD_PER_MM, 6);
   });
 
-  it('bakes shading: faces of one box differ in brightness, none is black', () => {
+  it('carries the RAW kit colour — no baked shading; the scene lights do that', () => {
     const data = buildBoxTriangles([BOX]);
-    const faceBrightness = new Set<string>();
-    for (let face = 0; face < 6; face += 1) {
-      const i = face * 6 * 3; // first vertex of the face
-      const r = data.colors[i] ?? 0;
-      expect(r).toBeGreaterThan(0);
-      faceBrightness.add((data.colors[i] ?? 0).toFixed(5));
+    const [r, g, b] = hexToRgb(BOX.colorHex);
+    for (let i = 0; i < data.colors.length; i += 3) {
+      expect(data.colors[i]).toBeCloseTo(r, 6);
+      expect(data.colors[i + 1]).toBeCloseTo(g, 6);
+      expect(data.colors[i + 2]).toBeCloseTo(b, 6);
     }
-    expect(faceBrightness.size).toBeGreaterThan(1);
+  });
+
+  it('emits one unit normal per vertex, six distinct outward directions per box', () => {
+    const data = buildBoxTriangles([BOX]);
+    expect(data.normals).toHaveLength(data.positions.length);
+    const directions = new Set<string>();
+    for (let i = 0; i < data.normals.length; i += 3) {
+      const nx = data.normals[i] ?? 0;
+      const ny = data.normals[i + 1] ?? 0;
+      const nz = data.normals[i + 2] ?? 0;
+      expect(Math.hypot(nx, ny, nz)).toBeCloseTo(1, 6);
+      directions.add(`${nx.toFixed(3)},${ny.toFixed(3)},${nz.toFixed(3)}`);
+    }
+    expect(directions.size).toBe(6);
+  });
+
+  it('winds every triangle CCW seen from outside, agreeing with its normal (FrontSide contract)', () => {
+    // A lit FrontSide material culls the back face: a box wound the wrong way
+    // renders as a hole and casts no shadow. So (b−a)×(c−a) must point the
+    // same way as the stated normal, and outward from the box centre.
+    const data = buildBoxTriangles([BOX]);
+    const cx = BOX.cx * WORLD_PER_MM;
+    const cy = (BOX.baseElevMm + BOX.heightMm / 2) * WORLD_PER_MM;
+    const cz = -BOX.cy * WORLD_PER_MM;
+    for (let i = 0; i + 8 < data.positions.length; i += 9) {
+      const p = data.positions;
+      const ax = p[i] ?? 0;
+      const ay = p[i + 1] ?? 0;
+      const az = p[i + 2] ?? 0;
+      const ux = (p[i + 3] ?? 0) - ax;
+      const uy = (p[i + 4] ?? 0) - ay;
+      const uz = (p[i + 5] ?? 0) - az;
+      const vx = (p[i + 6] ?? 0) - ax;
+      const vy = (p[i + 7] ?? 0) - ay;
+      const vz = (p[i + 8] ?? 0) - az;
+      const crx = uy * vz - uz * vy;
+      const cry = uz * vx - ux * vz;
+      const crz = ux * vy - uy * vx;
+      const nx = data.normals[i] ?? 0;
+      const ny = data.normals[i + 1] ?? 0;
+      const nz = data.normals[i + 2] ?? 0;
+      expect(crx * nx + cry * ny + crz * nz).toBeGreaterThan(0);
+      // Outward: the normal points away from the box centre.
+      expect((ax - cx) * nx + (ay - cy) * ny + (az - cz) * nz).toBeGreaterThan(0);
+    }
   });
 
   it('the selection boost brightens every vertex', () => {
