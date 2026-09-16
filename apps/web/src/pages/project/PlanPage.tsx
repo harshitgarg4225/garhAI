@@ -178,7 +178,7 @@ import {
   useUiStore,
 } from '../../stores/ui';
 import { useProjectOutlet } from '../ProjectShell';
-import { StoreyVisibilityBar, ThreeDLayers, ThreeDStatusChip } from './three';
+import { ExportPanel3d, StoreyVisibilityBar, ThreeDLayers, ThreeDStatusChip } from './three';
 import {
   PlanScene,
   PreviewLayer,
@@ -781,6 +781,9 @@ function PlanEditor(): JSX.Element {
               <ThreeDStatusChip className="absolute bottom-3 right-3" />
               {/* Phase 7: photograph the model → render job (features/renders). */}
               <RenderLauncher className="absolute right-3 top-14" />
+              {/* J06: the model out of the building — GLB from this view, or
+                  from the server; the job card's Download link lands here. */}
+              <ExportPanel3d className="absolute bottom-12 right-3" />
 
               {isEmpty ? <ThreeDEmpty /> : null}
             </>
