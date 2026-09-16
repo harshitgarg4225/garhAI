@@ -66,6 +66,8 @@ Blocking gaps the reader found:
 
 What no test looks at: Whether the SVG vertex handles, edge-label <text role=button> and '+' handles actually receive pointer/keyboard events in a real browser (the furniture-layer class of bug: code tags itself interactive but nothing proves the hit-test).; Edge-length 'stretch' on a non-rectilinear ring: plot.test.ts covers a rectangle and an L-shape only; a trapezoid silently changes the adjacent edges and no test states what the architect will see.; DXF entities that are not closed polylines: LINE/ARC/SPLINE/INSERT hit `continue` without being counted, so the skipped-summary the dialog shows can read 'nothing sk
 
+Since the reading (partial merge 2026-09-16): deed entry from sides plus diagonals or a bearing traverse with the closing error shown; typing an edge length on a non-rectilinear ring moves only that edge or refuses; side A and side B setbacks are distinct, with one edge-role source of truth (side A is the left half as seen from the road) shared by the engine, the panel, the envelope hook and the drawings; PUT /plot keeps road names and stores the profile in the op's shape; survey DXFs drawn as LINE/ARC entities chain into a boundary, every skipped entity is counted and an open chain names the gap. Still in flight in the worktree: the deed-reconciliation readouts, the post-plan edit banner, the direct-manipulation component tests and the browser hit-test spec.
+
 ## J03 — Capture the client brief
 
 **Score 5.** The main path — typed form or pasted text → assumption chips → one undoable brief.update op — is real, unit-tested (35 vitest + 115 llm + 65 api file-only tests green today) and browser-proven in the CI smoke spec, but half the form's controls (per-room floor/facing/adjacency/bath choice) are written under names nothing downstream reads, template/seed briefs are written under names the form cannot read, a parse's assumed values overwrite what the architect already typed, the form cannot express a bath count or a basement, there are no feasibility hints at all, and the real Anthropic parser has never executed.
@@ -100,7 +102,7 @@ Blocking gaps the reader found:
 
 What no test looks at: Whether the OptionsPanel renders the shortfall banner / ready-made link in the succeeded-with-zero-options state (no OptionsPanel component test at all; stats.test only checks bannerFor for 1–2 options); Whether generated plans place any car parking or a porch — no rule measures a parking space, the rule passes on a brief declaration; Wall-clock of a production-profile solve (≤60 s) and run-to-run stability of the option set under 8 workers
 
-Since the reading: Generate retries up to three fresh seeds before answering "no plan cleared" and a run that delivers nothing is refunded; the Options screen now renders every delivered plan (the vastu rule rows had been sinking each one) and shows the solver's own banner. Diagnosis on the zero-option screen, prose rationale, seed controls and parking-as-geometry remain open.
+Since the reading: Generate retries up to three fresh seeds before answering "no plan cleared" and a run that delivers nothing is refunded; the Options screen renders every delivered plan and the solver's own banner. Partial merge 2026-09-16: the zero-options screen shows the worker's diagnosis and the ready-made fallback; "Why this plan" reads as prose with the numbers, chips behind Details, the seed on each card and seed controls on the Generate panel (a re-rank that silently dropped new option fields was found and fixed); parking_min counts car bays measured off the model instead of passing on a declaration, with a no-bay negative control. Still in flight: the time-budget and determinism tests, orthogonal-polygon plots, the coverage matrix and an NCR library plan, and the gate-semantics doc corrections.
 
 ## J05 — Edit the plan in 2D
 
@@ -119,6 +121,8 @@ Blocking gaps the reader found:
 
 What no test looks at: Pixels: plan-canvas.spec asserts op log, folded model and compliance only (phase-4-verification.md §5) — a renderer that drew nothing, mis-scaled openings, or put walls on the wrong storey's elevation would pass every test in this job.; Frame time on a G+2: both canvas perf budgets are test.skip(true); no unit or e2e test bounds pan/zoom/drag cost with 3 storeys of geometry, room washes, dimension chains and troika labels mounted.; Trackpad and touch semantics: no test dispatches a WheelEvent with deltaX or ctrlKey, or a pointerType='touch' event; useCanvasControls' wheel path is exercised onl
 
+Since the reading (partial merge 2026-09-16): the plan drawing is click-tested through the one registry; dogleg, L and U stairs draw as their real flights; wall split (K) and column (C) tools, draggable columns and stairs, split-in-half from the inspector; storey removal from the panel as one undoable op; copy, paste, duplicate, mirror and array from the canvas through the model's planners, one undo each. Still in flight: trackpad pan versus pinch, skew-wall dimensions and snaps, hatches on the canvas, and the @canvas spec with a frame budget in CI.
+
 ## J06 — See and tune the building in 3D
 
 **Score 5.5.** The extrude-select-dress-scrub loop is real and was proven once in a browser (2026-08-26) with 435 unit tests green today, but opening holes have never been asserted anywhere, the 3D e2e is outside CI and the 3D code has changed since, facades are unlit/no-shadow boxes with flat colours, and 3D export does not exist.
@@ -135,6 +139,8 @@ Blocking gaps the reader found:
 - Walk mode: collision, look-up, and a browser test — Walk passes through walls, cannot pitch above level (MAX_ORBIT_POLAR_DEG clamp), and has never run in a browser
 
 What no test looks at: Pixels: no executed test looks at what the 3D view draws — walls could render magenta, holes could be absent, shadows could point the wrong way, and every test still passes (visual-regression.spec is skipped).; Whether Manifold's cut mesh is geometrically right: triangle count, watertightness, or that a ray through a door misses the wall — only the holesApplied boolean is checked, and only with a null cutter.; Which side of an external wall is 'outside' for chajjas/porches when the storey outline is concave or the centroid falls outside (componentBoxes.ts centroid rule is documented for rectan
+
+Since the reading (partial merge 2026-09-16): the Manifold WebAssembly is loaded from the bundled file, so opening holes are cut for the first time (the loader had resolved to the SPA fallback page since the feature shipped); the no-WASM fallback shows openings as a panel proud of both faces; facade components are lit and cast shadows, so chajjas shade the windows they cover under the sun scrub; a terrace slab and parapet cover a set-back lower storey. Still in flight: GLB export from the 3D tab, materials and kits, walk-mode collision, and the 3D spec with a visual baseline in CI.
 
 ## J07 — Check compliance continuously
 
@@ -278,7 +284,7 @@ Blocking gaps the reader found:
 
 What no test looks at: Whether the deployed stack matches the docs at all: no test reads the Railway start command, region, or variable set, so migrations-on-boot, us-west2 and SENTRY_DSN-absent drifted silently from deployment.md and the runbook.; Backup restore correctness: rehearse checks that four table names exist, not row counts, op-log integrity, or that a restored project folds to the same state hash.; Queue behaviour under real concurrency: every rate-limit test is single-process; nothing enqueues 50 solves and watches the lifecycle consumer, dead-letter path and credit refunds at once.
 
-Since the reading: CI is green again after two formatting misses; the production connections were read from the deployed stack's boot lines and recorded (Anthropic, Stability and Brevo live; Razorpay and Sentry absent; APP_ENV=dev on the api).
+Since the reading: CI is green again after two formatting misses; the production connections were read from the deployed stack's boot lines and recorded (Anthropic, Stability and Brevo live; Razorpay and Sentry absent; APP_ENV=dev on the api). Partial merge 2026-09-16: every worker writes an expiring heartbeat; GET /admin/ops reports queues, workers, job percentiles, providers, Sentry state and the migration head, with an owner page at /platform/ops that names no secret; migrations take a Postgres advisory lock and the boot seed writes nothing twice; scheduled backups to the bucket with a rehearsal that checks the data; Railway config-as-code per service with a test that holds it to the runbook. Still in flight: the product-path load test, the onboarding tour, the Security and Privacy settings surfaces, the accessibility pass and the go-live checklist.
 
 ## J15 — Interoperate and hand off: DXF import
 
