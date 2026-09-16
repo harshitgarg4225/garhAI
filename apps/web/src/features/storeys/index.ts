@@ -71,8 +71,10 @@ export type {
   StoreyCopyTarget,
 } from './copyStorey';
 
-export { runAddStorey, runStoreyCopy } from './actions';
-export type { AddStoreyOutcome, StoreyCopyOutcome } from './actions';
+export { runAddStorey, runRemoveStorey, runStoreyCopy } from './actions';
+export type { AddStoreyOutcome, StoreyCopyOutcome, StoreyRemoveOutcome } from './actions';
+export { planStoreyRemove } from './removeStorey';
+export type { StoreyRemovePlan, StoreyRemovePlanResult, StoreyRemoveRefusal } from './removeStorey';
 
 export {
   DEFAULT_GHOST_OPACITY,

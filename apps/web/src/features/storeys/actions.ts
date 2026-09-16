@@ -30,12 +30,14 @@ import { useModelStore } from '../../stores/model';
 import { useUiStore } from '../../stores/ui';
 import {
   addStoreyOp,
+  describeCounts,
   isStoreyEmpty,
   planStoreyCopy,
   type StoreyCopyInput,
   type StoreyCopyPlan,
   type StoreyCopyRefusal,
 } from './copyStorey';
+import { planStoreyRemove, type StoreyRemovePlan, type StoreyRemoveRefusal } from './removeStorey';
 
 export type StoreyCopyOutcome =
   | { readonly ok: true; readonly plan: StoreyCopyPlan }
@@ -113,4 +115,45 @@ export function runAddStorey(): AddStoreyOutcome {
   useUiStore.getState().setActiveStorey(storeyId);
   undoToast(`${name} added`, null);
   return { ok: true, storeyId, name };
+}
+
+export type StoreyRemoveOutcome =
+  | { readonly ok: true; readonly plan: StoreyRemovePlan }
+  | { readonly ok: false; readonly refusal: StoreyRemoveRefusal };
+
+/**
+ * Remove a storey and everything on it. ONE op, ONE undo — the fold's inverse
+ * of `storey.remove` re-adds the storey and every element it cascaded to.
+ *
+ * The active storey moves to the one below (else above, else none), for the
+ * same reason a copy moves it: view state, not model state, so undo does not
+ * move it back.
+ */
+export function runRemoveStorey(storeyId: string): StoreyRemoveOutcome {
+  const model = useModelStore.getState();
+  const planned = planStoreyRemove(model.doc, storeyId);
+  if (!planned.ok) return planned;
+  const plan = planned.plan;
+
+  const result = model.dispatch([plan.op], { label: plan.label, source: 'manual' });
+  if (!result.ok) {
+    return {
+      ok: false,
+      refusal: {
+        reason: 'rejected',
+        message: result.issues[0]?.message ?? 'That storey could not be removed.',
+      },
+    };
+  }
+
+  const ui = useUiStore.getState();
+  if (ui.activeStoreyId === storeyId) ui.setActiveStorey(plan.nextActiveStoreyId);
+
+  undoToast(
+    plan.label,
+    plan.empty
+      ? null
+      : `${describeCounts(plan.removed)} went with it. One undo puts everything back.`,
+  );
+  return { ok: true, plan };
 }
