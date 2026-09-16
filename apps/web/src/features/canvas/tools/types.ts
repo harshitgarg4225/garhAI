@@ -51,6 +51,7 @@ import type {
   Direction4,
   ElementType,
   Id,
+  MirrorAxis,
   Op,
   OpeningKind,
   OpeningSwing,
@@ -237,6 +238,23 @@ export interface ToolCommit {
   readonly label: string;
   /** Select these after the ops apply — usually what was just created. */
   readonly selectIds?: readonly string[] | undefined;
+  /**
+   * Dispatch under THIS group id. A transform plan derives the ids of the
+   * elements it creates from its group id, so the undo entry should carry
+   * the same one. Absent = the store mints one.
+   */
+  readonly groupId?: Id<'group'> | undefined;
+}
+
+/**
+ * Something the chrome asks the active tool to do — a mirror whose axis the
+ * pointer will pick. Sent through `commandBus.ts`; only tools that implement
+ * `onCommand` answer.
+ */
+export interface ToolCommand {
+  readonly kind: 'mirror-axis';
+  readonly axis: MirrorAxis;
+  readonly keepOriginal: boolean;
 }
 
 /** What a tool wants done to the selection (the select tool only). */
@@ -378,6 +396,14 @@ export type PreviewShape =
       readonly pointMm: Pt;
       /** The cut, across the wall's thickness. */
       readonly cut: readonly [Pt, Pt];
+    }
+  | {
+      /** A mirror whose axis follows the pointer: the line, and the ghosts. */
+      readonly kind: 'mirror';
+      readonly axis: MirrorAxis;
+      /** The axis line, drawn across the storey's extent. */
+      readonly line: readonly [Pt, Pt];
+      readonly ghosts: readonly PreviewWall[];
     };
 
 /** A number the HUD shows while drawing: "Length 3,600 mm · 12'-0"". */
@@ -497,6 +523,12 @@ export interface Tool {
 
   /** Back to `idle`, discarding everything. Emits nothing, ever. */
   cancel(): void;
+
+  /**
+   * A command from the chrome (the options bar). Optional: most tools have
+   * nothing the bar could ask of them beyond their settings.
+   */
+  onCommand?(ctx: ToolContext, command: ToolCommand): ToolResponse;
 
   /**
    * Does the tool want this key before the global keyboard map sees it?

@@ -19,12 +19,23 @@ import {
   applyGroup,
   fixedId,
   makeTwoRoomPlanWithOpenings,
+  planMirror,
   validateOpAgainstDoc,
 } from '@garh/model';
 
 import { DRAG_THRESHOLD_PX, HINTS } from './constants';
 import { pointInsidePolygon, SelectTool } from './selectTool';
-import { FIXTURE_IDS, hitOn, key, makeCtx, opOfType, ptr, readout, typeText } from './toolTestKit';
+import {
+  FIXTURE_IDS,
+  hitOn,
+  key,
+  makeCtx,
+  nthId,
+  opOfType,
+  ptr,
+  readout,
+  typeText,
+} from './toolTestKit';
 
 const SPINE = FIXTURE_IDS.wallSpine;
 const GROUND = FIXTURE_IDS.groundStorey;
@@ -429,5 +440,101 @@ describe('dragging a column', () => {
     tool.onPointerMove(ctx, ptr(1300, 1300));
     const up = tool.onPointerUp(ctx, ptr(1300, 1300));
     expect(up.selection?.ids).toEqual([COLUMN]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Mirror: the options bar sends the command, the pointer picks the axis
+// ---------------------------------------------------------------------------
+
+describe('mirroring through a picked axis', () => {
+  it('enters the mirror phase on the command and previews the line and ghosts', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    const response = tool.onCommand(ctx, {
+      kind: 'mirror-axis',
+      axis: 'vertical',
+      keepOriginal: true,
+    });
+    expect(response.handled).toBe(true);
+    expect(tool.phase).toBe('drawing');
+    const preview = tool.preview(ctx);
+    expect(preview.shape.kind).toBe('mirror');
+    if (preview.shape.kind !== 'mirror') return;
+    // No pointer yet: the line runs through the spine's own centre, x = 3000.
+    expect(preview.shape.line[0]?.x).toBe(3000);
+    expect(preview.shape.ghosts).toHaveLength(1);
+    expect(preview.hint).toBe(HINTS.selectMirror);
+  });
+
+  it('follows the pointer to a module-snapped axis and ghosts the reflection', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    tool.onCommand(ctx, { kind: 'mirror-axis', axis: 'vertical', keepOriginal: true });
+    tool.onPointerMove(ctx, ptr(4488, 2000));
+    const preview = tool.preview(ctx);
+    if (preview.shape.kind !== 'mirror') throw new Error('expected a mirror preview');
+    expect(preview.shape.line[0]?.x).toBe(4485);
+    // x' = 2·4485 − 3000 = 5970.
+    expect(preview.shape.ghosts[0]?.a.x).toBe(5970);
+    expect(readout(preview, 'axis')).toBe(`14'-9"`);
+  });
+
+  it('commits on click: the model planner’s ops, under the plan’s group id', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    tool.onCommand(ctx, { kind: 'mirror-axis', axis: 'vertical', keepOriginal: true });
+    tool.onPointerMove(ctx, ptr(4485, 2000));
+    const down = tool.onPointerDown(ctx, ptr(4485, 2000));
+    const commit = down.commit;
+    expect(commit).toBeTruthy();
+    if (commit == null) return;
+    expect(commit.groupId).toBe(nthId('group', 1));
+    expect(commit.label).toBe('Mirrored 1 wall vertically');
+    const op = opOfType(commit.ops[0], 'wall.add');
+    expect(op.payload.a).toEqual({ x: 5970, y: 0 });
+    expect(commit.selectIds).toEqual([op.payload.id]);
+    // The same plan the model would produce for the same request — no second
+    // implementation of the reflection in the tool.
+    const expected = planMirror(ctx.doc, {
+      elementIds: [SPINE],
+      axis: 'vertical',
+      atMm: 4485,
+      keepOriginal: true,
+      groupId: nthId('group', 1),
+    });
+    expect(expected.ok && expected.plan.ops).toEqual(commit.ops);
+    expect(tool.phase).toBe('idle');
+  });
+
+  it('Enter without moving mirrors through the centre — which a symmetric spine refuses inline', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    tool.onCommand(ctx, { kind: 'mirror-axis', axis: 'vertical', keepOriginal: true });
+    const response = tool.onKey(ctx, key('Enter'));
+    expect(response.commit ?? null).toBeNull();
+    expect(tool.preview(ctx).blocked?.message).toMatch(/symmetric/);
+    expect(tool.phase).toBe('drawing');
+  });
+
+  it('Esc leaves the mirror phase with nothing emitted', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    tool.onCommand(ctx, { kind: 'mirror-axis', axis: 'horizontal', keepOriginal: false });
+    const response = tool.onKey(ctx, key('Escape'));
+    expect(response.handled).toBe(true);
+    expect(response.commit ?? null).toBeNull();
+    expect(tool.phase).toBe('idle');
+  });
+
+  it('declines the command with nothing selected', () => {
+    const tool = new SelectTool();
+    const response = tool.onCommand(makeCtx(), {
+      kind: 'mirror-axis',
+      axis: 'vertical',
+      keepOriginal: true,
+    });
+    expect(response.handled).toBe(false);
+    expect(tool.phase).toBe('idle');
   });
 });

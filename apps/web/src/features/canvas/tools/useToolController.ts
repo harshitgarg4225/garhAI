@@ -58,6 +58,8 @@ import { useSelectionStore } from '../../../stores/selection';
 import { snapStepMm, useUiStore } from '../../../stores/ui';
 import type { CanvasCore } from '../core/context';
 import type { CanvasControlsCallbacks, CanvasPointerEvent } from '../core/useCanvasControls';
+import { runCopy, runDuplicate, runMirror, runPaste, useClipboardStore } from './clipboard';
+import { toolCommandBus } from './commandBus';
 import { toolPreviewBus, type ToolPreviewBus } from './previewBus';
 import { createTool } from './registry';
 import type {
@@ -177,7 +179,10 @@ export function useToolController(options: ToolControllerOptions): ToolControlle
 
       const commit = response.commit;
       if (commit != null && commit.ops.length > 0) {
-        const result = useModelStore.getState().dispatch(commit.ops, { label: commit.label });
+        const result = useModelStore.getState().dispatch(commit.ops, {
+          label: commit.label,
+          ...(commit.groupId === undefined ? {} : { groupId: commit.groupId }),
+        });
         if (result.ok) {
           if (commit.selectIds !== undefined && commit.selectIds.length > 0) {
             useSelectionStore.getState().selectMany(commit.selectIds);
@@ -244,6 +249,8 @@ export function useToolController(options: ToolControllerOptions): ToolControlle
       onPointerMove: (event) => {
         const tool = guard();
         if (tool === null) return;
+        // Where a paste lands. Cheap: the store compares before it writes.
+        useClipboardStore.getState().noteCursor(event.pointMm);
         const response = tool.onPointerMove(buildContext(), toInput(event));
         // Publish even for an unhandled move: the hover crosshair follows the
         // pointer whether or not the tool did anything with it.
@@ -278,6 +285,17 @@ export function useToolController(options: ToolControllerOptions): ToolControlle
       },
     };
   }, [apply, buildContext, enabled, publish, toInput]);
+
+  // ── commands from the chrome (the options bar's Mirror…) ─────────────────
+
+  useEffect(() => {
+    if (!enabled) return;
+    return toolCommandBus.subscribe((command) => {
+      const tool = toolRef.current;
+      const response = tool?.onCommand?.(buildContext(), command);
+      if (response !== undefined) apply(response);
+    });
+  }, [apply, buildContext, enabled]);
 
   // ── layer 1: the capture-phase tool listener ─────────────────────────────
 
@@ -349,6 +367,33 @@ export function useToolController(options: ToolControllerOptions): ToolControlle
       'edit.redo': () => {
         toolRef.current?.cancel();
         useModelStore.getState().redo();
+        publish();
+      },
+
+      // ⌘C / ⌘V / ⌘D and the two flips: one gesture, one undo, through the
+      // model's own planners (`clipboard.ts`). The paste lands where the
+      // pointer last was, so the cursor is noted on every move above.
+      'edit.copy': () => {
+        runCopy();
+      },
+      'edit.paste': () => {
+        toolRef.current?.cancel();
+        runPaste();
+        publish();
+      },
+      'edit.duplicate': () => {
+        toolRef.current?.cancel();
+        runDuplicate();
+        publish();
+      },
+      'edit.mirrorLeftRight': () => {
+        toolRef.current?.cancel();
+        runMirror({ axis: 'vertical' });
+        publish();
+      },
+      'edit.mirrorUpDown': () => {
+        toolRef.current?.cancel();
+        runMirror({ axis: 'horizontal' });
         publish();
       },
 

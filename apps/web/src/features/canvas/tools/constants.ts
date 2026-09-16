@@ -158,5 +158,7 @@ export const HINTS = {
   splitPreview: 'Click to split here · type a distance from the wall start · Esc to cancel',
   selectIdle: 'Click to select · drag to move · Shift-click to add · Delete removes',
   selectDragging: 'Drag to move · type an exact distance · Esc to put it back',
+  selectMirror:
+    'Move the pointer to place the mirror line · click or Enter to mirror · Enter without moving mirrors through the centre · Esc cancels',
   noStorey: 'Add a floor before drawing.',
 } as const;

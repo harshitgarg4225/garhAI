@@ -65,6 +65,11 @@ export const COMMAND_IDS = [
   'edit.redo',
   'edit.delete',
   'edit.selectAll',
+  'edit.copy',
+  'edit.paste',
+  'edit.duplicate',
+  'edit.mirrorLeftRight',
+  'edit.mirrorUpDown',
   'storey.1',
   'storey.2',
   'storey.3',
@@ -265,6 +270,50 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
     scope: 'canvas',
     label: 'A',
     description: 'Select everything on this floor.',
+  },
+  // Copy / paste / duplicate, canvas-scoped for the same reason as Cmd-A: in a
+  // text field these must keep meaning text. ⌘D is the browser's bookmark key
+  // but it yields to preventDefault, unlike ⌘W/⌘T/⌘N — and it is what every
+  // design tool trained people on.
+  {
+    command: 'edit.copy',
+    key: 'c',
+    modifiers: 'mod',
+    scope: 'canvas',
+    label: 'C',
+    description: 'Copy what is selected.',
+  },
+  {
+    command: 'edit.paste',
+    key: 'v',
+    modifiers: 'mod',
+    scope: 'canvas',
+    label: 'V',
+    description: 'Paste the copy where the pointer is.',
+  },
+  {
+    command: 'edit.duplicate',
+    key: 'd',
+    modifiers: 'mod',
+    scope: 'canvas',
+    label: 'D',
+    description: 'Duplicate what is selected, one step over.',
+  },
+  {
+    command: 'edit.mirrorLeftRight',
+    key: 'h',
+    modifiers: 'shift',
+    scope: 'canvas',
+    label: '⇧H',
+    description: 'Mirror what is selected left to right, through its centre.',
+  },
+  {
+    command: 'edit.mirrorUpDown',
+    key: 'v',
+    modifiers: 'shift',
+    scope: 'canvas',
+    label: '⇧V',
+    description: 'Mirror what is selected top to bottom, through its centre.',
   },
 
   // ── Storeys and views ───────────────────────────────────────────────────

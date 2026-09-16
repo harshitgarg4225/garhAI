@@ -15,7 +15,7 @@
  * are emitted by the tools.
  */
 
-import type { JSX } from 'react';
+import { useState, type JSX } from 'react';
 
 import { Button, LengthInput, Select, cn, type SelectOption } from '@garh/ui';
 import {
@@ -32,7 +32,11 @@ import {
 } from '@garh/model';
 
 import type { FurnitureItem } from '../../../lib/schemas';
+import { useSelectionStore } from '../../../stores/selection';
 import { useUiStore } from '../../../stores/ui';
+import { ArrayDialog } from './ArrayDialog';
+import { runCopy, runDuplicate, runPaste, useClipboardStore } from './clipboard';
+import { toolCommandBus } from './commandBus';
 import {
   COLUMN_SIZE_PRESETS,
   MAX_COLUMN_SIDE_MM,
@@ -101,6 +105,10 @@ export function ToolOptionsBar({
 }: ToolOptionsBarProps): JSX.Element | null {
   const activeTool = useUiStore((s) => s.activeTool);
   const settings = useToolSettings();
+  const selectedCount = useSelectionStore((s) => s.ids.length);
+  const clipboardFull = useClipboardStore((s) => s.entry !== null);
+  const [arrayOpen, setArrayOpen] = useState(false);
+  const [keepOriginal, setKeepOriginal] = useState(true);
 
   const body = ((): JSX.Element | null => {
     switch (activeTool) {
@@ -440,8 +448,102 @@ export function ToolOptionsBar({
           </p>
         );
 
-      case 'measure':
       case 'select':
+        // The transform bar: nothing to show until something is selected,
+        // except Paste, which needs a clipboard rather than a selection.
+        if (selectedCount === 0 && !clipboardFull) return null;
+        return (
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              iconLeft="copy"
+              disabled={selectedCount === 0}
+              onClick={() => {
+                runCopy();
+              }}
+              title="⌘C"
+            >
+              Copy
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!clipboardFull}
+              onClick={() => {
+                runPaste();
+              }}
+              title="⌘V — lands where the pointer last was"
+            >
+              Paste
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={selectedCount === 0}
+              onClick={() => {
+                runDuplicate();
+              }}
+              title="⌘D"
+            >
+              Duplicate
+            </Button>
+            <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={selectedCount === 0}
+              onClick={() => {
+                toolCommandBus.send({ kind: 'mirror-axis', axis: 'vertical', keepOriginal });
+              }}
+              title="Pick the mirror line with the pointer; ⇧H mirrors through the centre"
+            >
+              Mirror ↔
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={selectedCount === 0}
+              onClick={() => {
+                toolCommandBus.send({ kind: 'mirror-axis', axis: 'horizontal', keepOriginal });
+              }}
+              title="Pick the mirror line with the pointer; ⇧V mirrors through the centre"
+            >
+              Mirror ↕
+            </Button>
+            <label className="flex items-center gap-1.5 text-xs text-ink">
+              <input
+                type="checkbox"
+                checked={keepOriginal}
+                onChange={(event) => {
+                  setKeepOriginal(event.target.checked);
+                }}
+              />
+              Keep the original
+            </label>
+            <span className="mx-1 h-5 w-px bg-line" aria-hidden="true" />
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={selectedCount === 0}
+              onClick={() => {
+                setArrayOpen(true);
+              }}
+            >
+              Array…
+            </Button>
+            {arrayOpen ? (
+              <ArrayDialog
+                display={unitsDisplay}
+                onClose={() => {
+                  setArrayOpen(false);
+                }}
+              />
+            ) : null}
+          </>
+        );
+
+      case 'measure':
       default:
         return null;
     }

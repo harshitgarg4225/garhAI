@@ -76,6 +76,7 @@ export type {
   Tool,
   ToolBlock,
   ToolChip,
+  ToolCommand,
   ToolCommit,
   ToolContext,
   ToolId,
@@ -97,6 +98,33 @@ export { ToolOptionsBar } from './ToolOptionsBar';
 export type { ToolOptionsBarProps } from './ToolOptionsBar';
 export { toolPreviewBus, useToolPreview, ToolPreviewBus } from './previewBus';
 export type { PreviewListener } from './previewBus';
+export { toolCommandBus, ToolCommandBus } from './commandBus';
+export type { ToolCommandListener } from './commandBus';
+
+// ── Copy / paste / duplicate / mirror / array (one undo each) ─────────────
+export {
+  createdIds,
+  DUPLICATE_OFFSET_MM,
+  elementPoints,
+  pasteDeltaMm,
+  previewArray,
+  runArray,
+  runCopy,
+  runDuplicate,
+  runMirror,
+  runPaste,
+  selectionAnchorMm,
+  useClipboardStore,
+} from './clipboard';
+export type {
+  ArrayOptions,
+  ClipboardEntry,
+  ClipboardState,
+  MirrorOptions,
+  TransformOutcome,
+} from './clipboard';
+export { ArrayDialog } from './ArrayDialog';
+export type { ArrayDialogProps } from './ArrayDialog';
 
 // ── Settings ──────────────────────────────────────────────────────────────
 export {

@@ -256,6 +256,13 @@ function writeShape(w: SegmentWriter, shape: PreviewShape): void {
       w.pushPt(shape.cut[0], shape.cut[1]);
       break;
     }
+    case 'mirror': {
+      w.pushPt(shape.line[0], shape.line[1]);
+      for (const ghost of shape.ghosts) {
+        pushWallOutline(w, ghost.a, ghost.b, ghost.thicknessMm);
+      }
+      break;
+    }
     default:
       break;
   }
