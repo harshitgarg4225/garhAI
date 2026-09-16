@@ -103,9 +103,9 @@
     },
     {
       "allowed": 1000,
-      "key": "setback.side-a",
+      "key": "setback.side-b",
       "kind": "requirement",
-      "label": "Side A setback",
+      "label": "Side B setback",
       "limitLabel": "Required",
       "ruleIds": [
         "blr.setback.side.plot.121-240"
@@ -127,9 +127,9 @@
     },
     {
       "allowed": 1000,
-      "key": "setback.side-b",
+      "key": "setback.side-a",
       "kind": "requirement",
-      "label": "Side B setback",
+      "label": "Side A setback",
       "limitLabel": "Required",
       "ruleIds": [
         "blr.setback.side.plot.121-240"
@@ -191,10 +191,10 @@
     },
     {
       "edgeIndex": 1,
-      "elementId": "plot.edge.side-a",
+      "elementId": "plot.edge.side-b",
       "providedMm": 3947,
       "requiredMm": 1000,
-      "role": "side-a",
+      "role": "side-b",
       "ruleIds": [
         "blr.setback.side.plot.121-240"
       ],
@@ -215,10 +215,10 @@
     },
     {
       "edgeIndex": 3,
-      "elementId": "plot.edge.side-b",
+      "elementId": "plot.edge.side-a",
       "providedMm": 1000,
       "requiredMm": 1000,
-      "role": "side-b",
+      "role": "side-a",
       "ruleIds": [
         "blr.setback.side.plot.121-240"
       ],

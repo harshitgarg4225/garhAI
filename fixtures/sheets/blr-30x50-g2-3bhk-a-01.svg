@@ -117,9 +117,9 @@
 <text x="162.405" y="342.450" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">GROUND COVERAGE: 57.29 m² (permissible 90.58 m²)</text>
 <text x="162.405" y="347.450" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">FAR ACHIEVED: 1.04 (permissible 2.25)</text>
 <text x="162.405" y="352.450" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">FRONT SETBACK: 3000 mm (required 3000 mm)</text>
-<text x="162.405" y="357.450" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">SIDE A SETBACK: 1589 mm (required 1000 mm)</text>
+<text x="162.405" y="357.450" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">SIDE B SETBACK: 1589 mm (required 1000 mm)</text>
 <text x="162.405" y="362.450" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">REAR SETBACK: 3500 mm (required 1500 mm)</text>
-<text x="162.405" y="367.450" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">SIDE B SETBACK: 1000 mm (required 1000 mm)</text>
+<text x="162.405" y="367.450" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">SIDE A SETBACK: 1000 mm (required 1000 mm)</text>
 </g>
 </g>
 </g>

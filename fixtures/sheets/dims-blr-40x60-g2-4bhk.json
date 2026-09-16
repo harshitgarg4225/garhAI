@@ -140,7 +140,7 @@
           "sumMm": 5645
         },
         {
-          "id": "site-setback-side-a",
+          "id": "site-setback-side-b",
           "level": 1,
           "offsetMm": 7830,
           "orientation": "horizontal",
@@ -174,7 +174,7 @@
           "sumMm": 3903
         },
         {
-          "id": "site-setback-side-b",
+          "id": "site-setback-side-a",
           "level": 1,
           "offsetMm": 7830,
           "orientation": "horizontal",
