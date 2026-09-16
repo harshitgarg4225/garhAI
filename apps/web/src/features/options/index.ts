@@ -77,6 +77,9 @@ export {
 export type { ComplianceSummary, KeyStats, OptionComparison, SolveRequestParams } from './stats';
 
 export { miniPlanFromOption, planViewBox } from './planGeometry';
+
+export { detailChips, rationaleLines, unrenderedFacts } from './rationale';
+export type { RationaleLine } from './rationale';
 export type { MiniPlanGeometry, PlanViewBox } from './planGeometry';
 
 export {

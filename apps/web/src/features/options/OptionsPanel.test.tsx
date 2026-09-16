@@ -78,9 +78,24 @@ function option(id: string, rank: number): Record<string, unknown> {
     stairAnchorId: 'se-1',
     builtUpMm2: 120_000_000,
     footprintMm2: 60_000_000,
-    rationaleFacts: ['composite:70'],
+    rationaleFacts: [
+      `composite:${70 + rank}`,
+      'zone:kitchen@SE',
+      'stairAnchor:se-1',
+      'coverage:41000000/66890188',
+      'plotArea:111483648',
+    ],
     assumptions: [],
-    compliance: [],
+    compliance: [
+      {
+        ruleId: 'vastu.kitchen.zone',
+        packId: 'vastu',
+        status: 'pass',
+        actual: ['SE'],
+        limit: { allow: ['SE'] },
+      },
+    ],
+    seed: 4242,
   };
 }
 
@@ -204,5 +219,49 @@ describe('OptionsPanel with options', () => {
     expect(status.some((s) => s.includes('2 strong options found for this plot.'))).toBe(true);
     expect(text).not.toContain('No plan cleared the quality checks');
     expect(container.querySelector('[data-testid="no-plan-diagnosis"]')).toBeNull();
+  });
+
+  it('reads "Why this plan" as prose, keeps the chips behind Details, and echoes the seed', async () => {
+    useJobsStore.setState({ byProject: { [PROJECT_ID]: [job('succeeded')] } });
+    serveRow({
+      id: JOB_ID,
+      status: 'succeeded',
+      options: [option('plan_a', 0)],
+      params: { seed: 4242 },
+    });
+
+    await mount(panel());
+
+    const card = container.querySelector('article');
+    expect(card).not.toBeNull();
+    // The seed is on the card before anything is expanded.
+    expect(card?.textContent).toContain('seed 4242');
+
+    const why = [...(card?.querySelectorAll('button') ?? [])].find((b) =>
+      /why this plan/i.test(b.textContent ?? ''),
+    );
+    expect(why).toBeDefined();
+    act(() => why?.click());
+
+    const prose = [...(card?.querySelectorAll('ul[aria-label="Why this plan"] li') ?? [])].map(
+      (li) => li.textContent ?? '',
+    );
+    expect(prose).toContain('Kitchen in the south-east, as Vastu asks.');
+    expect(prose).toContain('Ground coverage 37% of the plot, against the 60% the pack allows.');
+    // The raw chips are not in the prose list …
+    expect(prose.join(' ')).not.toContain('zone:kitchen@SE');
+    expect(card?.querySelector('ul[aria-label="Solver facts"]')).toBeNull();
+    // … and appear, seed first, once Details is opened.
+    const details = [...(card?.querySelectorAll('button') ?? [])].find(
+      (b) => (b.textContent ?? '').trim() === 'Details',
+    );
+    expect(details).toBeDefined();
+    act(() => details?.click());
+    const chips = [...(card?.querySelectorAll('ul[aria-label="Solver facts"] li') ?? [])].map(
+      (li) => li.textContent ?? '',
+    );
+    expect(chips[0]).toBe('seed 4242');
+    expect(chips).toContain('zone:kitchen@SE');
+    expect(chips).toContain('stairAnchor:se-1');
   });
 });

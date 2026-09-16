@@ -5,6 +5,10 @@
  * editable once the option is applied (edits dispatch ops — the locked golden
  * rule 4, never dead text).
  *
+ * "Why this plan" reads as prose — `rationaleLines`, a deterministic template
+ * over the solver's facts, never an LLM — with the raw fact chips one click away
+ * behind "Details", where the seed the plan was found under is echoed too.
+ *
  * Purely presentational: every action arrives as a prop from OptionsPanel,
  * which owns the store wiring. That keeps this file renderable in isolation
  * and the actions testable without a DOM.
@@ -17,6 +21,7 @@ import { AssumptionChip, Button, Chip, Icon, ProgressRing, Tooltip, cn } from '@
 import { MiniPlanSvg } from './MiniPlanSvg';
 import { VastuWheel } from './VastuWheel';
 import { miniPlanFromOption } from './planGeometry';
+import { detailChips, rationaleLines } from './rationale';
 import {
   assumptionLabel,
   assumptionValueText,
@@ -62,11 +67,14 @@ export function OptionCard({
 }: OptionCardProps): JSX.Element {
   const [storeyIndex, setStoreyIndex] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [details, setDetails] = useState(false);
 
   const geometry = miniPlanFromOption(option);
   const stats = keyStats(option);
   const badge = complianceSummary(option.compliance);
   const wheel = vastuWheel(option);
+  const prose = rationaleLines(option);
+  const chips = detailChips(option);
 
   const floors = geometry.storeyIndices;
   const activeFloor = storeyIndex ?? floors[0] ?? 0;
@@ -145,7 +153,7 @@ export function OptionCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <Tooltip content="Rule checks this plan passed — every hard rule passes before a plan is shown.">
+        <Tooltip content="Rule checks this plan passed — a plan with any failing rule is discarded before it is shown.">
           <Chip severity="pass" size="sm" icon="shield">
             {badge.pass} pass
           </Chip>
@@ -156,9 +164,10 @@ export function OptionCard({
           </Chip>
         ) : null}
         {badge.fail > 0 ? (
-          // Soft fails only — §5.6 discards hard-fail plans before this screen.
+          // The §5.6 gate rejects any failing row, so this is never expected; if a
+          // row does arrive failed it is shown, not hidden.
           <Chip severity="fail" size="sm">
-            {badge.fail} advisory {badge.fail === 1 ? 'flag' : 'flags'}
+            {badge.fail} {badge.fail === 1 ? 'rule fails' : 'rules fail'}
           </Chip>
         ) : null}
       </div>
@@ -177,17 +186,43 @@ export function OptionCard({
 
         {expanded ? (
           <div className="mt-2 space-y-2">
-            {option.rationaleFacts.length > 0 ? (
-              <ul className="flex flex-wrap gap-1.5">
-                {option.rationaleFacts.map((fact, i) => (
-                  <li key={i}>
-                    <Chip size="sm" severity="neutral">
-                      {fact}
-                    </Chip>
+            {prose.length > 0 ? (
+              <ul aria-label="Why this plan" className="space-y-1 text-xs text-ink">
+                {prose.map((line, i) => (
+                  <li key={`${line.kind}-${i}`} data-fact-kind={line.kind}>
+                    {line.text}
                   </li>
                 ))}
               </ul>
             ) : null}
+
+            <div>
+              <button
+                type="button"
+                aria-expanded={details}
+                onClick={() => setDetails((v) => !v)}
+                className="flex items-center gap-1 text-2xs font-medium text-ink-subtle hover:text-ink"
+              >
+                Details
+                <Icon name={details ? 'minus' : 'plus'} size={10} />
+              </button>
+              {details ? (
+                <ul aria-label="Solver facts" className="mt-1 flex flex-wrap gap-1.5">
+                  <li>
+                    <Chip size="sm" severity="neutral">
+                      seed {option.seed}
+                    </Chip>
+                  </li>
+                  {chips.map((fact, i) => (
+                    <li key={i}>
+                      <Chip size="sm" severity="neutral">
+                        {fact}
+                      </Chip>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
 
             {option.assumptions.length > 0 ? (
               <div>
@@ -221,7 +256,7 @@ export function OptionCard({
               </div>
             ) : null}
 
-            {option.rationaleFacts.length === 0 && option.assumptions.length === 0 ? (
+            {prose.length === 0 && option.assumptions.length === 0 ? (
               <p className="text-xs text-ink-subtle">
                 No extra notes for this plan — the scores above are the whole story.
               </p>
@@ -234,6 +269,12 @@ export function OptionCard({
         <Button variant="primary" size="sm" onClick={onApply} disabled={applied}>
           {applied ? 'Applied' : 'Use this plan'}
         </Button>
+        <span
+          className="garh-nums text-2xs text-ink-subtle"
+          title="The search seed this plan came from"
+        >
+          seed {option.seed}
+        </span>
         {onMoreLikeThis !== undefined ? (
           <Tooltip content="Generate new options in the same family as this plan.">
             <Button variant="ghost" size="sm" onClick={onMoreLikeThis}>
