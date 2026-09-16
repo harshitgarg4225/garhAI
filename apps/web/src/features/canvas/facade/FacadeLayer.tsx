@@ -36,18 +36,19 @@
  * handful of 4-box trims and 1-box chajjas) plus two building-scoped meshes —
  * a few thousand triangles of Float32Array writes, nowhere near 100 ms.
  *
- * ## No new canvas, no lights
+ * ## No new canvas, no lights of its own — but LIT, and SHADOWED
  *
  * This layer mounts inside the ONE existing `<Canvas>` (`CanvasRoot`) next to
- * the plan layers. Materials are unlit `MeshBasicMaterial` with Lambert
- * shading pre-baked into vertex colours (`geometry3d.ts`) — the layer renders
- * correctly in a scene with no lighting rig and needs nothing from the sun
- * widget.
+ * the plan layers. Since 2026-09-16 its meshes wear the lit facade material
+ * (`material3d.ts`) with per-vertex normals, and cast + receive shadows, so a
+ * chajja darkens the wall under it at noon and the porch's shadow swings
+ * with the sun scrubber. The lights themselves belong to `sun/SunLight` —
+ * this layer adds none.
  */
 
 import { memo, useEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import { useThree } from '@react-three/fiber';
-import { BufferAttribute, BufferGeometry, type Mesh, MeshBasicMaterial } from 'three';
+import { BufferAttribute, BufferGeometry, type Mesh, type MeshStandardMaterial } from 'three';
 
 import type {
   Balcony,
@@ -64,6 +65,7 @@ import { useSelectionStore } from '../../../stores/selection';
 import { useCanvasCoreOptional } from '../core';
 import { boxesForComponent } from './componentBoxes';
 import { buildBoxTriangles, SELECTION_BOOST } from './geometry3d';
+import { createFacadeMaterial, FACADE_MESH_SHADOW } from './material3d';
 import { FACADE_PICK_KIND } from './types';
 
 // ---------------------------------------------------------------------------
@@ -181,11 +183,8 @@ export function FacadeLayer({ house: houseProp }: FacadeLayerProps): JSX.Element
   const house = houseProp ?? storeHouse;
   const selectedIds = useSelectionStore((s) => s.ids);
 
-  // One unlit material for every facade mesh; colour lives in vertex colours.
-  const material = useMemo(
-    () => new MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
-    [],
-  );
+  // One lit material for every facade mesh; colour lives in vertex colours.
+  const material = useMemo(() => createFacadeMaterial(), []);
   useEffect(() => () => material.dispose(), [material]);
 
   // Stable views of the model, so unrelated ops do not invalidate memos.
@@ -241,7 +240,7 @@ const EMPTY_WALLS: readonly Wall[] = [];
 interface FacadeComponentMeshProps {
   readonly component: FacadeComponent;
   readonly houseRef: MutableRefObject<HouseModel>;
-  readonly material: MeshBasicMaterial;
+  readonly material: MeshStandardMaterial;
   /** The component's storey slice (empty for building-scoped kinds). */
   readonly slice: StoreySlice;
   /** All walls — non-empty only for building-scoped kinds. */
@@ -275,6 +274,9 @@ const FacadeComponentMesh = memo(function FacadeComponentMesh({
     const g = new BufferGeometry();
     g.setAttribute('position', new BufferAttribute(data.positions, 3));
     g.setAttribute('color', new BufferAttribute(data.colors, 3));
+    g.setAttribute('normal', new BufferAttribute(data.normals, 3));
+    // Frustum culling and the shadow camera both read the bounding sphere.
+    g.computeBoundingSphere();
     return g;
     // slice/allWalls/storeys/levels are not referenced in the closure — they
     // ARE the tracked read-set of `boxesForComponent`, which reads the live
@@ -307,6 +309,8 @@ const FacadeComponentMesh = memo(function FacadeComponentMesh({
       ref={meshRef}
       geometry={geometry}
       material={material}
+      castShadow={FACADE_MESH_SHADOW.castShadow}
+      receiveShadow={FACADE_MESH_SHADOW.receiveShadow}
       userData={{ garhFacade: component.id, garhFacadeKind: component.kind }}
     />
   );

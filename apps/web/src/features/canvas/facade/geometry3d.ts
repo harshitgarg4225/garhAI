@@ -12,13 +12,15 @@
  * must stay three-free; `geometry3d.test.ts` pins agreement with the core's
  * constants so the two cannot drift.
  *
- * SHADING WITHOUT LIGHTS (inherited fact 4 — procedural over assets): facade
- * meshes use `MeshBasicMaterial` because this feature does not own the scene's
- * lighting rig (same reasoning as the furniture layer). Flat unlit boxes read
- * as silhouettes, so each face's colour is pre-multiplied by a Lambert term
- * against one fixed, documented sun direction. Deterministic, zero runtime
- * cost, and it survives in a scene with no lights at all — the §15 "sun
- * scrubber" agent lights *its* materials; these stay honest without it.
+ * LIT, NOT BAKED (since 2026-09-16). Facade meshes used to be unlit
+ * `MeshBasicMaterial` with a Lambert term pre-multiplied into the vertex
+ * colours against one fixed "sun" — so chajjas, porches and cladding cast no
+ * shadow and ignored the sun scrubber, on exactly the elements whose job is
+ * to shade windows. The soup now carries per-vertex NORMALS and the RAW kit
+ * colour; `material3d.ts` supplies a `MeshStandardMaterial` that the scene's
+ * one sun lights and shadows like the building. Winding is CCW seen from
+ * outside and agrees with the normals (`geometry3d.test.ts` pins the cross
+ * product), so front-face culling and shadow maps both work.
  */
 
 import type { OrientedBoxMm } from './componentBoxes';
@@ -26,24 +28,8 @@ import type { OrientedBoxMm } from './componentBoxes';
 /** mm → world units. MUST equal `core/constants.WORLD_UNITS_PER_MM`. */
 export const WORLD_PER_MM = 0.001;
 
-/**
- * The fixed shading "sun": from the south-east, well above the horizon
- * (world space, normalised below). Chosen so the two faces an orbiting user
- * sees first are distinguishably lit.
- */
-const SHADE_LIGHT: readonly [number, number, number] = normalise(0.45, 0.8, 0.3);
-
-/** Ambient floor of the Lambert shade, so no face is ever black. */
-const SHADE_AMBIENT = 0.72;
-const SHADE_DIFFUSE = 0.28;
-
 /** Extra multiplier for a selected component — "lit from within", not a hue. */
 export const SELECTION_BOOST = 1.18;
-
-function normalise(x: number, y: number, z: number): [number, number, number] {
-  const len = Math.hypot(x, y, z);
-  return [x / len, y / len, z / len];
-}
 
 /** `#RRGGBB` → linear-ish [r,g,b] in 0..1. Anything unparseable is grey. */
 export function hexToRgb(hex: string): [number, number, number] {
@@ -56,13 +42,15 @@ export function hexToRgb(hex: string): [number, number, number] {
 export interface BoxTriangleData {
   /** 36 vertices per box, xyz interleaved, world units. */
   readonly positions: Float32Array;
-  /** Matching rgb per vertex, shade pre-multiplied. */
+  /** Matching rgb per vertex: the kit colour, times the selection scale. */
   readonly colors: Float32Array;
+  /** Unit outward face normal per vertex, world units. */
+  readonly normals: Float32Array;
 }
 
 /**
  * Triangulate `boxes` into one non-indexed soup. 12 triangles per box, flat
- * face shading baked into the vertex colours.
+ * outward normals, raw colour — the scene's lights do the shading.
  */
 export function buildBoxTriangles(
   boxes: readonly OrientedBoxMm[],
@@ -70,6 +58,7 @@ export function buildBoxTriangles(
 ): BoxTriangleData {
   const positions = new Float32Array(boxes.length * 36 * 3);
   const colors = new Float32Array(boxes.length * 36 * 3);
+  const normals = new Float32Array(boxes.length * 36 * 3);
   let cursor = 0;
 
   for (const box of boxes) {
@@ -119,27 +108,22 @@ export function buildBoxTriangles(
       d: readonly number[],
       normal: readonly [number, number, number],
     ): void => {
-      const lambert =
-        SHADE_AMBIENT +
-        SHADE_DIFFUSE *
-          Math.max(
-            0,
-            normal[0] * SHADE_LIGHT[0] + normal[1] * SHADE_LIGHT[1] + normal[2] * SHADE_LIGHT[2],
-          );
-      const shade = lambert * colorScale;
-      const fr = Math.min(r * shade, 1);
-      const fg = Math.min(g * shade, 1);
-      const fb = Math.min(b * shade, 1);
+      const fr = Math.min(r * colorScale, 1);
+      const fg = Math.min(g * colorScale, 1);
+      const fb = Math.min(b * colorScale, 1);
       // Two CCW triangles: a-b-c, a-c-d.
       for (const v of [a, bb, c, a, c, d]) {
         positions[cursor] = v[0] ?? 0;
         colors[cursor] = fr;
+        normals[cursor] = normal[0];
         cursor += 1;
         positions[cursor] = v[1] ?? 0;
         colors[cursor] = fg;
+        normals[cursor] = normal[1];
         cursor += 1;
         positions[cursor] = v[2] ?? 0;
         colors[cursor] = fb;
+        normals[cursor] = normal[2];
         cursor += 1;
       }
     };
@@ -155,5 +139,5 @@ export function buildBoxTriangles(
     face(c010, c000, c100, c110, [0, -1, 0]);
   }
 
-  return { positions, colors };
+  return { positions, colors, normals };
 }
