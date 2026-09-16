@@ -59,7 +59,7 @@ describe('the dimensional filter', () => {
   });
 
   it('is a real gate at every setting — no limit means no exclusions', () => {
-    expect(count({})).toBe(653);
+    expect(count({})).toBe(654);
     // 80 mm is the smallest depth in the corpus and those eight items need no
     // access strip, so 80 keeps exactly them and 79 keeps none.
     expect(count({ maxDepthMm: 80 })).toBe(8);
@@ -143,7 +143,7 @@ describe('filters compose', () => {
   });
 
   it('narrows by kind', () => {
-    expect(count({ kind: 'furniture' })).toBe(469);
+    expect(count({ kind: 'furniture' })).toBe(470);
     expect(count({ kind: 'material' })).toBe(184);
   });
 });

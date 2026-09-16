@@ -68,7 +68,6 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from garh_api.brief_aliases import canonical_brief_data
 from garh_api.logging import get_logger
 
 _log = get_logger(__name__)
@@ -95,6 +94,11 @@ _NOTES: tuple[str, ...] = (
     "staircase deductions are not applied, so FAR reads conservatively high.",
     "Service elements (water tank / OHT / sump) are not in the model core yet, so "
     "Vastu rules about them report not_applicable rather than passing.",
+    "Car spaces are MEASURED, never declared: a space is a parking-bay placed on the "
+    "ground storey, inside the plot, clear of every room that is not a garage/stilt/"
+    "porch, not stacked on another bay, and reachable from a road edge in a straight "
+    "run that crosses no room (garh_api.parking_geometry). The brief's carParking is "
+    "a wish the solver tries to honour, not a number the rules trust.",
 )
 
 
@@ -600,6 +604,17 @@ def build_evaluation_context(
             }
         )
 
+    # ---- car spaces, measured off the plan (never off the brief) --------------
+    parking_rows = _measured_parking_spaces(
+        house=house,
+        boundary=boundary,
+        road_widths=road_widths,
+        ground_id=ground_id,
+        rooms=rooms,
+        room_rings=room_rings,
+    )
+    measured_parking = sum(1 for row in parking_rows if row["reachable"])
+
     model: dict[str, Any] = {
         "storeyCount": len(storey_rows),
         "hasStilt": has_stilt,
@@ -614,6 +629,7 @@ def build_evaluation_context(
         "stairs": stair_rows,
         "projections": projection_rows,
         "serviceElements": [],
+        "parkingSpaces": parking_rows,
         "heightComponentsMm": height_components,
     }
 
@@ -623,10 +639,11 @@ def build_evaluation_context(
         "zoneCategory": zone_category,
         "buildingUse": building_use,
         "dwellingUnits": int(brief_data.get("dwellingUnits") or dwelling_units),
+        # The measured count, so the area statement's "car parking spaces provided"
+        # is the number of bays on the drawing. The engine reads model.parkingSpaces
+        # directly; this field only matters to a caller that overrides it.
         "parkingSpacesProvided": int(
-            parking_spaces_provided
-            if parking_spaces_provided is not None
-            else canonical_brief_data(brief_data).get("carParking") or 0
+            parking_spaces_provided if parking_spaces_provided is not None else measured_parking
         ),
         "rwhDeclared": bool(
             rwh_declared if rwh_declared is not None else brief_data.get("rainwaterHarvesting")
@@ -650,6 +667,50 @@ def build_evaluation_context(
         "profile": profile,
         "model": model,
     }
+
+
+def _measured_parking_spaces(
+    *,
+    house: Mapping[str, Any],
+    boundary: Sequence[Point],
+    road_widths: Mapping[int, int | None],
+    ground_id: str | None,
+    rooms: Sequence[Mapping[str, Any]],
+    room_rings: Mapping[str, Sequence[Point]],
+) -> list[dict[str, Any]]:
+    """``model.parkingSpaces`` for the engine: every parking-bay, measured.
+
+    The bay's size comes from the furniture catalogue the API serves (files if
+    present, else the built-in table — the same source the catalogue route answers
+    from), so the rectangle the rule measures is the rectangle the canvas draws. A
+    catalogue with no bay entry measures every bay as absent: an empty list, which
+    the engine treats as "measured, none found" — a fail, never a silent fallback
+    to the declaration.
+    """
+    from garh_api.parking_geometry import bay_footprint_mm, measure_parking_spaces
+    from garh_api.routers.catalog import _load_catalog
+
+    furniture = list(house.get("furniture") or [])
+    if not furniture:
+        return []
+    _source, catalog = _load_catalog("furniture")
+    size = bay_footprint_mm([item for item in catalog if isinstance(item, Mapping)])
+    if size is None:
+        _log.warning("compliance.parking_bay_missing_from_catalogue")
+        return []
+    ground_rooms = [
+        (str(room.get("type") or "unassigned"), room_rings[str(room.get("id"))])
+        for room in rooms
+        if ground_id is not None and str(room.get("storeyId")) == ground_id
+    ]
+    return measure_parking_spaces(
+        furniture=furniture,
+        boundary=boundary,
+        road_edge_indexes=[index for index, width in road_widths.items() if width is not None],
+        ground_storey_id=ground_id,
+        ground_rooms=ground_rooms,
+        bay_size_mm=size,
+    )
 
 
 def packs_for(document: Mapping[str, Any], *, city_pack: str | None = None) -> tuple[str, ...]:

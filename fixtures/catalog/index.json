@@ -6,7 +6,7 @@
     {
       "name": "furniture.json",
       "shape": "array of CatalogItemOut (garh_api/routers/catalog.py)",
-      "count": 469,
+      "count": 470,
       "minimum": 30,
       "requiredKeys": [
         "id",

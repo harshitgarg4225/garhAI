@@ -1,5 +1,5 @@
 /**
- * Search, against the real 469 + 184 corpus.
+ * Search, against the real 470 + 184 corpus.
  *
  * Every assertion here names a specific catalogue id, so a change in the
  * ranking that "still returns something sensible" fails rather than passing on
@@ -40,9 +40,9 @@ function entry(id: string): SearchEntry {
 
 describe('the corpus itself', () => {
   it('is the real one, not a stub', () => {
-    expect(RECORDS.filter((r) => r.kind === 'furniture')).toHaveLength(469);
+    expect(RECORDS.filter((r) => r.kind === 'furniture')).toHaveLength(470);
     expect(RECORDS.filter((r) => r.kind === 'material')).toHaveLength(184);
-    expect(INDEX).toHaveLength(653);
+    expect(INDEX).toHaveLength(654);
   });
 
   it('gives every record a key unique across both catalogues', () => {
