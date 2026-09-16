@@ -223,6 +223,48 @@ export function effectiveBanner(outcome: SolveOutcome, target = 3): string | nul
 }
 
 // ---------------------------------------------------------------------------
+// The zero-options screen: the worker's diagnosis, never a blank verdict
+// ---------------------------------------------------------------------------
+
+export interface NoPlanCopy {
+  readonly title: string;
+  /**
+   * The sentence the architect acts on. The worker's own diagnosis when it sent
+   * one — stage A's shortfall ("the ground floor is 8 m² short…") or the gate's
+   * reason — else the generic reason, flagged as generic so a test can tell.
+   */
+  readonly diagnosis: string;
+  readonly fromWorker: boolean;
+  /** How many layouts the checks discarded, when any were tried. */
+  readonly gateLine: string | null;
+}
+
+const GENERIC_NO_PLAN =
+  'The plot, setbacks and brief left no workable layout. Loosening a room size or a must-face in the brief usually unlocks it.';
+
+/**
+ * Copy for a succeeded solve that delivered nothing. `pipeline.finalise` puts the
+ * stage-A shortfall sentence in `result.banner` and the API row carries it; this
+ * is where it reaches the screen. Before this, OptionsPanel rendered the banner
+ * only beside option cards — exactly the state in which there is nothing else to
+ * read — so the architect saw a generic verdict over a diagnosis the worker had
+ * already written.
+ */
+export function noPlanClearedCopy(outcome: SolveOutcome): NoPlanCopy {
+  const worker = outcome.banner !== null && outcome.banner.trim() !== '' ? outcome.banner : null;
+  const gateLine =
+    outcome.rejectedByGates > 0
+      ? `${outcome.considered} ${outcome.considered === 1 ? 'layout was' : 'layouts were'} tried and ${outcome.rejectedByGates} ${outcome.rejectedByGates === 1 ? 'was' : 'were'} discarded by the checks (room minimums, circulation, furniture fit, parking).`
+      : null;
+  return {
+    title: 'No plan cleared the quality checks',
+    diagnosis: worker ?? GENERIC_NO_PLAN,
+    fromWorker: worker !== null,
+    gateLine,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Compare two
 // ---------------------------------------------------------------------------
 
@@ -386,6 +428,31 @@ export function moreLikeThisParams(
 export function newSeedParams(random: () => number = Math.random): SolveRequestParams {
   // 2^31-safe positive int; the API's StrictInt accepts it.
   return { seed: Math.floor(random() * 2_147_483_647) };
+}
+
+/** The API's seed range (`SolveIn.seed`, a StrictInt the worker clamps to 0..2^31-1). */
+export const MAX_SEED = 2_147_483_647;
+
+/**
+ * A seed the architect typed. Integer, 0..2^31-1, commas and spaces tolerated;
+ * anything else is `null` — the field shows its old value again rather than
+ * sending a NaN the API would 422.
+ */
+export function parseSeedInput(raw: string): number | null {
+  const cleaned = raw.replace(/[,\s]/g, '');
+  if (!/^\d+$/.test(cleaned)) return null;
+  const n = Number(cleaned);
+  return Number.isSafeInteger(n) && n >= 0 && n <= MAX_SEED ? n : null;
+}
+
+/** Re-run the search under exactly this seed — the same params give the same family. */
+export function seedParams(seed: number): SolveRequestParams {
+  return { seed };
+}
+
+/** The seed a job ran under, when its params carry one. */
+export function seedOf(params: Readonly<Record<string, unknown>>): number | null {
+  return readSeed(params);
 }
 
 // ---------------------------------------------------------------------------

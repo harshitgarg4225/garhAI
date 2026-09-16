@@ -12,7 +12,7 @@ fails. That is where a rounding mistake lives.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 
@@ -269,6 +269,81 @@ class TestParkingMin:
             {"type": "parking_min", "basis": "built-up-area", "rate": rate}, context, nbc
         )
         assert over.limit == 6 and not over.satisfied
+
+    # -- measured bays: the geometry counts, the declaration does not ---------
+
+    CHECK: ClassVar[dict[str, Any]] = {
+        "type": "parking_min",
+        "basis": "dwelling",
+        "rate": {"num": 1, "den": 1},
+        "minSpaces": 1,
+        "spaceSizeMm": [2500, 5000],
+    }
+
+    @staticmethod
+    def _bay(bay_id: str, w: int, length: int, *, reachable: bool = True) -> dict[str, Any]:
+        return {
+            "id": bay_id,
+            "storeyId": "storey_g",
+            "polygonMm": [[0, 0], [w, 0], [w, length], [0, length]],
+            "widthMm": w,
+            "lengthMm": length,
+            "reachable": reachable,
+        }
+
+    def test_a_measured_bay_counts_and_the_declaration_is_ignored(self, nbc: PackSet) -> None:
+        context = make_context(
+            model={"parkingSpaces": [self._bay("bay_1", 2500, 5000)]},
+            profile={"parkingSpacesProvided": 0},  # the brief promised nothing …
+        )
+        ((_, outcome),) = run_one(self.CHECK, context, nbc)
+        assert outcome.actual == 1 and outcome.satisfied  # … and the drawing shows one
+
+    def test_a_declared_space_with_no_bay_drawn_fails(self, nbc: PackSet) -> None:
+        """NEGATIVE CONTROL: the brief says one car; the plan shows none."""
+        context = make_context(model={"parkingSpaces": []}, profile={"parkingSpacesProvided": 1})
+        ((_, outcome),) = run_one(self.CHECK, context, nbc)
+        assert outcome.actual == 0 and outcome.limit == 1
+        assert not outcome.satisfied
+
+    def test_only_an_unmeasured_context_falls_back_to_the_declaration(self, nbc: PackSet) -> None:
+        context = make_context(profile={"parkingSpacesProvided": 1})
+        assert context.model.parking_spaces is None
+        ((_, outcome),) = run_one(self.CHECK, context, nbc)
+        assert outcome.actual == 1 and outcome.satisfied
+
+    def test_an_undersized_bay_does_not_count_and_is_named(self, nbc: PackSet) -> None:
+        context = make_context(
+            model={
+                "parkingSpaces": [
+                    self._bay("bay_small", 2400, 5000),  # 100 mm too narrow
+                    self._bay("bay_short", 2500, 4999),  # 1 mm too short
+                ]
+            },
+            profile={"parkingSpacesProvided": 2},
+        )
+        ((_, outcome),) = run_one(self.CHECK, context, nbc)
+        assert outcome.actual == 0 and not outcome.satisfied
+        assert outcome.elements == ("bay_small", "bay_short")
+
+    def test_a_bay_drawn_the_other_way_round_still_counts(self, nbc: PackSet) -> None:
+        context = make_context(model={"parkingSpaces": [self._bay("bay_1", 5000, 2500)]})
+        ((_, outcome),) = run_one(self.CHECK, context, nbc)
+        assert outcome.actual == 1 and outcome.satisfied
+
+    def test_a_bay_a_car_cannot_reach_does_not_count(self, nbc: PackSet) -> None:
+        context = make_context(
+            model={"parkingSpaces": [self._bay("bay_back", 2500, 5000, reachable=False)]}
+        )
+        ((_, outcome),) = run_one(self.CHECK, context, nbc)
+        assert outcome.actual == 0 and not outcome.satisfied
+        assert outcome.elements == ("bay_back",)
+
+    def test_a_pack_without_a_size_counts_every_reachable_bay(self, nbc: PackSet) -> None:
+        check = {k: v for k, v in self.CHECK.items() if k != "spaceSizeMm"}
+        context = make_context(model={"parkingSpaces": [self._bay("bay_1", 2000, 4000)]})
+        ((_, outcome),) = run_one(check, context, nbc)
+        assert outcome.actual == 1 and outcome.satisfied
 
 
 # ---------------------------------------------------------------------------

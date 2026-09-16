@@ -25,7 +25,7 @@ rulepacks/
 └── vastu.json                   #  9 rules · advisory scoring pack, 0–100 weighted score
 ```
 
-118 rules total. Each has at least one passing and one failing fixture in `fixtures/rules/` — 238
+118 rules total. Each has at least one passing and one failing fixture in `fixtures/rules/` — 245
 fixtures, which are the gate on the engine.
 
 ---
@@ -167,7 +167,7 @@ unit of `actual` and `limit` in that row.
 | `stair_width_min` | stair | `valueMm` | `stair.widthMm` | `valueMm` | mm |
 | `headroom_min` | stair | `valueMm` | `stair.headroomMm` | `valueMm` | mm |
 | `projection_max` | projection | `element`, `valueMm`, `intoSetbackOnly?` | `projection.projectionMm` for matching elements | `valueMm` | mm |
-| `parking_min` | project | `basis`, `rate`, `minSpaces?`, `spaceSizeMm?` | `parkingSpacesProvided` | `max(ceil(rate × basis), minSpaces)` | count |
+| `parking_min` | project | `basis`, `rate`, `minSpaces?`, `spaceSizeMm?` | conforming `model.parkingSpaces` (≥ `spaceSizeMm` both ways, `reachable`) when measured; else `parkingSpacesProvided` | `max(ceil(rate × basis), minSpaces)` | count |
 | `opening_width_min` | opening | `valueMm` | `opening.widthMm` | `valueMm` | mm |
 | `zone_check` | zone | `target`, `mode`, `allow?`, `deny?`, `fallback?` | sorted unique zone/facing labels of matched targets | `{allow, deny, fallback}` | zone |
 | `custom` | per `scope` | `fn`, `scope`, `args` | per fn | per fn | per fn |

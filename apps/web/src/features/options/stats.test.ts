@@ -22,7 +22,11 @@ import {
   keyStats,
   moreLikeThisParams,
   newSeedParams,
+  noPlanClearedCopy,
+  parseSeedInput,
   perFloorParams,
+  seedOf,
+  seedParams,
   regenerateOthersParams,
   roomMultiset,
   vastuWheel,
@@ -351,5 +355,70 @@ describe('assumption chip display helpers', () => {
 
   it('labels a dotted field readably', () => {
     expect(assumptionLabel('brief.rooms.bedroom2.targetAreaMm2')).toBe('Bedroom 2 · Target Area');
+  });
+});
+
+describe('noPlanClearedCopy', () => {
+  const base = {
+    jobId: 'j',
+    status: 'succeeded' as const,
+    options: [],
+    envelope: null,
+    error: null,
+    params: {},
+    unreadable: 0,
+  };
+
+  it("prefers the worker's own sentence and says so", () => {
+    const copy = noPlanClearedCopy({
+      ...base,
+      banner: 'The ground floor is 6.9 m² short. Add a floor.',
+      considered: 4,
+      rejectedByGates: 4,
+    });
+    expect(copy.fromWorker).toBe(true);
+    expect(copy.diagnosis).toBe('The ground floor is 6.9 m² short. Add a floor.');
+    expect(copy.gateLine).toBe(
+      '4 layouts were tried and 4 were discarded by the checks (room minimums, circulation, furniture fit, parking).',
+    );
+  });
+
+  it('falls back to the generic reason only when there is no banner, and no gate line when nothing was tried', () => {
+    const copy = noPlanClearedCopy({ ...base, banner: null, considered: 0, rejectedByGates: 0 });
+    expect(copy.fromWorker).toBe(false);
+    expect(copy.diagnosis).toContain('left no workable layout');
+    expect(copy.gateLine).toBeNull();
+    // A blank banner is no banner.
+    expect(
+      noPlanClearedCopy({ ...base, banner: '   ', considered: 0, rejectedByGates: 0 }).fromWorker,
+    ).toBe(false);
+  });
+
+  it('counts one layout in the singular', () => {
+    const copy = noPlanClearedCopy({ ...base, banner: null, considered: 1, rejectedByGates: 1 });
+    expect(copy.gateLine).toBe(
+      '1 layout was tried and 1 was discarded by the checks (room minimums, circulation, furniture fit, parking).',
+    );
+  });
+});
+
+describe('seed controls', () => {
+  it('parses what an architect types, and refuses what the API would 422', () => {
+    expect(parseSeedInput('42')).toBe(42);
+    expect(parseSeedInput(' 1,234 ')).toBe(1234);
+    expect(parseSeedInput('0')).toBe(0);
+    expect(parseSeedInput('2147483647')).toBe(2_147_483_647);
+    expect(parseSeedInput('2147483648')).toBeNull();
+    expect(parseSeedInput('-1')).toBeNull();
+    expect(parseSeedInput('4.5')).toBeNull();
+    expect(parseSeedInput('abc')).toBeNull();
+    expect(parseSeedInput('')).toBeNull();
+  });
+
+  it("builds the exact-seed request and reads a job's seed back", () => {
+    expect(seedParams(99)).toEqual({ seed: 99 });
+    expect(seedOf({ seed: 7, optionCount: 3 })).toBe(7);
+    expect(seedOf({ optionCount: 3 })).toBeNull();
+    expect(seedOf({ seed: '7' })).toBeNull();
   });
 });

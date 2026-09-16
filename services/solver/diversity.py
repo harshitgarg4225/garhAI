@@ -16,6 +16,7 @@ by signature, then by id) and nothing iterates over an unordered set.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import replace
 
 from services.solver.geometry import bbox, zone_for_point
 from services.solver.types import BuildableEnvelope, PlanOption, RoomPlacement
@@ -127,23 +128,16 @@ def select_diverse(
 
 
 def _reranked(option: PlanOption, rank: int) -> PlanOption:
-    """Stamp the final 0-based rank onto a kept option."""
+    """Stamp the final 0-based rank onto a kept option.
+
+    ``dataclasses.replace`` on purpose: the previous field-by-field rebuild
+    silently dropped every field added to :class:`PlanOption` after it was
+    written — the option's ``seed`` arrived as 0 on every re-ranked card, and
+    only a test that asked for the number noticed.
+    """
     if option.rank == rank:
         return option
-    return PlanOption(
-        id=option.id,
-        rank=rank,
-        scores=option.scores,
-        placements=option.placements,
-        ops=option.ops,
-        signature=option.signature,
-        stair_anchor_id=option.stair_anchor_id,
-        built_up_mm2=option.built_up_mm2,
-        footprint_mm2=option.footprint_mm2,
-        rationale_facts=option.rationale_facts,
-        assumptions=option.assumptions,
-        compliance=option.compliance,
-    )
+    return replace(option, rank=rank)
 
 
 def signature_summary(signature_tokens: Sequence[str]) -> Mapping[str, str]:

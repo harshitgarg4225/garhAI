@@ -868,6 +868,44 @@ def build_fixture(packs, rule, kind, variant=None):
         desc = ("%d car space(s) are shown against %d required -- one short." % (provided, need)
                 ) if violated else \
                ("Exactly the %d required car space(s) are shown." % need)
+        if variant is not None:
+            # The measured-geometry cases (engine: checks.check_parking_min). The
+            # brief's declaration is set to the OPPOSITE of the drawing in each one,
+            # so a fixture passes only if the engine reads the bays, not the number.
+            size = check.get("spaceSizeMm", [2500, 5000])
+            w, l = size[0], size[1]
+            front_y = ctx["plot"]["edges"][0]["setbackProvidedMm"]
+            y0 = max(0, front_y - w) if front_y >= w else 0
+
+            def bay(bid, bw, bl, reachable=True):
+                return {"id": bid, "storeyId": "storey_g",
+                        "polygonMm": [[600, y0], [600 + bl, y0], [600 + bl, y0 + bw], [600, y0 + bw]],
+                        "widthMm": bw, "lengthMm": bl, "reachable": reachable}
+
+            if variant == "measured-bay":
+                ctx["model"]["parkingSpaces"] = [bay("bay_%d" % i, w, l) for i in range(need)]
+                ctx["profile"]["parkingSpacesProvided"] = 0
+                exp.update(status="pass", actual=need, limit=need, elements=[])
+                desc = ("%d car space(s) of %d x %d mm are DRAWN on the ground floor and the "
+                        "brief declares none: the engine counts the bays it can measure, so "
+                        "this passes." % (need, w, l))
+            elif variant == "declared-only":
+                ctx["model"]["parkingSpaces"] = []
+                ctx["profile"]["parkingSpacesProvided"] = need
+                exp.update(status=rule["severity"], actual=0, limit=need, elements=[])
+                desc = ("The brief declares %d car space(s) and the plan shows none. A measured "
+                        "context that found no bay is a fail, never a fallback to the "
+                        "declaration." % need)
+            elif variant == "undersized-bay":
+                ctx["model"]["parkingSpaces"] = [bay("bay_%d" % i, w - 100, l) for i in range(need)]
+                ctx["profile"]["parkingSpacesProvided"] = need
+                exp.update(status=rule["severity"], actual=0, limit=need,
+                           elements=["bay_%d" % i for i in range(need)])
+                desc = ("%d bay(s) are drawn but each is %d mm narrow of the %d x %d mm the "
+                        "pack requires; none counts, and every one is named as an offender."
+                        % (need, 100, w, l))
+            else:
+                raise ValueError("unknown parking variant %r" % variant)
 
     elif ctype == "projection_max":
         limit = check["valueMm"]
@@ -1008,13 +1046,15 @@ def build_fixture(packs, rule, kind, variant=None):
     else:
         raise ValueError("no mutator for check type %r" % ctype)
 
-    fid = "%s.%s" % (rule["id"], kind)
+    if variant is not None and ctype != "parking_min":
+        raise ValueError("no variant %r for check type %r" % (variant, ctype))
+    fid = "%s.%s" % (rule["id"], kind if variant is None else "extra-" + variant)
     doc = {
         "$schema": "../../../rulepacks/schema/fixture.schema.json",
         "fixtureId": fid,
         "packId": pack_id,
         "ruleId": rule["id"],
-        "kind": kind,
+        "kind": kind if variant is None else "extra",
         "description": desc,
         "context": ctx,
         "expected": exp,
@@ -1200,6 +1240,15 @@ def _wrap(fid, rid, kind, desc, ctx, exp):
 EXTRAS = [
     ("vastu.kitchen.zone", "pass", "fallback"),
     ("vastu.toilet.never_ne", "fail", "advisory"),
+    # Parking measured off the model (the geometry counts, the declaration does not).
+    # One rule per pack carries the three cases; the engine path is the same for all.
+    ("blr.parking.plot.le240", "pass", "measured-bay"),
+    ("blr.parking.plot.le240", "fail", "declared-only"),
+    ("blr.parking.plot.le240", "fail", "undersized-bay"),
+    ("ncr.parking.ecs", "pass", "measured-bay"),
+    ("ncr.parking.ecs", "fail", "declared-only"),
+    ("hyd.parking.plot.le200", "pass", "measured-bay"),
+    ("hyd.parking.plot.le200", "fail", "declared-only"),
 ]
 
 

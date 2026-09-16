@@ -247,6 +247,10 @@ class PlanOption:
     assumptions: tuple[Assumption, ...] = ()
     #: Rules-engine results for this option, already computed by the critic.
     compliance: tuple[Mapping[str, Any], ...] = ()
+    #: The CP-SAT seed this option was actually found under. The request's seed
+    #: for round one; a derived seed for each fresh-seed round after it — echoed
+    #: on the card so an architect can repeat the search that produced the plan.
+    seed: int = 0
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -261,6 +265,7 @@ class PlanOption:
             "rationaleFacts": list(self.rationale_facts),
             "assumptions": [item.to_json() for item in self.assumptions],
             "compliance": [dict(item) for item in self.compliance],
+            "seed": self.seed,
         }
 
 

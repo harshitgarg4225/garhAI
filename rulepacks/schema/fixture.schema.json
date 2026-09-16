@@ -285,6 +285,27 @@
                   "centroidMm": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" } }
                 }
               }
+            },
+            "parkingSpaces": {
+              "type": "array",
+              "description": "Car spaces MEASURED off the model (a bay drawn on the ground). When present, parking_min counts the bays that are at least spaceSizeMm both ways and reachable from a road; when absent, the engine falls back to profile.parkingSpacesProvided. An empty list is a measurement that found none, not a fallback.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "polygonMm", "widthMm", "lengthMm"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "storeyId": { "type": "string" },
+                  "polygonMm": {
+                    "type": "array", "minItems": 3,
+                    "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" } },
+                    "description": "The bay's clear rectangle, open ring. widthMm / lengthMm are its bbox sides; the verifier asserts they agree."
+                  },
+                  "widthMm": { "type": "integer", "minimum": 0 },
+                  "lengthMm": { "type": "integer", "minimum": 0 },
+                  "reachable": { "type": "boolean", "description": "The model layer's finding that a car can get from a road edge to the bay without crossing the building. Defaults to true." }
+                }
+              }
             }
           }
         }

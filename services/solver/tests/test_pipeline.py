@@ -350,6 +350,87 @@ def test_options_are_ranked_scored_and_carry_rationale_seeds() -> None:
         ), "rationale seeds are structured facts, never prose (§5.5)"
 
 
+class _RichFake(FakeSolver):
+    """A stage set whose stage B and rules pass carry what the rationale reads."""
+
+    def stage_b(
+        self, candidate: Candidate, params: SolveParams, envelope: Any
+    ) -> Mapping[str, Any] | None:
+        base = super().stage_b(candidate, params, envelope)
+        if base is None:
+            return None
+        return {
+            **base,
+            "solverMeta": {
+                "entryOutward": "S",
+                "facts": ["stair:dogleg@storey0:18x167mm", "doors:9", "windows:7", "repairs:0"],
+            },
+        }
+
+    def compliance(self, model: Mapping[str, Any], params: SolveParams) -> list[dict[str, Any]]:
+        return [
+            {"ruleId": "nbc.room.area", "status": "pass", "checkType": "room_area_min"},
+            {
+                "ruleId": "blr.coverage.plot.121-240",
+                "status": "pass",
+                "checkType": "coverage_max",
+                "actual": 41_000_000,
+                "limit": 194_400_000,
+            },
+            {
+                "ruleId": "blr.far.road.9-18m",
+                "status": "warn",
+                "checkType": "far_max",
+                "actual": 41_000_000,
+                "limit": 567_000_000,
+            },
+            {"ruleId": "blr.coverage.plot.gt500", "status": "not_applicable"},
+        ]
+
+
+def test_rationale_facts_carry_the_numbers_an_architect_reads() -> None:
+    """Every fact kind the web's template renderer verbalises, with its number."""
+    context, _ = make_context(_RichFake())
+    result = solve(context)
+    option = result.options[0]
+    facts = dict(fact.split(":", 1) for fact in option.rationale_facts)
+    assert facts["storeys"] == "1"
+    assert facts["bedrooms"] == "1" and facts["baths"] == "0"
+    # footprint / built-up are the placed areas: 16 + 9 + 16 m² of the fake's rooms.
+    assert facts["footprint"] == "41000000" and facts["builtUp"] == "41000000"
+    assert facts["plotArea"] == str(18_000 * 18_000)
+    assert facts["vastuMode"] == "advisory"
+    # The entrance side is converted to a true compass bearing (north is 0 here).
+    assert facts["mainDoor"] == "S"
+    assert facts["stair"] == "dogleg@storey0:18x167mm"
+    assert facts["doors"] == "9" and facts["windows"] == "7"
+    assert "repairs" not in facts, "stage-B bookkeeping is not an architect's fact"
+    # The rules tally counts applicable rows only; the governing coverage / FAR
+    # rows carry actual/limit in mm² so the renderer can say "21% against 60%".
+    assert facts["rules"] == "2/3" and facts["warnings"] == "1"
+    assert facts["coverage"] == "41000000/194400000"
+    assert facts["far"] == "41000000/567000000"
+    assert all(":" in fact for fact in option.rationale_facts)
+
+
+def test_options_echo_the_seed_they_were_found_under() -> None:
+    fake = FakeSolver()
+    context, _ = make_context(fake)
+    for option in solve(context).options:
+        assert option.seed == DETERMINISTIC_TEST_PROFILE.random_seed
+        assert option.to_json()["seed"] == option.seed
+    # Under the production profile the seed is the request's own …
+    context, _ = make_context(fake, profile=PRODUCTION_PROFILE)
+    assert {o.seed for o in solve(context).options} == {7}
+    # … and a fresh-seed round stamps the seed it actually searched with.
+    fake = FakeSolver()
+    stages, seeds = _seed_gated_stage_set(fake, opens_on_round=2)
+    context, _ = make_context(fake, stages=stages, seed_rounds=3, profile=PRODUCTION_PROFILE)
+    result = solve(context)
+    assert len(result.options) == 3
+    assert {o.seed for o in result.options} == {seeds[1]} and seeds[1] != 7
+
+
 def test_result_json_is_deterministic() -> None:
     first = solve(make_context(FakeSolver())[0])
     second = solve(make_context(FakeSolver())[0])

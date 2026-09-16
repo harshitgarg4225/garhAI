@@ -44,6 +44,7 @@ __all__ = [
     "StairSummary",
     "ProjectionSummary",
     "ServiceElementSummary",
+    "ParkingSpaceSummary",
     "ModelSummary",
     "ROOM_TYPE_ALIASES",
     "MODEL_FIELDS_NOT_IN_MODEL_CORE",
@@ -593,6 +594,49 @@ class ServiceElementSummary:
 
 
 @dataclass(frozen=True)
+class ParkingSpaceSummary:
+    """One car space measured off the model — a bay drawn on the ground, not a number
+    typed into the brief.
+
+    ``width_mm``/``length_mm`` are the bay's clear rectangle; ``reachable`` is the
+    model layer's finding that a car can get from a road edge to the bay without
+    crossing the building. The engine does no geometry (module docstring), so both
+    arrive pre-derived and the fixture verifier re-checks the rectangle against the
+    polygon.
+    """
+
+    id: str
+    polygon_mm: tuple[tuple[int, int], ...]
+    width_mm: int
+    length_mm: int
+    reachable: bool = True
+    storey_id: str | None = None
+
+    @classmethod
+    def from_json(cls, data: Mapping[str, Any], where: str) -> ParkingSpaceSummary:
+        return cls(
+            id=_str(data.get("id"), "%s.id" % where),
+            polygon_mm=_ring(data.get("polygonMm"), "%s.polygonMm" % where),
+            width_mm=require_int(data.get("widthMm"), "%s.widthMm" % where),
+            length_mm=require_int(data.get("lengthMm"), "%s.lengthMm" % where),
+            reachable=bool(data.get("reachable", True)),
+            storey_id=data.get("storeyId"),
+        )
+
+    def to_json(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "id": self.id,
+            "polygonMm": [list(p) for p in self.polygon_mm],
+            "widthMm": self.width_mm,
+            "lengthMm": self.length_mm,
+            "reachable": self.reachable,
+        }
+        if self.storey_id is not None:
+            out["storeyId"] = self.storey_id
+        return out
+
+
+@dataclass(frozen=True)
 class ModelSummary:
     storey_count: int
     has_stilt: bool
@@ -608,6 +652,13 @@ class ModelSummary:
     projections: tuple[ProjectionSummary, ...] = ()
     service_elements: tuple[ServiceElementSummary, ...] = ()
     height_components_mm: Mapping[str, int] = field(default_factory=dict)
+    #: The car spaces MEASURED off the model. ``None`` means the model layer did not
+    #: measure (a synthetic fixture, an older context) and ``parking_min`` falls back
+    #: to the brief's declaration; an empty tuple means it measured and found none —
+    #: which is a fail, not a fallback. The distinction is the whole point: the API
+    #: always measures, so a plan with no bay drawn fails the rule however many cars
+    #: the brief promised.
+    parking_spaces: tuple[ParkingSpaceSummary, ...] | None = None
 
     @classmethod
     def from_json(cls, data: Mapping[str, Any]) -> ModelSummary:
@@ -657,6 +708,14 @@ class ModelSummary:
                 for i, s in enumerate(data.get("serviceElements") or ())
             ),
             height_components_mm=components,
+            parking_spaces=(
+                tuple(
+                    ParkingSpaceSummary.from_json(s, "model.parkingSpaces[%d]" % i)
+                    for i, s in enumerate(data.get("parkingSpaces") or ())
+                )
+                if data.get("parkingSpaces") is not None
+                else None
+            ),
         )
 
     def to_json(self) -> dict[str, Any]:
@@ -679,6 +738,8 @@ class ModelSummary:
             out["projections"] = [p.to_json() for p in self.projections]
         if self.service_elements:
             out["serviceElements"] = [s.to_json() for s in self.service_elements]
+        if self.parking_spaces is not None:
+            out["parkingSpaces"] = [s.to_json() for s in self.parking_spaces]
         return out
 
 

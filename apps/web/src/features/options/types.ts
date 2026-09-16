@@ -136,6 +136,12 @@ export const planOptionSchema = z.object({
   compliance: z.array(optionComplianceRowSchema).default([]),
   /** Coordinated addition — room rectangles for mini-plan labels. Optional. */
   placements: z.array(placementSchema).optional(),
+  /**
+   * The CP-SAT seed this option was actually found under (the request's seed on
+   * round one, a derived seed on a fresh-seed round). Echoed on the card so the
+   * search that produced a plan can be repeated; 0 from a worker that predates it.
+   */
+  seed: z.number().int().catch(0).default(0),
 });
 export type PlanOption = z.infer<typeof planOptionSchema>;
 

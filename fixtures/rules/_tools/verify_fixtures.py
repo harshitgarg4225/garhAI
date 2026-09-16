@@ -403,13 +403,31 @@ for rel in sorted(on_disk):
         if pr["storeyId"] not in storey_ids:
             fail(where, "projection %s references unknown storey %r" % (pr["id"], pr["storeyId"]))
 
+    # A measured car space must be the rectangle it claims: widthMm/lengthMm are the
+    # polygon's bbox sides, so a fixture cannot say "2500 x 5000" over a smaller bay.
+    bay_ids = set()
+    for bay in ctx["model"].get("parkingSpaces", []) or []:
+        bw = "%s :: parkingSpace %s" % (where, bay["id"])
+        if bay["id"] in bay_ids:
+            fail(bw, "duplicate parking space id")
+        bay_ids.add(bay["id"])
+        if bay.get("storeyId") is not None and bay["storeyId"] not in storey_ids:
+            fail(bw, "storeyId %r is not in storeys[]" % bay["storeyId"])
+        xs = [pt[0] for pt in bay["polygonMm"]]
+        ys = [pt[1] for pt in bay["polygonMm"]]
+        sides = sorted((max(xs) - min(xs), max(ys) - min(ys)))
+        claimed = sorted((bay["widthMm"], bay["lengthMm"]))
+        if sides != claimed:
+            fail(bw, "widthMm/lengthMm %r disagree with the polygon bbox %r" % (claimed, sides))
+
     for eid in exp.get("elements", []):
         if eid.startswith("plot.edge."):
             continue
         known = room_ids | {o["id"] for o in ctx["model"]["openings"]} \
             | {s["id"] for s in ctx["model"]["stairs"]} \
             | {p2["id"] for p2 in ctx["model"].get("projections", [])} \
-            | {s["id"] for s in ctx["model"].get("serviceElements", [])}
+            | {s["id"] for s in ctx["model"].get("serviceElements", [])} \
+            | bay_ids
         if eid not in known:
             fail(where, "expected.elements names unknown element %r" % eid)
 

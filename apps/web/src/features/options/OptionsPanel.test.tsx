@@ -1,0 +1,339 @@
+/**
+ * The options panel's two terminal states, rendered for real (createRoot into
+ * jsdom — the pattern `features/layers/LayerPanel.test.tsx` set) with the API
+ * transport stubbed at `lib/api` and the solver job row seeded into the jobs store.
+ *
+ * Why these two states and nothing else first: the reader's blocking gap for J04
+ * was that `pipeline.finalise` writes the stage-A shortfall sentence into
+ * `result.banner`, the API row carries it, and the panel rendered `banner` only
+ * beside option cards — so a solve that delivered NOTHING, the one state in which
+ * the sentence is all there is to read, showed a generic verdict instead. The
+ * first test pins the diagnosis on the empty screen; the second pins that the
+ * banner still rides with the cards when there are some.
+ *
+ * NEGATIVE CONTROLS (each applied, the suite run, the failure seen, reverted):
+ *   A. render the generic copy regardless of `banner` in NoPlanCleared
+ *        → "shows the worker's diagnosis…" fails on the diagnosis text
+ *   B. drop <ReadyMadePlanLink /> from NoPlanCleared
+ *        → the same test fails on the ready-made href
+ *   C. gate the banner paragraph on options.length > 1
+ *        → "keeps the banner beside the cards" fails
+ */
+
+import { act, type ReactElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { ToastProvider } from '@garh/ui';
+
+import { api } from '../../lib/api';
+import { useJobsStore, type JobDTO } from '../../stores/jobs';
+import { READY_MADE_PLAN_HREF } from './readyMadePlan';
+
+vi.mock('../../lib/api', () => ({
+  api: {
+    http: { request: vi.fn() },
+    solver: { start: vi.fn(), get: vi.fn(), cancel: vi.fn() },
+  },
+}));
+vi.mock('../../lib/sse', () => ({ subscribeJobEvents: () => () => undefined }));
+vi.mock('react-router-dom', () => ({
+  Link: ({ to, children, ...rest }: { to: string; children: React.ReactNode }) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
+import { OptionsPanel } from './OptionsPanel';
+
+declare global {
+  // eslint-disable-next-line no-var
+  var IS_REACT_ACT_ENVIRONMENT: boolean;
+}
+
+const PROJECT_ID = '22222222-2222-4222-8222-222222222222';
+const JOB_ID = 'job-solver-1';
+
+const SHORTFALL =
+  "The rooms on this floor need about 28.0 m² once circulation is allowed for, and the buildable area after setbacks is 21.1 m² — about 6.9 m² short. Add a floor, move a room upstairs, or reduce a room's minimum size.";
+
+function job(status: JobDTO['status']): JobDTO {
+  return {
+    id: JOB_ID,
+    kind: 'solver',
+    status,
+    progress: 100,
+    createdAt: '2026-09-09T10:00:00Z',
+  };
+}
+
+function option(id: string, rank: number): Record<string, unknown> {
+  return {
+    id,
+    rank,
+    scores: { composite: 70 + rank, circulationPercent: 14 },
+    ops: [],
+    signature: ['kitchen@SE', 'stair:se-1'],
+    stairAnchorId: 'se-1',
+    builtUpMm2: 120_000_000,
+    footprintMm2: 60_000_000,
+    rationaleFacts: [
+      `composite:${70 + rank}`,
+      'zone:kitchen@SE',
+      'stairAnchor:se-1',
+      'coverage:41000000/66890188',
+      'plotArea:111483648',
+    ],
+    assumptions: [],
+    compliance: [
+      {
+        ruleId: 'vastu.kitchen.zone',
+        packId: 'vastu',
+        status: 'pass',
+        actual: ['SE'],
+        limit: { allow: ['SE'] },
+      },
+    ],
+    seed: 4242,
+  };
+}
+
+/** Make `api.http.request` answer the solver-job row exactly as the API would. */
+function serveRow(row: Record<string, unknown>): void {
+  vi.spyOn(api.http, 'request').mockImplementation((input: unknown) => {
+    const { parse } = input as { parse: (data: unknown) => unknown };
+    return Promise.resolve(parse(row)) as Promise<never>;
+  });
+}
+
+let container: HTMLDivElement;
+let root: Root;
+
+async function mount(element: ReactElement): Promise<void> {
+  act(() => {
+    root.render(element);
+  });
+  // The outcome fetch resolves on a microtask; flush it inside act.
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
+beforeEach(() => {
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  useJobsStore.setState({ byProject: {}, error: null });
+});
+
+afterEach(() => {
+  act(() => root.unmount());
+  container.remove();
+  vi.restoreAllMocks();
+});
+
+/** Type into a React-controlled input the way a person would. */
+function typeInto(input: HTMLInputElement, value: string): void {
+  act(() => {
+    // Through the prototype setter so React's value tracker sees the change.
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+}
+
+function button(scope: ParentNode, label: RegExp): HTMLButtonElement | undefined {
+  return [...scope.querySelectorAll('button')].find((b) => label.test(b.textContent ?? ''));
+}
+
+function panel(): ReactElement {
+  return (
+    <ToastProvider>
+      <OptionsPanel projectId={PROJECT_ID} briefReady />
+    </ToastProvider>
+  );
+}
+
+describe('OptionsPanel after a solve that delivered nothing', () => {
+  it("shows the worker's diagnosis, the gate count and the ready-made fallback", async () => {
+    useJobsStore.setState({ byProject: { [PROJECT_ID]: [job('succeeded')] } });
+    serveRow({
+      id: JOB_ID,
+      status: 'succeeded',
+      options: [],
+      banner: SHORTFALL,
+      params: { seed: 7 },
+      result: { options: [], considered: 4, rejectedByGates: 4 },
+    });
+
+    await mount(panel());
+
+    const text = container.textContent ?? '';
+    expect(text).toContain('No plan cleared the quality checks');
+    // The stage-A sentence, verbatim — not the generic verdict.
+    const diagnosis = container.querySelector('[data-testid="no-plan-diagnosis"]');
+    expect(diagnosis?.textContent).toBe(SHORTFALL);
+    expect(text).not.toContain('The plot, setbacks and brief left no workable layout');
+    expect(text).toContain('4 layouts were tried and 4 were discarded by the checks');
+    // The way out: the ready-made plan, deep-linked to the dashboard dialog.
+    const link = [...container.querySelectorAll('a')].find((a) =>
+      /ready-made plan/i.test(a.textContent ?? ''),
+    );
+    expect(link?.getAttribute('href')).toBe(READY_MADE_PLAN_HREF);
+    // And a retry that changes something: a fresh seed, not the same search again.
+    const retry = [...container.querySelectorAll('button')].find((b) =>
+      /another seed/i.test(b.textContent ?? ''),
+    );
+    expect(retry).toBeDefined();
+    // No option cards on this screen.
+    expect(container.querySelectorAll('article').length).toBe(0);
+  });
+
+  it('falls back to the generic reason only when the row carries no banner', async () => {
+    useJobsStore.setState({ byProject: { [PROJECT_ID]: [job('succeeded')] } });
+    serveRow({
+      id: JOB_ID,
+      status: 'succeeded',
+      options: [],
+      banner: null,
+      params: {},
+      result: { options: [], considered: 0, rejectedByGates: 0 },
+    });
+
+    await mount(panel());
+
+    const diagnosis = container.querySelector('[data-testid="no-plan-diagnosis"]');
+    expect(diagnosis?.textContent).toContain(
+      'The plot, setbacks and brief left no workable layout',
+    );
+    expect(container.textContent).not.toContain('discarded by the checks');
+  });
+});
+
+describe('OptionsPanel with options', () => {
+  it('keeps the banner beside the cards and never shows the empty verdict', async () => {
+    useJobsStore.setState({ byProject: { [PROJECT_ID]: [job('succeeded')] } });
+    serveRow({
+      id: JOB_ID,
+      status: 'succeeded',
+      options: [option('plan_a', 0), option('plan_b', 1)],
+      banner: '2 strong options found for this plot.',
+      params: { seed: 7 },
+    });
+
+    await mount(panel());
+
+    const text = container.textContent ?? '';
+    expect(container.querySelectorAll('article').length).toBe(2);
+    const status = [...container.querySelectorAll('[role="status"]')].map(
+      (el) => el.textContent ?? '',
+    );
+    expect(status.some((s) => s.includes('2 strong options found for this plot.'))).toBe(true);
+    expect(text).not.toContain('No plan cleared the quality checks');
+    expect(container.querySelector('[data-testid="no-plan-diagnosis"]')).toBeNull();
+  });
+
+  it('reads "Why this plan" as prose, keeps the chips behind Details, and echoes the seed', async () => {
+    useJobsStore.setState({ byProject: { [PROJECT_ID]: [job('succeeded')] } });
+    serveRow({
+      id: JOB_ID,
+      status: 'succeeded',
+      options: [option('plan_a', 0)],
+      params: { seed: 4242 },
+    });
+
+    await mount(panel());
+
+    const card = container.querySelector('article');
+    expect(card).not.toBeNull();
+    // The seed is on the card before anything is expanded.
+    expect(card?.textContent).toContain('seed 4242');
+
+    const why = [...(card?.querySelectorAll('button') ?? [])].find((b) =>
+      /why this plan/i.test(b.textContent ?? ''),
+    );
+    expect(why).toBeDefined();
+    act(() => why?.click());
+
+    const prose = [...(card?.querySelectorAll('ul[aria-label="Why this plan"] li') ?? [])].map(
+      (li) => li.textContent ?? '',
+    );
+    expect(prose).toContain('Kitchen in the south-east, as Vastu asks.');
+    expect(prose).toContain('Ground coverage 37% of the plot, against the 60% the pack allows.');
+    // The raw chips are not in the prose list …
+    expect(prose.join(' ')).not.toContain('zone:kitchen@SE');
+    expect(card?.querySelector('ul[aria-label="Solver facts"]')).toBeNull();
+    // … and appear, seed first, once Details is opened.
+    const details = [...(card?.querySelectorAll('button') ?? [])].find(
+      (b) => (b.textContent ?? '').trim() === 'Details',
+    );
+    expect(details).toBeDefined();
+    act(() => details?.click());
+    const chips = [...(card?.querySelectorAll('ul[aria-label="Solver facts"] li') ?? [])].map(
+      (li) => li.textContent ?? '',
+    );
+    expect(chips[0]).toBe('seed 4242');
+    expect(chips).toContain('zone:kitchen@SE');
+    expect(chips).toContain('stairAnchor:se-1');
+  });
+
+  it('offers the seed as a control: rerun exactly, or draw another', async () => {
+    useJobsStore.setState({ byProject: { [PROJECT_ID]: [job('succeeded')] } });
+    serveRow({
+      id: JOB_ID,
+      status: 'succeeded',
+      options: [option('plan_a', 0)],
+      params: { seed: 4242 },
+    });
+    const start = vi.spyOn(api.solver, 'start').mockResolvedValue({
+      id: 'job-solver-2',
+      kind: 'solver',
+      status: 'queued',
+      progress: 0,
+      createdAt: '2026-09-09T10:05:00Z',
+    } as never);
+
+    await mount(panel());
+
+    const seedInput = (): HTMLInputElement => {
+      const found = container.querySelector<HTMLInputElement>('input[aria-label="Seed"]');
+      expect(found).not.toBeNull();
+      return found as HTMLInputElement;
+    };
+    // Prefilled with the seed the shown options ran under.
+    expect(seedInput().value).toBe('4242');
+
+    // Nonsense is refused before it reaches the API.
+    typeInto(seedInput(), 'lucky');
+    expect(seedInput().getAttribute('aria-invalid')).toBe('true');
+    expect(button(container, /run this seed/i)?.disabled).toBe(true);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('whole number');
+    expect(start).not.toHaveBeenCalled();
+
+    // A typed seed is sent exactly. Starting a solve makes the new job the panel's
+    // current one, so the options grid gives way to the theater — as it should.
+    typeInto(seedInput(), '99');
+    act(() => button(container, /run this seed/i)?.click());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(start.mock.calls[0]?.[0]).toEqual({ projectId: PROJECT_ID, params: { seed: 99 } });
+    expect(container.querySelector('input[aria-label="Seed"]')).toBeNull();
+
+    // Back on the finished job, "Try another seed" draws a fresh integer.
+    await act(async () => {
+      useJobsStore.setState({ byProject: { [PROJECT_ID]: [job('succeeded')] } });
+      await Promise.resolve();
+    });
+    act(() => button(container, /try another seed/i)?.click());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(start).toHaveBeenCalledTimes(2);
+    const second = start.mock.calls[1]?.[0] as unknown as { params: { seed: unknown } };
+    expect(Number.isInteger(second.params.seed)).toBe(true);
+    expect(second.params.seed).not.toBe(99);
+  });
+});
