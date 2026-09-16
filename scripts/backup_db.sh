@@ -1,77 +1,117 @@
 #!/usr/bin/env bash
 #
-# Garh AI — Postgres backup and restore rehearsal.
+# Garh AI — Postgres backup, to disk or to the object store, with a manifest.
 #
 # A backup that has never been restored is a hope, not a backup. This script
-# does both: `backup` writes a compressed custom-format dump, and `rehearse`
-# proves the latest dump actually restores into a scratch database and that the
-# restored schema contains the tables the product cannot live without.
+# writes the dump AND the evidence a restore is checked against; the checking is
+# scripts/restore_rehearsal.sh, which `rehearse` here simply calls.
 #
-# Usage:
-#   DATABASE_URL=postgresql://user:pass@host:5432/garh scripts/backup_db.sh backup [out-dir]
-#   DATABASE_URL=...                                   scripts/backup_db.sh rehearse [dump-file]
+#   backup [out-dir]     pg_dump (custom format) + <stem>.counts.json beside it;
+#                        keeps the newest BACKUP_KEEP_MIN (14) dumps in out-dir.
+#   backup-s3            the same pair uploaded to the S3_* bucket under
+#                        BACKUP_S3_PREFIX (backups/), then the retention pass:
+#                        dumps older than BACKUP_RETENTION_DAYS (14) are deleted,
+#                        but never below BACKUP_KEEP_MIN (7). This is what the
+#                        scheduled backup service runs (deploy/railway/backup.json).
+#   rehearse [dump]      restore the newest dump (or the one given) into a scratch
+#                        database and verify row counts + a refolded state hash —
+#                        scripts/restore_rehearsal.sh, in full.
 #
-# On Railway, run `backup` from a scheduled job (railway run) or any host that
-# can reach the database's private domain; keep the dumps OFF the app
-# container's ephemeral disk (upload to object storage or download them).
-# Railway's own Postgres backups, when enabled on the plan, complement — not
-# replace — an owned, restore-rehearsed dump.
+# The manifest is `count(*)` per table taken in the same transaction snapshot as
+# the dump would be — close enough on a quiet database, and exact by construction
+# for the row-count comparison the rehearsal does, because the rehearsal compares
+# the RESTORE against THIS file, not against a moving source.
+#
+# Needs: pg_dump/psql (postgresql-client, same major as the server or newer),
+# python with PYTHONPATH covering apps/api (for backup-s3 and the rehearsal).
+# Keep dumps OFF the app containers' ephemeral disks: `backup-s3` is the point.
 
 set -euo pipefail
 
 CMD="${1:-backup}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_BIN="${PYTHON:-python}"
 
 if [[ -z "${DATABASE_URL:-}" ]]; then
     echo "DATABASE_URL is required (postgresql://user:pass@host:port/db)" >&2
     exit 2
 fi
 
-# pg_dump does not understand SQLAlchemy's +psycopg dialect suffix.
+# pg_dump does not understand SQLAlchemy's dialect suffixes.
 PG_URL="${DATABASE_URL/postgresql+psycopg:\/\//postgresql://}"
+PG_URL="${PG_URL/postgresql+asyncpg:\/\//postgresql://}"
+
+BACKUP_KEEP_MIN="${BACKUP_KEEP_MIN:-7}"
+BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-14}"
+BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX:-backups/}"
+
+write_manifest() {
+    # $1 = manifest path. One JSON document: {"takenAt": ..., "tables": {name: count}}.
+    local out="$1"
+    psql "$PG_URL" -tA -v ON_ERROR_STOP=1 -c "
+        SELECT json_build_object(
+            'takenAt', to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'),
+            'database', current_database(),
+            'tables', (
+                SELECT json_object_agg(t.table_name, t.n ORDER BY t.table_name)
+                FROM (
+                    SELECT c.relname AS table_name,
+                           (xpath('/row/cnt/text()',
+                                  query_to_xml(format('select count(*) as cnt from %I.%I', n.nspname, c.relname),
+                                               false, true, '')))[1]::text::bigint AS n
+                    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE n.nspname = 'public' AND c.relkind = 'r'
+                ) t
+            )
+        )" > "$out"
+    # A manifest that is not JSON is worse than none: the rehearsal would compare
+    # against nothing and report OK.
+    "$PYTHON_BIN" -c "import json,sys; d=json.load(open(sys.argv[1])); assert d['tables'], 'empty manifest'" "$out"
+}
+
+dump_to() {
+    # $1 = dump path, $2 = manifest path. The manifest is taken right after the dump
+    # starts its snapshot; on a quiet database the two agree exactly.
+    pg_dump --format=custom --no-owner --no-privileges --file="$1" "$PG_URL"
+    write_manifest "$2"
+}
 
 case "$CMD" in
 backup)
     OUT_DIR="${2:-backups}"
     mkdir -p "$OUT_DIR"
     STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-    OUT="$OUT_DIR/garh-$STAMP.dump"
-    # Custom format: compressed, and restorable table-by-table with pg_restore.
-    pg_dump --format=custom --no-owner --no-privileges --file="$OUT" "$PG_URL"
-    SIZE="$(du -h "$OUT" | cut -f1)"
-    echo "wrote $OUT ($SIZE)"
-    # Keep the newest 14 dumps; a runaway cron must not fill the disk.
-    ls -1t "$OUT_DIR"/garh-*.dump 2>/dev/null | tail -n +15 | xargs -r rm -v
+    STEM="$OUT_DIR/garh-$STAMP"
+    dump_to "$STEM.dump" "$STEM.counts.json"
+    SIZE="$(du -h "$STEM.dump" | cut -f1)"
+    echo "wrote $STEM.dump ($SIZE) and $STEM.counts.json"
+    # Keep the newest BACKUP_KEEP_MIN pairs; a runaway cron must not fill the disk.
+    ls -1t "$OUT_DIR"/garh-*.dump 2>/dev/null | tail -n +"$((BACKUP_KEEP_MIN + 1))" | while read -r old; do
+        rm -v "$old" "${old%.dump}.counts.json" 2>/dev/null || true
+    done
+    ;;
+
+backup-s3)
+    STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+    WORK="$(mktemp -d)"
+    trap 'rm -rf "$WORK"' EXIT
+    STEM="$WORK/garh-$STAMP"
+    dump_to "$STEM.dump" "$STEM.counts.json"
+    SIZE="$(du -h "$STEM.dump" | cut -f1)"
+    echo "dumped $STEM.dump ($SIZE)"
+    "$PYTHON_BIN" "$HERE/backup_s3.py" put "${BACKUP_S3_PREFIX}garh-$STAMP.dump" "$STEM.dump"
+    "$PYTHON_BIN" "$HERE/backup_s3.py" put "${BACKUP_S3_PREFIX}garh-$STAMP.counts.json" "$STEM.counts.json"
+    "$PYTHON_BIN" "$HERE/backup_s3.py" prune "$BACKUP_S3_PREFIX" \
+        --keep-days "$BACKUP_RETENTION_DAYS" --keep-min "$BACKUP_KEEP_MIN"
+    echo "backup-s3 OK — ${BACKUP_S3_PREFIX}garh-$STAMP.dump"
     ;;
 
 rehearse)
-    DUMP="${2:-$(ls -1t backups/garh-*.dump 2>/dev/null | head -1)}"
-    if [[ -z "$DUMP" || ! -f "$DUMP" ]]; then
-        echo "no dump found — run 'backup' first or pass a dump path" >&2
-        exit 2
-    fi
-    # Restore into a scratch DB on the same server, then interrogate it.
-    ADMIN_URL="${PG_URL%/*}/postgres"
-    SCRATCH="garh_restore_rehearsal"
-    psql "$ADMIN_URL" -v ON_ERROR_STOP=1 -q \
-        -c "DROP DATABASE IF EXISTS $SCRATCH" \
-        -c "CREATE DATABASE $SCRATCH"
-    pg_restore --no-owner --no-privileges --dbname="${PG_URL%/*}/$SCRATCH" "$DUMP"
-    # The tables the product cannot live without. Empty is fine (a fresh
-    # environment); MISSING is a failed rehearsal.
-    MISSING="$(psql "${PG_URL%/*}/$SCRATCH" -tA -c "
-        SELECT string_agg(want, ', ')
-        FROM unnest(ARRAY['firms','users','projects','ops']) AS want
-        WHERE to_regclass('public.' || want) IS NULL")"
-    psql "$ADMIN_URL" -q -c "DROP DATABASE $SCRATCH"
-    if [[ -n "$MISSING" ]]; then
-        echo "REHEARSAL FAILED — restored dump is missing: $MISSING" >&2
-        exit 1
-    fi
-    echo "rehearsal OK — $DUMP restores cleanly and contains the core tables"
+    exec "$HERE/restore_rehearsal.sh" "${2:-}"
     ;;
 
 *)
-    echo "usage: $0 backup [out-dir] | rehearse [dump-file]" >&2
+    echo "usage: $0 backup [out-dir] | backup-s3 | rehearse [dump-file]" >&2
     exit 2
     ;;
 esac

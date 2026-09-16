@@ -25,20 +25,92 @@ take.
 
 ## Backups
 
-A backup that has never been restored is a hope, not a backup.
+A backup that has never been restored is a hope, not a backup. Three commands, one
+image, and a rehearsal that checks the data rather than the schema:
 
 ```bash
-# nightly (scheduled job or any host that reaches the DB):
-DATABASE_URL=$DATABASE_URL scripts/backup_db.sh backup /backups
+# nightly — the scheduled backup service (deploy/railway/backup.json, image
+# deploy/backup/Dockerfile) runs exactly this against the S3_* bucket:
+scripts/backup_db.sh backup-s3          # pg_dump + <stem>.counts.json → backups/, then retention
+
+# to disk instead (a laptop, a one-off before a risky migration):
+DATABASE_URL=$DATABASE_URL scripts/backup_db.sh backup [out-dir]
 
 # after every schema migration, and monthly regardless:
-DATABASE_URL=$DATABASE_URL scripts/backup_db.sh rehearse
+scripts/restore_rehearsal.sh --from-s3  # newest dump in the bucket → scratch db → verify → drop
+scripts/restore_rehearsal.sh path/to/garh-<stamp>.dump
 ```
 
-`rehearse` restores the newest dump into a scratch database and fails unless
-the core tables (`firms`, `users`, `projects`, `ops`) came back. Keep dumps off
-the app containers' ephemeral disks. Railway's managed Postgres backups (plan
-permitting) complement this; they do not replace an owned, rehearsed dump.
+What `backup-s3` writes: the custom-format dump and, beside it, a **manifest** of
+`count(*)` per table taken at dump time. Retention is two-sided on purpose:
+dumps older than `BACKUP_RETENTION_DAYS` (14) are deleted, but never below
+`BACKUP_KEEP_MIN` (7) dumps however old — a cron that was down for a month must not
+wipe every backup on its first run back. `scripts/backup_s3.py` is the S3 half (put,
+get, list, newest, prune) and signs with the API's own `garh_api.storage`, so the
+backup image needs no AWS CLI and no extra credentials beyond `S3_*`.
+
+What the rehearsal proves, and fails on (`scripts/verify_restore.py`):
+
+1. **every table's row count** in the restored database equals the manifest — a
+   missing table or a count off by one is a FAIL, not a warning;
+2. **the newest snapshot-bearing design of up to three projects refolds to the hash
+   production recorded**: the ops up to the snapshot's `atIdx` are folded from an
+   empty document through the real model engine and the state hash must equal the
+   `stateHash` the API wrote into the envelope, and the envelope's sha256 must equal
+   `design_versions.snapshot_hash`. A restore that lost or reordered one op fails
+   here (`test_backup.py` alters one op and proves it).
+
+The image is `deploy/backup/Dockerfile`: PGDG's `postgresql-client-17` (bookworm's
+`pg_dump` 15 refuses a 16/17 server — `PG_MAJOR` is the one knob), the api's Python
+deps, the four scripts, non-root. It has not been built on Railway yet: creating the
+service is an owner action (go-live checklist below). Railway's managed Postgres
+backups, plan permitting, complement this; they do not replace an owned, rehearsed
+dump.
+
+**Executed 2026-09-16 (this checkout, local Postgres 16 + the moto object store,
+source = the shared `garh` database, scratch = `garh_test_l_restore`):**
+
+```text
+=== scripts/backup_db.sh backup-s3   (2026-09-16T11:51:33Z)
+dumped /tmp/tmp.RVEsEcssff/garh-20260916T115133Z.dump (716K)
+{"put": "backups/garh-20260916T115133Z.dump", "bytes": 732586, "bucket": "garh-test-l"}
+{"put": "backups/garh-20260916T115133Z.counts.json", "bytes": 654, "bucket": "garh-test-l"}
+{"prefix": "backups/", "kept": ["backups/garh-20260916T115133Z.dump"], "deleted": [], "dryRun": false, "keepDays": 14, "keepMin": 7}
+backup-s3 OK — backups/garh-20260916T115133Z.dump
+=== scripts/restore_rehearsal.sh --from-s3
+rehearsal: dump /tmp/tmp.4whqEAY2BW/garh-20260916T115133Z.dump
+rehearsal: manifest /tmp/tmp.4whqEAY2BW/garh-20260916T115133Z.counts.json
+rehearsal: created garh_test_l_restore
+rehearsal: pg_restore OK
+restore verification — garh_test_l_restore (row counts vs manifest)
+  ok   alembic_version          expected      1  restored      1
+  ok   audit_log                expected    247  restored    247
+  ok   briefs                   expected     25  restored     25
+  ok   compliance_reports       expected      8  restored      8
+  ok   credit_events            expected     25  restored     25
+  ok   design_versions          expected      8  restored      8
+  ok   firms                    expected     16  restored     16
+  ok   flags                    expected      6  restored      6
+  ok   ops                      expected   1795  restored   1795
+  ok   otp_codes                expected     39  restored     39
+  ok   plots                    expected     25  restored     25
+  ok   projects                 expected     25  restored     25
+  ok   share_links              expected      9  restored      9
+  ok   sheets                   expected     70  restored     70
+  ok   solver_jobs              expected     19  restored     19
+  ok   users                    expected     16  restored     16
+  (13 more tables, all 0 expected / 0 restored)
+  ok   project 13ecd061-35dd-4a6d-9158-a362dc41be4c: 70 ops → c3f7f3d41a3b621e (recorded c3f7f3d41a3b621e, envelope ok)
+  ok   project 212361dc-68f5-4bb5-a425-d7abed6e8ed3: 70 ops → c3f7f3d41a3b621e (recorded c3f7f3d41a3b621e, envelope ok)
+  ok   project 21c58077-fd15-4d6b-b3ba-b5d96ee81c29: 70 ops → c3f7f3d41a3b621e (recorded c3f7f3d41a3b621e, envelope ok)
+  RESULT OK
+rehearsal OK — … restores completely and its newest design refolds to the recorded hash
+exit=0
+```
+
+The same loop on the deployed stack needs the backup service created and one
+`railway run scripts/restore_rehearsal.sh --from-s3` from it; until then the ledger
+line for production reads UNVERIFIED.
 
 ## Load smoke
 
