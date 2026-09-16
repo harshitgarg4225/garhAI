@@ -272,7 +272,7 @@ services:
         JWT_PUBLIC_KEY="$$(awk 'BEGIN{ORS="\\n"}1' /run/secrets/jwt-public.pem)";
         export JWT_PRIVATE_KEY JWT_PUBLIC_KEY;
         fi;
-        if [ "$${API_MIGRATE_ON_BOOT}" = "true" ]; then echo "[api] alembic upgrade head"; alembic upgrade head; fi;
+        if [ "$${API_MIGRATE_ON_BOOT}" = "true" ]; then echo "[api] python -m garh_api.migrate --seed"; python -m garh_api.migrate --seed; fi;
         exec uvicorn garh_api.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/apps/api --reload-dir /app/packages/model
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]

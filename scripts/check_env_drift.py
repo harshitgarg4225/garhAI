@@ -84,6 +84,10 @@ INFRASTRUCTURE: Dict[str, str] = {
     "WORKER_NAME": "set per worker service in docker-compose.yml, not in .env",
     "WORKER_QUEUE": "set per worker service in docker-compose.yml, not in .env",
     "WORKER_CONCURRENCY": "set per worker service from WORKER_<ROLE>_CONCURRENCY",
+    "BACKUP_S3_PREFIX": "scripts/backup_db.sh + backup_s3.py (the scheduled backup service)",
+    "BACKUP_RETENTION_DAYS": "scripts/backup_db.sh retention pass",
+    "BACKUP_KEEP_MIN": "scripts/backup_db.sh retention floor",
+    "RESTORE_SCRATCH_DB": "scripts/restore_rehearsal.sh scratch database name",
 }
 
 #: Fields declared with AliasChoices: documenting ANY member documents the field.

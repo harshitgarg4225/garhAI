@@ -241,6 +241,17 @@ JOB_EVENTS_MAXLEN = 10_000
 # ---------------------------------------------------------------------------
 
 
+#: Mirrors ``services.common.heartbeat.WORKER_HEARTBEAT_PREFIX``. Each worker process
+#: writes ``garh:worker:<worker>:<instance>`` (a JSON document with an expiry) on every
+#: sweep; ``garh_api.platform_status`` SCANs the prefix. Read-only on this side.
+WORKER_HEARTBEAT_PREFIX = "garh:worker:"
+
+
+def worker_heartbeat_pattern() -> str:
+    """The SCAN pattern for every live worker heartbeat."""
+    return "%s*" % WORKER_HEARTBEAT_PREFIX
+
+
 def worker_for_kind(kind: str) -> str:
     """Which worker owns a job kind (``solver`` / ``render`` / ``drawings``)."""
     for worker, kinds in JOB_KINDS_BY_WORKER.items():

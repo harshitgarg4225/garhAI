@@ -14,6 +14,7 @@ from logging.config import fileConfig
 from alembic import context
 from garh_api.config import get_settings
 from garh_api.db import build_sync_url, get_sync_engine
+from garh_api.migrate import acquire_migration_lock
 from garh_api.models import Base
 from sqlalchemy import pool
 
@@ -51,9 +52,17 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Normal mode: connect and run inside one transaction."""
+    """Normal mode: connect, take the migration lock, run inside one transaction.
+
+    The advisory lock (``garh_api.migrate.MIGRATION_LOCK_KEY``) is what makes
+    ``alembic upgrade head`` safe to run from N replicas at once: the second waits
+    on the first, then finds nothing to apply. Session-level, so a killed process
+    releases it with its connection. Taken HERE rather than in a wrapper so a bare
+    ``alembic upgrade head`` from a shell is guarded too.
+    """
     engine = get_sync_engine(get_settings(), pooled=False)
     with engine.connect() as connection:
+        acquire_migration_lock(connection)
         context.configure(
             connection=connection,
             target_metadata=target_metadata,

@@ -59,6 +59,21 @@ STATUS_DOWN = "down"
 PROBE_TIMEOUT_SECONDS = 2.0
 
 
+class HealthObservability(BaseModel):
+    """What this process is reporting errors to. Unauthenticated, so names only.
+
+    ``sentry`` is here because "off" is the state a deployment drifts into silently
+    — the DSN is a config flip, and nothing else in the product complains when it
+    has not been flipped. A probe that every monitor already polls is the one place
+    it cannot hide.
+    """
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, frozen=True)
+
+    sentry: str = Field(description="`on` when SENTRY_DSN is set, else `off`.")
+    log_format: str = Field(description="`json` (structlog) or `console`.")
+
+
 class HealthResponse(BaseModel):
     """``GET /healthz`` — process liveness."""
 
@@ -68,6 +83,7 @@ class HealthResponse(BaseModel):
     service: str
     env: str
     version: str
+    observability: HealthObservability
 
 
 class DependencyCheck(BaseModel):
@@ -123,6 +139,10 @@ async def healthz() -> HealthResponse:
         service=settings.app_name,
         env=settings.env,
         version=__version__,
+        observability=HealthObservability(
+            sentry="on" if settings.sentry_enabled else "off",
+            log_format=settings.log_format,
+        ),
     )
 
 
@@ -170,6 +190,7 @@ __all__ = [
     "STATUS_DOWN",
     "STATUS_OK",
     "DependencyCheck",
+    "HealthObservability",
     "HealthResponse",
     "ReadinessResponse",
     "router",

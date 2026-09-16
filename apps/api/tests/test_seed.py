@@ -197,6 +197,50 @@ async def test_seeding_twice_changes_nothing(session: Any) -> None:
     assert counts_after == counts_before, "a re-seed changed the row counts"
 
 
+async def test_boot_mode_writes_nothing_at_all_once_the_firm_exists(session: Any) -> None:
+    """``skip_if_seeded`` (``python -m garh_api.migrate --seed``): one lookup, no write.
+
+    Stricter than ``test_seeding_twice_changes_nothing``, which counts seven tables:
+    the ordinary re-run still merges firm settings and records a ``seed.completed``
+    audit row every time, and a step that runs on every replica boot must not. Every
+    table is counted here, and the ordinary run is the negative control that proves
+    the flag is what makes the difference.
+    """
+    from garh_api.models import ALL_TABLES
+    from garh_api.seed.runner import SEED_STEPS
+    from sqlalchemy import text
+
+    async def counts() -> dict[str, int]:
+        out: dict[str, int] = {}
+        for table in ALL_TABLES:
+            result = await session.execute(text('SELECT count(*) FROM "%s"' % table))
+            out[table] = int(result.scalar() or 0)
+        return out
+
+    first = await seed(session, SeedOptions())
+    await session.commit()
+    before = await counts()
+
+    skipped = await seed(session, SeedOptions(skip_if_seeded=True))
+    await session.commit()
+    assert skipped.skipped_reason is not None and "exists" in skipped.skipped_reason
+    assert skipped.firm_id == first.firm_id and skipped.user_id == first.user_id
+    assert set(skipped.steps) == set(SEED_STEPS)
+    assert all(state == SKIPPED for state in skipped.steps.values()), skipped.steps
+    assert await counts() == before, "boot mode wrote a row"
+
+    # Negative control: the ordinary run DOES write (the audit row), so the count
+    # comparison above can fail and the flag is load-bearing.
+    plain = await seed(session, SeedOptions())
+    await session.commit()
+    assert plain.skipped_reason is None
+    after_plain = await counts()
+    assert after_plain["audit_log"] == before["audit_log"] + 1
+    assert {k: v for k, v in after_plain.items() if k != "audit_log"} == {
+        k: v for k, v in before.items() if k != "audit_log"
+    }
+
+
 async def test_seeding_three_times_is_still_stable(session: Any) -> None:
     """Once is luck, twice is a pattern, three times is idempotent."""
     hashes = []

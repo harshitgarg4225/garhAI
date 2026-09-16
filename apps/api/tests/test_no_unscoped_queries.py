@@ -91,6 +91,11 @@ NON_TENANT_REPOSITORIES: dict[str, str] = {
         "deployment-wide owner settings (the platform fee) — no firm_id exists; written only "
         "through the platform-owner endpoint, see repositories/platform_settings.py"
     ),
+    "OpsStatusRepository": (
+        "aggregate job counts and percentiles across every firm for the owner's ops page — "
+        "read-only, returns no row, id or string a tenant wrote; served only through the "
+        "platform-owner endpoint, see repositories/ops_status.py"
+    ),
 }
 
 
@@ -240,6 +245,9 @@ def test_routers_do_not_import_the_non_tenant_repositories() -> None:
         # §18: "feature flags table read at boot". `flags` is global by design
         # (NON_TENANT_TABLES) and the lifespan hook has no tenant to scope to.
         "garh_api/main.py",
+        # The owner's ops page: aggregate job counts over every firm, served behind
+        # the platform-owner allowlist (see repositories/ops_status.py).
+        "garh_api/platform_status.py",
     }
     offenders: list[str] = []
     for relative, tree, _source in _parsed(PACKAGE_ROOT):

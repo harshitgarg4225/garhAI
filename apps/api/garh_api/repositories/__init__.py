@@ -30,6 +30,7 @@ see its module docstring for why it is safe::
     AuthDirectoryRepository(session)   # email → principal, signup
     OtpCodeRepository(session)         # email OTP challenges
     FlagRepository(session)            # global feature flags
+    OpsStatusRepository(session)       # aggregate job counts for the owner's ops page
     ShareTokenResolver(session)        # share token → firm/project/scope
 
 Transactions: repositories ``flush()``, never ``commit()``. The request (or worker)
@@ -87,6 +88,7 @@ from garh_api.repositories.flags import (
 )
 from garh_api.repositories.jobs import RenderJobRepository, SolverJobRepository
 from garh_api.repositories.ops import EMPTY_BRANCH_HEAD, OpRepository
+from garh_api.repositories.ops_status import DurationStats, OpsStatusRepository
 from garh_api.repositories.otp import (
     OtpCodeRepository,
     OtpVerification,
@@ -140,6 +142,7 @@ __all__ = [
     "CreditEventRepository",
     "PlatformSetting",
     "PlatformSettingRepository",
+    "DurationStats",
     "DesignVersionRepository",
     "FirmInviteRepository",
     "FirmRepository",
@@ -159,6 +162,7 @@ __all__ = [
     # repositories — non-tenant (documented exceptions)
     "AuthDirectoryRepository",
     "FlagRepository",
+    "OpsStatusRepository",
     "OtpCodeRepository",
     "ShareTokenResolver",
     # tenancy surface

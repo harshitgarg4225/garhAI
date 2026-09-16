@@ -209,6 +209,21 @@ def set_otp_mailer(mailer: OtpMailer | None) -> None:
     _mailer = mailer
 
 
+def otp_delivery_channel(settings: Settings | None = None) -> str:
+    """Which channel ``POST /auth/otp`` would use right now — for the ops page.
+
+    Mirrors :func:`_deliver_code`'s order exactly: an installed mailer wins
+    (``smtp`` / ``brevo-http``), then the dev echo, else ``none`` — the state in
+    which every sign-in 503s naming the missing variables. Names only; never the
+    relay host or a credential.
+    """
+    if _mailer is not None:
+        return str(getattr(_mailer, "transport", "mailer"))
+    if dev_echo_otp_enabled(settings):
+        return "dev-echo"
+    return "none"
+
+
 async def _deliver_code(email: str, code: str, ttl_seconds: int, *, settings: Settings) -> str:
     """Get the code to the user. Returns the channel used, for the audit row.
 
@@ -1673,6 +1688,7 @@ __all__ = [
     "dev_echo_otp_enabled",
     "family_key",
     "generation_key",
+    "otp_delivery_channel",
     "purge_expired_otps",
     "refresh_key",
     "reset_session_scripts",

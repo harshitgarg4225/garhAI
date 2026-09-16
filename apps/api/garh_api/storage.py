@@ -30,8 +30,10 @@ from __future__ import annotations
 import hashlib
 import hmac
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from urllib.parse import quote, urlparse
+from xml.etree import ElementTree
 
 import httpx
 
@@ -57,8 +59,13 @@ def sigv4_presign(
     settings: Settings | None = None,
     now: datetime | None = None,
     response_headers: Mapping[str, str] | None = None,
+    extra_query: Mapping[str, str] | None = None,
 ) -> str:
     """AWS Signature V4 presigned URL (query auth, UNSIGNED-PAYLOAD), path-style.
+
+    ``extra_query`` is for the bucket-level operations the backup tooling needs
+    (``list-type=2&prefix=…``); it is NOT the download path — ``response_headers``
+    keeps its ``response-*`` gate, and nothing user-facing passes this argument.
 
     ``response_headers`` are S3's ``response-*`` overrides (``response-content-disposition``
     and friends): they ride in the signed query string, so the object store answers the
@@ -86,6 +93,10 @@ def sigv4_presign(
     for name, value in (response_headers or {}).items():
         if not name.startswith("response-"):
             raise ValueError("only S3 response-* overrides may be presigned: %r" % name)
+        params[name] = value
+    for name, value in (extra_query or {}).items():
+        if name.startswith("X-Amz-"):
+            raise ValueError("signing parameters are not caller-supplied: %r" % name)
         params[name] = value
     canonical_query = "&".join(
         "%s=%s" % (quote(name, safe="-_.~"), quote(value, safe="-_.~"))
@@ -179,10 +190,107 @@ async def delete_object(key: str, *, settings: Settings) -> bool:
     return True
 
 
+@dataclass(frozen=True, slots=True)
+class StoredObject:
+    """One key from a bucket listing."""
+
+    key: str
+    size: int
+    last_modified: datetime
+
+
+def _local(tag: str) -> str:
+    """``{ns}Key`` → ``Key``: S3's ListObjects XML carries a namespace, MinIO's may not."""
+    return tag.rsplit("}", 1)[-1]
+
+
+def parse_listing(xml_text: str) -> tuple[list[StoredObject], str | None]:
+    """ListObjectsV2 XML → objects plus the continuation token, if truncated."""
+    root = ElementTree.fromstring(xml_text)
+    objects: list[StoredObject] = []
+    truncated = False
+    token: str | None = None
+    for child in root:
+        name = _local(child.tag)
+        if name == "IsTruncated":
+            truncated = (child.text or "").strip().lower() == "true"
+        elif name == "NextContinuationToken":
+            token = (child.text or "").strip() or None
+        elif name == "Contents":
+            fields = {_local(item.tag): (item.text or "").strip() for item in child}
+            if "Key" not in fields:
+                continue
+            stamp = fields.get("LastModified", "").replace("Z", "+00:00")
+            try:
+                modified = datetime.fromisoformat(stamp)
+            except ValueError:
+                modified = datetime.fromtimestamp(0, tz=UTC)
+            objects.append(
+                StoredObject(
+                    key=fields["Key"],
+                    size=int(fields.get("Size") or 0),
+                    last_modified=modified,
+                )
+            )
+    return objects, (token if truncated else None)
+
+
+async def list_objects(prefix: str, *, settings: Settings) -> list[StoredObject]:
+    """Every object under ``prefix``, following continuation tokens.
+
+    Used by the backup tooling only (``scripts/backup_s3.py``): retention needs to
+    see what is in the bucket. Raises on a storage failure — a retention pass that
+    silently saw nothing would delete nothing and report success.
+    """
+    found: list[StoredObject] = []
+    token: str | None = None
+    while True:
+        query: dict[str, str] = {"list-type": "2", "prefix": prefix}
+        if token is not None:
+            query["continuation-token"] = token
+        url = sigv4_presign(
+            "GET", "", ttl_seconds=PUT_URL_TTL_SECONDS, settings=settings, extra_query=query
+        )
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(float(STORAGE_TIMEOUT_SECONDS)), follow_redirects=False
+        ) as client:
+            response = await client.get(url)
+        if response.status_code >= 400:
+            raise ServiceUnavailableError(
+                "Object storage refused the listing (HTTP %d)." % response.status_code,
+                dependency="object-storage",
+                retry_after_seconds=10,
+            )
+        page, token = parse_listing(response.text)
+        found.extend(page)
+        if token is None:
+            return found
+
+
+async def get_object(key: str, *, settings: Settings) -> bytes:
+    """GET an object's bytes via a presigned URL. Backup tooling only."""
+    url = sigv4_presign("GET", key, ttl_seconds=PUT_URL_TTL_SECONDS, settings=settings)
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(float(STORAGE_TIMEOUT_SECONDS) * 10), follow_redirects=False
+    ) as client:
+        response = await client.get(url)
+    if response.status_code >= 400:
+        raise ServiceUnavailableError(
+            "Object storage refused the download (HTTP %d)." % response.status_code,
+            dependency="object-storage",
+            retry_after_seconds=10,
+        )
+    return response.content
+
+
 __all__ = [
     "PUT_URL_TTL_SECONDS",
     "STORAGE_TIMEOUT_SECONDS",
+    "StoredObject",
     "delete_object",
+    "get_object",
+    "list_objects",
+    "parse_listing",
     "put_object",
     "sigv4_presign",
 ]

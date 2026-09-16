@@ -4,6 +4,7 @@
     python -m garh_api.seed --json       # same, machine-readable report
     python -m garh_api.seed --reset-demo # delete and rebuild the demo project
     python -m garh_api.seed --dry-run    # validate the seed data, write nothing
+    python -m garh_api.seed --if-missing # boot mode: nothing written once the firm exists
 
 Ordering, and why it is this order:
 
@@ -90,6 +91,17 @@ REUSED = "reused"
 SKIPPED = "skipped"
 RECREATED = "recreated"
 
+#: Every step a run reports, in order. A dry run and a boot-mode skip mark all of them.
+SEED_STEPS: tuple[str, ...] = (
+    "firm",
+    "user",
+    "flags",
+    "firmSettings",
+    "demoProject",
+    "opLog",
+    "version",
+)
+
 
 class SeedError(RuntimeError):
     """The seed cannot proceed. Always carries what to do about it."""
@@ -107,6 +119,12 @@ class SeedOptions:
     reset_demo: bool = False
     allow_production: bool = False
     dry_run: bool = False
+    #: Boot mode (``python -m garh_api.migrate --seed``): if the demo firm exists,
+    #: write NOTHING — not the firm-settings merge, not the audit row — and report
+    #: every step as ``skipped``. The ordinary run re-merges settings and records
+    #: ``seed.completed`` each time, which is fine for ``make seed`` and wrong for a
+    #: step that runs on every replica boot.
+    skip_if_seeded: bool = False
 
     def assert_allowed(self, settings: Settings) -> None:
         if not settings.is_production:
@@ -145,10 +163,13 @@ class SeedResult:
     warnings: list[str] = field(default_factory=list)
     pending: list[dict[str, str]] = field(default_factory=list)
     dry_run: bool = False
+    #: Set when ``skip_if_seeded`` found the demo firm and wrote nothing.
+    skipped_reason: str | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {
             "dryRun": self.dry_run,
+            "skippedReason": self.skipped_reason,
             "firmId": None if self.firm_id is None else str(self.firm_id),
             "userId": None if self.user_id is None else str(self.user_id),
             "projectId": None if self.project_id is None else str(self.project_id),
@@ -169,6 +190,8 @@ class SeedResult:
         """A report an operator can read at a glance."""
         lines = ["", "Garh AI seed (playbook §17)%s" % ("  [DRY RUN]" if self.dry_run else "")]
         lines.append("-" * 62)
+        if self.skipped_reason is not None:
+            lines.append("  skipped: %s" % self.skipped_reason)
         for step, state in self.steps.items():
             lines.append("  %-22s %s" % (step, state))
         lines.append("")
@@ -480,6 +503,23 @@ async def seed(
     result = SeedResult(dry_run=opts.dry_run)
     result.pending = [dict(item) for item in demo_data.PENDING_PHASES]
 
+    # --- 0. boot mode: one lookup, and nothing written if the firm exists -----
+    if opts.skip_if_seeded and not opts.reset_demo:
+        existing = await AuthDirectoryRepository(session).find_principal_by_email(
+            demo_data.DEMO_USER_EMAIL
+        )
+        if existing is not None:
+            result.firm_id = existing.firm_id
+            result.user_id = existing.user_id
+            for step in SEED_STEPS:
+                result.steps[step] = SKIPPED
+            result.skipped_reason = "demo firm %s exists (%s)" % (
+                demo_data.DEMO_FIRM_NAME,
+                demo_data.DEMO_USER_EMAIL,
+            )
+            _log.info("seed.skipped", reason="demo firm exists", firm_id=str(existing.firm_id))
+            return result
+
     # --- 1. validate every input before writing anything ---------------
     catalog = load_catalog_bundle()
     rulepacks = load_rulepack_registry()
@@ -497,7 +537,7 @@ async def seed(
         )
 
     if opts.dry_run:
-        for step in ("firm", "user", "flags", "firmSettings", "demoProject", "opLog", "version"):
+        for step in SEED_STEPS:
             result.steps[step] = SKIPPED
         return result
 
@@ -585,6 +625,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="validate the catalogue, rule packs and demo brief; write nothing",
     )
+    parser.add_argument(
+        "--if-missing",
+        action="store_true",
+        help="boot mode: write nothing at all if the demo firm already exists",
+    )
     parser.add_argument("--json", action="store_true", help="print the report as JSON")
     parser.add_argument("--quiet", action="store_true", help="print nothing on success")
     return parser
@@ -597,6 +642,7 @@ def main(argv: list[str] | None = None) -> int:
         reset_demo=args.reset_demo,
         allow_production=args.allow_production,
         dry_run=args.dry_run,
+        skip_if_seeded=args.if_missing,
     )
     try:
         result = asyncio.run(run(options))
@@ -618,6 +664,7 @@ __all__ = [
     "CREATED",
     "RECREATED",
     "REUSED",
+    "SEED_STEPS",
     "SKIPPED",
     "SeedError",
     "SeedOptions",
