@@ -162,6 +162,56 @@ export function translateWallsOps(doc: ProjectDoc, wallIds: readonly string[], d
   return ops;
 }
 
+/**
+ * Split a wall at `atMm` from its `a` end. The producer mints `newWallId` for
+ * the far half; the fold keeps the near half under the original id and moves
+ * any opening beyond the cut onto the new wall, re-based on it.
+ */
+export function wallSplitOp(wallId: Id<'wall'>, atMm: number, newWallId: Id<'wall'>): Op {
+  return { type: 'wall.split', payload: { wallId, atMm, newWallId } };
+}
+
+/**
+ * The legal cut positions on a wall: strictly inside it, so both halves keep
+ * a length `fold` accepts. Mirrors `WALL_SPLIT_OUT_OF_RANGE` in
+ * `packages/model/src/validate.ts` exactly — the split tool clamps into this
+ * window so it can never preview a cut the fold would refuse.
+ */
+export function wallSplitWindow(
+  wallLengthMm: number,
+): { readonly minMm: number; readonly maxMm: number } | null {
+  const len = roundMm(wallLengthMm);
+  if (len < 2) return null;
+  return { minMm: 1, maxMm: len - 1 };
+}
+
+/** Clamp a desired cut position into the legal window, or null if none. */
+export function clampSplitAt(atMm: number, wallLengthMm: number): number | null {
+  const window = wallSplitWindow(wallLengthMm);
+  if (window === null) return null;
+  return Math.min(window.maxMm, Math.max(window.minMm, roundMm(atMm)));
+}
+
+/**
+ * Split a wall by id, or `[]` when the cut cannot be made — an unknown wall, a
+ * degenerate one, or a position outside the window. Used by the split tool and
+ * by the inspector's "split in half", so the two cannot produce different ops
+ * for the same intent.
+ */
+export function splitWallOps(
+  doc: ProjectDoc,
+  wallId: string,
+  atMm: number,
+  newWallId: Id<'wall'>,
+): Op[] {
+  const wall = doc.house.walls.find((w) => w.id === wallId);
+  if (wall === undefined) return [];
+  const window = wallSplitWindow(distMm(wall.a, wall.b));
+  if (window === null) return [];
+  if (!Number.isSafeInteger(atMm) || atMm < window.minMm || atMm > window.maxMm) return [];
+  return [wallSplitOp(wall.id, atMm, newWallId)];
+}
+
 /** Which end of a wall a length edit holds still. */
 export type WallAnchorEnd = 'a' | 'b';
 
@@ -329,6 +379,88 @@ export interface StairAddInput {
 
 export function stairAddOp(input: StairAddInput): Op {
   return { type: 'stair.add', payload: { ...input } };
+}
+
+/** Move a stair by its origin only — the rest of its geometry travels with it. */
+export function stairMoveOp(stairId: Id<'stair'>, origin: Pt): Op {
+  return {
+    type: 'stair.edit',
+    payload: { stairId, patch: { origin: { x: origin.x, y: origin.y } } },
+  };
+}
+
+/** Translate whole stairs by a delta — the select tool's drag. */
+export function translateStairsOps(
+  doc: ProjectDoc,
+  stairIds: readonly string[],
+  deltaMm: Pt,
+): Op[] {
+  const ops: Op[] = [];
+  for (const id of stairIds) {
+    const stair = doc.house.stairs.find((s) => s.id === id);
+    if (stair === undefined) continue;
+    ops.push(
+      stairMoveOp(stair.id, { x: stair.origin.x + deltaMm.x, y: stair.origin.y + deltaMm.y }),
+    );
+  }
+  return ops;
+}
+
+// ---------------------------------------------------------------------------
+// Columns
+// ---------------------------------------------------------------------------
+
+export interface ColumnAddInput {
+  readonly id: Id<'column'>;
+  readonly storeyId: StoreyId;
+  /** Centre of the column. */
+  readonly pt: Pt;
+  readonly sizeMm: SizeMm;
+}
+
+export function columnAddOp(input: ColumnAddInput): Op {
+  return {
+    type: 'column.set',
+    payload: {
+      action: 'add',
+      id: input.id,
+      storeyId: input.storeyId,
+      pt: { x: input.pt.x, y: input.pt.y },
+      sizeMm: { xMm: input.sizeMm.xMm, yMm: input.sizeMm.yMm },
+    },
+  };
+}
+
+/**
+ * Move and/or resize a column. `column.set` with `action: 'move'` does both,
+ * and the validator requires `pt` on every move — so a pure resize sends the
+ * centre it already has rather than an op the fold refuses.
+ */
+export function columnMoveOp(id: Id<'column'>, pt: Pt, sizeMm?: SizeMm): Op {
+  return {
+    type: 'column.set',
+    payload: {
+      action: 'move',
+      id,
+      pt: { x: pt.x, y: pt.y },
+      ...(sizeMm === undefined ? {} : { sizeMm: { xMm: sizeMm.xMm, yMm: sizeMm.yMm } }),
+    },
+  };
+}
+
+/** Translate columns by a delta — the select tool's drag. */
+export function translateColumnsOps(
+  doc: ProjectDoc,
+  columnIds: readonly string[],
+  deltaMm: Pt,
+): Op[] {
+  const ops: Op[] = [];
+  for (const id of columnIds) {
+    const column = doc.house.columns.find((c) => c.id === id);
+    if (column === undefined) continue;
+    ops.push(columnMoveOp(column.id, { x: column.pt.x + deltaMm.x, y: column.pt.y + deltaMm.y }));
+  }
+  return ops;
 }
 
 // ---------------------------------------------------------------------------

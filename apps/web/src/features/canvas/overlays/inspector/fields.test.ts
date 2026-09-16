@@ -280,3 +280,101 @@ describe('every editable field', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Wall: split in half
+// ---------------------------------------------------------------------------
+
+describe('a single wall offers "Split in half"', () => {
+  it('emits a wall.split at floor(length / 2) with a DERIVED new id, and folds', () => {
+    const s = inspectorSelection(house, [FIXTURE_IDS.wallSouth], { display });
+    const split = s.actions.find((a) => a.key === 'split');
+    expect(split).toBeDefined();
+    if (split === undefined) return;
+    expect(split.label).toBe('Split in half');
+    expect(split.ops).toHaveLength(1);
+    const op = split.ops[0];
+    expect(op?.type).toBe('wall.split');
+    if (op?.type !== 'wall.split') return;
+    expect(op.payload.atMm).toBe(3000);
+    expect(op.payload.wallId).toBe(FIXTURE_IDS.wallSouth);
+    // Deterministic: a re-render offers byte-identical ops.
+    const again = inspectorSelection(house, [FIXTURE_IDS.wallSouth], { display });
+    expect(again.actions.find((a) => a.key === 'split')?.ops).toEqual(split.ops);
+    // ...and unique against the document.
+    expect(house.walls.some((w) => w.id === op.payload.newWallId)).toBe(false);
+    const after = applyGroup(doc, split.ops).model;
+    expect(after.house.walls).toHaveLength(house.walls.length + 1);
+  });
+
+  it('is not offered for a multi-selection', () => {
+    const s = inspectorSelection(house, [FIXTURE_IDS.wallSouth, FIXTURE_IDS.wallNorth], {
+      display,
+    });
+    expect(s.actions.map((a) => a.key)).not.toContain('split');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Column
+// ---------------------------------------------------------------------------
+
+describe('column inspector', () => {
+  const COLUMN = fixedId('column', 'C7');
+  const withColumnDoc = applyGroup(doc, [
+    {
+      type: 'column.set',
+      payload: {
+        action: 'add',
+        id: COLUMN,
+        storeyId: FIXTURE_IDS.groundStorey,
+        pt: { x: 1150, y: 1150 },
+        sizeMm: { xMm: 230, yMm: 450 },
+      },
+    },
+  ]).model;
+  const withColumn = withColumnDoc.house;
+
+  it('shows width and depth, editable, and the centre read-only', () => {
+    const s = inspectorSelection(withColumn, [COLUMN], { display });
+    expect(s.kind).toBe('column');
+    expect(s.title).toBe('Column');
+    expect(fieldOf(s.fields, 'width').value).toBe(230);
+    expect(fieldOf(s.fields, 'depth').value).toBe(450);
+    expect(fieldOf(s.fields, 'centre').editable).toBe(false);
+  });
+
+  it('resizes one side through column.set move, leaving the centre put', () => {
+    const s = inspectorSelection(withColumn, [COLUMN], { display });
+    const ops = fieldOf(s.fields, 'width').build(300);
+    expect(ops).toHaveLength(1);
+    const op = ops[0];
+    expect(op?.type).toBe('column.set');
+    if (op?.type !== 'column.set') return;
+    expect(op.payload).toEqual({
+      action: 'move',
+      id: COLUMN,
+      pt: { x: 1150, y: 1150 },
+      sizeMm: { xMm: 300, yMm: 450 },
+    });
+    const after = applyGroup(withColumnDoc, ops).model;
+    const column = after.house.columns.find((c) => c.id === COLUMN);
+    expect(column?.pt).toEqual({ x: 1150, y: 1150 });
+    expect(column?.sizeMm).toEqual({ xMm: 300, yMm: 450 });
+  });
+
+  it('emits nothing for an unchanged value', () => {
+    const s = inspectorSelection(withColumn, [COLUMN], { display });
+    expect(fieldOf(s.fields, 'width').build(230)).toEqual([]);
+  });
+
+  it('offers turn and delete', () => {
+    const s = inspectorSelection(withColumn, [COLUMN], { display });
+    const turn = s.actions.find((a) => a.key === 'turn');
+    expect(turn?.ops[0]?.type).toBe('column.set');
+    if (turn?.ops[0]?.type === 'column.set') {
+      expect(turn.ops[0].payload.sizeMm).toEqual({ xMm: 450, yMm: 230 });
+    }
+    expect(s.actions.find((a) => a.key === 'delete')?.tone).toBe('danger');
+  });
+});

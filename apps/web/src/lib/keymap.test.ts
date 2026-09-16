@@ -39,7 +39,7 @@ function key(k: string, mods: Partial<KeyEventLike> = {}): KeyEventLike {
 }
 
 describe('KEY_BINDINGS', () => {
-  it('binds exactly the §12 letters to the eight tools', () => {
+  it('binds exactly the §12 letters to the eight tools, plus C and K for the two CAD tools', () => {
     const letters: Record<string, string> = {};
     for (const b of KEY_BINDINGS) {
       if (b.tool) letters[b.key] = b.tool;
@@ -53,6 +53,8 @@ describe('KEY_BINDINGS', () => {
       b: 'balcony',
       m: 'measure',
       f: 'furniture',
+      c: 'column',
+      k: 'split',
     });
   });
 

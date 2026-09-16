@@ -31,7 +31,11 @@
 
 import { useEffect } from 'react';
 
-/** The eight direct-manipulation tools (§F4). */
+/**
+ * The direct-manipulation tools: §F4's eight, plus the two daily-CAD tools
+ * the first architects asked for — a column to place by hand, and a split to
+ * cut a wall where a partition will meet it.
+ */
 export const TOOL_IDS = [
   'select',
   'wall',
@@ -41,6 +45,8 @@ export const TOOL_IDS = [
   'balcony',
   'measure',
   'furniture',
+  'column',
+  'split',
 ] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
 
@@ -53,10 +59,17 @@ export const COMMAND_IDS = [
   'tool.balcony',
   'tool.measure',
   'tool.furniture',
+  'tool.column',
+  'tool.split',
   'edit.undo',
   'edit.redo',
   'edit.delete',
   'edit.selectAll',
+  'edit.copy',
+  'edit.paste',
+  'edit.duplicate',
+  'edit.mirrorLeftRight',
+  'edit.mirrorUpDown',
   'storey.1',
   'storey.2',
   'storey.3',
@@ -181,6 +194,26 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
     description: 'Place furniture.',
     tool: 'furniture',
   },
+  {
+    command: 'tool.column',
+    key: 'c',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'C',
+    description: 'Place a column.',
+    tool: 'column',
+  },
+  // K, the knife: the letter every editor with a split tool has settled on,
+  // and the one unmodified letter left that is not a browser's.
+  {
+    command: 'tool.split',
+    key: 'k',
+    modifiers: 'none',
+    scope: 'global',
+    label: 'K',
+    description: 'Split a wall where you click.',
+    tool: 'split',
+  },
 
   // ── Undo / redo (§15 "everything undoable, visibly") ────────────────────
   {
@@ -237,6 +270,50 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
     scope: 'canvas',
     label: 'A',
     description: 'Select everything on this floor.',
+  },
+  // Copy / paste / duplicate, canvas-scoped for the same reason as Cmd-A: in a
+  // text field these must keep meaning text. ⌘D is the browser's bookmark key
+  // but it yields to preventDefault, unlike ⌘W/⌘T/⌘N — and it is what every
+  // design tool trained people on.
+  {
+    command: 'edit.copy',
+    key: 'c',
+    modifiers: 'mod',
+    scope: 'canvas',
+    label: 'C',
+    description: 'Copy what is selected.',
+  },
+  {
+    command: 'edit.paste',
+    key: 'v',
+    modifiers: 'mod',
+    scope: 'canvas',
+    label: 'V',
+    description: 'Paste the copy where the pointer is.',
+  },
+  {
+    command: 'edit.duplicate',
+    key: 'd',
+    modifiers: 'mod',
+    scope: 'canvas',
+    label: 'D',
+    description: 'Duplicate what is selected, one step over.',
+  },
+  {
+    command: 'edit.mirrorLeftRight',
+    key: 'h',
+    modifiers: 'shift',
+    scope: 'canvas',
+    label: '⇧H',
+    description: 'Mirror what is selected left to right, through its centre.',
+  },
+  {
+    command: 'edit.mirrorUpDown',
+    key: 'v',
+    modifiers: 'shift',
+    scope: 'canvas',
+    label: '⇧V',
+    description: 'Mirror what is selected top to bottom, through its centre.',
   },
 
   // ── Storeys and views ───────────────────────────────────────────────────

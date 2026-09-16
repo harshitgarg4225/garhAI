@@ -45,6 +45,14 @@ import {
 } from '../../lib/keymap';
 import { useModelStore } from '../../stores/model';
 import { useUiStore } from '../../stores/ui';
+import { useSelectionStore } from '../../stores/selection';
+import {
+  runCopy,
+  runDuplicate,
+  runMirror,
+  runPaste,
+  useClipboardStore,
+} from '../../features/canvas/tools/clipboard';
 import { formatBinding, parseBinding } from './binding';
 import { useCommandUiStore } from './store';
 import type { Command, CommandGroup, CommandRun } from './types';
@@ -70,6 +78,7 @@ function armTool(tool: ToolId): CommandRun {
 }
 
 const inPlanView = (): boolean => useUiStore.getState().viewMode === '2d';
+const hasSelection = (): boolean => useSelectionStore.getState().ids.length > 0;
 
 function storeyAt(index: number): string | null {
   return useModelStore.getState().doc.house.storeys[index]?.id ?? null;
@@ -159,6 +168,56 @@ const MIRRORED: Readonly<Record<CommandId, MirroredSpec>> = {
     keywords: ['furniture', 'block', 'fixture'],
     run: armTool('furniture'),
     enabled: inPlanView,
+  },
+  'tool.column': {
+    group: 'Tools',
+    icon: 'column',
+    keywords: ['column', 'post', 'structure', 'rcc'],
+    run: armTool('column'),
+    enabled: inPlanView,
+  },
+  'tool.split': {
+    group: 'Tools',
+    icon: 'split',
+    keywords: ['split', 'cut', 'break', 'divide wall'],
+    run: armTool('split'),
+    enabled: inPlanView,
+  },
+  // The clipboard gestures (features/canvas/tools/clipboard.ts): the same
+  // functions the ⌘C/⌘V/⌘D keys and the options bar call, so the palette row
+  // and the key end in one place. Plan-view only, and greyed out until there
+  // is something to act on — a paste with an empty clipboard is a row that
+  // would only ever toast.
+  'edit.copy': {
+    group: 'Edit',
+    icon: 'copy',
+    keywords: ['copy', 'clipboard'],
+    run: () => void runCopy(),
+    enabled: () => inPlanView() && hasSelection(),
+  },
+  'edit.paste': {
+    group: 'Edit',
+    keywords: ['paste', 'clipboard'],
+    run: () => void runPaste(),
+    enabled: () => inPlanView() && useClipboardStore.getState().entry !== null,
+  },
+  'edit.duplicate': {
+    group: 'Edit',
+    keywords: ['duplicate', 'clone', 'repeat'],
+    run: () => void runDuplicate(),
+    enabled: () => inPlanView() && hasSelection(),
+  },
+  'edit.mirrorLeftRight': {
+    group: 'Edit',
+    keywords: ['mirror', 'flip', 'reflect', 'horizontal'],
+    run: () => void runMirror({ axis: 'vertical' }),
+    enabled: () => inPlanView() && hasSelection(),
+  },
+  'edit.mirrorUpDown': {
+    group: 'Edit',
+    keywords: ['mirror', 'flip', 'reflect', 'vertical'],
+    run: () => void runMirror({ axis: 'horizontal' }),
+    enabled: () => inPlanView() && hasSelection(),
   },
 
   'edit.undo': {

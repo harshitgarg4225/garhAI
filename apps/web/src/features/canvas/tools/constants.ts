@@ -103,6 +103,27 @@ export const MIN_RISERS = 8;
 export const MAX_RISERS = 40;
 
 // ---------------------------------------------------------------------------
+// Columns
+// ---------------------------------------------------------------------------
+
+/**
+ * The column sizes an Indian residential RCC frame is actually drawn with
+ * (mm × mm). 230 is one brick; the 9" × 12" and 9" × 18" columns hide inside a
+ * 230 wall. "Custom" is any other integer pair.
+ */
+export const COLUMN_SIZE_PRESETS: readonly (readonly [number, number])[] = [
+  [230, 230],
+  [230, 300],
+  [230, 450],
+  [300, 300],
+  [300, 450],
+];
+
+/** Smallest and largest side a column may be given from the options bar. */
+export const MIN_COLUMN_SIDE_MM = 100;
+export const MAX_COLUMN_SIDE_MM = 2000;
+
+// ---------------------------------------------------------------------------
 // Balconies
 // ---------------------------------------------------------------------------
 
@@ -132,7 +153,12 @@ export const HINTS = {
   measureDrawing: 'Click to add another leg · Enter or Esc to finish',
   furnitureIdle: 'Click to place. X rotates by 90°.',
   furnitureNoItem: 'Pick a piece of furniture first.',
+  columnIdle: 'Click to place a column. X turns it; type a width or a depth to size it.',
+  splitIdle: 'Hover a wall and click where it should split. Type a distance from the wall start.',
+  splitPreview: 'Click to split here · type a distance from the wall start · Esc to cancel',
   selectIdle: 'Click to select · drag to move · Shift-click to add · Delete removes',
   selectDragging: 'Drag to move · type an exact distance · Esc to put it back',
+  selectMirror:
+    'Move the pointer to place the mirror line · click or Enter to mirror · Enter without moving mirrors through the centre · Esc cancels',
   noStorey: 'Add a floor before drawing.',
 } as const;

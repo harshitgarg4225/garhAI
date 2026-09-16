@@ -48,7 +48,8 @@ import { formatLengthDisplay } from '../../lib/units';
 import { useModelStore } from '../../stores/model';
 import { selectActiveStoreyId, useUiStore } from '../../stores/ui';
 import { storeyFflMm } from '../../pages/project/plan/planGeometry';
-import { runAddStorey, runStoreyCopy } from './actions';
+import { runAddStorey, runRemoveStorey, runStoreyCopy } from './actions';
+import { planStoreyRemove } from './removeStorey';
 import {
   describeCounts,
   isStoreyEmpty,
@@ -78,6 +79,7 @@ export function StoreyPanel({ className }: StoreyPanelProps): JSX.Element {
 
   const [open, setOpen] = useState(true);
   const [copyOpen, setCopyOpen] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const storeys = house.storeys;
@@ -214,6 +216,15 @@ export function StoreyPanel({ className }: StoreyPanelProps): JSX.Element {
               >
                 Copy storey…
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                iconLeft="trash"
+                disabled={activeStoreyId === null}
+                onClick={() => setRemoveOpen(true)}
+              >
+                Remove storey…
+              </Button>
             </div>
 
             {notice === null ? null : (
@@ -230,7 +241,97 @@ export function StoreyPanel({ className }: StoreyPanelProps): JSX.Element {
       {copyOpen ? (
         <CopyStoreyDialog onClose={() => setCopyOpen(false)} defaultSourceId={activeStoreyId} />
       ) : null}
+      {removeOpen && activeStoreyId !== null ? (
+        <RemoveStoreyDialog storeyId={activeStoreyId} onClose={() => setRemoveOpen(false)} />
+      ) : null}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The remove dialog
+// ---------------------------------------------------------------------------
+
+/**
+ * Removing a storey deletes everything on it, so — like a destructive copy —
+ * it is confirmed first, with the count of what goes, and never dismissed by
+ * a stray backdrop click. The counts come from `planStoreyRemove`, computed
+ * live, so the dialog promises exactly what the op does. One undo afterwards.
+ */
+function RemoveStoreyDialog({
+  storeyId,
+  onClose,
+}: {
+  readonly storeyId: string;
+  readonly onClose: () => void;
+}): JSX.Element {
+  const doc = useModelStore((s) => s.doc);
+  const [error, setError] = useState<string | null>(null);
+  const planned = useMemo(() => planStoreyRemove(doc, storeyId), [doc, storeyId]);
+  const plan = planned.ok ? planned.plan : null;
+
+  const confirm = (): void => {
+    const outcome = runRemoveStorey(storeyId);
+    if (!outcome.ok) {
+      setError(outcome.refusal.message);
+      return;
+    }
+    onClose();
+  };
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      title={plan === null ? 'Remove storey' : `Remove ${plan.storeyName}?`}
+      description="Everything drawn on the storey goes with it. This is one undo step."
+      size="sm"
+      dismissOnBackdrop={false}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="danger" disabled={plan === null} onClick={confirm}>
+            Remove storey
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        {plan === null ? null : plan.empty ? (
+          <p className="text-xs leading-5 text-ink-muted">
+            {plan.storeyName} is empty — nothing else is deleted.
+          </p>
+        ) : (
+          <p
+            className="rounded border border-fail-line bg-fail-soft px-2 py-1.5 text-xs leading-5 text-fail-ink"
+            role="status"
+          >
+            <Icon name="alert-triangle" size={14} className="mr-1 inline align-[-2px]" />
+            {plan.storeyName} has {describeCounts(plan.removed)}. They will be deleted. ⌘Z puts them
+            back.
+          </p>
+        )}
+        {plan?.last === true ? (
+          <p className="text-xs leading-5 text-ink-muted">
+            This is the only storey — the design will have no floors until you add one.
+          </p>
+        ) : null}
+        {planned.ok ? null : (
+          <p className="text-xs leading-5 text-fail-ink" role="alert">
+            {planned.refusal.message}
+          </p>
+        )}
+        {error === null ? null : (
+          <p className="text-xs leading-5 text-fail-ink" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    </Dialog>
   );
 }
 

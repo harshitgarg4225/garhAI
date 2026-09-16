@@ -40,18 +40,24 @@
  */
 
 import {
+  bbox,
   distMm,
   findWall,
   idType,
+  mapPt,
+  planMirror,
   pointInPolygon,
   ptRound,
+  reflectionMap,
+  type MirrorAxis,
   type Op,
   type Pt,
   type Wall,
 } from '@garh/model';
 
-import { formatLength } from '../../../lib/units';
+import { formatLength, snapMm } from '../../../lib/units';
 import { snapPtRelativeMm } from '../core/coords';
+import { createdIds } from './clipboard';
 import { DRAG_THRESHOLD_PX, HINTS } from './constants';
 import { BaseTool, type PreviewParts } from './baseTool';
 import {
@@ -61,6 +67,8 @@ import {
   furnitureTransformOp,
   openingMoveOp,
   previewWall,
+  translateColumnsOps,
+  translateStairsOps,
   translateWallsOps,
   validateCommit,
   wallMoveOp,
@@ -81,6 +89,7 @@ import {
   type Readout,
   type SelectionIntent,
   type ToolBlock,
+  type ToolCommand,
   type ToolCommit,
   type ToolContext,
   type ToolId,
@@ -90,6 +99,9 @@ import {
 } from './types';
 
 const FIELDS: readonly NumericField[] = [{ id: 'distance', label: 'Move by', unit: 'mm' }];
+
+/** How far past the walls the mirror axis line is drawn, mm. */
+const MIRROR_LINE_MARGIN_MM = 2000;
 
 type Drag =
   | { readonly kind: 'none' }
@@ -101,6 +113,8 @@ type Drag =
       readonly deltaMm: Pt;
       readonly wallIds: readonly string[];
       readonly furnitureIds: readonly string[];
+      readonly columnIds: readonly string[];
+      readonly stairIds: readonly string[];
     }
   | {
       readonly kind: 'opening';
@@ -113,6 +127,18 @@ type Drag =
       readonly wallId: string;
       readonly end: 'a' | 'b';
       readonly pointMm: Pt;
+    }
+  | {
+      /**
+       * A mirror whose axis the pointer is choosing. `atMm` is the axis
+       * coordinate (x for a vertical axis, y for a horizontal one), null until
+       * the pointer has moved — Enter then mirrors through the selection's
+       * own centre, the CAD default.
+       */
+      readonly kind: 'mirror';
+      readonly axis: MirrorAxis;
+      readonly keepOriginal: boolean;
+      readonly atMm: number | null;
     };
 
 export class SelectTool extends BaseTool {
@@ -134,6 +160,14 @@ export class SelectTool extends BaseTool {
     if (event.button !== 0) return TOOL_RESPONSE_NONE;
     const point = event.rawPointMm ?? event.pointMm;
     if (point === null) return TOOL_RESPONSE_NONE;
+
+    if (this.drag.kind === 'mirror') {
+      this.updateDrag(ctx, point);
+      const commit = this.commit(ctx);
+      if (commit === null) return handled();
+      this.afterCommit(ctx);
+      return handled({ commit });
+    }
 
     this.blocked = null;
 
@@ -206,12 +240,29 @@ export class SelectTool extends BaseTool {
       });
     }
 
-    if (drag.kind === 'none') return TOOL_RESPONSE_NONE;
+    if (drag.kind === 'none' || drag.kind === 'mirror') return TOOL_RESPONSE_NONE;
 
     const commit = this.commit(ctx);
     if (commit === null) return handled();
     this.afterCommit(ctx);
     return handled({ commit });
+  }
+
+  // ── commands from the chrome ─────────────────────────────────────────────
+
+  /** "Mirror…" on the options bar: the pointer now picks the axis. */
+  onCommand(ctx: ToolContext, command: ToolCommand): ToolResponse {
+    if (ctx.selectedIds.length === 0) return TOOL_RESPONSE_NONE;
+    this.drag = {
+      kind: 'mirror',
+      axis: command.axis,
+      keepOriginal: command.keepOriginal,
+      atMm: null,
+    };
+    this.phaseState = 'drawing';
+    this.blocked = null;
+    this.touch();
+    return handled();
   }
 
   // ── keys ─────────────────────────────────────────────────────────────────
@@ -294,9 +345,15 @@ export class SelectTool extends BaseTool {
             }),
           ];
         }),
+        ...translateColumnsOps(ctx.doc, drag.columnIds, drag.deltaMm),
+        ...translateStairsOps(ctx.doc, drag.stairIds, drag.deltaMm),
       ];
       label = ops.length === 1 ? 'Wall moved' : `${String(ops.length)} things moved`;
-      if (drag.wallIds.length === 0 && drag.furnitureIds.length > 0) label = 'Furniture moved';
+      if (ops.length === 1 && drag.wallIds.length === 0) {
+        if (drag.furnitureIds.length > 0) label = 'Furniture moved';
+        else if (drag.columnIds.length > 0) label = 'Column moved';
+        else if (drag.stairIds.length > 0) label = 'Stair moved';
+      }
     } else if (drag.kind === 'opening') {
       const opening = ctx.doc.house.openings.find((o) => o.id === drag.openingId);
       if (opening === undefined) return null;
@@ -311,6 +368,32 @@ export class SelectTool extends BaseTool {
       if (a.x === wall.a.x && a.y === wall.a.y && b.x === wall.b.x && b.y === wall.b.y) return null;
       ops = [wallMoveOp(drag.wallId, a, b)];
       label = 'Wall end moved';
+    } else if (drag.kind === 'mirror') {
+      // The model's planner: verified on a fork, ids derived from the group
+      // id, one undo. A refusal is shown inline, like any other block.
+      const planned = planMirror(ctx.doc, {
+        elementIds: ctx.selectedIds,
+        axis: drag.axis,
+        atMm: drag.atMm,
+        keepOriginal: drag.keepOriginal,
+        groupId: ctx.newId('group'),
+      });
+      if (!planned.ok) {
+        this.blocked = {
+          message: planned.refusal.message,
+          fix: null,
+          issues: planned.refusal.issues,
+        };
+        this.touch();
+        return null;
+      }
+      const created = createdIds(planned.plan.ops);
+      return {
+        ops: planned.plan.ops,
+        label: planned.plan.label,
+        groupId: planned.plan.groupId,
+        ...(created.length > 0 ? { selectIds: created } : {}),
+      };
     } else {
       return null;
     }
@@ -385,7 +468,7 @@ export class SelectTool extends BaseTool {
       return {
         shape: {
           kind: 'transform',
-          targetIds: [...drag.wallIds, ...drag.furnitureIds],
+          targetIds: [...drag.wallIds, ...drag.furnitureIds, ...drag.columnIds, ...drag.stairIds],
           ghosts,
           deltaMm: drag.deltaMm,
         },
@@ -421,6 +504,10 @@ export class SelectTool extends BaseTool {
         cursorMm: drag.pointMm,
         hint: HINTS.selectDragging,
       };
+    }
+
+    if (drag.kind === 'mirror') {
+      return this.mirrorPreview(ctx, drag);
     }
 
     if (drag.kind === 'opening') {
@@ -486,7 +573,14 @@ export class SelectTool extends BaseTool {
 
     const wallIds = ids.filter((id) => idType(id) === 'wall');
     const furnitureIds = ids.filter((id) => idType(id) === 'furniture');
-    if (wallIds.length === 0 && furnitureIds.length === 0) {
+    const columnIds = ids.filter((id) => idType(id) === 'column');
+    const stairIds = ids.filter((id) => idType(id) === 'stair');
+    if (
+      wallIds.length === 0 &&
+      furnitureIds.length === 0 &&
+      columnIds.length === 0 &&
+      stairIds.length === 0
+    ) {
       return { kind: 'marquee', startMm: armed.startMm, currentMm: point };
     }
     return {
@@ -495,6 +589,8 @@ export class SelectTool extends BaseTool {
       deltaMm: { x: 0, y: 0 },
       wallIds,
       furnitureIds,
+      columnIds,
+      stairIds,
     };
   }
 
@@ -545,7 +641,85 @@ export class SelectTool extends BaseTool {
       });
       this.snap = resolution.candidate;
       this.drag = { ...drag, pointMm: resolution.pointMm };
+      return;
     }
+
+    if (drag.kind === 'mirror') {
+      // Object snaps win (a mirror line through a wall's centreline is the
+      // usual ask); the grid module otherwise. Only the axis coordinate is read.
+      const resolution = resolveSnap(ctx, point, {});
+      this.snap = resolution.candidate;
+      const atMm =
+        drag.axis === 'vertical'
+          ? resolution.candidate !== null
+            ? resolution.pointMm.x
+            : snapMm(point.x, ctx.snapModuleMm)
+          : resolution.candidate !== null
+            ? resolution.pointMm.y
+            : snapMm(point.y, ctx.snapModuleMm);
+      this.drag = { ...drag, atMm };
+    }
+  }
+
+  /** The axis line across the storey and the mirrored walls, as ghosts. */
+  private mirrorPreview(ctx: ToolContext, drag: Extract<Drag, { kind: 'mirror' }>): PreviewParts {
+    const walls = ctx.doc.house.walls.filter((w) => w.storeyId === ctx.storeyId);
+    const selected = walls.filter((w) => ctx.selectedIds.includes(w.id));
+    const pts: Pt[] = [];
+    for (const w of walls) pts.push(w.a, w.b);
+    for (const w of selected) pts.push(w.a, w.b);
+    const extent = pts.length > 0 ? bbox(pts) : { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+
+    // Through the selection's centre until the pointer says otherwise —
+    // exactly `planMirror`'s default, doubled to stay exact on odd extents.
+    const selectedExtent = selected.length > 0 ? bbox(selected.flatMap((w) => [w.a, w.b])) : extent;
+    const twiceAt =
+      drag.atMm !== null
+        ? 2 * drag.atMm
+        : drag.axis === 'vertical'
+          ? selectedExtent.minX + selectedExtent.maxX
+          : selectedExtent.minY + selectedExtent.maxY;
+    const map = reflectionMap(drag.axis, twiceAt);
+    const at = twiceAt / 2;
+
+    const line: readonly [Pt, Pt] =
+      drag.axis === 'vertical'
+        ? [
+            ptRound(at, extent.minY - MIRROR_LINE_MARGIN_MM),
+            ptRound(at, extent.maxY + MIRROR_LINE_MARGIN_MM),
+          ]
+        : [
+            ptRound(extent.minX - MIRROR_LINE_MARGIN_MM, at),
+            ptRound(extent.maxX + MIRROR_LINE_MARGIN_MM, at),
+          ];
+
+    const ghosts: PreviewWall[] = selected.map((w) =>
+      previewWall(mapPt(map, w.a), mapPt(map, w.b), w.thicknessMm, w.kind),
+    );
+
+    const readouts: Readout[] = [
+      {
+        id: 'axis',
+        label: drag.axis === 'vertical' ? 'Mirror line x' : 'Mirror line y',
+        value:
+          drag.atMm === null ? 'through the centre' : formatLength(drag.atMm, ctx.unitsDisplay),
+        emphasis: true,
+      },
+      {
+        id: 'mode',
+        label: 'Mode',
+        value: drag.keepOriginal ? 'Copy' : 'Flip in place',
+      },
+    ];
+
+    return {
+      shape: { kind: 'mirror', axis: drag.axis, line, ghosts },
+      snap: toSnapView(this.snap),
+      readouts,
+      blocked: this.blocked,
+      cursorMm: null,
+      hint: HINTS.selectMirror,
+    };
   }
 
   /** What a plain click does to the selection. */
@@ -580,6 +754,17 @@ export class SelectTool extends BaseTool {
       }
     }
     if (best !== null) return best.id;
+
+    // Columns next: small, deliberate, and usually sitting on a wall junction
+    // — the §12 priority table puts them above walls for the same reason.
+    for (const column of ctx.doc.house.columns) {
+      if (column.storeyId !== storeyId) continue;
+      const halfW = Math.ceil(column.sizeMm.xMm / 2) + tolerance;
+      const halfD = Math.ceil(column.sizeMm.yMm / 2) + tolerance;
+      if (Math.abs(point.x - column.pt.x) <= halfW && Math.abs(point.y - column.pt.y) <= halfD) {
+        return column.id;
+      }
+    }
 
     for (const wall of ctx.doc.house.walls) {
       if (wall.storeyId !== storeyId) continue;
@@ -633,6 +818,10 @@ export class SelectTool extends BaseTool {
     for (const stair of ctx.doc.house.stairs) {
       if (stair.storeyId !== storeyId) continue;
       if (inside(stair.origin)) ids.push(stair.id);
+    }
+    for (const column of ctx.doc.house.columns) {
+      if (column.storeyId !== storeyId) continue;
+      if (inside(column.pt)) ids.push(column.id);
     }
     for (const balcony of ctx.doc.house.balconies) {
       if (balcony.storeyId !== storeyId) continue;

@@ -15,11 +15,27 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { fixedId, makeTwoRoomPlanWithOpenings, validateOpAgainstDoc } from '@garh/model';
+import {
+  applyGroup,
+  fixedId,
+  makeTwoRoomPlanWithOpenings,
+  planMirror,
+  validateOpAgainstDoc,
+} from '@garh/model';
 
 import { DRAG_THRESHOLD_PX, HINTS } from './constants';
 import { pointInsidePolygon, SelectTool } from './selectTool';
-import { FIXTURE_IDS, hitOn, key, makeCtx, opOfType, ptr, readout, typeText } from './toolTestKit';
+import {
+  FIXTURE_IDS,
+  hitOn,
+  key,
+  makeCtx,
+  nthId,
+  opOfType,
+  ptr,
+  readout,
+  typeText,
+} from './toolTestKit';
 
 const SPINE = FIXTURE_IDS.wallSpine;
 const GROUND = FIXTURE_IDS.groundStorey;
@@ -344,5 +360,181 @@ describe('pointInsidePolygon', () => {
 
   it('is false for a degenerate ring', () => {
     expect(pointInsidePolygon({ x: 0, y: 0 }, [{ x: 0, y: 0 }])).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Columns and stairs move like walls do
+// ---------------------------------------------------------------------------
+
+describe('dragging a column', () => {
+  const COLUMN = fixedId('column', 'C9');
+  const STAIR = fixedId('stair', 'S9');
+  const withColumn = () =>
+    makeCtx({
+      doc: applyGroup(makeTwoRoomPlanWithOpenings(), [
+        {
+          type: 'column.set',
+          payload: { action: 'add', id: COLUMN, storeyId: GROUND, pt: { x: 1150, y: 1150 } },
+        },
+        {
+          type: 'stair.add',
+          payload: {
+            id: STAIR,
+            storeyId: GROUND,
+            kind: 'straight',
+            origin: { x: 4000, y: 500 },
+            direction: 'N',
+            riserMm: 167,
+            treadMm: 250,
+            widthMm: 900,
+            risersCount: 18,
+            landing: null,
+          },
+        },
+      ]).model,
+      selectedIds: [COLUMN],
+    });
+
+  it('picks the column under the pointer with no mesh mounted', () => {
+    const ctx = withColumn();
+    const tool = new SelectTool();
+    expect(tool.onPointerDown(ctx, ptr(1200, 1100)).selection ?? null).toBeNull();
+    expect(tool.onPointerUp(ctx, ptr(1200, 1100)).selection).toEqual({
+      mode: 'replace',
+      ids: [COLUMN],
+    });
+  });
+
+  it('moves the selected column by whole modules, as one column.set move', () => {
+    const ctx = withColumn();
+    const tool = new SelectTool();
+    tool.onPointerDown(ctx, ptr(1150, 1150));
+    tool.onPointerMove(ctx, ptr(1150 + DRAG_THRESHOLD_PX * 2, 1150));
+    tool.onPointerMove(ctx, ptr(1150 + 690, 1150));
+    const up = tool.onPointerUp(ctx, ptr(1150 + 690, 1150));
+    const commit = up.commit;
+    expect(commit?.label).toBe('Column moved');
+    const op = opOfType(commit?.ops[0], 'column.set');
+    expect(op.payload).toEqual({ action: 'move', id: COLUMN, pt: { x: 1840, y: 1150 } });
+    expect(validateOpAgainstDoc(ctx.doc, op)).toEqual([]);
+  });
+
+  it('moves a selected stair by its origin', () => {
+    const ctx = makeCtx({ doc: withColumn().doc, selectedIds: [STAIR] });
+    const tool = new SelectTool();
+    tool.onPointerDown(ctx, ptr(4200, 700, { hit: hitOn('stair', STAIR, GROUND) }));
+    // The first move past the threshold arms the drag; the second moves it.
+    tool.onPointerMove(ctx, ptr(4200, 700 + DRAG_THRESHOLD_PX * 2));
+    tool.onPointerMove(ctx, ptr(4200, 700 + 460));
+    const up = tool.onPointerUp(ctx, ptr(4200, 700 + 460));
+    const op = opOfType(up.commit?.ops[0], 'stair.edit');
+    expect(op.payload).toEqual({ stairId: STAIR, patch: { origin: { x: 4000, y: 960 } } });
+    expect(up.commit?.label).toBe('Stair moved');
+  });
+
+  it('includes columns in a marquee', () => {
+    const ctx = makeCtx({ doc: withColumn().doc, selectedIds: [] });
+    const tool = new SelectTool();
+    tool.onPointerDown(ctx, ptr(1000, 1000));
+    tool.onPointerMove(ctx, ptr(1300, 1300));
+    const up = tool.onPointerUp(ctx, ptr(1300, 1300));
+    expect(up.selection?.ids).toEqual([COLUMN]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Mirror: the options bar sends the command, the pointer picks the axis
+// ---------------------------------------------------------------------------
+
+describe('mirroring through a picked axis', () => {
+  it('enters the mirror phase on the command and previews the line and ghosts', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    const response = tool.onCommand(ctx, {
+      kind: 'mirror-axis',
+      axis: 'vertical',
+      keepOriginal: true,
+    });
+    expect(response.handled).toBe(true);
+    expect(tool.phase).toBe('drawing');
+    const preview = tool.preview(ctx);
+    expect(preview.shape.kind).toBe('mirror');
+    if (preview.shape.kind !== 'mirror') return;
+    // No pointer yet: the line runs through the spine's own centre, x = 3000.
+    expect(preview.shape.line[0]?.x).toBe(3000);
+    expect(preview.shape.ghosts).toHaveLength(1);
+    expect(preview.hint).toBe(HINTS.selectMirror);
+  });
+
+  it('follows the pointer to a module-snapped axis and ghosts the reflection', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    tool.onCommand(ctx, { kind: 'mirror-axis', axis: 'vertical', keepOriginal: true });
+    tool.onPointerMove(ctx, ptr(4488, 2000));
+    const preview = tool.preview(ctx);
+    if (preview.shape.kind !== 'mirror') throw new Error('expected a mirror preview');
+    expect(preview.shape.line[0]?.x).toBe(4485);
+    // x' = 2·4485 − 3000 = 5970.
+    expect(preview.shape.ghosts[0]?.a.x).toBe(5970);
+    expect(readout(preview, 'axis')).toBe(`14'-9"`);
+  });
+
+  it('commits on click: the model planner’s ops, under the plan’s group id', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    tool.onCommand(ctx, { kind: 'mirror-axis', axis: 'vertical', keepOriginal: true });
+    tool.onPointerMove(ctx, ptr(4485, 2000));
+    const down = tool.onPointerDown(ctx, ptr(4485, 2000));
+    const commit = down.commit;
+    expect(commit).toBeTruthy();
+    if (commit == null) return;
+    expect(commit.groupId).toBe(nthId('group', 1));
+    expect(commit.label).toBe('Mirrored 1 wall vertically');
+    const op = opOfType(commit.ops[0], 'wall.add');
+    expect(op.payload.a).toEqual({ x: 5970, y: 0 });
+    expect(commit.selectIds).toEqual([op.payload.id]);
+    // The same plan the model would produce for the same request — no second
+    // implementation of the reflection in the tool.
+    const expected = planMirror(ctx.doc, {
+      elementIds: [SPINE],
+      axis: 'vertical',
+      atMm: 4485,
+      keepOriginal: true,
+      groupId: nthId('group', 1),
+    });
+    expect(expected.ok && expected.plan.ops).toEqual(commit.ops);
+    expect(tool.phase).toBe('idle');
+  });
+
+  it('Enter without moving mirrors through the centre — which a symmetric spine refuses inline', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    tool.onCommand(ctx, { kind: 'mirror-axis', axis: 'vertical', keepOriginal: true });
+    const response = tool.onKey(ctx, key('Enter'));
+    expect(response.commit ?? null).toBeNull();
+    expect(tool.preview(ctx).blocked?.message).toMatch(/symmetric/);
+    expect(tool.phase).toBe('drawing');
+  });
+
+  it('Esc leaves the mirror phase with nothing emitted', () => {
+    const ctx = makeCtx({ selectedIds: [SPINE] });
+    const tool = new SelectTool();
+    tool.onCommand(ctx, { kind: 'mirror-axis', axis: 'horizontal', keepOriginal: false });
+    const response = tool.onKey(ctx, key('Escape'));
+    expect(response.handled).toBe(true);
+    expect(response.commit ?? null).toBeNull();
+    expect(tool.phase).toBe('idle');
+  });
+
+  it('declines the command with nothing selected', () => {
+    const tool = new SelectTool();
+    const response = tool.onCommand(makeCtx(), {
+      kind: 'mirror-axis',
+      axis: 'vertical',
+      keepOriginal: true,
+    });
+    expect(response.handled).toBe(false);
+    expect(tool.phase).toBe('idle');
   });
 });

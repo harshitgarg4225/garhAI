@@ -241,6 +241,28 @@ function writeShape(w: SegmentWriter, shape: PreviewShape): void {
       w.push(ax, by, ax, ay);
       break;
     }
+    case 'column': {
+      // The footprint and the drafting cross — the same symbol `PlanScene`
+      // draws once the op lands, so the preview is a picture of the result.
+      const { x, y } = shape.centreMm;
+      const halfW = shape.sizeMm.xMm / 2;
+      const halfD = shape.sizeMm.yMm / 2;
+      w.pushRect(x, y, halfW, halfD);
+      w.push(x - halfW, y - halfD, x + halfW, y + halfD);
+      w.push(x + halfW, y - halfD, x - halfW, y + halfD);
+      break;
+    }
+    case 'split': {
+      w.pushPt(shape.cut[0], shape.cut[1]);
+      break;
+    }
+    case 'mirror': {
+      w.pushPt(shape.line[0], shape.line[1]);
+      for (const ghost of shape.ghosts) {
+        pushWallOutline(w, ghost.a, ghost.b, ghost.thicknessMm);
+      }
+      break;
+    }
     default:
       break;
   }

@@ -48,6 +48,10 @@ const STROKE_PATHS = {
   door: 'M6.5 20.5 L6.5 5 L15.5 3 L15.5 21 Z M12.8 12.4 L12.81 12.4 M17.5 20.5 L20.5 20.5',
   window: 'M4 5 L20 5 L20 19 L4 19 Z M4 12 L20 12 M12 5 L12 19',
   stair: 'M3.5 20 L3.5 16 L8 16 L8 12.5 L12.5 12.5 L12.5 9 L17 9 L17 5.5 L21 5.5',
+  // A column in plan: the square footprint with the drafting cross through it.
+  column: 'M6 6 L18 6 L18 18 L6 18 Z M6 6 L18 18 M18 6 L6 18',
+  // Split: a wall run with a break mark cut through it.
+  split: 'M3 12 L9.5 12 M14.5 12 L21 12 M10.5 8 L13.5 16 M12 3.5 L12 6.5 M12 17.5 L12 20.5',
   balcony:
     'M3 9 L21 9 M3 19 L21 19 M4.5 9 L4.5 19 M9.5 9 L9.5 19 M14.5 9 L14.5 19 M19.5 9 L19.5 19',
   ruler: 'M2.5 14 L10 21.5 L21.5 10.5 L14 3 Z M6.5 12.5 L8.5 14.5 M10 9 L12 11 M13.5 5.5 L15.5 7.5',

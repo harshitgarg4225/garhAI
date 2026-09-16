@@ -44,8 +44,10 @@ import {
   STAIR_KINDS,
   DIRECTIONS_4,
   RAILING_KINDS,
+  derivedIdUnique,
   idType,
   ptRound,
+  type Column,
   type Direction4,
   type Direction8,
   type ElementType,
@@ -54,6 +56,7 @@ import {
   type OpeningSwing,
   type RailingKind,
   type RoomType,
+  type SizeMm,
   type StairKind,
   type UnitsDisplay,
 } from '@garh/model';
@@ -251,6 +254,8 @@ export function inspectorSelection(
       return balconyInspector(house, ids);
     case 'storey':
       return storeyInspector(house, ids);
+    case 'column':
+      return columnInspector(house, ids, options);
     default:
       return {
         kind: type,
@@ -354,15 +359,38 @@ function wallInspector(
     ),
   ];
 
-  const actions: InspectorAction[] = [
-    {
-      key: 'delete',
-      label: walls.length === 1 ? 'Delete wall' : `Delete ${String(walls.length)} walls`,
-      tone: 'danger',
-      ops: walls.map((w) => ({ type: 'wall.delete' as const, payload: { wallId: w.id } })),
-      undoLabel: walls.length === 1 ? 'Wall deleted' : 'Walls deleted',
-    },
-  ];
+  const actions: InspectorAction[] = [];
+
+  // Split in half: the one cut that needs no pointer. The new wall's id is
+  // DERIVED from the wall and its length rather than minted at random, so a
+  // panel that re-renders between the click and the dispatch offers the same
+  // op both times, and a spec can assert the payload byte for byte. The
+  // `taken` set is every id the document holds, which is what keeps a derived
+  // id unique even against a wall split twice at the same length.
+  const single = walls[0];
+  if (walls.length === 1 && single !== undefined) {
+    const lengthMm = lengths[0] ?? 0;
+    const halfMm = Math.floor(lengthMm / 2);
+    if (halfMm >= 1 && lengthMm - halfMm >= 1) {
+      const taken = new Set<string>(house.walls.map((w) => w.id));
+      const newWallId = derivedIdUnique('wall', `${single.id}|split|${String(halfMm)}`, taken);
+      actions.push({
+        key: 'split',
+        label: 'Split in half',
+        tone: 'default',
+        ops: [{ type: 'wall.split', payload: { wallId: single.id, atMm: halfMm, newWallId } }],
+        undoLabel: 'Wall split',
+      });
+    }
+  }
+
+  actions.push({
+    key: 'delete',
+    label: walls.length === 1 ? 'Delete wall' : `Delete ${String(walls.length)} walls`,
+    tone: 'danger',
+    ops: walls.map((w) => ({ type: 'wall.delete' as const, payload: { wallId: w.id } })),
+    undoLabel: walls.length === 1 ? 'Wall deleted' : 'Walls deleted',
+  });
 
   return {
     kind: 'wall',
@@ -1045,6 +1073,117 @@ function storeyInspector(house: HouseModel, ids: readonly string[]): InspectorSe
  * The selection resolved to nothing — every id was pruned between the click and
  * this render. Says so rather than rendering an empty panel that looks broken.
  */
+// ---------------------------------------------------------------------------
+// Column
+// ---------------------------------------------------------------------------
+
+/** Both sides of a column at once, through `column.set` with `action: 'move'`. */
+function columnSizeOps(columns: readonly Column[], next: (size: SizeMm) => SizeMm): Op[] {
+  const ops: Op[] = [];
+  for (const column of columns) {
+    const size = next(column.sizeMm);
+    if (size.xMm === column.sizeMm.xMm && size.yMm === column.sizeMm.yMm) continue;
+    // `pt` travels too: the validator requires it on every move.
+    ops.push({
+      type: 'column.set',
+      payload: { action: 'move', id: column.id, pt: column.pt, sizeMm: size },
+    });
+  }
+  return ops;
+}
+
+function columnInspector(
+  house: HouseModel,
+  ids: readonly string[],
+  options: InspectorOptions,
+): InspectorSelection {
+  const columns = ids
+    .map((id) => house.columns.find((c) => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => c !== undefined);
+  if (columns.length === 0) return emptySelection('column');
+
+  const width = shared(columns.map((c) => c.sizeMm.xMm));
+  const depth = shared(columns.map((c) => c.sizeMm.yMm));
+  const single = columns.length === 1 ? columns[0] : undefined;
+
+  const fields: InspectorField[] = [
+    {
+      key: 'width',
+      label: 'Width',
+      kind: 'length',
+      value: width.value,
+      displayText: width.mixed ? 'Mixed' : formatLen(width.value, options.display),
+      mixed: width.mixed,
+      editable: true,
+      hint: 'Across the plan (x). The centre stays put.',
+      minMm: 100,
+      maxMm: 2000,
+      build: (next) => {
+        if (typeof next !== 'number' || next <= 0) return [];
+        return columnSizeOps(columns, (size) => ({ xMm: next, yMm: size.yMm }));
+      },
+      undoLabel: columns.length === 1 ? 'Column resized' : 'Columns resized',
+    },
+    {
+      key: 'depth',
+      label: 'Depth',
+      kind: 'length',
+      value: depth.value,
+      displayText: depth.mixed ? 'Mixed' : formatLen(depth.value, options.display),
+      mixed: depth.mixed,
+      editable: true,
+      hint: 'Along the plan (y). The centre stays put.',
+      minMm: 100,
+      maxMm: 2000,
+      build: (next) => {
+        if (typeof next !== 'number' || next <= 0) return [];
+        return columnSizeOps(columns, (size) => ({ xMm: size.xMm, yMm: next }));
+      },
+      undoLabel: columns.length === 1 ? 'Column resized' : 'Columns resized',
+    },
+    readonlyField(
+      'centre',
+      'Centre',
+      single === undefined
+        ? 'Mixed'
+        : `${formatIndianNumber(single.pt.x)} , ${formatIndianNumber(single.pt.y)} mm`,
+      'Drag the column on the plan to move it.',
+    ),
+  ];
+
+  const actions: InspectorAction[] = [
+    {
+      key: 'turn',
+      label: 'Turn 90°',
+      tone: 'default',
+      ops: columnSizeOps(columns, (size) => ({ xMm: size.yMm, yMm: size.xMm })),
+      undoLabel: columns.length === 1 ? 'Column turned' : 'Columns turned',
+    },
+    {
+      key: 'delete',
+      label: columns.length === 1 ? 'Delete column' : `Delete ${String(columns.length)} columns`,
+      tone: 'danger',
+      ops: columns.map((c) => ({
+        type: 'column.set' as const,
+        payload: { action: 'delete' as const, id: c.id },
+      })),
+      undoLabel: columns.length === 1 ? 'Column deleted' : 'Columns deleted',
+    },
+  ];
+
+  return {
+    kind: 'column',
+    count: columns.length,
+    title: columns.length === 1 ? 'Column' : `${String(columns.length)} columns`,
+    subtitle:
+      single === undefined
+        ? null
+        : `${String(single.sizeMm.xMm)} × ${String(single.sizeMm.yMm)} mm`,
+    fields,
+    actions: actions.filter((a) => a.ops.length > 0),
+  };
+}
+
 function emptySelection(kind: ElementType): InspectorSelection {
   return {
     kind,

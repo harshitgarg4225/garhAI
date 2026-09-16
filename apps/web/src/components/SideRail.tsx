@@ -29,6 +29,8 @@ export const TOOL_IDS = [
   'balcony',
   'furniture',
   'measure',
+  'column',
+  'split',
 ] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
 
@@ -85,6 +87,20 @@ export const TOOLS: readonly ToolDef[] = [
     key: 'M',
     icon: 'ruler',
     blurb: 'Measure between two points.',
+  },
+  {
+    id: 'column',
+    label: 'Column',
+    key: 'C',
+    icon: 'column',
+    blurb: 'Place a column. X turns it.',
+  },
+  {
+    id: 'split',
+    label: 'Split',
+    key: 'K',
+    icon: 'split',
+    blurb: 'Cut a wall in two where you click.',
   },
 ];
 
