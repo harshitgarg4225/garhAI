@@ -24,10 +24,28 @@
  *     inside the input path is how a 16 ms budget becomes a 30 ms one.
  *
  * NAVIGATION GESTURES (CAD conventions, so muscle memory transfers):
- *   wheel / pinch      zoom to cursor (2D) · dolly (3D)
+ *   mouse wheel        zoom to cursor (2D) · dolly (3D)
+ *   two-finger scroll  pan — a trackpad's scroll means "move the view"
+ *   pinch / ctrl+wheel zoom to cursor (2D) · dolly (3D)
+ *   shift + wheel      pan sideways
  *   middle-drag        pan (2D) · orbit (3D)
  *   space + left-drag  pan, for trackpads with no middle button
  *   shift + middle     pan in 3D instead of orbit
+ *   two fingers (touch) pan by the centroid, zoom by the spread
+ *
+ * The wheel and the trackpad deliver the same DOM event; `wheelGesture.ts`
+ * decides which it was and says where the heuristic can be wrong.
+ *
+ * TOUCH AND STYLUS. A pen is a mouse: every tool works with a stylus. One
+ * finger is a pointer too — tap to click, drag to draw — so a tool works on a
+ * tablet. A SECOND finger turns the gesture into navigation: from that moment
+ * until every finger lifts, nothing reaches the tools, so a pinch cannot also
+ * drag a wall. The first finger's `pointerdown` was already delivered before
+ * the second landed (the browser cannot know a pinch is coming); a wall chain
+ * that had just started keeps that one point, and Backspace removes it — the
+ * honest cost of not delaying every single-finger press. `touch-action: none`
+ * is set on the element so the browser never scrolls or zooms the page
+ * instead of us.
  *
  * Right-drag is deliberately NOT a pan. `contextmenu` fires on mouse-*down* in
  * Chrome, before any movement exists to distinguish a drag from a click, so a
@@ -43,6 +61,13 @@ import type { Pt } from '@garh/model';
 import type { CanvasCore, CorePickOptions } from './context';
 import { ndcFromPixel, type Ndc, type PixelPoint } from './coords';
 import { sameHitTarget, type PickHit } from './hitTest';
+import {
+  classifyWheel,
+  pinchDelta,
+  pinchState,
+  pinchZoomFactor,
+  type PinchState,
+} from './wheelGesture';
 
 // ---------------------------------------------------------------------------
 // The event tools see
@@ -142,6 +167,12 @@ export function useCanvasControls(
     const core = latest.current.core;
     const viewport = core.viewport;
 
+    // The browser must not pan or pinch the PAGE for a gesture we own. The
+    // Tailwind class on the container says the same; this is the belt to
+    // that braces, and what the spec asserts.
+    const previousTouchAction = element.style.touchAction;
+    element.style.touchAction = 'none';
+
     // ── cached geometry ──────────────────────────────────────────────────
     let rect = element.getBoundingClientRect();
     const refreshRect = (): void => {
@@ -195,6 +226,57 @@ export function useCanvasControls(
       latest.current.onNavigatingChange?.(value);
     };
 
+    // ── touch: fingers on the surface ────────────────────────────────────
+    const touches = new Map<number, { x: number; y: number }>();
+    /** Two-finger navigation in progress. */
+    let pinch: PinchState | null = null;
+    /**
+     * Once a gesture has become navigation, the tools hear nothing more from
+     * any finger until every finger has lifted — including the pointerup of
+     * the finger that started it, so a pinch cannot end in a click.
+     */
+    let swallowTouches = false;
+
+    const touchPoints = (): { x: number; y: number }[] => Array.from(touches.values());
+
+    const beginPinch = (): void => {
+      const [a, b] = touchPoints();
+      if (a === undefined || b === undefined) return;
+      pinch = pinchState(a, b);
+      swallowTouches = true;
+      setNavigating(true);
+    };
+
+    const movePinch = (): void => {
+      const [a, b] = touchPoints();
+      if (pinch === null || a === undefined || b === undefined) return;
+      const next = pinchState(a, b);
+      const delta = pinchDelta(pinch, next);
+      pinch = next;
+      if (viewport.mode === '2d') {
+        if (delta.dxPx !== 0 || delta.dyPx !== 0) viewport.panPx(delta.dxPx, delta.dyPx);
+        if (delta.factor !== 1) {
+          viewport.zoomAtPixel(
+            { x: next.centre.x - rect.left, y: next.centre.y - rect.top },
+            delta.factor,
+          );
+        }
+      } else {
+        panViewport(core, delta.dxPx, delta.dyPx, true);
+        if (delta.factor !== 1) {
+          viewport.setOrbit({
+            ...viewport.orbit,
+            distanceMm: Math.max(500, viewport.orbit.distanceMm * delta.factor),
+          });
+        }
+      }
+    };
+
+    const endPinch = (): void => {
+      pinch = null;
+      setNavigating(false);
+    };
+
     // ── move coalescing ──────────────────────────────────────────────────
     let pendingMove: PointerEvent | null = null;
     let moveFrame = 0;
@@ -242,6 +324,26 @@ export function useCanvasControls(
 
     const onPointerDown = (event: PointerEvent): void => {
       refreshRect();
+      if (event.pointerType === 'touch') {
+        touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        try {
+          element.setPointerCapture(event.pointerId);
+        } catch {
+          // A synthetic event in a test, or a pointer already gone.
+        }
+        if (touches.size === 2) {
+          // The second finger: from here on this is navigation, not drawing.
+          if (latest.current.navigation !== false) beginPinch();
+          else swallowTouches = true;
+          event.preventDefault();
+          return;
+        }
+        if (touches.size > 2 || swallowTouches) {
+          event.preventDefault();
+          return;
+        }
+        // One finger: an ordinary pointer, and the tools see it.
+      }
       if (isNavigationStart(event)) {
         navPointerId = event.pointerId;
         lastNavX = event.clientX;
@@ -257,6 +359,14 @@ export function useCanvasControls(
     };
 
     const onPointerMove = (event: PointerEvent): void => {
+      if (event.pointerType === 'touch' && touches.has(event.pointerId)) {
+        touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (pinch !== null) {
+          movePinch();
+          return;
+        }
+        if (swallowTouches) return;
+      }
       if (navPointerId === event.pointerId && navigating) {
         const dx = event.clientX - lastNavX;
         const dy = event.clientY - lastNavY;
@@ -273,6 +383,22 @@ export function useCanvasControls(
     };
 
     const onPointerUp = (event: PointerEvent): void => {
+      if (event.pointerType === 'touch') {
+        touches.delete(event.pointerId);
+        if (element.hasPointerCapture(event.pointerId)) {
+          element.releasePointerCapture(event.pointerId);
+        }
+        if (pinch !== null && touches.size < 2) endPinch();
+        if (swallowTouches) {
+          // The gesture was navigation; nothing about it reaches the tools,
+          // and the tool's own press bookkeeping is dropped with it.
+          if (touches.size === 0) {
+            swallowTouches = false;
+            downPixel = null;
+          }
+          return;
+        }
+      }
       if (navPointerId === event.pointerId) {
         navPointerId = null;
         setNavigating(false);
@@ -322,7 +448,33 @@ export function useCanvasControls(
       // trackpad means the drawing zooms *and* the whole app slides.
       event.preventDefault();
       refreshRect();
-      viewport.wheel(event.deltaY, event.deltaMode, pixelOf(event));
+      const gesture = classifyWheel({
+        deltaX: event.deltaX,
+        deltaY: event.deltaY,
+        deltaMode: event.deltaMode,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+        wheelDeltaY: (event as WheelEvent & { wheelDeltaY?: number }).wheelDeltaY,
+      });
+      if (gesture.kind === 'pan') {
+        panViewport(core, gesture.dxPx, gesture.dyPx, true);
+        return;
+      }
+      if (!gesture.pinch) {
+        viewport.wheel(gesture.deltaY, gesture.deltaMode, pixelOf(event));
+        return;
+      }
+      // A pinch: the wheel's per-unit rate would need hundreds of events.
+      const factor = pinchZoomFactor(gesture.deltaY);
+      if (viewport.mode === '2d') {
+        viewport.zoomAtPixel(pixelOf(event), factor);
+      } else {
+        viewport.setOrbit({
+          ...viewport.orbit,
+          distanceMm: Math.max(500, viewport.orbit.distanceMm * factor),
+        });
+      }
     };
 
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -365,6 +517,7 @@ export function useCanvasControls(
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       element.style.cursor = '';
+      element.style.touchAction = previousTouchAction;
     };
     // `options` is read through `latest`; only the element and the on/off
     // switch may re-attach listeners.
