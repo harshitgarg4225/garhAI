@@ -32,13 +32,17 @@ export { AreaReadout } from './AreaReadout';
 export type { AreaReadoutProps } from './AreaReadout';
 
 export {
+  EDGE_ROLE_LABELS,
   checkBoundary,
+  defaultEdgeLengthMode,
   edgeFacing,
   edgeLengthMm,
   edgeLengthsMm,
   edgeMidpoint,
+  edgeRoles,
   frontEdgeIndex,
   insertVertexOnEdge,
+  isRectilinear,
   moveVertex,
   rectBoundaryMm,
   remapRoadsAfterInsert,
@@ -46,7 +50,32 @@ export {
   removeVertex,
   setEdgeLengthMm,
 } from './geometry';
-export type { BoundaryCheck, PolygonEditResult } from './geometry';
+export type {
+  BoundaryCheck,
+  EdgeLengthMode,
+  EdgeLengthResult,
+  EdgeRole,
+  EdgeSideEffect,
+  PolygonEditResult,
+} from './geometry';
+
+export {
+  TRAVERSE_MAX_MISCLOSURE_RATIO,
+  cornerLabel,
+  edgeBearingDeg,
+  formatBearingDms,
+  parseBearingDeg,
+  ringFromSidesAndDiagonals,
+  ringFromTraverse,
+} from './deed';
+export type {
+  DeedResult,
+  DiagonalMm,
+  SideCheck,
+  TraverseClosure,
+  TraverseLeg,
+  TraverseResult,
+} from './deed';
 
 export {
   boundaryGroupOps,
@@ -60,6 +89,7 @@ export type { BoundarySource } from './ops';
 
 export {
   CITY_PACK_OPTIONS,
+  LEGACY_SIDE_OVERRIDE_KEY,
   REG_VALUE_KEYS,
   REG_VALUE_META,
   buildRegFacts,

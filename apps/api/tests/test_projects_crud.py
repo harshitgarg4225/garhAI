@@ -222,6 +222,70 @@ async def test_plot_and_brief_round_trip(
     assert any(t.startswith("brief.") for t in op_types), op_types
 
 
+async def test_plot_mirror_keeps_road_names_and_the_ops_profile_shape(
+    client: Any, api: str, firm_a: Any, project_a: Any
+) -> None:
+    """The ``plots`` projection must carry what the op log carries — nothing less, and
+    in the same shape. Before this test the form dropped the road's name on the way
+    into the op AND the mirror, and stored whatever profile JSON was posted verbatim
+    while the op normalised it to ``{cityPack, overrides}``; the site plan and the
+    compliance report then read two different plots."""
+    response = await client.put(
+        "%s/projects/%s/plot" % (api, project_a.id),
+        json={
+            "boundary": [
+                {"x": 0, "y": 0},
+                {"x": 9144, "y": 0},
+                {"x": 9144, "y": 12192},
+                {"x": 0, "y": 12192},
+            ],
+            "roads": [
+                {"edgeIndex": 0, "widthMm": 9000, "name": "  12th Cross  "},
+                {"edgeIndex": 1, "widthMm": 6000},
+            ],
+            # Posted WITHOUT the {cityPack, overrides} envelope — the loose form.
+            "regProfile": {"values": {"setbackFrontMm": 1200}},
+        },
+        headers=firm_a.headers,
+    )
+    assert response.status_code == 200, response.text
+    saved = response.json()
+
+    # Mirror: the name survives (trimmed), the nameless road reads null, never absent.
+    assert saved["roads"] == [
+        {"edgeIndex": 0, "widthMm": 9000, "name": "12th Cross"},
+        {"edgeIndex": 1, "widthMm": 6000, "name": None},
+    ]
+    # Mirror: normalised to the op's shape, city pack defaulted from the project.
+    assert set(saved["regProfile"]) == {"cityPack", "overrides"}
+    assert saved["regProfile"]["overrides"] == {"values": {"setbackFrontMm": 1200}}
+
+    # The op log carries the same name and the same profile.
+    log = await client.get(
+        "%s/projects/%s/ops?since=-1&limit=100" % (api, project_a.id), headers=firm_a.headers
+    )
+    ops = log.json()["ops"]
+    road_ops = [op["payload"] for op in ops if op["type"] == "plot.set_road"]
+    assert {"edgeIndex": 0, "widthMm": 9000, "name": "12th Cross"} in road_ops
+    assert {"edgeIndex": 1, "widthMm": 6000, "name": None} in road_ops
+    profile_ops = [op["payload"] for op in ops if op["type"] == "plot.set_reg_profile"]
+    assert profile_ops[-1] == saved["regProfile"]
+
+    # And GET /plot serves the mirror, not a re-read of the request.
+    fetched = await client.get("%s/projects/%s/plot" % (api, project_a.id), headers=firm_a.headers)
+    assert fetched.status_code == 200, fetched.text
+    assert fetched.json()["roads"] == saved["roads"]
+    assert fetched.json()["regProfile"] == saved["regProfile"]
+
+    # Negative control on the name: 121 characters is refused at the boundary.
+    too_long = await client.put(
+        "%s/projects/%s/plot" % (api, project_a.id),
+        json={"roads": [{"edgeIndex": 0, "widthMm": 9000, "name": "x" * 121}]},
+        headers=firm_a.headers,
+    )
+    assert too_long.status_code == 422, too_long.text
+
+
 async def test_plot_rejects_a_float_length(
     client: Any, api: str, firm_a: Any, project_a: Any
 ) -> None:

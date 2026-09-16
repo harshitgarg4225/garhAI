@@ -221,13 +221,22 @@ export function whenMatches(when: PackRule['when'], facts: RegFacts): boolean {
 export const REG_VALUE_KEYS = [
   'setbackFrontMm',
   'setbackRearMm',
-  'setbackSideMm',
+  'setbackSideAMm',
+  'setbackSideBMm',
   'farX100',
   'coveragePct',
   'heightMaxMm',
   'floorsMax',
 ] as const;
 export type RegValueKey = (typeof REG_VALUE_KEYS)[number];
+
+/**
+ * Documents written before the sides were split carry ONE `setbackSideMm`.
+ * The engine (`garh_rules.checks.LEGACY_SIDE_OVERRIDE_KEY`) still applies it
+ * to either side whose specific key is absent; this module reads it the same
+ * way and retires it the first time either side is written.
+ */
+export const LEGACY_SIDE_OVERRIDE_KEY = 'setbackSideMm';
 
 export interface RegValueMeta {
   readonly label: string;
@@ -238,7 +247,8 @@ export interface RegValueMeta {
 export const REG_VALUE_META: Readonly<Record<RegValueKey, RegValueMeta>> = {
   setbackFrontMm: { label: 'Front setback', kind: 'length' },
   setbackRearMm: { label: 'Rear setback', kind: 'length' },
-  setbackSideMm: { label: 'Side setback', kind: 'length' },
+  setbackSideAMm: { label: 'Side A (left) setback', kind: 'length' },
+  setbackSideBMm: { label: 'Side B (right) setback', kind: 'length' },
   farX100: { label: 'FAR', kind: 'ratio-x100' },
   coveragePct: { label: 'Coverage', kind: 'percent' },
   heightMaxMm: { label: 'Height cap', kind: 'length' },
@@ -359,9 +369,15 @@ function ruleValueKeys(rule: PackRule): { key: RegValueKey; value: number }[] {
       if (typeof check.valueMm !== 'number') return [];
       if (check.edge === 'front') return [{ key: 'setbackFrontMm', value: check.valueMm }];
       if (check.edge === 'rear') return [{ key: 'setbackRearMm', value: check.valueMm }];
-      if (check.edge === 'sides' || check.edge === 'side-a' || check.edge === 'side-b') {
-        return [{ key: 'setbackSideMm', value: check.valueMm }];
+      // A pack rule on `sides` binds both; `side-a` / `side-b` bind their own.
+      if (check.edge === 'sides') {
+        return [
+          { key: 'setbackSideAMm', value: check.valueMm },
+          { key: 'setbackSideBMm', value: check.valueMm },
+        ];
       }
+      if (check.edge === 'side-a') return [{ key: 'setbackSideAMm', value: check.valueMm }];
+      if (check.edge === 'side-b') return [{ key: 'setbackSideBMm', value: check.valueMm }];
       return [];
     }
     case 'far_max':
@@ -443,7 +459,11 @@ export function parseRegScalar(key: RegValueKey, raw: string): number | null {
 const isRegValueKey = (k: string): k is RegValueKey =>
   (REG_VALUE_KEYS as readonly string[]).includes(k);
 
-/** The `values` map out of an overrides object; ignores anything malformed. */
+/**
+ * The `values` map out of an overrides object; ignores anything malformed.
+ * A legacy single `setbackSideMm` reads as BOTH sides wherever a specific
+ * side key is absent — exactly how the engine applies it.
+ */
 export function readValueOverrides(overrides: JsonObject): Partial<Record<RegValueKey, number>> {
   const values = overrides.values;
   if (typeof values !== 'object' || values === null || Array.isArray(values)) return {};
@@ -451,20 +471,27 @@ export function readValueOverrides(overrides: JsonObject): Partial<Record<RegVal
   for (const [k, v] of Object.entries(values)) {
     if (isRegValueKey(k) && typeof v === 'number' && Number.isSafeInteger(v)) out[k] = v;
   }
+  const legacy = values[LEGACY_SIDE_OVERRIDE_KEY];
+  if (typeof legacy === 'number' && Number.isSafeInteger(legacy)) {
+    if (out.setbackSideAMm === undefined) out.setbackSideAMm = legacy;
+    if (out.setbackSideBMm === undefined) out.setbackSideBMm = legacy;
+  }
   return out;
 }
 
 /**
  * A new overrides object with `key` set to `value` (or cleared with null).
  * Everything else on the object — including any future rule-acknowledgement
- * keys — is carried through untouched.
+ * keys — is carried through untouched. A legacy `setbackSideMm` is expanded
+ * into the two side keys on the way through (so clearing one side cannot be
+ * undone by a value the panel no longer shows) and dropped.
  */
 export function withValueOverride(
   overrides: JsonObject,
   key: RegValueKey,
   value: number | null,
 ): JsonObject {
-  const current = readValueOverrides(overrides);
+  const current = readValueOverrides(overrides); // legacy already expanded
   const nextValues: Record<string, number> = {};
   for (const [k, v] of Object.entries(current)) {
     if (k !== key && v !== undefined) nextValues[k] = v;

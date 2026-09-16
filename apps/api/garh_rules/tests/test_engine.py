@@ -332,6 +332,48 @@ class TestOverrides:
         assert row is not None and row.status == PASS
         assert row.limit == 1000
 
+    def test_each_side_has_its_own_override_key_and_the_legacy_key_covers_both(self) -> None:
+        """Bye-laws distinguish side-a from side-b (a corner plot's road side is not its
+        neighbour side), so the two keys must govern DIFFERENT edges — and a document
+        written before the split, carrying one ``setbackSideMm``, must still mean what
+        it meant. The default context provides 1500 mm on both sides; blr's pack value
+        for a plot this size is 1000 mm (pass)."""
+        rule_id = "blr.setback.side.plot.le120"
+        clean = report_for(packs=("blr",), profile={"cityPack": "blr"})
+        row = clean.rule(rule_id)
+        assert row is not None and row.status == PASS and row.limit == 1000
+
+        def status_with(values: dict[str, int]) -> tuple[str, list[str]]:
+            report = report_for(
+                packs=("blr",),
+                profile={"cityPack": "blr", "overrides": {"values": values}},
+            )
+            found = report.rule(rule_id)
+            assert found is not None
+            return found.status, sorted(str(e) for e in found.elements)
+
+        # Side A demanded 1600 (> the 1500 provided): only side-a fails.
+        status, offenders = status_with({"setbackSideAMm": 1600})
+        assert status == FAIL
+        assert offenders and all("side-a" in e for e in offenders), offenders
+        assert not any("side-b" in e for e in offenders), "side B must be untouched"
+
+        # Negative control: side B relaxed to 1400 flips nothing — a B key never
+        # reaches an A edge, and vice versa.
+        assert status_with({"setbackSideBMm": 1400})[0] == PASS
+        status, offenders = status_with({"setbackSideBMm": 1600})
+        assert status == FAIL and all("side-b" in e for e in offenders), offenders
+
+        # Legacy single key: governs BOTH sides.
+        status, offenders = status_with({"setbackSideMm": 1600})
+        assert status == FAIL
+        assert any("side-a" in e for e in offenders) and any("side-b" in e for e in offenders)
+
+        # A specific key beats the legacy one on its own side only.
+        status, offenders = status_with({"setbackSideMm": 1600, "setbackSideAMm": 1200})
+        assert status == FAIL
+        assert all("side-b" in e for e in offenders), offenders
+
 
 # ---------------------------------------------------------------------------
 # Chip text (§15)

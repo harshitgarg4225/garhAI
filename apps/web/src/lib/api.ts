@@ -1653,7 +1653,7 @@ export function createApiClient(client: HttpClient = http) {
         input: {
           boundary?: { x: number; y: number }[];
           northDeg?: number;
-          roads?: { edgeIndex: number; widthMm: number | null }[];
+          roads?: { edgeIndex: number; widthMm: number | null; name?: string | null }[];
           regProfile?: Record<string, unknown>;
           source?: string;
         },

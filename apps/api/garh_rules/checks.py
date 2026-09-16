@@ -67,7 +67,9 @@ __all__ = [
     "UNION_ACTUAL_CHECKS",
     "VALUE_OVERRIDE_KEYS",
     "EDGE_ROLE_TO_OVERRIDE_KEY",
+    "LEGACY_SIDE_OVERRIDE_KEY",
     "AppliedValueOverride",
+    "setback_override_key_for",
     "scope_of",
     "result_unit_of",
     "run_check",
@@ -448,12 +450,14 @@ def check_custom(check: Check, instance: Instance, env: CheckEnv) -> Outcome:
 #   UI can show "1.2 m (pack value 1.5 m, overridden)" — golden rule 4: a seeded
 #   value the architect replaced must not look like it came from the bye-law.
 
-#: Override key -> the check type whose limit it substitutes into. The three setback
-#: keys share ``setback_min`` and are selected per edge instance by its role.
+#: Override key -> the check type whose limit it substitutes into. The setback keys
+#: share ``setback_min`` and are selected per edge instance by its role.
 VALUE_OVERRIDE_KEYS: Mapping[str, str] = {
     "setbackFrontMm": "setback_min",
     "setbackRearMm": "setback_min",
-    "setbackSideMm": "setback_min",
+    "setbackSideAMm": "setback_min",
+    "setbackSideBMm": "setback_min",
+    "setbackSideMm": "setback_min",  # legacy: one value for both sides
     "farX100": "far_max",
     "coveragePct": "coverage_max",
     "heightMaxMm": "height_max",
@@ -461,13 +465,32 @@ VALUE_OVERRIDE_KEYS: Mapping[str, str] = {
 }
 
 #: Plot-edge role -> the setback override key that governs it. ``other`` edges have
-#: no override key — the panel exposes front/rear/side only.
+#: no override key. Bye-laws (and the packs' ``edge`` selector) distinguish side-a
+#: from side-b — a corner plot's road side and its neighbour side are not the same
+#: number — so each side has its own key; the plot panel writes those two.
 EDGE_ROLE_TO_OVERRIDE_KEY: Mapping[str, str] = {
     "front": "setbackFrontMm",
     "rear": "setbackRearMm",
-    "side-a": "setbackSideMm",
-    "side-b": "setbackSideMm",
+    "side-a": "setbackSideAMm",
+    "side-b": "setbackSideBMm",
 }
+
+#: Documents written before the sides were split carry one ``setbackSideMm``. It
+#: still governs EITHER side whose specific key is absent, so an old override keeps
+#: meaning what it meant. A specific key always wins over it.
+LEGACY_SIDE_OVERRIDE_KEY = "setbackSideMm"
+
+
+def setback_override_key_for(role: str, value_overrides: Mapping[str, int]) -> str | None:
+    """The override key that applies to an edge of ``role``, or ``None``."""
+    key = EDGE_ROLE_TO_OVERRIDE_KEY.get(role)
+    if key is None:
+        return None
+    if key in value_overrides:
+        return key
+    if role in ("side-a", "side-b") and LEGACY_SIDE_OVERRIDE_KEY in value_overrides:
+        return LEGACY_SIDE_OVERRIDE_KEY
+    return None
 
 
 @dataclass(frozen=True)
@@ -493,8 +516,8 @@ def substitute_value_override(
 
     if check.type == "setback_min" and instance.kind == "edge":
         edge: PlotEdge = instance.payload
-        key = EDGE_ROLE_TO_OVERRIDE_KEY.get(edge.role)
-        if key is None or key not in value_overrides:
+        key = setback_override_key_for(edge.role, value_overrides)
+        if key is None:
             return (check, None)
         value = value_overrides[key]
         params = dict(check.params)

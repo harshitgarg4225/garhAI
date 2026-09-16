@@ -74,10 +74,12 @@ const POLL_DEADLINE_MS = 90_000;
 
 /** Human copy for the worker's `skipped` counters. Unknown keys pass through. */
 const SKIPPED_LABELS: Readonly<Record<string, string>> = {
-  openPolylines: 'open polylines (a boundary must be closed)',
+  openPolylines: 'open polylines (tried as sides of a boundary)',
+  openChains: 'line chains that did not close',
   overVertexCap: 'polylines with too many vertices',
   degenerate: 'degenerate shapes',
-  unsupported: 'unsupported entities',
+  unsupported: 'unsupported geometry (splines, ellipses, circles, blocks, hatches)',
+  annotations: 'labels, dimensions and points (never geometry)',
   polylinesOverCap: 'polylines beyond the per-layer cap',
   layersOverCap: 'layers beyond the cap',
 };
@@ -246,7 +248,7 @@ export function DxfImportDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Import a DXF boundary"
-      description="Export the plot outline from AutoCAD or any CAD tool as DXF (R12 or newer); we read the closed polylines and you pick the one that is the boundary."
+      description="Export the plot outline from AutoCAD or any CAD tool as DXF (R12 or newer); we read closed polylines and chain LINE/ARC survey drawings end-to-end, and you pick the ring that is the boundary."
       size="lg"
       dismissOnBackdrop={stage.phase !== 'review'}
       footer={
@@ -410,6 +412,8 @@ export function DxfImportDialog({
             </fieldset>
           )}
 
+          <AssembledNote result={stage.result} />
+          <OpenChainsNote result={stage.result} />
           <SkippedNote skipped={stage.result.skipped} />
         </div>
       ) : null}
@@ -454,6 +458,61 @@ function SkippedNote({
     <p className="text-2xs leading-4 text-ink-subtle">
       Skipped while reading: {parts.join('; ')}. Skipped entities are never imported silently.
     </p>
+  );
+}
+
+/**
+ * A survey drawn as LINE/ARC entities (the Total-Station export) arrives as
+ * pieces; the worker chained them. Say so, so an architect comparing the
+ * picker to the CAD file knows why one ring stands where five lines were.
+ */
+function AssembledNote({ result }: { result: DxfImportResult }): JSX.Element | null {
+  const a = result.assembled;
+  if (a === null || a.rings === 0) return null;
+  const pieces: string[] = [];
+  if (a.lines > 0) pieces.push(`${a.lines} line${a.lines === 1 ? '' : 's'}`);
+  if (a.arcs > 0) pieces.push(`${a.arcs} arc${a.arcs === 1 ? '' : 's'}`);
+  if (a.openPolylines > 0) {
+    pieces.push(`${a.openPolylines} open polyline${a.openPolylines === 1 ? '' : 's'}`);
+  }
+  return (
+    <p className="text-2xs leading-4 text-ink-subtle" data-testid="dxf-assembled">
+      {a.rings === 1 ? 'One boundary was' : `${a.rings} boundaries were`} assembled end-to-end from{' '}
+      {pieces.join(' and ')} (ends within 25 mm are joined; an arc becomes chords no more than 5 mm
+      off the curve).
+    </p>
+  );
+}
+
+/**
+ * The chains that did NOT close, each with its gap and both free ends in mm —
+ * named by position, because "not closed" sends an architect hunting through
+ * a survey drawing for a 340 mm hole.
+ */
+function OpenChainsNote({ result }: { result: DxfImportResult }): JSX.Element | null {
+  if (result.openChains.length === 0) return null;
+  return (
+    <div
+      className="rounded-md border border-warn-line bg-warn-soft px-3 py-2 text-2xs leading-4 text-warn-ink"
+      data-testid="dxf-open-chains"
+    >
+      <p className="font-medium">
+        {result.openChains.length === 1 ? 'A chain of lines' : `${result.openChains.length} chains`}{' '}
+        did not close and {result.openChains.length === 1 ? 'was' : 'were'} not offered as a
+        boundary:
+      </p>
+      <ul className="mt-0.5 list-disc pl-4 garh-nums">
+        {result.openChains.map((c, i) => (
+          <li key={`${c.layer}-${String(i)}`}>
+            {c.layer}: {c.segments} segment{c.segments === 1 ? '' : 's'}, a {c.gapMm} mm gap between
+            ({c.from.x}, {c.from.y}) and ({c.to.x}, {c.to.y}) mm.
+          </li>
+        ))}
+      </ul>
+      <p className="mt-0.5">
+        If one of these is the plot, join those two ends in CAD and export again.
+      </p>
+    </div>
   );
 }
 

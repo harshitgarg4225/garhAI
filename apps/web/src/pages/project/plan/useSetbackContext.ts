@@ -37,9 +37,10 @@ import { offsetPolygon, polygonAreaMm2, type JsonObject, type Polygon } from '@g
 
 import {
   buildRegFacts,
-  frontEdgeIndex,
+  edgeRoles,
   resolveRegValues,
   useRulepack,
+  type EdgeRole,
   type RulepackDoc,
 } from '../../../features/plot';
 import { useModelStore } from '../../../stores/model';
@@ -48,29 +49,37 @@ import type { SetbackContext } from '../../../features/canvas/tools';
 /**
  * Which setback applies to each edge of the boundary.
  *
- * The front is the edge with the widest road (the same rule `buildRegFacts`
- * uses to pick the road width that binds). The rear is the edge "opposite" it —
- * for the rect/L/T plots the MVP supports, that is `front + half the edge
- * count`, which is exact for a rectangle and a defensible approximation for the
- * others. Everything else is a side.
+ * Edge roles come from `edgeRoles` — the SAME geometric classification the
+ * rules engine's projection uses (`compliance.py::_edge_roles`, shared
+ * fixture), so the envelope drawn here and the setback rows on the compliance
+ * tab can never disagree about which edge is the rear or which side is A.
  *
  * Reported rather than hidden: when there is no road at all there is no front,
- * so every edge gets the side value and the caller sees the wider envelope that
- * implies — an honest "we do not know which way this plot faces".
+ * every edge is `other`, and every edge gets the larger of the two side values
+ * — the caller sees the wider envelope that implies, an honest "we do not know
+ * which way this plot faces".
  */
 function edgeDistances(
-  edgeCount: number,
-  frontIndex: number | null,
+  roles: readonly EdgeRole[],
   front: number,
   rear: number,
-  side: number,
+  sideA: number,
+  sideB: number,
 ): number[] {
-  const out = new Array<number>(edgeCount).fill(side);
-  if (frontIndex === null) return out;
-  out[frontIndex % edgeCount] = front;
-  const rearIndex = (frontIndex + Math.floor(edgeCount / 2)) % edgeCount;
-  if (rearIndex !== frontIndex % edgeCount) out[rearIndex] = rear;
-  return out;
+  return roles.map((role) => {
+    switch (role) {
+      case 'front':
+        return front;
+      case 'rear':
+        return rear;
+      case 'side-a':
+        return sideA;
+      case 'side-b':
+        return sideB;
+      case 'other':
+        return Math.max(sideA, sideB);
+    }
+  });
 }
 
 function envelopeFor(
@@ -86,19 +95,20 @@ function envelopeFor(
 
   const front = resolved.values.setbackFrontMm;
   const rear = resolved.values.setbackRearMm;
-  const side = resolved.values.setbackSideMm;
-  // All three or nothing: a "buildable envelope" derived from one of the three
-  // is not an envelope, it is a guess wearing an envelope's name.
-  if (front === undefined || rear === undefined || side === undefined) {
+  const sideA = resolved.values.setbackSideAMm;
+  const sideB = resolved.values.setbackSideBMm;
+  // All four or nothing: a "buildable envelope" derived from some of them is
+  // not an envelope, it is a guess wearing an envelope's name.
+  if (front === undefined || rear === undefined || sideA === undefined || sideB === undefined) {
     return { envelope: null, cite: null };
   }
 
   const distances = edgeDistances(
-    boundary.length,
-    frontEdgeIndex(roads),
+    edgeRoles(boundary, roads),
     front.value,
     rear.value,
-    side.value,
+    sideA.value,
+    sideB.value,
   );
 
   const envelope = offsetPolygon(boundary, distances);

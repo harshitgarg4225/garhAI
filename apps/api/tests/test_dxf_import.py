@@ -90,6 +90,99 @@ def test_normalise_ring_rejects_degenerate() -> None:
 
 
 # ---------------------------------------------------------------------------
+# LINE / ARC chaining (pure, always runs) — the Total-Station boundary
+# ---------------------------------------------------------------------------
+
+#: The survey fixture's four sides in mm, plot-local. Not a rectangle.
+SURVEY_A = (0, 0)
+SURVEY_B = (12000, 0)
+SURVEY_C = (10000, 9000)
+SURVEY_D = (2000, 9000)
+
+
+def _survey_lines(short_by_mm: int = 3) -> list[list[tuple[int, int]]]:
+    """Four LINEs as a surveyor's export lays them down: one drawn backwards, and
+    the third stopping ``short_by_mm`` east of corner D."""
+    return [
+        [SURVEY_A, SURVEY_B],
+        [SURVEY_C, SURVEY_B],  # reversed
+        [SURVEY_C, (SURVEY_D[0] + short_by_mm, SURVEY_D[1])],
+        [SURVEY_D, SURVEY_A],
+    ]
+
+
+def test_chain_segments_closes_lines_drawn_in_any_direction_within_tolerance() -> None:
+    rings, open_chains = dxf_import.chain_segments(_survey_lines(3), 25)
+    assert open_chains == []
+    assert len(rings) == 1
+    ring = rings[0]
+    assert len(ring) == 4
+    # The joined corner keeps the coordinates of the end that came FIRST in the
+    # file (the 3 mm-short end here) — deterministic, and no invented point.
+    assert ring == [SURVEY_A, SURVEY_B, SURVEY_C, (2003, 9000)]
+    canonical = dxf_import.normalise_ring(ring)
+    assert canonical is not None
+    assert canonical["closedArea"] == (12000 + 7997) * 9000 // 2
+
+
+def test_chain_segments_reports_the_gap_it_will_not_bridge() -> None:
+    """NEGATIVE CONTROL: a 340 mm hole is not a boundary. The chain is reported with
+    its gap and both free ends, and nothing is closed on the architect's behalf."""
+    lines = _survey_lines(0)
+    lines[3] = [SURVEY_D, (0, 340)]  # the last line stops 340 mm short of A
+    rings, open_chains = dxf_import.chain_segments(lines, 25)
+    assert rings == []
+    assert len(open_chains) == 1
+    chain = open_chains[0]
+    assert chain["gapMm"] == 340
+    assert chain["segments"] == 4
+    assert {tuple(chain["from"].values()), tuple(chain["to"].values())} == {(0, 0), (0, 340)}
+    # Each leg rounded: 12000, √(2000²+9000²)=9220, 8000, √(2000²+8660²)=8888.
+    assert chain["lengthMm"] == 12000 + 9220 + 8000 + 8888
+
+
+def test_chain_segments_tolerance_is_exact_at_the_boundary() -> None:
+    """25 mm joins, 26 mm does not — the tolerance is a real line, not a vibe."""
+    closes = _survey_lines(25)
+    rings, open_chains = dxf_import.chain_segments(closes, 25)
+    assert len(rings) == 1 and open_chains == []
+    does_not = _survey_lines(26)
+    rings, open_chains = dxf_import.chain_segments(does_not, 25)
+    assert rings == [] and len(open_chains) == 1 and open_chains[0]["gapMm"] == 26
+
+
+def test_chain_segments_finds_two_rings_and_keeps_an_arc_tessellation() -> None:
+    square = [[(0, 0), (10, 0)], [(10, 0), (10, 10)], [(10, 10), (0, 10)], [(0, 10), (0, 0)]]
+    far = [[(100, 100), (120, 100)], [(120, 100), (120, 120)], [(120, 120), (100, 120)]]
+    arc_back = [[(100, 120), (95, 110), (100, 100)]]  # a tessellated ARC closes the second
+    rings, open_chains = dxf_import.chain_segments(square + far + arc_back, 1)
+    assert open_chains == []
+    assert len(rings) == 2
+    assert rings[0] == [(0, 0), (10, 0), (10, 10), (0, 10)]
+    assert rings[1] == [(100, 100), (120, 100), (120, 120), (100, 120), (95, 110)]
+
+
+def test_chain_segments_is_deterministic_under_reordering() -> None:
+    lines = _survey_lines(3)
+    forward = dxf_import.chain_segments(lines, 25)[0]
+    backward = dxf_import.chain_segments(list(reversed(lines)), 25)[0]
+    assert len(forward) == len(backward) == 1
+    a = dxf_import.normalise_ring(forward[0])
+    b = dxf_import.normalise_ring(backward[0])
+    assert a is not None and b is not None
+    # Same shape either way round the file (the short end's coordinate depends on
+    # which segment came first, so compare at the tolerance, not byte-for-byte).
+    assert a["closedArea"] == pytest.approx(b["closedArea"], abs=3 * 9000)
+    assert len(a["points"]) == len(b["points"]) == 4
+
+
+def test_chain_segments_ignores_zero_length_and_single_points() -> None:
+    lines = [*_survey_lines(0), [(5, 5), (5, 5)], [(7, 7)]]
+    rings, open_chains = dxf_import.chain_segments(lines, 25)
+    assert len(rings) == 1 and open_chains == []
+
+
+# ---------------------------------------------------------------------------
 # Fixture parsing (needs ezdxf; runs the real subprocess boundary)
 # ---------------------------------------------------------------------------
 
@@ -137,6 +230,92 @@ def test_parse_metres_lwpolyline_cw_is_normalised_ccw() -> None:
     assert ring["closedArea"] == RECT_AREA
     assert result["units"]["insunits"] == 6
     assert result["units"]["mmPerUnit"] == "1000"
+
+
+def test_parse_total_station_lines_fixture_assembles_the_boundary() -> None:
+    """A survey drawn as LINE entities (metres, 3-decimal precision, one line reversed,
+    one 3 mm short) used to import NOTHING — ``continue`` on every non-polyline. Now
+    it is one ring, and everything else in the file is counted, not swallowed."""
+    result = _parse_fixture("plot_survey_lines.dxf")
+    layers = {layer["name"]: layer for layer in result["layers"]}
+    assert len(layers["PLOT_BOUNDARY"]["polylines"]) == 1
+    ring = layers["PLOT_BOUNDARY"]["polylines"][0]
+    # Plot-local (bbox at the origin), CCW, integer mm; the corner joined across the
+    # 3 mm gap keeps the coordinate of the end that came first in the file.
+    assert _ring(ring) == [(0, 0), (12000, 0), (10000, 9000), (2003, 9000)]
+    assert ring["closedArea"] == (12000 + 7997) * 9000 // 2
+    assert result["units"] == {"insunits": 6, "mmPerUnit": "1000", "assumed": False}
+    assert result["assembled"] == {"lines": 4, "arcs": 0, "openPolylines": 0, "rings": 1}
+    # Honest counters: the SPLINE contour is unsupported geometry; the 4 POINTs and
+    # 4 TEXT labels are annotations. Neither is silently dropped.
+    assert result["skipped"]["unsupported"] == 1
+    assert result["skipped"]["annotations"] == 8
+    assert result["skipped"]["openChains"] == 0
+    assert result["openChains"] == []
+    # The annotation layers still appear (empty) in the picker.
+    assert layers["STATIONS"]["polylines"] == []
+    assert layers["CONTOURS"]["polylines"] == []
+
+
+def test_parse_rounded_corner_fixture_tessellates_the_arc() -> None:
+    """Four LINEs and one ARC (R 2 m quarter circle at the NE corner of a 10 × 8 m
+    plot). The ring is the chord tessellation at ≤5 mm sagitta; its area is the
+    analytic 80 − (4 − π) m² to within the chords' inscribed loss."""
+    result = _parse_fixture("plot_rounded_corner.dxf")
+    layers = {layer["name"]: layer for layer in result["layers"]}
+    ring = layers["PLOT"]["polylines"][0]
+    points = _ring(ring)
+    assert points[:3] == [(0, 0), (10000, 0), (10000, 6000)]
+    assert (8000, 8000) in points and (0, 8000) in points
+    assert result["assembled"] == {"lines": 4, "arcs": 1, "openPolylines": 0, "rings": 1}
+    # Every point between (10000, 6000) and (8000, 8000) lies on the R 2000 arc
+    # about (8000, 6000), to the millimetre.
+    start = points.index((10000, 6000))
+    end = points.index((8000, 8000))
+    arc = points[start : end + 1]
+    assert len(arc) >= 6, "a 5 mm sagitta on R 2 m needs many more than 2 chords"
+    for x, y in arc:
+        r = ((x - 8000) ** 2 + (y - 6000) ** 2) ** 0.5
+        assert abs(r - 2000) <= 1, (x, y, r)
+    analytic = 80_000_000 - (4_000_000 - int(3.141592653589793 * 1_000_000))
+    assert 0 < analytic - ring["closedArea"] < analytic * 0.0005
+
+
+def test_parse_open_survey_fixture_fails_naming_the_gap() -> None:
+    """NEGATIVE CONTROL for the chaining: the same survey with its last line stopping
+    340 mm short must fail — with the layer, the gap and both ends in the drawing's
+    own units in the message the dialog shows verbatim — and NOT with the generic
+    'no closed boundary' that would send the architect hunting."""
+    pytest.importorskip("ezdxf")
+    data = (FIXTURES / "plot_survey_open.dxf").read_bytes()
+    with pytest.raises(dxf_import.DxfOpenBoundaryError) as excinfo:
+        dxf_import.parse_dxf_bytes(data, timeout_seconds=10, memory_limit_mb=512)
+    err = excinfo.value
+    assert err.code == "dxf_open_boundary"
+    assert not isinstance(err, dxf_import.DxfNoBoundaryError)
+    assert "PLOT_BOUNDARY" in err.message
+    assert "340 mm gap" in err.message
+    assert "(100, 200)" in err.message and "(100, 200.34)" in err.message  # metres, as drawn
+    assert "4 lines" in err.message
+    assert err.action is not None and "25 mm" in err.action
+    chain = err.context["openChain"]
+    assert chain["gapMm"] == 340 and chain["segments"] == 4
+    assert chain["from"] == {"x": 100_000, "y": 200_000}
+    assert chain["to"] == {"x": 100_000, "y": 200_340}
+
+
+def test_existing_polyline_fixtures_still_parse_identically() -> None:
+    """The chaining must not change what closed polylines produce. The open ROADS
+    polyline in the rect fixture is now ALSO reported as an open chain (it is one),
+    without becoming a candidate."""
+    result = _parse_fixture("plot_rect_mm.dxf")
+    assert result["assembled"] == {"lines": 0, "arcs": 0, "openPolylines": 1, "rings": 0}
+    assert result["skipped"]["openPolylines"] == 1
+    assert result["skipped"]["openChains"] == 1
+    assert result["openChains"][0]["layer"] == "ROADS"
+    layers = {layer["name"]: layer for layer in result["layers"]}
+    assert layers["ROADS"]["polylines"] == []
+    assert _ring(layers["PLOT"]["polylines"][0]) == RECT_RING
 
 
 def test_malformed_fixture_fails_with_typed_error() -> None:

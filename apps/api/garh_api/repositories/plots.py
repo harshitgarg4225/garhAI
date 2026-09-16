@@ -142,6 +142,9 @@ def _validate_roads(roads: Any) -> None:
         edge = road["edgeIndex"]
         if isinstance(edge, bool) or not isinstance(edge, int) or edge < 0:
             raise RepositoryUsageError("roads[%d].edgeIndex must be a non-negative int." % i)
+        name = road.get("name")
+        if name is not None and not isinstance(name, str):
+            raise RepositoryUsageError("roads[%d].name must be a string or null." % i)
         width = road.get("widthMm")
         if width is None:
             continue

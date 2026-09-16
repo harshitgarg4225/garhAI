@@ -25,10 +25,14 @@ supplies ``None``/empty rather than guessing — and the engine turns a null int
 Approximations, all deliberate and all visible in the report's ``notes``:
 
 1. **Edge roles** (``front``/``rear``/``side-a``/``side-b``). The model stores roads per
-   edge index but no role. Rule: the edge with the widest road is ``front``; on a ring
-   with an even vertex count the edge opposite it is ``rear``; the rest alternate
-   ``side-a``/``side-b``. With no roads at all every edge is ``other``, which makes
-   road-banded setback rules ``not_applicable`` rather than silently passing.
+   edge index but no role. Rule (:func:`_edge_roles`, mirrored byte-for-byte by the
+   plot editor): the edge with the widest road is ``front``; every edge whose outward
+   normal points within 45° of directly away from it is ``rear`` (so both back faces of
+   an L-plot are rear); the rest are ``side-a``/``side-b`` by which half of the plot
+   they sit in, measured along the front edge. Never by index parity — on a 6-edge
+   L-plot ``front + n/2`` picked an arbitrary edge. With no roads at all every edge is
+   ``other``, which makes road-banded setback rules ``not_applicable`` rather than
+   silently passing.
 2. **Provided setback** per edge = the smallest perpendicular distance from that edge to
    any *external* wall centreline on the ground storey, minus half that wall's
    thickness. Exact for rect/L/T plots with orthogonal walls, which is the MVP envelope
@@ -243,10 +247,25 @@ def _touches_ring(a: Point, b: Point, ring: Sequence[Point], tolerance_mm: int =
 # ---------------------------------------------------------------------------
 
 
-def _edge_roles(edge_count: int, road_widths: Mapping[int, int | None]) -> list[str]:
-    """Assign front/rear/side-a/side-b/other. See module docstring, approximation 1."""
+def _edge_roles(boundary: Sequence[Point], road_widths: Mapping[int, int | None]) -> list[str]:
+    """Assign front/rear/side-a/side-b/other from GEOMETRY. Module docstring, approx. 1.
+
+    MIRRORS ``edgeRoles`` in ``apps/web/src/features/plot/geometry.ts`` exactly —
+    ``fixtures/model/edge-roles.json`` is asserted by both — so the editor's role
+    chips and the engine's setback rows can never name a different edge "rear".
+    Pure integer arithmetic on both sides; nothing here rounds.
+
+    * front  = the edge with the widest road (ties → lowest index);
+    * rear   = every other edge whose outward normal points within 45° of directly
+      away from the front (an L-plot's two back faces are both rear);
+    * side-a / side-b = the rest, split by which half of the plot they sit in as seen
+      FROM THE ROAD looking into the plot: A is the left half, B the right (the
+      engine's copy calls them "left side" / "right side");
+    * with no road at all every edge is ``other``.
+    """
+    edge_count = len(boundary)
     roles = ["other"] * edge_count
-    if edge_count == 0:
+    if edge_count < 3:
         return roles
     roaded = [(i, w) for i, w in road_widths.items() if w is not None and 0 <= i < edge_count]
     if not roaded:
@@ -254,15 +273,49 @@ def _edge_roles(edge_count: int, road_widths: Mapping[int, int | None]) -> list[
     # Widest road wins; ties break on the lowest edge index so the result is stable.
     front = min(roaded, key=lambda item: (-(item[1] or 0), item[0]))[0]
     roles[front] = "front"
-    if edge_count % 2 == 0:
-        rear = (front + edge_count // 2) % edge_count
-        if rear != front:
-            roles[rear] = "rear"
-    side = 0
+
+    # CW rings can exist (a triangle's corner dragged across its opposite edge), so
+    # the outward normal is orientation-aware on both sides of the mirror.
+    twice_area = 0
     for i in range(edge_count):
-        if roles[i] == "other":
-            roles[i] = "side-a" if side % 2 == 0 else "side-b"
-            side += 1
+        x1, y1 = boundary[i]
+        x2, y2 = boundary[(i + 1) % edge_count]
+        twice_area += x1 * y2 - x2 * y1
+    orient = -1 if twice_area < 0 else 1
+
+    fa = boundary[front]
+    fb = boundary[(front + 1) % edge_count]
+    fdx = fb[0] - fa[0]
+    fdy = fb[1] - fa[1]
+    # Outward normal of a→b for a CCW ring is (dy, −dx).
+    fnx = orient * fdy
+    fny = orient * -fdx
+    f_len_sq = fdx * fdx + fdy * fdy
+    fmx2 = fa[0] + fb[0]  # doubled midpoint of the front edge
+    fmy2 = fa[1] + fb[1]
+    # "Left" for someone standing on the road looking into the plot: the inward
+    # direction (−f) rotated 90° anticlockwise = (f.y, −f.x). Orientation-free.
+    left_x = fny
+    left_y = -fnx
+
+    for i in range(edge_count):
+        if i == front:
+            continue
+        a = boundary[i]
+        b = boundary[(i + 1) % edge_count]
+        dx = b[0] - a[0]
+        dy = b[1] - a[1]
+        nx = orient * dy
+        ny = orient * -dx
+        dotp = nx * fnx + ny * fny
+        # cos θ ≤ −cos 45°  ⇔  2·dot² ≥ |n|²·|f|²  (with dot < 0)
+        if dotp < 0 and 2 * dotp * dotp >= (dx * dx + dy * dy) * f_len_sq:
+            roles[i] = "rear"
+            continue
+        # Which half of the plot the edge's midpoint sits in, left or right of the
+        # front edge's midpoint as seen from the road.
+        to_left = (a[0] + b[0] - fmx2) * left_x + (a[1] + b[1] - fmy2) * left_y
+        roles[i] = "side-a" if to_left > 0 else "side-b"
     return roles
 
 
@@ -324,7 +377,7 @@ def build_evaluation_context(
     ground_id = str(storeys[0].get("id")) if storeys else None
 
     # ---- plot -------------------------------------------------------------
-    roles = _edge_roles(len(boundary), road_widths)
+    roles = _edge_roles(boundary, road_widths)
     external_ground_walls = [
         w
         for w in walls
