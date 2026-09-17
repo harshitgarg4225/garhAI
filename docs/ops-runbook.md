@@ -139,14 +139,51 @@ line for production reads UNVERIFIED.
 
 ## Load smoke
 
+Two modes of one script. The read-only one is safe against any stack; the
+product-path one WRITES (firms, projects, sheet jobs, objects) and must only ever
+point at a scratch stack.
+
 ```bash
+# read-only: /healthz under 20 concurrent clients
 python scripts/load_smoke.py --base-url https://<api-domain> --clients 20 --seconds 15
+
+# the product path: sign up → project from a ready-made plan → compliance →
+# generate the sheet set (a real drawings job) → download a sheet; p50/p95 per step
+python scripts/load_smoke.py --journey --base-url http://127.0.0.1:8114 --clients 5 --iterations 6
 ```
 
-Read-only by design (cannot trip auth rate limits or write anything). Baseline
-on 2026-08-26, single local uvicorn worker: 1,280 req/s, 0 errors,
-p50 13 ms / p95 17 ms / p99 25 ms on `/healthz`. Re-run before and after infra
-changes; an order-of-magnitude p95 jump or any `/healthz` error is a finding.
+The journey needs `DEV_ECHO_OTP` on the target (the code comes back in the
+response), `TRUSTED_PROXY_HOPS=1` (each client sends its own `X-Forwarded-For`, so
+each gets its own per-IP auth budget), and a drawings worker on the same Redis.
+Each client is its own firm, so `--iterations` is bounded by
+`RATE_LIMIT_EXPORT_JOBS_PER_HOUR` (40).
+
+**Executed 2026-09-17 (this checkout; api on :8114 with ONE uvicorn worker, the
+drawings worker at concurrency 2, mock providers, the moto object store, a fresh
+scratch database; 4 shared CPUs):**
+
+```text
+journey    5 clients × 6 iterations, template blr-30x40-g1-3bhk, 40.2s wall
+signIn               5 ok     0 err   p50=  1122.5  p95=  1214.9  max=  1214.9  mean=   977.9 ms
+createProject       30 ok     0 err   p50=  1259.6  p95=  2015.5  max=  2450.7  mean=  1251.3 ms
+readCompliance      30 ok     0 err   p50=   400.0  p95=   920.8  max=   932.9  mean=   485.3 ms
+generateSheets      30 ok     0 err   p50=  4060.4  p95=  6593.1  max=  7262.3  mean=  4309.2 ms
+downloadSheet       30 ok     0 err   p50=   226.2  p95=   486.3  max=   614.4  mean=   248.0 ms
+
+read-only smoke: 8,655 requests (862 req/s, 20 clients, 10 s), 0 errors,
+p50 18.6 ms / p95 28.0 ms / p99 37.7 ms on /healthz
+```
+
+What the numbers say: creating a project from a ready-made plan is ~1.3 s at p50
+(70 ops folded and snapshotted server-side, plus the compliance report frozen with
+it); a nine-sheet set is drawn and stored in ~4 s at p50 / 6.6 s at p95 with two
+drawings slots serving five architects at once — queue wait is inside that number,
+by design. The first run of the journey found a real defect in the script itself
+(it expected a JSON link where the listing carries a signed `/downloads/<token>`
+that 307s to the store), which is exactly why the download is a step of its own.
+The 2026-08-26 baseline (1,280 req/s, p95 17 ms on `/healthz`, 1 worker) still
+stands as the read-only reference. Re-run both before and after infra changes; an
+order-of-magnitude p95 jump on any step, or any error, is a finding.
 
 ## Rate limits that will page you first
 
