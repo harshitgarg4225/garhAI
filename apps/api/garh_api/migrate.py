@@ -19,6 +19,13 @@ forbidden:
    seed by design (``SeedOptions.assert_allowed``); that refusal is logged and the
    boot continues, because the demo tenant is a dev convenience, not a dependency.
 
+The lock helpers themselves (:data:`MIGRATION_LOCK_KEY`, :func:`acquire_migration_lock`,
+:func:`release_migration_lock`) are defined in :mod:`garh_api.db`, the connection-plumbing
+module, and re-exported here. An advisory lock is a statement on a raw connection, not
+a table query, and ``db.py`` is the one non-repository module the tenancy audit
+(``tests/test_no_unscoped_queries.py``) lets run SQL; a raw ``execute`` in this module
+would be a §13 offender even though it never touches a tenant row.
+
 The Railway api service's start command is therefore::
 
     python -m garh_api.migrate --seed && exec uvicorn garh_api.main:app --host 0.0.0.0 --port $PORT --workers 4
@@ -35,51 +42,29 @@ import argparse
 import asyncio
 import os
 import sys
-import time
 from typing import Any
 
 import garh_api
+from garh_api.db import MIGRATION_LOCK_KEY, acquire_migration_lock, release_migration_lock
 from garh_api.logging import get_logger
 
 _log = get_logger(__name__)
 
-#: The advisory lock every schema upgrade takes. One key for the whole database:
-#: two different migration processes must serialise whatever they are, and a
-#: deployment has exactly one schema. Any 64-bit value works; this one is the
-#: digits of "garh" on a phone keypad, so it is recognisable in
-#: ``pg_locks.objid`` during an incident.
-MIGRATION_LOCK_KEY = 4274_0000_0001
+__all__ = [
+    "API_ROOT",
+    "MIGRATION_LOCK_KEY",
+    "acquire_migration_lock",
+    "release_migration_lock",
+    "alembic_config",
+    "upgrade_head",
+    "seed_if_missing",
+    "build_parser",
+    "main",
+]
 
 #: ``apps/api`` — where ``alembic.ini`` and ``migrations/`` live. Resolved from the
 #: package so this works from ``/app/apps/api`` (the image) and from the repo root.
 API_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(garh_api.__file__)))
-
-
-def acquire_migration_lock(connection: Any, *, key: int = MIGRATION_LOCK_KEY) -> None:
-    """Block until this connection holds the migration lock.
-
-    ``pg_advisory_lock`` (session-level, not ``_xact``): it outlives the transaction
-    Alembic runs the DDL in and is released when the connection closes, which is
-    also what happens when the process is killed. The ``commit()`` ends the
-    transaction SQLAlchemy autobegan for the SELECT so Alembic's own
-    ``begin_transaction`` starts clean; the lock is unaffected by that commit.
-    """
-    from sqlalchemy import text
-
-    started = time.monotonic()
-    connection.execute(text("SELECT pg_advisory_lock(:key)"), {"key": key})
-    connection.commit()
-    waited = time.monotonic() - started
-    if waited > 0.5:
-        _log.info("migrate.lock_waited", seconds=round(waited, 2))
-
-
-def release_migration_lock(connection: Any, *, key: int = MIGRATION_LOCK_KEY) -> None:
-    """Release explicitly — closing the connection does the same."""
-    from sqlalchemy import text
-
-    connection.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": key})
-    connection.commit()
 
 
 def alembic_config() -> Any:

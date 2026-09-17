@@ -18,11 +18,12 @@ Transaction discipline (important — repositories deliberately never commit):
 
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager, contextmanager
 
 from sqlalchemy import text
-from sqlalchemy.engine import Engine, make_url
+from sqlalchemy.engine import Connection, Engine, make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -34,9 +35,12 @@ from sqlalchemy.pool import NullPool
 from starlette.requests import Request
 
 from garh_api.config import Settings, get_settings
+from garh_api.logging import get_logger
 
 #: The one driver we ship. psycopg 3 serves both sync and async.
 _DRIVER = "psycopg"
+
+_log = get_logger(__name__)
 
 _async_engine: AsyncEngine | None = None
 _async_sessionmaker: async_sessionmaker[AsyncSession] | None = None
@@ -269,7 +273,49 @@ def dispose_sync_engine() -> None:
     _sync_sessionmaker = None
 
 
+# ---------------------------------------------------------------------------
+# The migration advisory lock
+# ---------------------------------------------------------------------------
+#
+# Defined here rather than in ``garh_api.migrate`` (which re-exports them) because an
+# advisory lock is connection plumbing — a statement on a raw connection that touches
+# no table — and this module is the one non-repository module the tenancy audit lets
+# run SQL. ``migrations/env.py`` takes the lock before ``run_migrations``.
+
+#: The advisory lock every schema upgrade takes. One key for the whole database:
+#: two different migration processes must serialise whatever they are, and a
+#: deployment has exactly one schema. Any 64-bit value works; this one is the
+#: digits of "garh" on a phone keypad, so it is recognisable in
+#: ``pg_locks.objid`` during an incident.
+MIGRATION_LOCK_KEY = 4274_0000_0001
+
+
+def acquire_migration_lock(connection: Connection, *, key: int = MIGRATION_LOCK_KEY) -> None:
+    """Block until this connection holds the migration lock.
+
+    ``pg_advisory_lock`` (session-level, not ``_xact``): it outlives the transaction
+    Alembic runs the DDL in and is released when the connection closes, which is
+    also what happens when the process is killed. The ``commit()`` ends the
+    transaction SQLAlchemy autobegan for the SELECT so Alembic's own
+    ``begin_transaction`` starts clean; the lock is unaffected by that commit.
+    """
+    started = time.monotonic()
+    connection.execute(text("SELECT pg_advisory_lock(:key)"), {"key": key})
+    connection.commit()
+    waited = time.monotonic() - started
+    if waited > 0.5:
+        _log.info("migrate.lock_waited", seconds=round(waited, 2))
+
+
+def release_migration_lock(connection: Connection, *, key: int = MIGRATION_LOCK_KEY) -> None:
+    """Release explicitly — closing the connection does the same."""
+    connection.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": key})
+    connection.commit()
+
+
 __all__ = [
+    "MIGRATION_LOCK_KEY",
+    "acquire_migration_lock",
     "build_async_url",
     "build_sync_url",
     "dispose_async_engine",
@@ -281,6 +327,7 @@ __all__ = [
     "get_sync_sessionmaker",
     "healthcheck",
     "normalise_database_url",
+    "release_migration_lock",
     "session_scope",
     "sync_session_scope",
 ]

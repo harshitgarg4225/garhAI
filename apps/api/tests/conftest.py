@@ -107,6 +107,7 @@ os.environ.setdefault("TRUSTED_PROXY_HOPS", "1")
 
 import httpx  # noqa: E402
 from garh_api import db as db_module  # noqa: E402
+from garh_api.billing.models import BILLING_METADATA  # noqa: E402
 from garh_api.config import Settings, get_settings, reset_settings_cache  # noqa: E402
 from garh_api.models import ALL_TABLES, Base  # noqa: E402
 from sqlalchemy import text  # noqa: E402
@@ -195,6 +196,13 @@ def database(settings: Settings) -> Iterator[Any]:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
     if missing:
         Base.metadata.create_all(engine)
+    # The billing package keeps its five tables on their own ``MetaData``
+    # (``garh_api/billing/models.py``), so they are not in ``ALL_TABLES``. The quota
+    # gate on every job route reads ``billing_subscriptions``, so a bare database
+    # needs them too — otherwise a file such as ``test_render_jobs`` passes only when
+    # ``test_billing_api`` happened to run first. ``checkfirst`` makes this a no-op on
+    # a migrated database.
+    BILLING_METADATA.create_all(engine, checkfirst=True)
     yield engine
     engine.dispose()
 
