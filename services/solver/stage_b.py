@@ -427,6 +427,7 @@ def refine(
     slabs_json: list[dict[str, Any]] = []
     doors_by_room: dict[str, str] = {}
     windows_by_room: dict[str, list[str]] = {}
+    main_door_id: str | None = None
     facts: list[str] = ["storeyHeightMm:%d(default)" % height]
 
     target_by_key = {room.key: room.target_area_mm2 for room in params.rooms}
@@ -504,6 +505,7 @@ def refine(
             openings_json.append(_opening_json(spec, opening_id, wall_ids))
             doors_by_room["%d:%s" % (index, spec.room_key)] = opening_id
             if spec.role == "main-entrance":
+                main_door_id = opening_id
                 facts.append("mainDoor:%s" % (entry_side or "any"))
         for spec in windows:
             opening_id = new_id("opening")
@@ -619,6 +621,8 @@ def refine(
         "doorsByRoom": {k: doors_by_room[k] for k in sorted(doors_by_room)},
         "windowsByRoom": {k: list(windows_by_room[k]) for k in sorted(windows_by_room)},
         "entryOutward": entry_side,
+        # The parking pass keeps its bays clear of this door's approach.
+        "mainDoorId": main_door_id,
     }
     return OptionDraft(
         house=repaired,
@@ -765,6 +769,23 @@ def house_to_ops(house: Mapping[str, Any], params: SolveParams) -> tuple[dict[st
                 "depthMm": int(stair["landing"]["depthMm"]),
             }
         ops.append({"type": "stair.add", "payload": stair_payload})
+    # Furniture the solver placed — today the car bays (services.solver.parking).
+    # Op 25 carries the catalogue id and a centre; the size is the catalogue's, so
+    # the bay the rule measures is the bay the canvas draws.
+    for item in house.get("furniture") or []:
+        ops.append(
+            {
+                "type": "furniture.set",
+                "payload": {
+                    "action": "place",
+                    "id": item["id"],
+                    "storeyId": item["storeyId"],
+                    "catalogId": str(item["catalogId"]),
+                    "pt": {"x": int(item["pt"]["x"]), "y": int(item["pt"]["y"])},
+                    "rotationDeg": int(item.get("rotationDeg") or 0),
+                },
+            }
+        )
 
     # -- prove the geometry ops fold, and harvest the derived room ids --------
     from services.solver.repair import wrap_project_doc
