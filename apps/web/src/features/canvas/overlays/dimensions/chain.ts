@@ -33,13 +33,20 @@
  * 115 mm and nobody can see which one is wrong.
  *
  * ────────────────────────────────────────────────────────────────────────────
- * MVP LIMIT, STATED
+ * SKEW WALLS: ALIGNED CHAINS
  * ────────────────────────────────────────────────────────────────────────────
- * Only axis-aligned walls are dimensioned. §5/§7 make MVP walls orthogonal, and
- * a diagonal wall's "position along X" is not a number a chain can hold. Skew
- * walls are counted in {@link DimensionChainSet.skewWallIds} rather than
- * silently dropped, so the layer can say "3 walls are not dimensioned" instead
- * of quietly under-reporting the plan.
+ * The axis strings above can only hold a coordinate along X or Y, and a
+ * diagonal wall has neither. Shift-inverted ortho lets an architect draw one,
+ * and a drawing with an undimensioned wall on it is a drawing that goes back
+ * from the site. So every skew wall gets an ALIGNED chain of its own: a frame
+ * (`origin`, unit direction, outward normal) in which "along" is distance from
+ * the wall's `a` end, one level-1 segment for its length (editable — it moves
+ * the `b` end along the wall, `wall-length`), and a level-0 opening string in
+ * the same along-wall space the opening targets already speak. The chain hangs
+ * off the side of the wall that faces away from the building.
+ *
+ * {@link DimensionChainSet.skewWallIds} still lists those walls: they are not
+ * in the axis strings, and a caller that wants to say so can.
  */
 
 import type { Opening, Pt, Room, Wall } from '@garh/model';
@@ -51,6 +58,23 @@ import { bbox, type Bbox } from '@garh/model';
 
 /** Which model axis a chain measures along. */
 export type DimAxis = 'x' | 'y';
+
+/** A chain's axis: one of the model's, or its own frame (a skew wall). */
+export type DimChainAxis = DimAxis | 'aligned';
+
+/**
+ * The frame of an aligned chain: `along` coordinates run from `origin` in the
+ * unit direction `(ux, uy)`, and the baseline is pushed out along the unit
+ * normal `(nx, ny)`, which points away from the building. Float, render-only —
+ * the integer targets carry what an edit needs.
+ */
+export interface AlignedFrame {
+  readonly origin: Pt;
+  readonly ux: number;
+  readonly uy: number;
+  readonly nx: number;
+  readonly ny: number;
+}
 
 /** Which side of the building the chain sits on. */
 export type DimSide = 'S' | 'N' | 'W' | 'E';
@@ -103,6 +127,15 @@ export type DimensionEditTarget =
       readonly kind: 'opening-width';
       readonly openingId: string;
       readonly wallId: string;
+    }
+  | {
+      /**
+       * A skew wall's own length. Editing it holds `a` and slides `b` along
+       * the wall's existing direction — the same edit the inspector's Length
+       * field and `setWallLengthOps` make.
+       */
+      readonly kind: 'wall-length';
+      readonly wallId: string;
     };
 
 export interface DimTick {
@@ -134,7 +167,9 @@ export interface DimChain {
   readonly id: string;
   readonly kind: DimChainKind;
   readonly side: DimSide;
-  readonly axis: DimAxis;
+  readonly axis: DimChainAxis;
+  /** Present exactly when `axis === 'aligned'`. */
+  readonly frame?: AlignedFrame | undefined;
   /**
    * The building-edge coordinate the chain is measured from, perpendicular to
    * `axis`. The baseline is this pushed outward by a screen-space offset.
@@ -152,7 +187,10 @@ export interface DimensionChainSet {
   readonly chains: readonly DimChain[];
   /** Bounding box of the wall centrelines, or null when there are no walls. */
   readonly extentMm: Bbox | null;
-  /** Walls that are neither horizontal nor vertical, and so are not dimensioned. */
+  /**
+   * Walls that are neither horizontal nor vertical. They are not in the axis
+   * strings; each carries its own aligned chain instead.
+   */
   readonly skewWallIds: readonly string[];
 }
 
@@ -198,9 +236,9 @@ interface AxisWall {
   readonly maxMm: number;
 }
 
-function classify(walls: readonly Wall[]): { axis: AxisWall[]; skew: string[] } {
+function classify(walls: readonly Wall[]): { axis: AxisWall[]; skew: Wall[] } {
   const axis: AxisWall[] = [];
-  const skew: string[] = [];
+  const skew: Wall[] = [];
   for (const wall of walls) {
     if (wall.a.x === wall.b.x && wall.a.y === wall.b.y) continue; // degenerate
     if (wall.a.y === wall.b.y) {
@@ -220,7 +258,7 @@ function classify(walls: readonly Wall[]): { axis: AxisWall[]; skew: string[] } 
         maxMm: Math.max(wall.a.y, wall.b.y),
       });
     } else {
-      skew.push(wall.id);
+      skew.push(wall);
     }
   }
   return { axis, skew };
@@ -361,6 +399,25 @@ function openingSegmentsForWall(
   openings: readonly Opening[],
   minMm: number,
 ): { segments: DimSegment[]; ticks: DimTick[] } {
+  return openingSegmentsAlong(parentChainId, w.wall, wallLengthMm(w), openings, minMm, (along) =>
+    alongToAxis(w, along),
+  );
+}
+
+/**
+ * The opening string for ONE wall, in whatever chain coordinate `toChain`
+ * maps along-wall distance to: the axis coordinate for an axis wall, the
+ * along-wall distance itself for an aligned chain. The targets carry
+ * along-wall anchors either way — that is the space `opening.move` speaks.
+ */
+function openingSegmentsAlong(
+  parentChainId: string,
+  wall: Wall,
+  length: number,
+  openings: readonly Opening[],
+  minMm: number,
+  toChain: (alongMm: number) => number,
+): { segments: DimSegment[]; ticks: DimTick[] } {
   /**
    * Segment ids are namespaced by the HOST WALL, not just the chain.
    *
@@ -372,9 +429,9 @@ function openingSegmentsForWall(
    * `lookup` return whichever one was inserted last, so you edit a dimension
    * you are not pointing at.
    */
-  const chainId = `${parentChainId}:${w.wall.id}`;
+  const chainId = `${parentChainId}:${wall.id}`;
   const runs: OpeningRun[] = openings
-    .filter((o) => o.wallId === w.wall.id)
+    .filter((o) => o.wallId === wall.id)
     .map((o) => ({
       opening: o,
       startAlongMm: o.offsetMm - Math.floor(o.widthMm / 2),
@@ -384,7 +441,6 @@ function openingSegmentsForWall(
 
   if (runs.length === 0) return { segments: [], ticks: [] };
 
-  const length = wallLengthMm(w);
   const segments: DimSegment[] = [];
   const tickAlong = new Set<number>([0, length]);
 
@@ -396,8 +452,8 @@ function openingSegmentsForWall(
     // Pier before the opening.
     const pier = run.startAlongMm - cursor;
     if (pier >= minMm) {
-      const s = alongToAxis(w, cursor);
-      const e = alongToAxis(w, run.startAlongMm);
+      const s = toChain(cursor);
+      const e = toChain(run.startAlongMm);
       segments.push({
         id: segmentId(chainId, Math.min(s, e), Math.max(s, e)),
         startMm: Math.min(s, e),
@@ -406,7 +462,7 @@ function openingSegmentsForWall(
         target: {
           kind: 'opening-gap',
           openingId: run.opening.id,
-          wallId: w.wall.id,
+          wallId: wall.id,
           anchorAlongMm: cursor,
           side: 'before',
         },
@@ -414,14 +470,14 @@ function openingSegmentsForWall(
     }
 
     // The opening itself.
-    const os = alongToAxis(w, run.startAlongMm);
-    const oe = alongToAxis(w, run.endAlongMm);
+    const os = toChain(run.startAlongMm);
+    const oe = toChain(run.endAlongMm);
     segments.push({
       id: segmentId(chainId, Math.min(os, oe), Math.max(os, oe)),
       startMm: Math.min(os, oe),
       endMm: Math.max(os, oe),
       valueMm: run.opening.widthMm,
-      target: { kind: 'opening-width', openingId: run.opening.id, wallId: w.wall.id },
+      target: { kind: 'opening-width', openingId: run.opening.id, wallId: wall.id },
     });
 
     cursor = run.endAlongMm;
@@ -434,8 +490,8 @@ function openingSegmentsForWall(
   if (last !== undefined) {
     const tail = length - last.endAlongMm;
     if (tail >= minMm) {
-      const s = alongToAxis(w, last.endAlongMm);
-      const e = alongToAxis(w, length);
+      const s = toChain(last.endAlongMm);
+      const e = toChain(length);
       segments.push({
         id: segmentId(chainId, Math.min(s, e), Math.max(s, e)),
         startMm: Math.min(s, e),
@@ -444,7 +500,7 @@ function openingSegmentsForWall(
         target: {
           kind: 'opening-gap',
           openingId: last.opening.id,
-          wallId: w.wall.id,
+          wallId: wall.id,
           anchorAlongMm: length,
           side: 'after',
         },
@@ -453,7 +509,7 @@ function openingSegmentsForWall(
   }
 
   const ticks: DimTick[] = Array.from(tickAlong)
-    .map((along) => ({ atMm: alongToAxis(w, along), wallIds: [] as readonly string[] }))
+    .map((along) => ({ atMm: toChain(along), wallIds: [] as readonly string[] }))
     .sort((a, b) => a.atMm - b.atMm);
 
   segments.sort((a, b) => a.startMm - b.startMm);
@@ -484,8 +540,26 @@ export function buildDimensionChains(
   const edgeToleranceMm = options.edgeToleranceMm ?? DEFAULT_EDGE_TOLERANCE_MM;
 
   const { axis: axisWalls, skew } = classify(walls);
+  const skewWallIds = skew.map((w) => w.id);
+
+  const allPoints: Pt[] = [];
+  for (const w of walls) {
+    if (w.a.x === w.b.x && w.a.y === w.b.y) continue;
+    allPoints.push(w.a, w.b);
+  }
+  const chains: DimChain[] = [];
+
+  // ── aligned chains, one per skew wall ────────────────────────────────
+  if (skew.length > 0) {
+    const all = bbox(allPoints);
+    const centre = { x: (all.minX + all.maxX) / 2, y: (all.minY + all.maxY) / 2 };
+    for (const wall of skew) {
+      chains.push(...alignedChainsForWall(wall, centre, openings, includeOpenings, minSegmentMm));
+    }
+  }
+
   if (axisWalls.length === 0) {
-    return { chains: [], extentMm: null, skewWallIds: skew };
+    return { chains, extentMm: allPoints.length > 0 ? bbox(allPoints) : null, skewWallIds };
   }
 
   const points: Pt[] = [];
@@ -493,8 +567,6 @@ export function buildDimensionChains(
     points.push(w.wall.a, w.wall.b);
   }
   const extentMm = bbox(points);
-
-  const chains: DimChain[] = [];
 
   for (const side of sides) {
     const axis = SIDE_AXIS[side];
@@ -588,7 +660,109 @@ export function buildDimensionChains(
     }
   }
 
-  return { chains, extentMm, skewWallIds: skew };
+  return { chains, extentMm, skewWallIds };
+}
+
+// ---------------------------------------------------------------------------
+// Aligned chains — a skew wall's own frame
+// ---------------------------------------------------------------------------
+
+/** The compass side the outward normal faces, for the chain's `side`. */
+function sideOfNormal(nx: number, ny: number): DimSide {
+  if (Math.abs(nx) >= Math.abs(ny)) return nx >= 0 ? 'E' : 'W';
+  return ny >= 0 ? 'N' : 'S';
+}
+
+/**
+ * The frame of a skew wall: along from `a`, normal pointing away from the
+ * building's centre so the strings hang outside the plan like the axis ones.
+ */
+export function alignedFrame(wall: Wall, centre: { x: number; y: number }): AlignedFrame | null {
+  const dx = wall.b.x - wall.a.x;
+  const dy = wall.b.y - wall.a.y;
+  const len = Math.hypot(dx, dy);
+  if (len === 0) return null;
+  const ux = dx / len;
+  const uy = dy / len;
+  let nx = -uy;
+  let ny = ux;
+  const midX = (wall.a.x + wall.b.x) / 2;
+  const midY = (wall.a.y + wall.b.y) / 2;
+  // The left normal points at the building's centre: use the other one.
+  if (nx * (centre.x - midX) + ny * (centre.y - midY) > 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+  return { origin: wall.a, ux, uy, nx, ny };
+}
+
+function alignedChainsForWall(
+  wall: Wall,
+  centre: { x: number; y: number },
+  openings: readonly Opening[],
+  includeOpenings: boolean,
+  minSegmentMm: number,
+): DimChain[] {
+  const frame = alignedFrame(wall, centre);
+  if (frame === null) return [];
+  const lengthMm = Math.round(Math.hypot(wall.b.x - wall.a.x, wall.b.y - wall.a.y));
+  const side = sideOfNormal(frame.nx, frame.ny);
+  const out: DimChain[] = [];
+
+  const wallChainId = `dim:aligned:${wall.id}:wall`;
+  if (lengthMm >= minSegmentMm) {
+    out.push({
+      id: wallChainId,
+      kind: 'wall',
+      side,
+      axis: 'aligned',
+      frame,
+      edgeMm: 0,
+      outward: 1,
+      level: DIM_LEVEL.wall,
+      segments: [
+        {
+          id: segmentId(wallChainId, 0, lengthMm),
+          startMm: 0,
+          endMm: lengthMm,
+          valueMm: lengthMm,
+          target: { kind: 'wall-length', wallId: wall.id },
+        },
+      ],
+      ticks: [
+        { atMm: 0, wallIds: [wall.id] },
+        { atMm: lengthMm, wallIds: [wall.id] },
+      ],
+    });
+  }
+
+  if (includeOpenings) {
+    const openingChainId = `dim:aligned:${wall.id}:opening`;
+    const built = openingSegmentsAlong(
+      openingChainId,
+      wall,
+      lengthMm,
+      openings,
+      minSegmentMm,
+      (along) => along,
+    );
+    if (built.segments.length > 0) {
+      out.push({
+        id: openingChainId,
+        kind: 'opening',
+        side,
+        axis: 'aligned',
+        frame,
+        edgeMm: 0,
+        outward: 1,
+        level: DIM_LEVEL.opening,
+        segments: built.segments,
+        ticks: built.ticks,
+      });
+    }
+  }
+
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -724,6 +898,14 @@ export interface DimPointF {
 
 /** The plan point of a position along a chain, at a given baseline. */
 export function chainPointMm(chain: DimChain, alongMm: number, baselineMm: number): DimPointF {
+  if (chain.axis === 'aligned') {
+    const f = chain.frame;
+    if (f === undefined) return { x: alongMm, y: baselineMm };
+    return {
+      x: f.origin.x + f.ux * alongMm + f.nx * baselineMm,
+      y: f.origin.y + f.uy * alongMm + f.ny * baselineMm,
+    };
+  }
   return chain.axis === 'x' ? { x: alongMm, y: baselineMm } : { x: baselineMm, y: alongMm };
 }
 

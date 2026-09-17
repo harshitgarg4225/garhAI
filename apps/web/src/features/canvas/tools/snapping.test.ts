@@ -14,6 +14,8 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { applyGroup, fixedId, makeTwoRoomPlan } from '@garh/model';
+
 import { SNAP_TOLERANCE_PX } from './constants';
 import {
   collectSnapCandidates,
@@ -262,5 +264,72 @@ describe('toSnapView', () => {
       pointMm: { x: 6000, y: 2000 },
       refId: FIXTURE_IDS.wallEast,
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Perpendicular and intersection — the snaps a skew wall needs
+// ---------------------------------------------------------------------------
+
+describe('perpendicular and intersection snaps', () => {
+  const SKEW = fixedId('wall', 'SKW');
+  /** The two-room plan plus a diagonal crossing the spine at (3000, 2000). */
+  const ctx = makeCtx({
+    doc: applyGroup(makeTwoRoomPlan(), [
+      {
+        type: 'wall.add',
+        payload: {
+          id: SKEW,
+          storeyId: FIXTURE_IDS.groundStorey,
+          a: { x: 1000, y: 0 },
+          b: { x: 5000, y: 4000 },
+          thicknessMm: 115,
+          kind: 'internal',
+        },
+      },
+    ]).model,
+  });
+
+  it('offers the foot of the perpendicular from the chain anchor onto a wall', () => {
+    // Anchor south of the spine at (2000, -800); square to the spine (x=3000)
+    // is (3000, -800)… which is off the spine's segment. Square to the south
+    // wall (y=0) is (2000, 0), inside it.
+    const anchor = { x: 2000, y: -800 };
+    const found = collectSnapCandidates(ctx, { x: 2004, y: 3 }, { anchor });
+    const perp = found.find((c) => c.kind === 'perpendicular');
+    expect(perp).toBeDefined();
+    expect(perp?.pointMm).toEqual({ x: 2000, y: 0 });
+    expect(perp?.refId).toBe(FIXTURE_IDS.wallSouth);
+    expect(perp?.label).toBe('Square to wall');
+  });
+
+  it('is square to the SKEW wall, with an integer foot', () => {
+    // Anchor at (1000, 2000): the foot on y = x − 1000 is (2000, 1000).
+    const anchor = { x: 1000, y: 2000 };
+    const found = collectSnapCandidates(ctx, { x: 2005, y: 995 }, { anchor });
+    const perp = found.find((c) => c.kind === 'perpendicular' && c.refId === SKEW);
+    expect(perp?.pointMm).toEqual({ x: 2000, y: 1000 });
+  });
+
+  it('does not offer a perpendicular without an anchor (negative control)', () => {
+    const found = collectSnapCandidates(ctx, { x: 2004, y: 3 }, {});
+    expect(found.some((c) => c.kind === 'perpendicular')).toBe(false);
+  });
+
+  it('offers where the skew wall crosses the spine, and it beats the midpoint', () => {
+    const found = collectSnapCandidates(ctx, { x: 3006, y: 1996 }, {});
+    const cross = found.find((c) => c.kind === 'intersection');
+    expect(cross?.pointMm).toEqual({ x: 3000, y: 2000 });
+    // The spine's midpoint is also (3000, 2000): the crossing outranks it.
+    const resolved = resolveSnap(ctx, { x: 3006, y: 1996 }, {});
+    expect(resolved.candidate?.kind).toBe('intersection');
+    expect(resolved.pointMm).toEqual({ x: 3000, y: 2000 });
+  });
+
+  it('does not report a T-junction as a crossing (negative control)', () => {
+    // The spine's end meets the south wall at (3000, 0): an endpoint, not a crossing.
+    const found = collectSnapCandidates(ctx, { x: 3004, y: 2 }, {});
+    expect(found.some((c) => c.kind === 'intersection')).toBe(false);
+    expect(found.some((c) => c.kind === 'endpoint')).toBe(true);
   });
 });
