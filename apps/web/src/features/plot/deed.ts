@@ -65,7 +65,8 @@ export type DeedResult =
     }
   | { readonly ok: false; readonly reason: string };
 
-function ringDiagonals(poly: Polygon): DiagonalMm[] {
+/** Every diagonal of a ring (corner pairs that are not an edge), in corner order. */
+export function ringDiagonals(poly: Polygon): DiagonalMm[] {
   const out: DiagonalMm[] = [];
   const n = poly.length;
   for (let i = 0; i < n; i += 1) {

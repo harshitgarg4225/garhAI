@@ -100,9 +100,11 @@ export function RoadEdges({ className }: RoadEdgesProps): JSX.Element {
                   </Tooltip>
                 ) : roles[i] !== undefined && roles[i] !== 'other' ? (
                   <Tooltip content="Which setback governs this edge — the same classification the compliance report uses.">
-                    <Chip severity="neutral" size="sm" data-testid={`edge-role-${String(i)}`}>
-                      {EDGE_ROLE_LABELS[roles[i]]}
-                    </Chip>
+                    <span data-testid={`edge-role-${String(i)}`}>
+                      <Chip severity="neutral" size="sm">
+                        {EDGE_ROLE_LABELS[roles[i]]}
+                      </Chip>
+                    </span>
                   </Tooltip>
                 ) : null}
               </div>

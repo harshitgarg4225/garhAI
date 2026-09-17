@@ -27,11 +27,14 @@ import {
   type Polygon,
   type Pt,
 } from '@garh/model';
-import { Button, Chip, EmptyState, SkeletonCanvas, cn } from '@garh/ui';
+import { Button, Chip, Dialog, EmptyState, SkeletonCanvas, Tabs, cn } from '@garh/ui';
 
 import { SNAP_COARSE_MM, SNAP_FINE_MM, snapMm } from '../../lib/units';
+import { cornerLabel } from './deed';
+import { DeedEntry } from './DeedEntry';
 import {
   checkBoundary,
+  defaultEdgeLengthMode,
   edgeFacing,
   edgeLengthMm,
   frontEdgeIndex,
@@ -44,77 +47,16 @@ import {
   setEdgeLengthMm,
 } from './geometry';
 import { NorthCompass } from './NorthCompass';
+import { PlanEnvelopeBanner } from './PlanEnvelopeBanner';
+import { capturePointer, releasePointer } from './pointerCapture';
 import { RectQuickStart } from './RectQuickStart';
 import { useModelReady, usePlotActions, usePlotDoc, useUnitsDisplay } from './usePlot';
+import { clientToModel, gridStep, makeViewport, outwardNormal, toSvg } from './viewport';
 
-// ---------------------------------------------------------------------------
-// Viewport math (frozen to the COMMITTED boundary, so a drag cannot move the
-// camera it is being measured against)
-// ---------------------------------------------------------------------------
-
-interface Viewport {
-  readonly minX: number;
-  readonly maxY: number;
-  readonly pad: number;
-  readonly vbW: number;
-  readonly vbH: number;
-  readonly span: number;
-}
-
-function makeViewport(boundary: Polygon): Viewport {
-  let minX = 0;
-  let minY = 0;
-  let maxX = 9144;
-  let maxY = 12192;
-  if (boundary.length > 0) {
-    minX = Math.min(...boundary.map((p) => p.x));
-    minY = Math.min(...boundary.map((p) => p.y));
-    maxX = Math.max(...boundary.map((p) => p.x));
-    maxY = Math.max(...boundary.map((p) => p.y));
-  }
-  const span = Math.max(maxX - minX, maxY - minY, 1000);
-  const pad = Math.max(2500, Math.round(span / 5));
-  return { minX, maxY, pad, vbW: maxX - minX + 2 * pad, vbH: maxY - minY + 2 * pad, span };
-}
-
-/** Model mm -> SVG user units (y flipped: model +Y is north/up). */
-function toSvg(vp: Viewport, p: Pt): { x: number; y: number } {
-  return { x: p.x - vp.minX + vp.pad, y: vp.maxY - p.y + vp.pad };
-}
-
-/** Pointer event -> model mm, honouring preserveAspectRatio="xMidYMid meet". */
-function clientToModel(vp: Viewport, svg: SVGSVGElement, clientX: number, clientY: number): Pt {
-  const rect = svg.getBoundingClientRect();
-  const scale = Math.min(rect.width / vp.vbW, rect.height / vp.vbH);
-  const ox = (rect.width - vp.vbW * scale) / 2;
-  const oy = (rect.height - vp.vbH * scale) / 2;
-  const xvb = (clientX - rect.left - ox) / scale;
-  const yvb = (clientY - rect.top - oy) / scale;
-  return {
-    x: Math.round(xvb - vp.pad + vp.minX),
-    y: Math.round(vp.maxY - (yvb - vp.pad)),
-  };
-}
-
-/** Grid step that yields a readable line count for the current span. */
-function gridStep(span: number): number {
-  for (const step of [500, 1000, 2000, 5000, 10000]) {
-    if (span / step <= 40) return step;
-  }
-  return 20000;
-}
-
-/** Float outward normal (unit) of edge i for a CCW ring. Rendering only. */
-function outwardNormal(boundary: Polygon, i: number): { x: number; y: number } {
-  const a = ringAt(boundary, i);
-  const b = ringAt(boundary, i + 1);
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const len = Math.hypot(dx, dy);
-  if (len === 0) return { x: 0, y: 0 };
-  // Right side of a->b: outward for CCW (the model's storage convention).
-  return { x: dy / len, y: -dx / len };
-}
+const START_ITEMS = [
+  { value: 'rect', label: 'Width × depth' },
+  { value: 'deed', label: 'From the sale deed' },
+] as const;
 
 // ---------------------------------------------------------------------------
 // Component
@@ -131,10 +73,12 @@ interface Notice {
 }
 
 export interface PlotEditorProps {
+  /** Route of the compliance tab, for the "plan may be outside its envelope" banner. */
+  complianceHref?: string | undefined;
   className?: string | undefined;
 }
 
-export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
+export function PlotEditor({ complianceHref, className }: PlotEditorProps): JSX.Element {
   const ready = useModelReady();
   const plot = usePlotDoc();
   const display = useUnitsDisplay();
@@ -146,6 +90,8 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
   const [editingEdge, setEditingEdge] = useState<number | null>(null);
   const [edgeDraft, setEdgeDraft] = useState('');
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [start, setStart] = useState<'rect' | 'deed'>('rect');
+  const [deedOpen, setDeedOpen] = useState(false);
 
   const boundary = plot.boundary;
 
@@ -165,13 +111,26 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
         <EmptyState
           icon="grid"
           title="No plot boundary yet"
-          description="Everything downstream — setbacks, FAR, the plans themselves — is measured against this outline. Start with the width × depth from the sale deed; corners can be dragged and edges retyped afterwards, and a DXF boundary can replace it any time."
+          description="Everything downstream — setbacks, FAR, the plans themselves — is measured against this outline. Start with the width × depth, or type the sides and diagonal (or the bearings) exactly as the sale deed states them; corners can be dragged and edges retyped afterwards, and a DXF boundary can replace it any time."
           demoAction={{
             notApplicable:
               'The demo offer lives on the dashboard; inside a project the fastest start is typing the plot size below.',
           }}
         >
-          <RectQuickStart className="mt-4 text-left" />
+          <div className="mt-4 text-left">
+            <Tabs
+              items={START_ITEMS}
+              value={start}
+              onValueChange={(v) => setStart(v)}
+              label="How to enter the plot"
+              variant="pill"
+            />
+            {start === 'rect' ? (
+              <RectQuickStart className="mt-3" />
+            ) : (
+              <DeedEntry className="mt-3" />
+            )}
+          </div>
         </EmptyState>
       </div>
     );
@@ -211,7 +170,7 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
   const onVertexPointerDown = (e: ReactPointerEvent<SVGCircleElement>, i: number): void => {
     e.preventDefault();
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    capturePointer(e.currentTarget, e.pointerId);
     setSelectedVertex(i);
     setDrag({ vertexIndex: i, current: ringAt(boundary, i) });
   };
@@ -225,7 +184,7 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
 
   const onVertexPointerUp = (e: ReactPointerEvent<SVGCircleElement>, i: number): void => {
     if (drag === null || drag.vertexIndex !== i) return;
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    releasePointer(e.currentTarget, e.pointerId);
     const target = drag.current;
     setDrag(null);
     commitVertexMove(i, target);
@@ -304,9 +263,51 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
       fail(result.reason);
       return;
     }
+    // The same length typed back (or a blur that changed nothing) must not
+    // leave an empty undo step behind.
+    if (result.polygon.every((p, k) => p.x === boundary[k]?.x && p.y === boundary[k]?.y)) {
+      ok();
+      return;
+    }
     const dispatched = actions.setBoundary(result.polygon, { label: 'Edge length' });
-    if (!dispatched.ok) fail(dispatched.issues[0]?.message ?? 'That length was not accepted.');
-    else ok();
+    if (!dispatched.ok) {
+      fail(dispatched.issues[0]?.message ?? 'That length was not accepted.');
+      return;
+    }
+    // Say what else moved. A rectangle's opposite side is expected; a slid
+    // corner's neighbour is the thing an architect must not discover later.
+    const achieved = edgeLengthMm(result.polygon, i);
+    const parts: string[] = [
+      `Edge ${cornerLabel(i)}–${cornerLabel((i + 1) % boundary.length)} is now ${formatLength(achieved, display)}${
+        achieved !== parsed.mm ? ` (rounded from ${String(parsed.mm)} mm)` : ''
+      }.`,
+    ];
+    if (result.mode === 'stretch') {
+      const moved = result.sideEffects.filter((s) => s.edgeIndex !== i);
+      if (moved.length > 0) {
+        parts.push(
+          `The far side moved with it: ${moved
+            .map(
+              (s) =>
+                `${cornerLabel(s.edgeIndex)}–${cornerLabel((s.edgeIndex + 1) % boundary.length)} ${formatLength(s.fromMm, display)} → ${formatLength(s.toMm, display)}`,
+            )
+            .join(', ')}.`,
+        );
+      }
+    } else {
+      const corner = cornerLabel((i + 1) % boundary.length);
+      parts.push(
+        result.sideEffects.length === 0
+          ? `Only corner ${corner} moved.`
+          : `Only corner ${corner} moved, so ${result.sideEffects
+              .map(
+                (s) =>
+                  `edge ${cornerLabel(s.edgeIndex)}–${cornerLabel((s.edgeIndex + 1) % boundary.length)} changed ${formatLength(s.fromMm, display)} → ${formatLength(s.toMm, display)}`,
+              )
+              .join(' and ')}. Drag a corner if you meant a different shape.`,
+      );
+    }
+    setNotice({ tone: 'info', text: parts.join(' ') });
   };
 
   // ── grid lines ───────────────────────────────────────────────────────────
@@ -363,7 +364,7 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
         {selectedVertex !== null ? (
           <>
             <Chip severity="info" size="md" icon="pin">
-              Corner {selectedVertex + 1} — arrows nudge (Shift = fine), Delete removes
+              Corner {cornerLabel(selectedVertex)} — arrows nudge (Shift = fine), Delete removes
             </Chip>
             <Button
               variant="ghost"
@@ -377,9 +378,34 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
         ) : (
           <span className="text-2xs text-ink-subtle">
             Drag corners · click a length to type one · + on an edge adds a corner
+            {defaultEdgeLengthMode(boundary) === 'end'
+              ? ' · on this shape a typed length moves only that edge’s far corner'
+              : ''}
           </span>
         )}
+        <Button
+          variant="ghost"
+          size="sm"
+          iconLeft="edit"
+          className="ml-auto"
+          onClick={() => setDeedOpen(true)}
+          data-testid="plot-from-deed"
+        >
+          From deed…
+        </Button>
       </div>
+
+      <PlanEnvelopeBanner complianceHref={complianceHref} />
+
+      <Dialog
+        open={deedOpen}
+        onOpenChange={setDeedOpen}
+        title="Replace the boundary from the sale deed"
+        description="Type the sides and diagonal, or the bearings, exactly as the deed states them. The current boundary is replaced in one step — one undo brings it back, roads included."
+        size="lg"
+      >
+        <DeedEntry commitLabel="Replace boundary" onCreated={() => setDeedOpen(false)} />
+      </Dialog>
 
       {notice === null ? null : (
         <div
@@ -531,6 +557,7 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
                   fontSize={font}
                   role="button"
                   tabIndex={0}
+                  data-testid={`edge-label-${String(i)}`}
                   aria-label={`Edge ${String(i + 1)}, ${lengthText}${facing === null ? '' : `, faces ${facing}`}. Press Enter to type a new length.`}
                   onClick={() => beginEdgeEdit(i)}
                   onKeyDown={(e) => {
@@ -554,6 +581,7 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
                 <g
                   role="button"
                   tabIndex={0}
+                  data-testid={`add-corner-${String(i)}`}
                   aria-label={`Add a corner on edge ${String(i + 1)}`}
                   onClick={() => addCorner(i)}
                   onKeyDown={(e) => {
@@ -592,6 +620,36 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
             );
           })}
 
+          {/* Corner letters, the way the deed and the readouts name them (A, B, C…) */}
+          {points.map((_, i) => {
+            const a = ringAt(shown, i);
+            const prev = ringAt(shown, i - 1);
+            const next = ringAt(shown, i + 1);
+            // Push the letter away from both neighbouring edges: opposite the
+            // bisector of the interior angle, so it sits outside the ring.
+            const ux = prev.x - a.x + (next.x - a.x);
+            const uy = prev.y - a.y + (next.y - a.y);
+            const len = Math.hypot(ux, uy) || 1;
+            const at = toSvg(vp, {
+              x: Math.round(a.x - (ux / len) * handleR * 2.4),
+              y: Math.round(a.y - (uy / len) * handleR * 2.4),
+            });
+            return (
+              <text
+                key={`vl${String(i)}`}
+                x={at.x}
+                y={at.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={font * 0.8}
+                className="pointer-events-none select-none fill-ink-subtle font-semibold"
+                aria-hidden="true"
+              >
+                {cornerLabel(i)}
+              </text>
+            );
+          })}
+
           {/* Vertex handles last, so they win the hit test */}
           {points.map((sp, i) => (
             <circle
@@ -601,7 +659,8 @@ export function PlotEditor({ className }: PlotEditorProps): JSX.Element {
               r={handleR}
               role="button"
               tabIndex={0}
-              aria-label={`Corner ${String(i + 1)} — drag or use arrow keys to move, Delete to remove`}
+              data-testid={`vertex-${String(i)}`}
+              aria-label={`Corner ${cornerLabel(i)} — drag or use arrow keys to move, Delete to remove`}
               onPointerDown={(e) => onVertexPointerDown(e, i)}
               onPointerMove={(e) => onVertexPointerMove(e, i)}
               onPointerUp={(e) => onVertexPointerUp(e, i)}

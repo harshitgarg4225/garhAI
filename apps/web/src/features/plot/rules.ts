@@ -480,6 +480,44 @@ export function readValueOverrides(overrides: JsonObject): Partial<Record<RegVal
 }
 
 /**
+ * The raw integer map under `overrides.values`, with the legacy side key
+ * expanded into the two side keys and dropped. Keys this module does not know
+ * (the deed area, anything a later panel adds) are carried through as long
+ * as they are integers — the engine's context parser requires exactly that.
+ */
+function integerValues(overrides: JsonObject): Record<string, number> {
+  const values = overrides.values;
+  const out: Record<string, number> = {};
+  if (typeof values !== 'object' || values === null || Array.isArray(values)) return out;
+  for (const [k, v] of Object.entries(values)) {
+    if (k !== LEGACY_SIDE_OVERRIDE_KEY && typeof v === 'number' && Number.isSafeInteger(v)) {
+      out[k] = v;
+    }
+  }
+  const legacy = values[LEGACY_SIDE_OVERRIDE_KEY];
+  if (typeof legacy === 'number' && Number.isSafeInteger(legacy)) {
+    if (out.setbackSideAMm === undefined) out.setbackSideAMm = legacy;
+    if (out.setbackSideBMm === undefined) out.setbackSideBMm = legacy;
+  }
+  return out;
+}
+
+function withIntegerValue(overrides: JsonObject, key: string, value: number | null): JsonObject {
+  const nextValues = integerValues(overrides);
+  delete nextValues[key];
+  if (value !== null) {
+    if (!Number.isSafeInteger(value)) {
+      throw new RangeError(`Override ${key} must be an integer, got ${String(value)}`);
+    }
+    nextValues[key] = value;
+  }
+  const out: JsonObject = { ...overrides };
+  if (Object.keys(nextValues).length === 0) delete out.values;
+  else out.values = nextValues;
+  return out;
+}
+
+/**
  * A new overrides object with `key` set to `value` (or cleared with null).
  * Everything else on the object — including any future rule-acknowledgement
  * keys — is carried through untouched. A legacy `setbackSideMm` is expanded
@@ -491,21 +529,55 @@ export function withValueOverride(
   key: RegValueKey,
   value: number | null,
 ): JsonObject {
-  const current = readValueOverrides(overrides); // legacy already expanded
-  const nextValues: Record<string, number> = {};
-  for (const [k, v] of Object.entries(current)) {
-    if (k !== key && v !== undefined) nextValues[k] = v;
+  return withIntegerValue(overrides, key, value);
+}
+
+// ---------------------------------------------------------------------------
+// The registered (sale-deed) plot area
+//
+// Municipal forms ask for the plot area "as per document" beside the area "as
+// per site", and the smaller of the two usually governs FAR and coverage. It
+// is a regulatory-context fact about the plot, so it lives with the profile:
+// `overrides.values.deedAreaMm2`, an integer like every other entry there
+// (the engine parses `values` as {key: int} and substitutes only the keys it
+// knows, so this one is carried and audited but never applied as a limit).
+// ---------------------------------------------------------------------------
+
+export const DEED_AREA_KEY = 'deedAreaMm2';
+
+/** The registered deed area in mm², or null when none has been entered. */
+export function readDeedAreaMm2(overrides: JsonObject): number | null {
+  const value = integerValues(overrides)[DEED_AREA_KEY];
+  return value === undefined || value <= 0 ? null : value;
+}
+
+/** A new overrides object with the deed area set (mm²) or cleared (null). */
+export function withDeedAreaMm2(overrides: JsonObject, areaMm2: number | null): JsonObject {
+  if (areaMm2 !== null && areaMm2 <= 0) {
+    throw new RangeError('A deed area has to be a positive area.');
   }
-  if (value !== null) {
-    if (!Number.isSafeInteger(value)) {
-      throw new RangeError(`Override ${key} must be an integer, got ${String(value)}`);
-    }
-    nextValues[key] = value;
-  }
-  const out: JsonObject = { ...overrides };
-  if (Object.keys(nextValues).length === 0) delete out.values;
-  else out.values = nextValues;
-  return out;
+  return withIntegerValue(overrides, DEED_AREA_KEY, areaMm2);
+}
+
+export interface DeedReconciliation {
+  readonly drawnMm2: number;
+  readonly deedMm2: number;
+  /** drawn − deed, mm² (negative: the drawing is smaller than the document). */
+  readonly differenceMm2: number;
+  /** Signed percentage of the DEED area, one decimal — what a scrutiny note quotes. */
+  readonly differencePct: number;
+}
+
+/** Drawn vs registered area. Pure; the caller decides what a tolerable gap is. */
+export function reconcileDeedArea(drawnMm2: number, deedMm2: number): DeedReconciliation {
+  const differenceMm2 = drawnMm2 - deedMm2;
+  const pct = deedMm2 === 0 ? 0 : (differenceMm2 / deedMm2) * 100;
+  return {
+    drawnMm2,
+    deedMm2,
+    differenceMm2,
+    differencePct: Math.round(pct * 10) / 10,
+  };
 }
 
 // ---------------------------------------------------------------------------

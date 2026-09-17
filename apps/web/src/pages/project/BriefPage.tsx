@@ -24,7 +24,13 @@
 import { useCallback, useRef, useState } from 'react';
 import { Button, Card } from '@garh/ui';
 import { PageBody } from '../../components';
-import { AreaReadout, PlotEditor, RegProfilePanel, RoadEdges } from '../../features/plot';
+import {
+  AreaReadout,
+  PlotEditor,
+  PlotReadouts,
+  RegProfilePanel,
+  RoadEdges,
+} from '../../features/plot';
 import { BriefForm, CompletenessMeter, FreeTextParse, VastuSelector } from '../../features/brief';
 import { useProjectOutlet } from '../ProjectShell';
 import { DxfImportDialog } from './DxfImportDialog';
@@ -69,11 +75,12 @@ export function BriefPage(): JSX.Element {
         </div>
 
         <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <PlotEditor className="min-w-0" />
+          <PlotEditor className="min-w-0" complianceHref={`/projects/${project.id}/compliance`} />
           {/* PanelSections stack with their own dividers — one Card, no extra
               padding, exactly how the §12 inspector composes them. */}
           <Card className="min-w-0 self-start">
             <RoadEdges />
+            <PlotReadouts />
             <RegProfilePanel />
           </Card>
         </div>
