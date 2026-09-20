@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 
@@ -32,17 +33,24 @@ from services.common.testing import FakeRedis
 
 
 class _NoopHandler(BaseJobHandler):
-    kinds = ("solve",)
+    # Annotated, not inferred: bare ("solve",) is tuple[str], and JobHandler's
+    # protocol wants tuple[str, ...] — mypy --strict rejects the narrower one.
+    kinds: tuple[str, ...] = ("solve",)
 
     async def handle(self, ctx: JobContext) -> JobResult:  # pragma: no cover - never run
         raise AssertionError("the heartbeat tests never run a job")
 
 
-def _settings(**overrides: object) -> WorkerSettings:
+def _settings(**overrides: Any) -> WorkerSettings:
+    """A WorkerSettings that cannot be contaminated by the developer's .env.
+
+    ``**overrides: Any`` rather than ``object``: every field has its own literal or
+    scalar type, so ``object`` makes each one an arg-type error under --strict.
+    """
     return WorkerSettings(_env_file=None, **overrides)  # type: ignore[call-arg]
 
 
-def _worker(redis: FakeRedis, **overrides: object) -> Worker:
+def _worker(redis: FakeRedis, **overrides: Any) -> Worker:
     return Worker(
         name="solver", handler=_NoopHandler(), settings=_settings(**overrides), redis=redis
     )

@@ -185,6 +185,81 @@ The 2026-08-26 baseline (1,280 req/s, p95 17 ms on `/healthz`, 1 worker) still
 stands as the read-only reference. Re-run both before and after infra changes; an
 order-of-magnitude p95 jump on any step, or any error, is a finding.
 
+## Going live: the variables the owner must set
+
+Everything below is an **owner action** — an account, a key, a domain. No commit
+can do any of it, and until each row is done the product runs on the mock that
+row names. `GET /admin/ops` (`/platform/ops` in the app) shows the live state of
+every one of them, so this table is checked by looking at that page, not by
+memory.
+
+| #   | What                    | Where                                                | Set                                                                                            | Until it is done                                                                             |
+| --- | ----------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1   | Error tracking, api     | `api`                                                | `SENTRY_DSN` (+ optional `SENTRY_TRACES_SAMPLE_RATE`, `APP_VERSION`/`GIT_SHA`)                 | an exception in production is a log line nobody is paged for; `/healthz` reads `sentry: off` |
+| 2   | Error tracking, workers | `worker-solver/render/drawings`                      | the same `SENTRY_DSN` on **each** worker service                                               | a worker crash-loops unseen; the ops page names the workers still `off`                      |
+| 3   | Production mode         | `api`                                                | `APP_ENV=production`                                                                           | `/docs` is open and the readiness validator never runs (see the rollback note below)         |
+| 4   | Payments                | `api`                                                | `PROVIDER_BILLING=razorpay`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` (rehearse first — below) | no money moves; the mock checkout serves every invoice                                       |
+| 5   | Tax invoices            | `api`                                                | `BILLING_SUPPLIER_LEGAL_NAME`, `_GSTIN`, `_ADDRESS` (`_STATE_CODE` optional)                   | `POST /billing/invoices` answers 503 `billing_unavailable`                                   |
+| 6   | Sign-in mail            | `api`                                                | `BREVO_API_KEY` + `SMTP_FROM` (Railway Hobby blocks SMTP), or `SMTP_HOST` + `SMTP_FROM`        | dev echoes codes; in production every `POST /auth/otp` 503s naming these vars                |
+| 7   | Custom domain           | `web` (+ `APP_URL`, `CORS_ALLOW_ORIGINS` on the api) | the domain in Railway, then both vars to `https://<domain>`                                    | share links, invite links and signed downloads carry the generated Railway hostname          |
+| 8   | Scheduled backups       | new `backup` service                                 | `deploy/railway/backup.json`, with `DATABASE_URL` + `S3_*` referenced from the other services  | there is no backup at all (§ Backups above)                                                  |
+| 9   | Real copilot            | `api`                                                | `PROVIDER_LLM=anthropic`, `ANTHROPIC_API_KEY`                                                  | the copilot answers from fixtures — fine for a demo, not for a trial                         |
+| 10  | Real renders            | `worker-render`                                      | `PROVIDER_RENDER=stability`, `STABILITY_API_KEY`                                               | renders are the mock compositor's tinted viewport                                            |
+| 11  | The owner's own access  | `api`                                                | `PLATFORM_OWNER_EMAILS` (comma-separated sign-in addresses)                                    | nobody can open `/platform/ops` or change the platform fee — empty means nobody, by design   |
+| 12  | Behind the edge         | `api`                                                | `TRUSTED_PROXY_HOPS=1`                                                                         | every browser shares one per-IP auth bucket and the fourth trial architect is throttled      |
+
+Two rows deserve their own sentence.
+
+**Row 3 has a rollback plan, and needs one.** `APP_ENV=production` turns on the
+readiness validator in `config.py`: the api then refuses to boot while
+`JWT_PRIVATE_KEY`, `DATABASE_URL`, `REDIS_URL`, the S3 credentials or `APP_URL`
+are still on local defaults (the MinIO defaults count as defaults). Set it, watch
+the deploy, and if it refuses read the boot log — it names the variable — set that
+variable, or set `APP_ENV=staging` to get the same validation with `/docs` still
+open. Refusing to boot is the safety net working; a half-configured deploy never
+serves a request.
+
+**Row 4 is rehearsed before it is switched**, and the rehearsal is written out in
+"Going live with Razorpay" below. Test-mode keys first, a real order settled
+through Razorpay's own checkout, a verify that flips the invoice to `paid`, and
+the same verify with one character changed that must be refused. Only then live
+keys.
+
+**What is NOT on this list, deliberately.** The rule-pack values stay
+`confidence: "seed"` until architects empanelled per city review them — that is a
+product gate, not a variable. Data residency is a placement decision: the api,
+workers and Postgres run in `us-west2` today while spec §15 and
+`docs/deployment.md` claim India residency; either move the project to the nearest
+Railway region or amend the claim before a customer reads it (`deploy/railway/README.md`).
+
+## Is anything actually being watched?
+
+`GET /api/v1/admin/ops` — or **Operations** beside Platform fee in the app
+(`/platform/ops`, the same `PLATFORM_OWNER_EMAILS` allowlist) — answers in one
+document, and re-reads itself every 30 s while the tab is open:
+
+- **queues** — pending, delayed, processing and dead-lettered per work queue;
+- **workers** — one row per live process from the heartbeat it writes on every
+  sweep (`services/common/heartbeat.py`): its counters, its p50/p95, its
+  providers, its own Sentry state, and how long ago it last spoke. A worker that
+  is not running has no row, and the page names it under "no heartbeat from" —
+  absence is the alarm, because an absent worker answers no probe at all;
+- **jobs** — counts by status and enqueue-to-finish p50/p95/max per kind over 24
+  hours, across every firm;
+- **providers, Sentry, the schema head** — what is in force, and whether
+  `alembic_version` matches the code's migration head.
+
+The page leads with the findings an operator must act on (Sentry off, a worker
+missing or stale, dead letters, a schema behind the code, no mail channel), each
+with its next step. Nothing on it is a secret: names, counts, timestamps and
+revision ids only, and `test_platform_ops.py` asserts the DSN, the connection
+strings and every job id stay out of the body.
+
+`GET /healthz` (unauthenticated, what the orchestrator polls) carries the same
+`observability.sentry` flag, so "is error tracking on?" is answerable without a
+token — the question that had been silently answered "no" on the deployed stack
+for a month.
+
 ## Rate limits that will page you first
 
 Auth endpoints fail closed (per-IP hourly, per-address 60 s resend cooldown +

@@ -10,7 +10,9 @@
  *   team      members with role, seat and last sign-in; invites with resend and
  *             withdraw; seats used against the plan;
  *   account   your own name and CoA number, signed-in devices, sign out
- *             everywhere, and the second factor.
+ *             everywhere, and the second factor;
+ *   privacy   the firm's audit trail (admin only) and your DPDP rights — download
+ *             everything held about you, or delete the account.
  *
  * Until this existed the sign-up copy promised "invite the rest of the studio" and
  * "add your CoA later in firm settings", and neither place was reachable from any
@@ -23,11 +25,12 @@ import { TabLinks, type TabLinkItem } from '@garh/ui';
 
 import { AppShell, PageBody, PageHeader } from '../../components';
 import { useSessionStore } from '../../stores/session';
+import { PrivacySection } from '../privacy';
 import { AccountSection } from './AccountSection';
 import { PracticeSection } from './PracticeSection';
 import { TeamSection } from './TeamSection';
 
-export const SETTINGS_SECTIONS = ['practice', 'team', 'account'] as const;
+export const SETTINGS_SECTIONS = ['practice', 'team', 'account', 'privacy'] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
 function isSection(value: string | undefined): value is SettingsSection {
@@ -38,6 +41,7 @@ const TABS: readonly TabLinkItem[] = [
   { key: 'practice', label: 'Practice', href: '/settings/practice', icon: 'home' },
   { key: 'team', label: 'Team', href: '/settings/team', icon: 'users' },
   { key: 'account', label: 'Account', href: '/settings/account', icon: 'user' },
+  { key: 'privacy', label: 'Privacy', href: '/settings/privacy', icon: 'shield' },
 ];
 
 export function SettingsPage(): JSX.Element {
@@ -80,6 +84,8 @@ export function SettingsPage(): JSX.Element {
           <PracticeSection />
         ) : section === 'team' ? (
           <TeamSection />
+        ) : section === 'privacy' ? (
+          <PrivacySection onErased={() => navigate('/login', { replace: true })} />
         ) : (
           <AccountSection onSignedOutEverywhere={() => navigate('/login', { replace: true })} />
         )}

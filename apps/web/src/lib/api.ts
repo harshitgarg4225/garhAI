@@ -1043,6 +1043,78 @@ export type RecoveryCodes = z.infer<typeof recoveryCodesSchema>;
 
 const sessionsRevokedSchema = z.object({ sessionsEnded: z.number().int().nonnegative() });
 
+/**
+ * The firm's audit trail (`GET /audit`, admin only). `meta` is free-form JSONB the
+ * server already redacts — credential-shaped keys come back as `[redacted]`, and
+ * the client renders whatever is left without interpreting it.
+ */
+export const auditEntrySchema = z.object({
+  id: z.string(),
+  at: z.string(),
+  action: z.string(),
+  entity: z.string(),
+  entityId: z.string().nullable().default(null),
+  actorId: z.string().nullable().default(null),
+  actorName: z.string().nullable().default(null),
+  meta: z.record(z.unknown()).default({}),
+});
+export type AuditEntry = z.infer<typeof auditEntrySchema>;
+
+export const auditPageSchema = z.object({
+  items: z.array(auditEntrySchema),
+  nextCursor: z.string().nullable().default(null),
+});
+export const auditActionsSchema = z.object({ actions: z.array(z.string()) });
+
+/**
+ * `POST /privacy/erasure` — what was anonymised, and what is deliberately kept.
+ * The op log survives: an op is a sentence of the design, not a record about a
+ * person (routers/privacy.py says why), so the actor is cleared and the op stays.
+ */
+export const erasureSchema = z.object({
+  erased: z.boolean().default(true),
+  opsAnonymised: z.number().int().nonnegative(),
+  commentsAnonymised: z.number().int().nonnegative(),
+  shareLinksAnonymised: z.number().int().nonnegative(),
+  sessionsEnded: z.number().int().nonnegative(),
+  auditEntriesRetained: z.number().int().nonnegative(),
+});
+export type Erasure = z.infer<typeof erasureSchema>;
+
+/**
+ * `GET /privacy/export` is deliberately NOT a frozen model on the server (the
+ * document grows with the schema), so the client keeps the same discipline: the
+ * sections it RENDERS are typed, everything else passes through for the download.
+ */
+export const privacyExportSchema = z
+  .object({
+    generatedAt: z.string(),
+    subject: z.object({
+      id: z.string(),
+      email: z.string(),
+      name: z.string().default(''),
+      role: z.string().default(''),
+      coaNumber: z.string().nullable().default(null),
+    }),
+    firm: z.object({ id: z.string(), role: z.string().default('') }),
+    signedInDevices: z.array(z.unknown()).default([]),
+    authTrail: z.array(z.unknown()).default([]),
+    authTrailTruncated: z.boolean().default(false),
+    comments: z.array(z.unknown()).default([]),
+    commentsWithheld: z.number().int().nonnegative().default(0),
+    designActivity: z
+      .object({
+        opCount: z.number().int().nonnegative().default(0),
+        projectIds: z.array(z.string()).default([]),
+        firstOpAt: z.string().nullable().default(null),
+        lastOpAt: z.string().nullable().default(null),
+        note: z.string().default(''),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+export type PrivacyExport = z.infer<typeof privacyExportSchema>;
+
 export interface PracticeProfilePatch {
   address?: string;
   gstin?: string;
@@ -1288,6 +1360,76 @@ export function createApiClient(client: HttpClient = http) {
             ...opts,
           }),
       },
+    },
+
+    /**
+     * The firm's audit trail (F-5). Admin only — the server answers 403 for a
+     * member, and the Privacy page shows that refusal rather than an empty table.
+     */
+    audit: {
+      list: (
+        query: {
+          cursor?: string | null;
+          limit?: number;
+          action?: string;
+          entity?: string;
+          since?: string;
+          signal?: AbortSignal;
+        } = {},
+      ): Promise<Page<AuditEntry>> =>
+        client.request({
+          path: '/audit',
+          query: {
+            cursor: query.cursor ?? undefined,
+            limit: query.limit,
+            action: query.action,
+            entity: query.entity,
+            since: query.since,
+          },
+          parse: (data: unknown) => {
+            const page = auditPageSchema.parse(data);
+            return {
+              items: page.items,
+              nextCursor: page.nextCursor,
+              hasMore: page.nextCursor !== null,
+            };
+          },
+          ...(query.signal === undefined ? {} : { signal: query.signal }),
+        }),
+
+      /** The filter vocabulary, so the UI never hard-codes a copy of it. */
+      actions: (opts: CallOptions = {}): Promise<string[]> =>
+        client.request({
+          path: '/audit/actions',
+          parse: (data: unknown) => auditActionsSchema.parse(data).actions,
+          ...opts,
+        }),
+    },
+
+    /** DPDP §11 export and §12 erasure (F-6). Both are about the CALLER. */
+    privacy: {
+      /**
+       * Everything we hold on you. Not parsed into a frozen shape beyond the
+       * sections the page renders: the server's document grows with the schema,
+       * and a strict client would silently drop the newest table from the file a
+       * person is legally owed.
+       */
+      export: (opts: CallOptions = {}): Promise<PrivacyExport> =>
+        client.request({ path: '/privacy/export', parse: parser(privacyExportSchema), ...opts }),
+
+      /**
+       * Irreversible. `confirmEmail` must be the caller's own address, typed back;
+       * the server compares it and answers 409 when it does not match, so a
+       * mis-click cannot erase an account.
+       */
+      erase: (input: { confirmEmail: string }, opts: CallOptions = {}): Promise<Erasure> =>
+        client.request({
+          method: 'POST',
+          path: '/privacy/erasure',
+          body: { confirmEmail: input.confirmEmail },
+          parse: parser(erasureSchema),
+          ...opts,
+        }),
     },
 
     // ── Projects ───────────────────────────────────────────────────────────
