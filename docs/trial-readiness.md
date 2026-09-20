@@ -322,7 +322,11 @@ sheets_tags` (+ the `{}` and wrong-mapping negative controls),
   hard-only gate has been corrected. The remaining gap — the solver honouring
   acknowledgements — is the solver's search and is left to task #46. CLAUDE.md still
   carries the old "blocks only `hard` rules" phrasing in bug 8 and the plan-library
-  section. Ledger: `docs/phase-2-verification.md` §7.
+  section; `services/solver/gates.py` now states the real semantics in its own
+  docstring, and `fixtures/plans/README.md` no longer claims the library gate is
+  stricter in the rules it reads (it is not — it is a second evaluation, of the
+  project a user creates rather than the fragment the solver built).
+  Ledger: `docs/phase-2-verification.md` §7.
 - **The 230 mm door pier made stage A and stage B disagree (fixed 2026-09-03).**
   Raising the wall-end margin for doors left stage A floor-planning passages and
   stair arrivals at a naive 900 mm and giving circulation rooms no frontage floor at

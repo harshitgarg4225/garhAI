@@ -5,6 +5,24 @@
     relax soft weights once and re-run; if still <3, return what passed with an honest
     banner ("2 strong options found for this plot").
 
+WHAT "HARD RULES" MEANS HERE, because the two readings differ and the code has only
+ever done one of them: :func:`check_option` rejects an option carrying ANY row with
+``status == "fail"``. It does NOT key on the packs' ``hard`` flag, which is carried
+by exactly one seeded rule (``vastu.toilet.never_ne``) and means something else —
+"no mode may relax this to a warning" (``docs/trial-readiness.md``, task #46). A
+gate keyed on that flag would wave through a setback breach, and never has.
+
+So §5.6's "all hard rules pass" is read as "nothing the packs call a failure", which
+is the stricter of the two and the one golden rule 2 asks for. Anything that says
+otherwise — a doc, a comment, a summary — is describing a gate this module does not
+implement. (``CLAUDE.md`` bug 8 and its plan-library section still carry the old
+"blocks only ``hard`` rules" phrasing; correcting that file is the coordinator's,
+noted here so the next reader does not trust it over this code.)
+
+One thing the gate genuinely does not do yet: it never reads ``overridden``, so an
+architect's accepted override un-blocks an export but not a Generate. That is the
+open half of task #46.
+
 This is golden rule 2 made executable — *feasible is not plausible; never show a
 hard-fail plan*. It is a pure predicate over a scored option, so it is real today, and
 it is deliberately the last word: nothing downstream may re-admit a rejected option.
@@ -84,7 +102,11 @@ def check_option(
     max_circulation_percent: int = MAX_CIRCULATION_PERCENT,
     min_composite: int = MIN_COMPOSITE_SCORE,
 ) -> GateResult:
-    """Apply all four §5.6 gates to one scored option."""
+    """Apply all four §5.6 gates to one scored option.
+
+    The rule gate reads ``status``, never the packs' ``hard`` flag — see the module
+    docstring for why those are different things and why this is the strict reading.
+    """
     reasons: list[str] = []
     findings = compliance if compliance is not None else option.compliance
 

@@ -49,10 +49,16 @@ capture: `dispatch_ops` refuses one, and the loader refuses one.
   from the entrance (ground) or the stair (upper storeys), never through a bath.
   The first plan captured here had a front door into a dead-end vestibule and a
   kitchen entered through the bath; no rule caught it, so this gate exists.
-- **No `fail` on the compliance tab.** Stricter than the solver's own gate, which
-  blocks only `hard` rules. Two captures failed `nbc.ventilation.habitable.min` by
-  under 0.06% because the solver sized windows on a polygon 1 mm narrower than
-  the one the tab measures; the solver was fixed, not the test.
+- **No `fail` on the compliance tab.** The solver's own §5.6 gate
+  (`services/solver/gates.py`) already rejects an option carrying ANY `status ==
+  "fail"` row — not only the one rule the packs flag `hard: true` — so this gate is
+  not stricter in the rules it reads. What it adds is a second evaluation: the
+  solver judges the model fragment it built, this judges the project a new user
+  actually creates from the recipe, through the API's own context builder. Two
+  captures passed the first and failed the second on
+  `nbc.ventilation.habitable.min` by under 0.06%, because the solver sized windows
+  on a polygon 1 mm narrower than the one the tab measures; the solver was fixed,
+  not the test.
 - **The thumbnail is the renderer's.** `<id>.svg` is byte-equal to a fresh render.
 
 `scripts/sheet_goldens.py` reads this directory as its corpus, so every plan also
