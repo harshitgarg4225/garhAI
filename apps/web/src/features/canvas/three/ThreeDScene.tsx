@@ -72,6 +72,7 @@ import {
   type BooleanEngineStatus,
 } from './booleans';
 import { groupSignatures } from './dirty';
+import { bucketMeshName } from './meshNames';
 import { buildGroup, type BuiltBucket, type GroupBuild } from './geometryBuild';
 import {
   colorForScope,
@@ -235,6 +236,10 @@ function BucketMesh({
   return (
     <mesh
       ref={pickRef}
+      // R3F never sets `name` itself, and the GLB an architect downloads is
+      // made of these: without it every object in Lumion is `mesh_0`
+      // (meshNames.ts). One shared namer for the live scene and the export.
+      name={bucketMeshName(bucket)}
       geometry={geometry}
       material={material}
       renderOrder={renderOrderOf(bucket)}
@@ -418,9 +423,21 @@ export function ThreeDScene({
     return out;
   }, [house, engineReady]);
 
+  // Report each rebuild EXACTLY ONCE. `statsRef` gets a fresh object only
+  // inside the memo above, but this effect also re-runs whenever the callback
+  // changes identity — and the page passes an inline arrow, so it does on
+  // every render of the page. Without this guard the same rebuild was
+  // reported again and again, and `stores/three.ts` counts a report with a
+  // non-empty `rebuiltGroups` as a rebuild: the counter climbed while nothing
+  // re-meshed. That is not cosmetic — the §8 isolation claim ("a facade op
+  // must not dirty the building meshes") is asserted against that counter,
+  // and it failed in the browser on a kit apply that had re-meshed nothing.
+  const reportedRef = useRef<RebuildStats | null>(null);
   useEffect(() => {
     const stats = statsRef.current;
-    if (stats !== null) onRebuildStats?.(stats);
+    if (stats === null || stats === reportedRef.current) return;
+    reportedRef.current = stats;
+    onRebuildStats?.(stats);
   }, [groups, onRebuildStats]);
 
   // ── camera plumbing: fit height + demand-frameloop invalidation ─────────

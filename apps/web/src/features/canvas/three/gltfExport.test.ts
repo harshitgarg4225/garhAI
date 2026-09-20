@@ -31,6 +31,7 @@ import {
   isExportRoot,
 } from './gltfExport';
 import { buildHouseObject } from './headlessScene';
+import { bucketMeshName, facadeMeshName } from './meshNames';
 
 const GLB_MAGIC = 0x46546c67; // 'glTF'
 
@@ -176,11 +177,57 @@ describe('the GLB round trip (no engine: honest fallback geometry)', () => {
     const roots = exportRootsOf(root);
     const storey = roots.find((r) => r.name.startsWith('three-d:storey:'));
     if (storey === undefined) throw new Error('no storey root');
+
+    // The control FIRST: with the storey shown, its walls really are in the
+    // file. Without this the assertion below passes whether or not the
+    // filter is honoured — and it did, for as long as the live meshes were
+    // nameless (see the header of `headlessScene.ts`).
+    const shown = meshesOf((await parseGlb(await exportGlb(roots))).scene).map((m) => m.name);
+    expect(shown.some((n) => n.startsWith('external_wall'))).toBe(true);
+    expect(shown.some((n) => n.startsWith('facade_'))).toBe(true);
+
     storey.visible = false;
-    const gltf = await parseGlb(await exportGlb(roots));
-    const names = meshesOf(gltf.scene).map((m) => m.name);
+    const names = meshesOf((await parseGlb(await exportGlb(roots))).scene).map((m) => m.name);
     expect(names.some((n) => n.startsWith('external_wall'))).toBe(false); // walls live in the storey
     expect(names.some((n) => n.startsWith('facade_'))).toBe(true); // facade still there
+  });
+
+  it('names every mesh — a nameless export reaches Lumion as mesh_0 … mesh_N', async () => {
+    // The defect this file missed: R3F never sets `Object3D.name`, so the
+    // LIVE scene exported nameless while this fixture named itself. Both now
+    // go through `meshNames.ts`; the live scene's own names are read out of
+    // the downloaded bytes by `e2e/tests/three-d.spec.ts`.
+    const gltf = await parseGlb(bytes);
+    const names = meshesOf(gltf.scene).map((m) => m.name);
+    expect(names.length).toBeGreaterThan(5);
+    for (const name of names) {
+      expect(name, 'an unnamed mesh fell back to a glTF default').not.toMatch(/^mesh_\d+$/);
+      expect(name).not.toBe('');
+    }
+    // These are what an artist selects by: surface groups, facade components.
+    expect(names.some((n) => n.startsWith('external_wall'))).toBe(true);
+    expect(names.some((n) => n.startsWith('facade_chajja_'))).toBe(true);
+  });
+});
+
+describe('meshNames — the one namer the live scene and the export share', () => {
+  it('names a bucket by its surface, its element scope and its glassiness', () => {
+    expect(bucketMeshName({ surface: 'external_wall', elementId: null, glass: false })).toBe(
+      'external_wall',
+    );
+    expect(bucketMeshName({ surface: 'window', elementId: null, glass: true })).toBe(
+      'window_glass',
+    );
+    expect(bucketMeshName({ surface: 'external_wall', elementId: 'wall_1', glass: false })).toBe(
+      'external_wall_wall_1',
+    );
+  });
+
+  it('names a facade component kind-first, and survives glTF name sanitisation', () => {
+    const name = facadeMeshName({ id: 'facadecomp_1', kind: 'chajja' });
+    expect(name).toBe('facade_chajja_facadecomp_1');
+    // GLTFLoader strips [ ] . : / from node names — none may appear.
+    expect(name).not.toMatch(/[[\].:/]/);
   });
 });
 

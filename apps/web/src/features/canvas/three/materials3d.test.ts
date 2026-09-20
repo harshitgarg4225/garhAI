@@ -12,16 +12,17 @@ import { describe, expect, it } from 'vitest';
 
 import { MeshStandardMaterial } from 'three';
 
-import type { MaterialAssignment } from '@garh/model';
+import { SURFACE_GROUPS, type MaterialAssignment } from '@garh/model';
 
 import {
   colorForScope,
+  DEFAULT_SURFACE_TEXTURES,
   disposeSolidMaterials,
   getSolidMaterial,
   textureForScope,
   type SurfaceTextureSpec,
 } from './materials3d';
-import { TEXTURE_TILE_MM } from './textures3d';
+import { TEXTURE_FAMILIES, TEXTURE_TILE_MM } from './textures3d';
 
 const BRICK: MaterialAssignment = {
   id: 'material_A',
@@ -41,12 +42,26 @@ describe('textureForScope', () => {
     expect(textureForScope([BRICK], SCOPE, TEXTURES)).toEqual({ family: 'brick', url: null });
   });
 
-  it('is null with no assignment, no catalogue, or an unknown material', () => {
-    expect(textureForScope([], SCOPE, TEXTURES)).toBeNull();
-    expect(textureForScope([BRICK], SCOPE, undefined)).toBeNull();
+  it('falls back to the GROUP’s default family — an untouched building is still made of something', () => {
+    const plaster = { family: DEFAULT_SURFACE_TEXTURES.external_wall, url: null };
+    expect(textureForScope([], SCOPE, TEXTURES)).toEqual(plaster);
+    expect(textureForScope([BRICK], SCOPE, undefined)).toEqual(plaster);
     expect(
       textureForScope([{ ...BRICK, materialId: 'not-in-catalogue' }], SCOPE, TEXTURES),
-    ).toBeNull();
+    ).toEqual(plaster);
+    // …and a catalogue row with no family of its own does the same.
+    expect(textureForScope([{ ...BRICK, materialId: 'mystery-slab' }], SCOPE, TEXTURES)).toEqual(
+      plaster,
+    );
+  });
+
+  it('every surface group names a default family, so no mesh is ever untextured', () => {
+    for (const group of SURFACE_GROUPS) {
+      expect(TEXTURE_FAMILIES).toContain(DEFAULT_SURFACE_TEXTURES[group]);
+      expect(
+        textureForScope([], { surface: group, storeyId: null, elementId: null }, TEXTURES).family,
+      ).toBe(DEFAULT_SURFACE_TEXTURES[group]);
+    }
   });
 
   it('follows the SAME specificity the colour does — element beats building', () => {

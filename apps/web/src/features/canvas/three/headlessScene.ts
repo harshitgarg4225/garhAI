@@ -9,10 +9,19 @@
  * WHY IT EXISTS: `gltfExport.ts` finds its roots by those names in the LIVE
  * scene, and a test that proves the GLB round-trips needs a scene to export
  * without a GPU. Building it here from the same `buildGroup` buckets, the
- * same `boxesForComponent` boxes and the same material factories means the
- * headless object is the on-screen object minus React — so the mesh and
- * material counts the test asserts are the counts a user's download will
- * carry. (It is deliberately NOT a second renderer: nothing here draws.)
+ * same `boxesForComponent` boxes, the same material factories and the same
+ * NAMER (`meshNames.ts`) means the headless object is the on-screen object
+ * minus React. (It is deliberately NOT a second renderer: nothing here draws.)
+ *
+ * WHAT IT CANNOT PROVE, AND WHO DOES. This file is a substitute, and a test
+ * that exercises a substitute proves the substitute (CLAUDE.md bug 6). It
+ * was one: it named its meshes while the live components did not, so the
+ * export suite was green while every real download arrived as `mesh_0 …
+ * mesh_N` — no renderer artist could select the external walls. Both live
+ * components now call `meshNames.ts`, and the claim is held where it can go
+ * red: `e2e/tests/three-d.spec.ts` downloads the GLB from the REAL scene and
+ * reads those names out of the bytes. Keep it that way — if this file grows
+ * a detail the live scene lacks, the suite is lying again.
  *
  * The facade read (`house.facade`) is confined to this file and the facade
  * module; `solids.ts` / `geometryBuild.ts` still never see it (§8).
@@ -29,6 +38,7 @@ import type { PrismCutter } from './booleans';
 import { buildGroup, type BuiltBucket } from './geometryBuild';
 import { FACADE_GROUP_NAME } from './gltfExport';
 import { colorForScope, elementScopedAssignmentIds, getSolidMaterial } from './materials3d';
+import { bucketMeshName, facadeMeshName } from './meshNames';
 import { groupKeysOf } from './solids';
 
 function bucketGeometry(bucket: BuiltBucket): BufferGeometry {
@@ -75,7 +85,7 @@ export function buildHouseObject(house: HouseModel, options: HeadlessBuildOption
         bucket.overrideColor,
       );
       const mesh = new Mesh(bucketGeometry(bucket), getSolidMaterial(color, bucket.glass));
-      mesh.name = bucket.key;
+      mesh.name = bucketMeshName(bucket);
       mesh.castShadow = !bucket.glass;
       mesh.receiveShadow = true;
       group.add(mesh);
@@ -97,9 +107,7 @@ export function buildHouseObject(house: HouseModel, options: HeadlessBuildOption
       geometry.setAttribute('normal', new BufferAttribute(data.normals, 3));
       geometry.computeBoundingSphere();
       const mesh = new Mesh(geometry, material);
-      // Underscore, not colon: glTF node names lose `[ ] . : /` on the way
-      // back through GLTFLoader (PropertyBinding.sanitizeNodeName).
-      mesh.name = `facade_${component.id}`;
+      mesh.name = facadeMeshName(component);
       mesh.castShadow = FACADE_MESH_SHADOW.castShadow;
       mesh.receiveShadow = FACADE_MESH_SHADOW.receiveShadow;
       facade.add(mesh);

@@ -573,7 +573,8 @@ jobs:
           retention-days: 7
 
   # ══════════════════════════════════════════════════════════════════════════
-  # 5. e2e (smoke) — login → open demo → edit wall → undo → compliance chip
+  # 5. e2e (smoke + canvas) — login → open demo → edit wall → undo → chip,
+  #    then the 2D editor and the 3D DoD in a real (SwiftShader) browser.
   # ══════════════════════════════════════════════════════════════════════════
   # Runs the real stack via `docker compose up`, because that is the supported
   # way to run this app (playbook §1) — testing a bespoke CI-only wiring would
@@ -581,7 +582,7 @@ jobs:
   e2e-smoke:
     name: e2e (smoke)
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 50
     needs: [golden]
     steps:
       - uses: actions/checkout@v4
@@ -615,6 +616,19 @@ jobs:
           APP_URL: http://localhost:5173
           API_URL: http://localhost:8000
         run: pnpm --filter @garh/e2e test:smoke
+
+      # The canvas suites need a GPU-less WebGL context, which is what
+      # SwiftShader is; Chromium falls back to it on a headless runner. They
+      # ran only by hand until 2026-09-20 — and the 3D tree changed under
+      # them repeatedly — so the one thing nobody had executed since August
+      # was the 3D DoD itself: the boolean engine's holes, a real click
+      # resolved by the shared picker, the sun moving the shadows, and the
+      # GLB the Export panel produces.
+      - name: Playwright canvas (2D editor + the 3D DoD)
+        env:
+          APP_URL: http://localhost:5173
+          API_URL: http://localhost:8000
+        run: pnpm --filter @garh/e2e test:canvas
 
       - name: Dump service logs on failure
         if: failure()

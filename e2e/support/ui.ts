@@ -450,3 +450,111 @@ export async function selectViaHooks(page: Page, ids: readonly string[]): Promis
   }, ids as string[]);
   expect(ok, 'window.__garhTestHooks is missing — see hooksSnapshot').toBe(true);
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Pixels — the one thing the 3D specs could never assert
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export interface PixelSummary {
+  /** Distinct colours at 4-bit-per-channel precision — dither-insensitive. */
+  readonly distinctColours: number;
+  /** Share of the frame taken by its single commonest colour, 0..1. */
+  readonly dominantShare: number;
+  /** Mean of R, G and B over the frame, 0..255 — "is this lit at all". */
+  readonly meanBrightness: number;
+  /** A 48×48 RGB downsample, for {@link changedPixelShare}. */
+  readonly thumb: readonly number[];
+}
+
+/** Side of the downsample both the summary and the diff work on. */
+const THUMB = 48;
+
+/**
+ * What the 3D canvas is actually DRAWING, as numbers — read in the browser
+ * from the live surface, so there is no PNG decoder and no new dependency in
+ * this package.
+ *
+ * Deliberately NOT a baseline image: a golden PNG has to be minted on the
+ * runner class that will judge it (see `visual-regression.spec.ts`), while
+ * these numbers need no baseline at all and still catch every way a 3D view
+ * fails outright — a blank canvas, a canvas of one flat colour, an unlit
+ * scene, a scene whose lighting does not respond. Executed proof they are
+ * not vacuous: against a project with no walls the view scored 53.8% one
+ * colour, and this refused it.
+ *
+ * The canvas is drawn into a 2-D context to be read; `drawImage` composites
+ * whatever the compositor last presented, which is why this works despite
+ * `preserveDrawingBuffer: false`.
+ */
+export async function describeCanvasPixels(page: Page): Promise<PixelSummary> {
+  const surface = page.locator('[data-garh-canvas="3d"] canvas').first();
+  await expect(surface, 'the 3D canvas surface never mounted').toBeVisible({ timeout: 20_000 });
+  // Playwright's screenshot, NOT `drawImage(theCanvas)`: `CanvasRoot` asks for
+  // `preserveDrawingBuffer: false` (§14 — it is memory bandwidth per frame),
+  // so the WebGL drawing buffer is empty by the time script can read it, and
+  // reading it that way scored 1 distinct colour on a scene that was plainly
+  // drawing. The screenshot comes from the compositor, which is what the
+  // architect sees. Decoding then happens in the page — through an <img>, so
+  // the SPA's `img-src 'self' data: blob:` allows it — because Node has no
+  // PNG decoder and one function does not justify a new dependency.
+  const png = (await surface.screenshot()).toString('base64');
+  return page.evaluate(
+    async ({ base64, side }) => {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const element = new Image();
+        element.onload = () => resolve(element);
+        element.onerror = () => reject(new Error('the canvas screenshot did not decode'));
+        element.src = `data:image/png;base64,${base64}`;
+      });
+      const scratch = document.createElement('canvas');
+      scratch.width = side;
+      scratch.height = side;
+      const context = scratch.getContext('2d', { willReadFrequently: true });
+      if (context === null) throw new Error('no 2D context to read the screenshot with');
+      context.drawImage(image, 0, 0, side, side);
+      const { data } = context.getImageData(0, 0, side, side);
+
+      const counts = new Map<number, number>();
+      const thumb: number[] = [];
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i] ?? 0;
+        const g = data[i + 1] ?? 0;
+        const b = data[i + 2] ?? 0;
+        thumb.push(r, g, b);
+        const key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+        sum += r + g + b;
+      }
+      let dominant = 0;
+      for (const n of counts.values()) if (n > dominant) dominant = n;
+      const pixels = data.length / 4;
+      return {
+        distinctColours: counts.size,
+        dominantShare: pixels === 0 ? 1 : dominant / pixels,
+        meanBrightness: pixels === 0 ? 0 : sum / pixels / 3,
+        thumb,
+      };
+    },
+    { base64: png, side: THUMB },
+  );
+}
+
+/**
+ * Share of the frame that changed noticeably between two summaries. The
+ * downsample is deliberate: it ignores antialiasing noise along every edge
+ * and still shows a shadow that has swung across a wall.
+ */
+export function changedPixelShare(a: PixelSummary, b: PixelSummary): number {
+  const length = Math.min(a.thumb.length, b.thumb.length);
+  if (length === 0) return 0;
+  let changed = 0;
+  for (let i = 0; i < length; i += 3) {
+    const delta =
+      Math.abs((a.thumb[i] ?? 0) - (b.thumb[i] ?? 0)) +
+      Math.abs((a.thumb[i + 1] ?? 0) - (b.thumb[i + 1] ?? 0)) +
+      Math.abs((a.thumb[i + 2] ?? 0) - (b.thumb[i + 2] ?? 0));
+    if (delta > 18) changed += 1;
+  }
+  return changed / (length / 3);
+}

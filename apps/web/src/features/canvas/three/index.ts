@@ -96,6 +96,7 @@ export {
   getSolidMaterial,
   resolveMaterialId,
   textureForScope,
+  DEFAULT_SURFACE_TEXTURES,
 } from './materials3d';
 export type { MaterialScope, SurfaceTexture, SurfaceTextureSpec } from './materials3d';
 

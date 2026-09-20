@@ -67,6 +67,29 @@ export const DEFAULT_SURFACE_COLORS: Readonly<Record<SurfaceGroup, string>> = {
   staircase: '#C4BEB4',
 };
 
+/**
+ * The texture family each surface group wears when NOTHING is assigned —
+ * what an untouched building is made of. Without these the 3D view stays
+ * flat until an architect opens the materials panel, which is most of the
+ * time: plaster on walls, tile on floors, concrete on the roof and the
+ * plinth, metal on railings, glass in the glazing. An assignment overrides
+ * the family exactly as it overrides the colour.
+ */
+export const DEFAULT_SURFACE_TEXTURES: Readonly<Record<SurfaceGroup, TextureFamily>> = {
+  external_wall: 'plaster',
+  internal_wall: 'plaster',
+  floor: 'tile',
+  ceiling: 'plaster',
+  roof: 'concrete',
+  parapet: 'plaster',
+  railing: 'metal',
+  door: 'wood',
+  window: 'glass',
+  cladding: 'wood',
+  plinth: 'concrete',
+  staircase: 'concrete',
+};
+
 // ---------------------------------------------------------------------------
 // Assignment resolution (pure — exercised by the specs)
 // ---------------------------------------------------------------------------
@@ -151,11 +174,22 @@ export function textureForScope(
   assignments: readonly MaterialAssignment[],
   scope: MaterialScope,
   materialTextures: Readonly<Record<string, SurfaceTextureSpec>> | undefined,
-): SurfaceTextureSpec | null {
-  if (materialTextures === undefined) return null;
+): SurfaceTextureSpec {
+  const fallback: SurfaceTextureSpec = {
+    family: DEFAULT_SURFACE_TEXTURES[scope.surface],
+    url: null,
+  };
+  if (materialTextures === undefined) return fallback;
   const materialId = resolveMaterialId(assignments, scope);
-  if (materialId === null) return null;
-  return materialTextures[materialId] ?? null;
+  if (materialId === null) return fallback;
+  const assigned = materialTextures[materialId];
+  if (assigned === undefined) return fallback;
+  // An assignment naming a material the catalogue cannot describe keeps the
+  // group's default family — the same "plainer, never wrong" rule the colour
+  // resolution follows when a materialId has no hex. A row with no family but
+  // a real image url still wins: the url IS its description.
+  if (assigned.family === null && assigned.url === null) return fallback;
+  return assigned;
 }
 
 /** A catalogue row's texture, as the page hands it down. */
