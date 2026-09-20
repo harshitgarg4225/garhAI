@@ -76,6 +76,21 @@ def settle(page, ms=800):
     with contextlib.suppress(PWTimeout):
         page.wait_for_load_state("networkidle", timeout=15_000)
     page.wait_for_timeout(ms)
+    dismiss_tour(page)
+
+
+def dismiss_tour(page):
+    """Skip the onboarding tour if it is up, the way a first-time architect would.
+
+    The tour is shown once per browser and its overlay sits above the canvas, so a
+    journey that ignored it would be testing the overlay rather than the product.
+    Skipping is one click and it persists, so this is a no-op from then on.
+    """
+    with contextlib.suppress(Exception):
+        skip = page.locator('[data-testid="tour-skip"]')
+        if skip.count() and skip.first.is_visible():
+            skip.first.click(timeout=3_000)
+            page.wait_for_timeout(250)
 
 
 # ---------------------------------------------------------------- steps

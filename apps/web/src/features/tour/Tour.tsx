@@ -106,9 +106,14 @@ export function Tour({
   const bodyId = `${base}-body`;
 
   return createPortal(
-    <div className="fixed inset-0 z-[70]" data-testid="tour">
-      {/* The dim layer. Clicking it does nothing on purpose: a stray click must
-          not end a tour a new user has not read yet; Skip and Escape are explicit. */}
+    <div className="pointer-events-none fixed inset-0 z-[70]" data-testid="tour">
+      {/* The dim layer dims and nothing else: `pointer-events-none`, so the app
+          underneath stays usable while the tour is up. It used to swallow every
+          click, which is what broke the @smoke journey in CI run 91 — Playwright
+          retried the plot button 33 times against this div and timed out, and an
+          architect would have been just as stuck on their first project. A stray
+          click still does not end the tour: Skip and Escape are explicit, and the
+          card below re-enables pointer events for its own buttons. */}
       <div className="absolute inset-0 bg-ink/40" aria-hidden="true" />
       {anchor === null ? null : (
         <div
@@ -126,14 +131,13 @@ export function Tour({
       <div
         ref={cardRef}
         role="dialog"
-        aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
         tabIndex={-1}
         data-testid="tour-card"
         data-step={current.id}
         className={cn(
-          'absolute flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-3 rounded-lg border border-line bg-surface p-4 shadow-xl outline-none',
+          'pointer-events-auto absolute flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-3 rounded-lg border border-line bg-surface p-4 shadow-xl outline-none',
           placed === null && 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
         )}
         style={placed === null ? undefined : { top: placed.top, left: placed.left }}

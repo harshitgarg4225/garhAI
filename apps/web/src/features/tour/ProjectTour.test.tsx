@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { useUiStore } from '../../stores/ui';
 import { ProjectTour } from './ProjectTour';
+import { TOUR_STEPS } from './steps';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -93,6 +94,31 @@ describe('ProjectTour', () => {
     expect(useUiStore.getState().tourStep).toBeNull();
     expect(card()).toBeNull();
     expect(useUiStore.getState().keyboardEnabled).toBe(true);
+  });
+
+  it('auto-start never moves the architect off the tab they opened', () => {
+    // Browser UAT run 13: opening /projects/<id>/plan auto-started the tour on its
+    // Brief step, the navigation effect pulled the route to /brief, and the plan
+    // canvas never rendered. Auto-start must open the step that belongs to the tab
+    // already on screen and leave the route alone.
+    mount('plan');
+    expect(lastPath).toBe('/projects/p1/plan');
+    expect(card()?.getAttribute('data-step')).toBe('plan');
+    expect(useUiStore.getState().tourStep).toBe(
+      TOUR_STEPS.findIndex((step) => step.tab === 'plan'),
+    );
+  });
+
+  it('auto-start stays shut on a tab no step belongs to, rather than navigating away', () => {
+    mount('renders');
+    expect(lastPath).toBe('/projects/p1/renders');
+    expect(card()).toBeNull();
+    expect(useUiStore.getState().tourStep).toBeNull();
+    // ...and the lightbulb still works from there, which is what makes the silence safe.
+    act(() => {
+      useUiStore.getState().startTour();
+    });
+    expect(card()?.getAttribute('data-step')).toBe('plot');
   });
 
   it('does not start on its own with autoStart off, and startTour opens step one', () => {

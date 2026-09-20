@@ -103,7 +103,7 @@ describe('steps', () => {
 });
 
 describe('Tour', () => {
-  it('renders nothing while closed and a labelled modal dialog while open', () => {
+  it('renders nothing while closed and a labelled dialog while open', () => {
     mount(
       <Tour
         open={false}
@@ -119,7 +119,9 @@ describe('Tour', () => {
     mount(<Tour open step={0} anchor={null} onStepChange={noop} onSkip={noop} onFinish={noop} />);
     const dialog = card();
     expect(dialog.getAttribute('role')).toBe('dialog');
-    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    // NOT aria-modal: the tour informs, it does not trap the page. See the
+    // pointer-events test below for what that promise is worth.
+    expect(dialog.getAttribute('aria-modal')).toBeNull();
     const title = document.getElementById(dialog.getAttribute('aria-labelledby') ?? '');
     const body = document.getElementById(dialog.getAttribute('aria-describedby') ?? '');
     expect(title?.textContent).toBe(TOUR_STEPS[0]?.title);
@@ -129,6 +131,19 @@ describe('Tour', () => {
     // No anchor ⇒ centred, no highlight.
     expect(document.querySelector('[data-testid="tour-highlight"]')).toBeNull();
     expect(dialog.className).toContain('left-1/2');
+  });
+
+  it('never swallows a click meant for the app underneath', () => {
+    // CI run 91: the full-screen dim layer intercepted pointer events, Playwright
+    // retried the plot button 33 times against it and the @smoke journey timed out.
+    // A first-time architect would have been just as stuck. The overlay dims; the
+    // card takes clicks; nothing else does.
+    mount(<Tour open step={0} anchor={null} onStepChange={noop} onSkip={noop} onFinish={noop} />);
+    const overlay = document.querySelector('[data-testid="tour"]');
+    expect(overlay?.className).toContain('pointer-events-none');
+    expect(card().className).toContain('pointer-events-auto');
+    const dim = overlay?.querySelector('[aria-hidden="true"]');
+    expect(dim?.className).not.toContain('pointer-events-auto');
   });
 
   it('draws the highlight around the anchor and places the card beneath it', () => {
