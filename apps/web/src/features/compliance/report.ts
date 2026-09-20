@@ -163,6 +163,20 @@ function fmtNumber(n: number, decimals: number): string {
  * lengths and areas. Anything unrecognised is shown verbatim rather than
  * hidden — a number an architect cannot see is a number they cannot dispute.
  */
+/**
+ * The `access` unit's raw labels, as an architect would say them.
+ *
+ * `nbc.circulation.room.*` reports the door-graph walk's verdict, which is a word
+ * rather than a measurement: `actual` is "unreachable" and `limit` is the list of
+ * routes the rule accepts. Left alone that renders as "unreachable of reachable,
+ * only-via-bath", which is not a sentence anybody says.
+ */
+const ACCESS_LABELS: Readonly<Record<string, string>> = {
+  reachable: 'Reachable',
+  unreachable: 'No door route reaches it',
+  'only-via-bath': 'Only through a bath',
+};
+
 export function formatComplianceValue(
   value: ComplianceValueVM | undefined,
   unit: string | undefined,
@@ -177,7 +191,7 @@ export function formatComplianceValue(
     return JSON.stringify(value);
   }
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') return ACCESS_LABELS[value] ?? value;
 
   switch (unit) {
     case 'mm':
@@ -203,6 +217,10 @@ export function formatComplianceValue(
 export function formatActualVsLimit(issue: ComplianceIssueVM, units: UnitsDisplay): string | null {
   if (issue.actual === undefined || issue.limit === undefined) return null;
   if (issue.actual === null && issue.limit === null) return null;
+  // An access verdict has no "of": the limit is the list of routes the rule accepts,
+  // which the rule's own message already explains. Showing the measured word alone is
+  // the whole content.
+  if (issue.unit === 'access') return formatComplianceValue(issue.actual, issue.unit, units);
   const actual = formatComplianceValue(issue.actual, issue.unit, units);
   const limit = formatComplianceValue(issue.limit, issue.unit, units);
   return `${actual} of ${limit}`;

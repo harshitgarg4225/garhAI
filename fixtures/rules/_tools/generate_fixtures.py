@@ -3,7 +3,7 @@ from __future__ import annotations
 """Generate the pass/fail fixture corpus for every rule in rulepacks/.
 
 Playbook §16 requires at least one passing and one violating fixture per rule.
-There are 117 rules, so the corpus is generated rather than typed -- but it is
+There are 119 rules, so the corpus is generated rather than typed -- but it is
 generated to be *tight*: a passing fixture sits EXACTLY on the limit and a
 failing fixture misses it by one unit, for the one input the rule measures,
 inside a context whose other values are deliberately compliant. That is what
@@ -973,6 +973,27 @@ def build_fixture(packs, rule, kind, variant=None):
                 (room["name"], mm_txt(w), mm_txt(limit), mm2_txt(room["areaMm2"]))) if violated else \
                ("%s is exactly %s wide, the permitted minimum, with %s of area." %
                 (room["name"], mm_txt(limit), mm2_txt(room["areaMm2"])))
+
+    elif ctype == "room_access":
+        # The ONLY check whose `actual` is a walk, not a measurement. The engine does
+        # no pathfinding: garh_model.circulation walks the door graph and hands the
+        # verdict over as room.access, so the fixture states that verdict directly.
+        # Which label to fail with is decided by what the rule allows, so that
+        # `reachable` (a fail for the privacy rule) and `unreachable` (a fail for the
+        # reachability rule) each land on the rule that actually cares.
+        allow = list(check["allow"])
+        rtype = room_type_for(rule, None)
+        room = ensure_room(ctx, rtype)
+        if violated:
+            label = "unreachable" if "only-via-bath" in allow else "only-via-bath"
+        else:
+            label = allow[0]
+        room["access"] = label
+        exp.update(status=status, actual=label, limit=allow,
+                   elements=[room["id"]] if violated else [])
+        desc = ("%s is %s: the door-graph walk found no acceptable route to it, and this "
+                "rule allows only %s." % (room["name"], label, ", ".join(allow))) if violated else \
+               ("%s is %s, which this rule allows (%s)." % (room["name"], label, ", ".join(allow)))
 
     elif ctype == "ceiling_height_min":
         limit = check["valueMm"]

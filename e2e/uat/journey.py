@@ -370,6 +370,17 @@ with sync_playwright() as p:
         else None,
     )
     page.on("pageerror", lambda e: console.append("pageerror: " + str(e)[:200]))
+
+    # A console line that says only "Failed to load resource: 404" is not a finding,
+    # it is a rumour: run 14 recorded seven of them and none could be acted on. The
+    # response listener is where the URL lives, so failures are recorded with it.
+    # 401s are deliberately kept too — the app probes some routes before it has a
+    # token — but an unexplained one is worth seeing.
+    def on_response(resp):
+        if resp.status >= 400:
+            console.append("http %d %s" % (resp.status, resp.url[:180]))
+
+    page.on("response", on_response)
     for fn in STEPS:
         fn(page)
     browser.close()

@@ -690,6 +690,56 @@
       "tags": [
         "door"
       ]
+    },
+    {
+      "id": "nbc.circulation.room.reachable",
+      "severity": "fail",
+      "title": "Every room must be reachable through a door",
+      "message": "{element} cannot be reached: no door route runs to it from the entrance or the stair.",
+      "when": {
+        "roomAccessKnown": {
+          "eq": true
+        }
+      },
+      "check": {
+        "type": "room_access",
+        "allow": [
+          "reachable",
+          "only-via-bath"
+        ]
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.1",
+      "fix": "Add a door between this room and a space that is already reachable.",
+      "confidence": "seed",
+      "tags": [
+        "circulation"
+      ]
+    },
+    {
+      "id": "nbc.circulation.room.not_through_bath",
+      "severity": "warn",
+      "title": "A room should not be entered through a bath",
+      "message": "{element} can only be reached by walking through a bath or WC.",
+      "when": {
+        "roomAccessKnown": {
+          "eq": true
+        },
+        "roomIsHabitable": {
+          "eq": true
+        }
+      },
+      "check": {
+        "type": "room_access",
+        "allow": [
+          "reachable"
+        ]
+      },
+      "cite": "Part 3 Sec 1, Cl. 4.1",
+      "fix": "Give the room a door onto a corridor, lobby or another habitable space.",
+      "confidence": "seed",
+      "tags": [
+        "circulation"
+      ]
     }
   ]
 }

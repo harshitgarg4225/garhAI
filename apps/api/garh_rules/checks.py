@@ -15,6 +15,7 @@ type                       scope        actual vs limit
 ``floors_max``             project       ``storeyCount + counted extras`` <= ``value``
 ``room_area_min``          room          ``areaMm2`` >= ``valueMm2``
 ``room_width_min``         room          ``leastWidthMm`` >= ``valueMm``
+``room_access``            room          ``access`` (from the door graph) is in ``allow``
 ``ceiling_height_min``     room          ``clearCeilingHeightMm`` >= ``valueMm``
 ``ventilation_ratio_min``  room          openable >= ``max(ceil(ratio * area), minAreaMm2)``
 ``stair_riser_max``        stair         ``riserMm`` <= ``valueMm``
@@ -274,6 +275,38 @@ def check_ventilation_ratio_min(check: Check, instance: Instance, env: CheckEnv)
 # ---------------------------------------------------------------------------
 # Stair scope
 # ---------------------------------------------------------------------------
+
+
+def check_room_access(check: Check, instance: Instance, env: CheckEnv) -> Outcome:
+    """Can this room be walked to, and by a route the rule allows?
+
+    THE GEOMETRY IS NOT HERE, and that is the point. The engine does no pathfinding;
+    ``garh_model.circulation`` walks the door graph and the model layer hands the
+    verdict over as ``room.access``. This check is the comparison, which keeps the
+    engine a pure function of its context and keeps the walk in the one place that
+    already knows what a door is.
+
+    Why the rule exists at all: door reachability was a SOLVER-only gate. A plan the
+    solver produced could not ship with a walled-off room, but a plan an architect drew,
+    imported or edited could — and the compliance tab, which is the thing an architect
+    trusts, said nothing. That is CLAUDE.md bug 7 with the fix applied to one caller.
+
+    ``allow`` is the set of access labels that pass. A rule that only cares about
+    "can you get in at all" allows ``only-via-bath`` too; the privacy rule does not.
+    A room whose access the model did not derive never reaches here — the packs gate
+    on ``when.roomAccessKnown``, so it is ``not_applicable`` with a reason.
+    """
+    room: RoomSummary = instance.require("room")
+    allow = check.list_param("allow")
+    actual = room.access if room.access is not None else "unknown"
+    satisfied = actual in allow
+    return Outcome(
+        satisfied=satisfied,
+        actual=actual,
+        limit=list(allow),
+        order_key=Fraction(0) if satisfied else Fraction(-1),
+        satisfaction=Fraction(1) if satisfied else Fraction(0),
+    )
 
 
 def check_stair_riser_max(check: Check, instance: Instance, env: CheckEnv) -> Outcome:
@@ -563,6 +596,7 @@ _REGISTRY: Mapping[str, CheckFn] = {
     "floors_max": check_floors_max,
     "room_area_min": check_room_area_min,
     "room_width_min": check_room_width_min,
+    "room_access": check_room_access,
     "ceiling_height_min": check_ceiling_height_min,
     "ventilation_ratio_min": check_ventilation_ratio_min,
     "stair_riser_max": check_stair_riser_max,
@@ -589,6 +623,7 @@ CHECK_SCOPES: Mapping[str, str] = {
     "floors_max": "project",
     "room_area_min": "room",
     "room_width_min": "room",
+    "room_access": "room",
     "ceiling_height_min": "room",
     "ventilation_ratio_min": "room",
     "stair_riser_max": "stair",
@@ -610,6 +645,7 @@ RESULT_UNITS: Mapping[str, str] = {
     "floors_max": "count",
     "room_area_min": "mm2",
     "room_width_min": "mm",
+    "room_access": "access",
     "ceiling_height_min": "mm",
     "ventilation_ratio_min": "mm2",
     "stair_riser_max": "mm",

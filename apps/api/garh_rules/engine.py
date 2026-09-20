@@ -133,7 +133,7 @@ class EvaluationReport:
     def to_json(self, *, include_not_applicable: bool = True, full: bool = False) -> dict[str, Any]:
         """The shape ``compliance_reports.results`` / ``GET /compliance`` carry.
 
-        ``not_applicable`` rows are included by default: "12 of 118 rules applied to
+        ``not_applicable`` rows are included by default: "12 of 120 rules applied to
         this plot" is information an architect wants, and dropping them makes a
         report look thinner than the run actually was. The API may omit them
         (``x-garh-check-meta.statuses`` allows it) for the live editor's chip strip.

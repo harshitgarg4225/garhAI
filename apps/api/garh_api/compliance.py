@@ -4,7 +4,7 @@ This module is the missing seam between two subsystems that were both complete a
 neither of which could reach the other:
 
 * ``garh_model`` folds the op log into a ``ProjectDoc`` (JSON, camelCase, integer mm).
-* ``garh_rules`` evaluates 118 rules across five packs against an
+* ``garh_rules`` evaluates 120 rules across five packs against an
   :class:`~garh_rules.context.EvaluationContext` — a **pre-derived projection**, by
   design: the engine does no geometry beyond polygon area/bbox/centroid and the 3x3
   zone classification, so that it stays under the 100 ms budget (§14) and stays a pure
@@ -335,6 +335,40 @@ def _edge_roles(boundary: Sequence[Point], road_widths: Mapping[int, int | None]
 DEFAULT_BUILDING_USE = "dwelling-single"
 
 
+def _room_access_by_id(house: Mapping[str, Any]) -> dict[str, str]:
+    """``roomId -> "reachable" | "unreachable" | "only-via-bath"``, or ``{}``.
+
+    An empty dict is the honest answer when the walk cannot run, and it reaches the
+    engine as a null `access`, which the packs read through `when.roomAccessKnown`
+    and report as not_applicable. Never "reachable": a room nobody measured is not a
+    room somebody can get into.
+
+    `garh_model.circulation` is imported here rather than at module scope so this
+    module keeps loading on a bare interpreter (`make bare`) even if the model ever
+    grows a heavier dependency — and so a geometry error in one project's document
+    is a compliance row that says "not measured", not a 500 on the tab.
+    """
+    try:
+        from garh_model.circulation import house_reachability
+        from garh_model.model import HouseModel
+
+        model = HouseModel.from_json(house)
+        if not model.storeys:
+            return {}
+        out: dict[str, str] = {}
+        for result in house_reachability(model).values():
+            for room_id in result.unreachable:
+                out[room_id] = "unreachable"
+            for room_id in result.only_via_bath:
+                out[room_id] = "only-via-bath"
+            for room_id in result.reachable:
+                out.setdefault(room_id, "reachable")
+        return out
+    except Exception:  # pragma: no cover - defensive; see the docstring
+        _log.warning("compliance.reachability_failed", exc_info=True)
+        return {}
+
+
 def build_evaluation_context(
     document: Mapping[str, Any],
     *,
@@ -513,6 +547,21 @@ def build_evaluation_context(
         for room_id in room_ids
     }
 
+    # ---- who can actually walk where ---------------------------------------
+    #
+    # Door reachability was a SOLVER-only gate (CLAUDE.md bug 7). A plan the solver
+    # produced could not ship with a walled-off room, but one an architect drew,
+    # imported or edited could — and the compliance tab, which is what an architect
+    # trusts, said nothing, because no loaded rule looked at doors. The walk lives in
+    # `garh_model.circulation` and stays there: the engine does no pathfinding, so
+    # this projection carries its verdict per room and `nbc.circulation.room.*`
+    # compares it.
+    #
+    # `None` when the walk could not run — a document with no storeys, or one whose
+    # geometry the model refuses. The packs gate on `roomAccessKnown`, so that is
+    # `not_applicable` with a reason and never a pass.
+    room_access = _room_access_by_id(house)
+
     room_rows: list[dict[str, Any]] = []
     room_type_by_id: dict[str, str] = {}
     for room in rooms:
@@ -539,6 +588,7 @@ def build_evaluation_context(
                 # which is exactly what the "internal room" rules are about.
                 "isInternal": room_id not in rooms_with_external_wall,
                 "hasShaftAccess": False,
+                "access": room_access.get(room_id),
             }
         )
 

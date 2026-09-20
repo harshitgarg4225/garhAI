@@ -7,7 +7,7 @@ part of the contract most easily got wrong, so it lives in one place:
 ``project``             once; only project-level ``when`` fields are bound
 ``edge``                once per plot edge named by ``check.edge``; binds ``edgeRoadWidthMm``
 ``storey``              once per storey; binds ``storeyIndex``
-``room``                once per room; binds ``roomType``, ``roomIsHabitable``, ``roomIsInternal``, ``storeyIndex``
+``room``                once per room; binds ``roomType``, ``roomIsHabitable``, ``roomIsInternal``, ``roomAccessKnown``, ``roomAccess``, ``storeyIndex``
 ``opening``             once per opening; binds ``openingKind``, ``openingRole``, ``storeyIndex``
 ``stair``               once per stair; binds ``storeyIndex``
 ``projection``          once per *matching* projection; binds ``storeyIndex``
@@ -212,6 +212,13 @@ def _room_instances(env: CheckEnv) -> tuple[Instance, ...]:
                     "roomType": room.type,
                     "roomIsHabitable": env.is_habitable(room),
                     "roomIsInternal": room.is_internal,
+                    # Two fields rather than one, because "we could not tell" and
+                    # "you cannot get in" are different answers and a rule must be
+                    # able to sit out the first. `when.roomAccessKnown` is how a
+                    # reachability rule declines a model with no doors derived,
+                    # instead of reading a null as a pass.
+                    "roomAccessKnown": room.access_known,
+                    "roomAccess": room.access,
                 },
                 payload=room,
             )
@@ -354,7 +361,7 @@ def _cache_key(check: Check, scope: str) -> Any:
 
     Most scopes depend only on the model, so 60-odd room rules share one list.
     ``edge`` varies by selector, ``projection`` by the element it filters on, and
-    ``zone`` by its whole target — memoising these is what keeps a 118-rule run
+    ``zone`` by its whole target — memoising these is what keeps a 120-rule run
     from rebuilding the same twelve room instances 60 times inside the 100 ms
     budget (§14).
     """

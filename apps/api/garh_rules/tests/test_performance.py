@@ -15,7 +15,7 @@ module also asserts the two design decisions that buy the budget:
   instances; without the memo the same twelve rooms would be rebuilt sixty times.
 
 The fixture is a G+2 3BHK-scale model — 36 rooms, 72 openings, 3 storeys — run
-against all five packs at once (118 rules), which is worse than production ever
+against all five packs at once (120 rules), which is worse than production ever
 sees (one city pack at a time). Timing on CI hardware is noisy, so the assertion
 is on the **median of several runs** and the budget is quoted from
 ``PERFORMANCE_BUDGET_MS``.
@@ -184,7 +184,7 @@ def test_a_full_run_on_a_house_fits_the_budget() -> None:
     pack_set = load_pack_set(PACK_IDS, root=RULEPACK_DIR)
     context = house_context()
     report = evaluate(context, packs=pack_set)
-    assert len(report.results) == len(pack_set.rules) == 118
+    assert len(report.results) == len(pack_set.rules) == 120
     assert len(context.model.rooms) == 36
     elapsed = _median_ms(context, pack_set)
     assert elapsed < PERFORMANCE_BUDGET_MS, "%.1f ms exceeds the %d ms budget" % (

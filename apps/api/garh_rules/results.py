@@ -168,7 +168,7 @@ class RuleResult:
         ``instances`` is emitted for **violated** rules only (or everything with
         ``full=True``). A passing rule's twelve green per-room rows carry nothing a
         client acts on, and ``compliance_reports.results`` is a jsonb column that a
-        118-rule pack set would otherwise fill with them. The per-edge setback detail
+        120-rule pack set would otherwise fill with them. The per-edge setback detail
         the area statement needs survives regardless — it is serialised in
         ``areas.setbacks``.
         """

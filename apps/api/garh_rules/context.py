@@ -114,6 +114,23 @@ def _str(value: Any, what: str) -> str:
     return value
 
 
+#: What :attr:`RoomSummary.access` may say. Anything else is a pack/model bug, not a
+#: room to wave through, so the parser raises rather than coercing to a default.
+ROOM_ACCESS_VALUES: frozenset[str] = frozenset({"reachable", "unreachable", "only-via-bath"})
+
+
+def _room_access(value: Any, what: str) -> str | None:
+    """``None`` when the model did not derive connectivity; never a silent "reachable"."""
+    if value is None:
+        return None
+    text = str(value)
+    if text not in ROOM_ACCESS_VALUES:
+        raise ContextError(
+            "%s must be one of %s, got %r" % (what, sorted(ROOM_ACCESS_VALUES), value), field=what
+        )
+    return text
+
+
 def _bool(value: Any, what: str) -> bool:
     if not isinstance(value, bool):
         raise ContextError("%s must be a boolean, got %r" % (what, value), field=what)
@@ -387,8 +404,22 @@ class RoomSummary:
     ventilation_opening_area_mm2: int
     is_internal: bool
     has_shaft_access: bool = False
+    #: Can this room be walked to, and how?
+    #:
+    #: ``None`` means the model layer did not derive door connectivity for this
+    #: storey — not "yes". The engine does no geometry, so it cannot tell the
+    #: difference on its own, and a default of ``"reachable"`` would turn every
+    #: context written before this field existed into a silent pass. The rules
+    #: gate on :attr:`access_known`, so an undeclared room is ``not_applicable``.
+    #:
+    #: One of ``"reachable"``, ``"unreachable"``, ``"only-via-bath"``.
+    access: str | None = None
     #: The type as it arrived, before :data:`ROOM_TYPE_ALIASES` was applied.
     raw_type: str = ""
+
+    @property
+    def access_known(self) -> bool:
+        return self.access in ROOM_ACCESS_VALUES
 
     @classmethod
     def from_json(cls, data: Mapping[str, Any], where: str) -> RoomSummary:
@@ -410,6 +441,7 @@ class RoomSummary:
             ),
             is_internal=_bool(data.get("isInternal"), "%s.isInternal" % where),
             has_shaft_access=bool(data.get("hasShaftAccess", False)),
+            access=_room_access(data.get("access"), "%s.access" % where),
             raw_type=raw_type,
         )
 
@@ -427,6 +459,7 @@ class RoomSummary:
             "ventilationOpeningAreaMm2": self.ventilation_opening_area_mm2,
             "isInternal": self.is_internal,
             "hasShaftAccess": self.has_shaft_access,
+            "access": self.access,
         }
 
 

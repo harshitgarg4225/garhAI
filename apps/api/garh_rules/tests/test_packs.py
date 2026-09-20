@@ -61,7 +61,7 @@ class TestShippedPacks:
     def test_the_whole_set_resolves_root_first(self) -> None:
         pack_set = load_pack_set(PACK_IDS, root=RULEPACK_DIR)
         assert pack_set.load_order[0] == "nbc-core"
-        assert len(pack_set.rules) == 118
+        assert len(pack_set.rules) == 120
         # A child's rules always come after its parent's, which is the order a
         # compliance annexure reads in.
         seen: list[str] = []
@@ -362,7 +362,7 @@ class TestRejectsOnARealPack:
 
     def test_unchanged_it_still_loads(self) -> None:
         root = write_pack_dir(copy_real_pack("blr"), copy_real_pack("nbc-core"))
-        assert len(PackLoader(root).load(["blr"]).rules) == 23 + 33
+        assert len(PackLoader(root).load(["blr"]).rules) == 25 + 33
 
     def test_a_typo_in_one_when_field(self) -> None:
         """Caught twice over: the schema's ``additionalProperties: false`` on the

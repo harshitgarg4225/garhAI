@@ -175,7 +175,7 @@ def test_committed_packs_pass_the_gate(review):
 def test_repository_packs_are_all_seed(review):
     """Nothing has been quietly promoted.
 
-    This is the assertion the whole build item exists to protect: 118 values, not
+    This is the assertion the whole build item exists to protect: 120 values, not
     one of them reviewed, and the packs saying so out loud. Its ability to fail is
     proven by ``test_valid_promotion_moves_the_coverage_count`` — the same audit
     code, on a directory where one rule *has* moved, reports the move.
@@ -210,7 +210,7 @@ def test_coverage_counts_match_an_independent_recount(review):
         assert row["rules"] == len(raw["rules"]), pack_id
         assert {k: v for k, v in row["counts"].items() if v} == expected, pack_id
         grand_total += len(raw["rules"])
-    assert grand_total == 118
+    assert grand_total == 120
 
 
 # ===========================================================================
@@ -642,7 +642,7 @@ def test_cli_exit_codes_and_output(review, tmp_path, capsys):
 
     assert review.main(["coverage", "--root", _PACKS, "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert sum(p["rules"] for p in payload["packs"]) == 118
+    assert sum(p["rules"] for p in payload["packs"]) == 120
 
     assert review.main(["verify", "--root", _PACKS, "--today", "not-a-date"]) == 2
 
@@ -653,4 +653,4 @@ def test_coverage_table_names_every_pack_and_totals_them(review, capsys):
     for pack_id in ("nbc-core", "blr", "ncr", "hyd", "vastu"):
         assert pack_id in table
     assert "TOTAL" in table
-    assert "118" in table
+    assert "120" in table

@@ -75,7 +75,14 @@ PROJECT_WHEN_FIELDS: tuple[str, ...] = (
 SCOPE_WHEN_FIELDS: Mapping[str, tuple[str, ...]] = {
     "edge": ("edgeRoadWidthMm",),
     "storey": ("storeyIndex",),
-    "room": ("storeyIndex", "roomType", "roomIsHabitable", "roomIsInternal"),
+    "room": (
+        "storeyIndex",
+        "roomType",
+        "roomIsHabitable",
+        "roomIsInternal",
+        "roomAccessKnown",
+        "roomAccess",
+    ),
     "opening": ("storeyIndex", "openingKind", "openingRole"),
     "stair": ("storeyIndex",),
     "projection": ("storeyIndex",),

@@ -10,14 +10,14 @@
   ],
   "counts": {
     "packs": 5,
-    "rules": 118,
-    "fixtures": 245
+    "rules": 120,
+    "fixtures": 249
   },
   "packs": [
     {
       "packId": "nbc-core",
       "packVersion": "2026.07",
-      "ruleCount": 23,
+      "ruleCount": 25,
       "rules": [
         {
           "packId": "nbc-core",
@@ -269,6 +269,28 @@
           ],
           "fail": [
             "nbc-core/nbc.door.bath.width.min.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.circulation.room.reachable",
+          "pass": [
+            "nbc-core/nbc.circulation.room.reachable.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.circulation.room.reachable.fail.json"
+          ],
+          "extra": []
+        },
+        {
+          "packId": "nbc-core",
+          "ruleId": "nbc.circulation.room.not_through_bath",
+          "pass": [
+            "nbc-core/nbc.circulation.room.not_through_bath.pass.json"
+          ],
+          "fail": [
+            "nbc-core/nbc.circulation.room.not_through_bath.fail.json"
           ],
           "extra": []
         }
@@ -1730,6 +1752,38 @@
       "kind": "fail",
       "path": "nbc-core/nbc.door.bath.width.min.fail.json",
       "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.circulation.room.reachable.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.circulation.room.reachable",
+      "kind": "pass",
+      "path": "nbc-core/nbc.circulation.room.reachable.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.circulation.room.reachable.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.circulation.room.reachable",
+      "kind": "fail",
+      "path": "nbc-core/nbc.circulation.room.reachable.fail.json",
+      "expectStatus": "fail"
+    },
+    {
+      "fixtureId": "nbc.circulation.room.not_through_bath.pass",
+      "packId": "nbc-core",
+      "ruleId": "nbc.circulation.room.not_through_bath",
+      "kind": "pass",
+      "path": "nbc-core/nbc.circulation.room.not_through_bath.pass.json",
+      "expectStatus": "pass"
+    },
+    {
+      "fixtureId": "nbc.circulation.room.not_through_bath.fail",
+      "packId": "nbc-core",
+      "ruleId": "nbc.circulation.room.not_through_bath",
+      "kind": "fail",
+      "path": "nbc-core/nbc.circulation.room.not_through_bath.fail.json",
+      "expectStatus": "warn"
     },
     {
       "fixtureId": "blr.setback.front.plot.le120.pass",

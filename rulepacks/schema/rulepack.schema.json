@@ -278,7 +278,7 @@
       "project": "evaluated once; only project-level `when` fields are bound",
       "edge": "once per plot edge named by check.edge; binds edgeRoadWidthMm",
       "storey": "once per storey; binds storeyIndex",
-      "room": "once per room; binds roomType, roomIsHabitable, roomIsInternal, storeyIndex",
+      "room": "once per room; binds roomType, roomIsHabitable, roomIsInternal, roomAccessKnown, roomAccess, storeyIndex",
       "opening": "once per opening; binds openingKind, openingRole, storeyIndex",
       "stair": "once per stair; binds storeyIndex",
       "projection": "once per projection; binds storeyIndex",
@@ -292,6 +292,7 @@
       "floors_max":            { "scope": "project",    "resultUnit": "count",   "actual": "model.storeyCount + COUNT(check.counts entries present in the model)" },
       "room_area_min":         { "scope": "room",       "resultUnit": "mm2",     "actual": "room.areaMm2" },
       "room_width_min":        { "scope": "room",       "resultUnit": "mm",      "actual": "room.leastWidthMm" },
+      "room_access":           { "scope": "room",       "resultUnit": "access",  "actual": "room.access - one of reachable | unreachable | only-via-bath, derived by the model layer's door-graph walk (garh_model.circulation); the engine does no pathfinding", "limit": "check.allow" },
       "ceiling_height_min":    { "scope": "room",       "resultUnit": "mm",      "actual": "room.clearCeilingHeightMm" },
       "ventilation_ratio_min": { "scope": "room",       "resultUnit": "mm2",     "actual": "room.ventilationOpeningAreaMm2", "limit": "max(ceil(ratio.num * room.areaMm2 / ratio.den) if ratio else 0, minAreaMm2 or 0)" },
       "stair_riser_max":       { "scope": "stair",      "resultUnit": "mm",      "actual": "stair.riserMm" },
@@ -548,6 +549,17 @@
         "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/buildingUse" } }
       }
     },
+    "roomAccess": {
+      "enum": ["reachable", "unreachable", "only-via-bath"],
+      "description": "The model layer's verdict on walking to a room through doors: `reachable` from the entrance (ground) or the stair (upper storeys); `only-via-bath` when every route passes through a bath; `unreachable` when no door route arrives at all. Derived by garh_model.circulation, never by the engine."
+    },
+    "roomAccessPredicate": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "eq": { "$ref": "#/$defs/roomAccess" },
+        "in": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/roomAccess" } }
+      }
+    },
     "roomTypePredicate": {
       "type": "object", "minProperties": 1, "additionalProperties": false,
       "properties": {
@@ -616,6 +628,8 @@
         "storeyIndex": { "$ref": "#/$defs/intPredicate", "description": "0 = ground. Bound for storey/room/opening/stair/projection scopes only." },
         "roomType": { "$ref": "#/$defs/roomTypePredicate", "description": "Bound for room scope only." },
         "roomIsHabitable": { "$ref": "#/$defs/boolPredicate", "description": "Derived: roomType in vocabulary.habitableRoomTypes. Room scope only." },
+        "roomAccessKnown": { "$ref": "#/$defs/boolPredicate", "description": "Whether the model layer derived door connectivity for this room's storey. Room scope only. A reachability rule MUST gate on this: without it a context that says nothing about doors reads as a pass." },
+        "roomAccess": { "$ref": "#/$defs/roomAccessPredicate", "description": "reachable | unreachable | only-via-bath, from the model layer's door-graph walk. Room scope only; null when roomAccessKnown is false." },
         "roomIsInternal": { "$ref": "#/$defs/boolPredicate", "description": "Room has no wall on the building envelope. Room scope only." },
         "openingKind": { "$ref": "#/$defs/openingKindPredicate", "description": "Opening scope only." },
         "openingRole": { "$ref": "#/$defs/openingRolePredicate", "description": "Opening scope only." },
@@ -749,11 +763,11 @@
           "type": "string",
           "enum": [
             "setback_min", "far_max", "coverage_max", "height_max", "floors_max",
-            "room_area_min", "room_width_min", "ceiling_height_min", "ventilation_ratio_min",
+            "room_area_min", "room_width_min", "room_access", "ceiling_height_min", "ventilation_ratio_min",
             "stair_riser_max", "stair_tread_min", "stair_width_min", "headroom_min",
             "projection_max", "parking_min", "opening_width_min", "zone_check", "custom"
           ],
-          "description": "The complete set of check types the engine implements. 18 types, no extensibility except `custom`, whose `fn` is itself a closed enum."
+          "description": "The complete set of check types the engine implements. 19 types, no extensibility except `custom`, whose `fn` is itself a closed enum."
         }
       },
       "oneOf": [
@@ -764,6 +778,7 @@
         { "$ref": "#/$defs/check_floors_max" },
         { "$ref": "#/$defs/check_room_area_min" },
         { "$ref": "#/$defs/check_room_width_min" },
+        { "$ref": "#/$defs/check_room_access" },
         { "$ref": "#/$defs/check_ceiling_height_min" },
         { "$ref": "#/$defs/check_ventilation_ratio_min" },
         { "$ref": "#/$defs/check_stair_riser_max" },
@@ -872,6 +887,22 @@
       "properties": {
         "type": { "const": "room_width_min" },
         "valueMm": { "$ref": "#/$defs/lengthMm" }
+      }
+    },
+    "check_room_access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "allow"],
+      "description": "Whether a room can be walked to, and by what route. scope=room, resultUnit=access. `actual` is `room.access`, the verdict of the model layer's door-graph walk; the engine does no pathfinding. Gate the rule with `when.roomAccessKnown: {eq: true}` so a model that carries no door connectivity is not_applicable rather than a silent pass.",
+      "properties": {
+        "type": { "const": "room_access" },
+        "allow": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["reachable", "only-via-bath"] },
+          "description": "The access labels that pass. `unreachable` is deliberately not selectable: a rule that allowed it would assert nothing."
+        }
       }
     },
     "check_ceiling_height_min": {
