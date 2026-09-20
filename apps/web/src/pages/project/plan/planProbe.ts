@@ -53,3 +53,45 @@ export function planGeometryStats(): PlanGeometryStats {
 export function resetPlanGeometryStats(): void {
   current = EMPTY;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * THE PICK PROBE — and the negative control that made it necessary
+ * ══════════════════════════════════════════════════════════════════════════
+ * A browser CLICK is not a test of "this mesh is registered with the
+ * PickRegistry". `selectTool.pick()` deliberately falls back to a geometric
+ * search when the raycast comes back empty (a spec with no renderer, a storey
+ * whose meshes have not mounted yet) — so a wall whose mesh never reached the
+ * registry is STILL selected by a click on it, and the click test stays green.
+ * That was measured, not guessed: sabotaging the hatched-wall layer's
+ * registration left `plan-hatch.spec.ts` passing, which is exactly CLAUDE.md's
+ * "a green check that cannot go red".
+ *
+ * So the spec needs the RAYCAST's own answer, and this is it: the real
+ * `CanvasCore.pick` — the one picker, the same call every click makes — asked
+ * at a page pixel and answered with what the registry resolved. Read-only: it
+ * selects nothing, applies nothing, and is published only in DEV builds.
+ */
+
+export interface PickProbe {
+  /** `PickHit.kind`: an element kind, `'empty'`, or `'unavailable'`. */
+  readonly kind: string;
+  /** Element id, or null when the ray resolved to nothing. */
+  readonly id: string | null;
+}
+
+/** Not mounted yet — distinct from `'empty'`, which is a real miss. */
+const UNAVAILABLE: PickProbe = { kind: 'unavailable', id: null };
+
+type Picker = (clientX: number, clientY: number) => PickProbe;
+
+let picker: Picker | null = null;
+
+/** Called by the plan page once the canvas core exists. DEV builds only. */
+export function publishPlanPicker(fn: Picker | null): void {
+  picker = fn;
+}
+
+/** What a click at this page pixel WOULD hit, through the one picker. */
+export function planPickAt(clientX: number, clientY: number): PickProbe {
+  return picker === null ? UNAVAILABLE : picker(clientX, clientY);
+}

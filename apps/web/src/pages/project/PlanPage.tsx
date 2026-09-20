@@ -104,6 +104,7 @@ import {
   CanvasRoot,
   dollyOrbit,
   Grid,
+  ndcFromPointer,
   OutlinePolyline,
   scaleLabel,
   watchCanvasTheme,
@@ -187,6 +188,7 @@ import {
   disposePlanMaterials,
   planExtentMm,
   elementsExtentMm,
+  publishPlanPicker,
   refreshPlanMaterials,
   storeyFflMm,
   useFurnitureItems,
@@ -289,6 +291,32 @@ function PlanEditor(): JSX.Element {
   const hoverId = useSelectionStore((s) => s.hoverId);
 
   const [core, setCore] = useState<CanvasCore | null>(null);
+
+  /**
+   * DEV-only: hand the specs the RAYCAST's own answer at a page pixel.
+   *
+   * A click is not a test of registration — `selectTool` falls back to a
+   * geometric search when the pick is empty, so an unregistered mesh is still
+   * selected by clicking it (measured: sabotaging the hatched-wall layer left
+   * `plan-hatch.spec.ts` green). This publishes `CanvasCore.pick`, the one
+   * picker, so a spec can assert that a layer genuinely reached the registry.
+   * Read-only, tree-shaken out of production with the rest of the handle.
+   */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    if (core === null) return undefined;
+    publishPlanPicker((clientX, clientY) => {
+      // The <canvas> itself: NDC is defined against the drawing surface, and
+      // the scope marker sits on an ancestor that may be larger.
+      const surface = document.querySelector('[data-garh-canvas] canvas');
+      if (surface === null) return { kind: 'unavailable', id: null };
+      const hit = core.pick(ndcFromPointer(clientX, clientY, surface.getBoundingClientRect()));
+      return { kind: hit.kind, id: hit.id };
+    });
+    return () => {
+      publishPlanPicker(null);
+    };
+  }, [core]);
 
   // The lock half of the layer manager. Here rather than beside the other two
   // layer calls because it needs `core`, which is state declared on this line.

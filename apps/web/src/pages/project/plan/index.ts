@@ -83,6 +83,11 @@ export {
 } from './planGeometry';
 export type { OpeningSymbol, PtF, QuadF, StairSymbol, WallRun } from './planGeometry';
 
+/* The DEV test handle's probes. `publishPlanPicker` is the plan page's; the
+   readers live in `lib/testHooks`, which deep-imports them. */
+export { publishPlanPicker } from './planProbe';
+export type { PickProbe } from './planProbe';
+
 export { useSetbackContext } from './useSetbackContext';
 export { useFurnitureItems, resetFurnitureItemsCache } from './useFurnitureItems';
 export type { FurnitureItems } from './useFurnitureItems';

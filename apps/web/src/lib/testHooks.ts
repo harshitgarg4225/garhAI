@@ -31,7 +31,7 @@
  */
 
 import { useCopilotStore } from '../features/copilot/useCopilot';
-import { planGeometryStats } from '../pages/project/plan/planProbe';
+import { planGeometryStats, planPickAt, type PickProbe } from '../pages/project/plan/planProbe';
 import { useModelStore } from '../stores/model';
 import { useSelectionStore } from '../stores/selection';
 import { useThreeStore } from '../stores/three';
@@ -54,6 +54,18 @@ import { useUiStore } from '../stores/ui';
 export interface GarhTestHooks {
   /** Replace the selection — the same store write a canvas pick performs. */
   readonly select: (ids: readonly string[]) => void;
+  /**
+   * What a click at this PAGE pixel would hit, through the one picker.
+   *
+   * Read-only, and it is not a shortcut around clicking: the specs still
+   * click. It answers the one question a click CANNOT, because
+   * `selectTool.pick()` falls back to a geometric search when the raycast is
+   * empty — so an unregistered mesh is still selected by clicking it, and a
+   * click-only test of CLAUDE.md bug 4 cannot go red. Measured, not assumed:
+   * removing the hatched-wall layer's registration left `plan-hatch.spec.ts`
+   * green until this probe was added.
+   */
+  readonly pick: (clientX: number, clientY: number) => PickProbe;
   /** Read-only state probe for expect.poll. */
   readonly snapshot: () => {
     readonly selectedIds: readonly string[];
@@ -105,6 +117,7 @@ export function installTestHooks(): void {
     select: (ids) => {
       useSelectionStore.getState().selectMany(ids);
     },
+    pick: (clientX, clientY) => planPickAt(clientX, clientY),
     snapshot: () => {
       const model = useModelStore.getState();
       const three = useThreeStore.getState();

@@ -370,10 +370,18 @@ export interface HooksSnapshot {
   readonly hatchedWallCount: number;
 }
 
+/** What the raycast resolved at a page pixel — see `pickProbe` below. */
+export interface PickProbe {
+  /** An element kind, `'empty'` (a real miss) or `'unavailable'` (not mounted). */
+  readonly kind: string;
+  readonly id: string | null;
+}
+
 interface HooksWindow {
   __garhTestHooks?: {
     select: (ids: readonly string[]) => void;
     snapshot: () => HooksSnapshot;
+    pick: (clientX: number, clientY: number) => PickProbe;
   };
 }
 
@@ -387,6 +395,31 @@ export async function hooksSnapshot(page: Page): Promise<HooksSnapshot> {
     'window.__garhTestHooks is missing — the app is not a dev build, or the editor page never mounted',
   ).not.toBeNull();
   return snapshot!;
+}
+
+/**
+ * What a click at this page pixel WOULD hit, through the product's one picker.
+ *
+ * Not a replacement for clicking — the specs still click. It answers what a
+ * click cannot: `selectTool.pick()` falls back to a geometric search when the
+ * raycast comes back empty, so a mesh that never registered with the
+ * `PickRegistry` is STILL selected by a click on it. That is CLAUDE.md bug 4
+ * with a green test over it, and it was measured: the hatch spec stayed green
+ * with the hatched-wall layer's registration removed until this probe existed.
+ */
+export async function pickProbe(page: Page, x: number, y: number): Promise<PickProbe> {
+  const probe = await page.evaluate(
+    ([px, py]) => {
+      const hooks = (window as unknown as HooksWindow).__garhTestHooks;
+      return hooks === undefined ? null : hooks.pick(px!, py!);
+    },
+    [x, y],
+  );
+  expect(
+    probe,
+    'window.__garhTestHooks is missing — the app is not a dev build, or the editor page never mounted',
+  ).not.toBeNull();
+  return probe!;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

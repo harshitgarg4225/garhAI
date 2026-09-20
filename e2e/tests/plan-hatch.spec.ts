@@ -24,7 +24,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 import { appendOps, createProject, projectModel, signUpFirm } from '../support/api';
 import { APP_URL, uniqueEmail } from '../support/env';
-import { adoptApiSession, canvasBox, focusCanvas, hooksSnapshot } from '../support/ui';
+import { adoptApiSession, canvasBox, focusCanvas, hooksSnapshot, pickProbe } from '../support/ui';
 
 const STOREY_ID = 'storey_01J3D00000000000000000000A';
 const WALL_SOUTH = 'wall_01J3D0000000000000000000S1';
@@ -146,8 +146,30 @@ test.describe('@canvas hatches on the 2D canvas', () => {
       })
       .toBeGreaterThan(linesBefore);
 
-    // THE CLICK TEST. The hatched wall is a second merged mesh; if it never
-    // registered with the PickRegistry it would render and be unclickable.
+    // ── THE REGISTRATION TEST ────────────────────────────────────────────
+    // Ask the RAYCAST, not the selection. `selectTool.pick()` falls back to a
+    // geometric search when the pick is empty, so a click alone cannot tell a
+    // registered mesh from CLAUDE.md's bug 4 — measured here: this spec stayed
+    // green with the hatched layer's `usePickableResolver` call removed, until
+    // this assertion existed. The probe runs the product's one picker at the
+    // same pixel the click below uses.
+    const hatchedPx = toPixel(ctx, { x: 4000, y: 1000 });
+    const hatchedHit = await pickProbe(page, hatchedPx.x, hatchedPx.y);
+    expect(
+      hatchedHit,
+      'the RAY at the hatched wall resolved nothing. The hatched-wall mesh is a second ' +
+        'merged mesh and it is not registered with the one PickRegistry (CLAUDE.md bug 4). ' +
+        'A click would still select it — through the select tool\u2019s geometric fallback, ' +
+        'which is why this assertion and not only the click below.',
+    ).toEqual({ kind: 'wall', id: WALL_SOUTH });
+
+    // The flat mesh must still answer for the wall that is NOT hatched, so one
+    // mesh cannot be standing in for both.
+    const flatPx = toPixel(ctx, { x: 4000, y: 4000 });
+    expect(await pickProbe(page, flatPx.x, flatPx.y)).toEqual({ kind: 'wall', id: WALL_SPINE });
+
+    // ── AND THE CLICK ────────────────────────────────────────────────────
+    // The whole path: real mouse, real tool, real selection store.
     await clickModelPoint(ctx, page, { x: 4000, y: 1000 });
     await expect
       .poll(async () => (await hooksSnapshot(page)).selectedIds.join(','), {
