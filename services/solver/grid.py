@@ -3,6 +3,36 @@
     "Grid the envelope (rect/L/T = union of ≤3 rects; solve on rect cells with L/T
      handled by mandatory-void cells)" — engineering playbook §5.2.
 
+WHICH PLOTS THIS HANDLES, measured rather than assumed
+------------------------------------------------------
+§5.2's "union of ≤3 rects" is how a rect/L/T is *described*, and the old
+:func:`buildable_rects_of_mask` enforced it literally — three row (or column)
+bands or ``UNSUPPORTED_SHAPE``. That refused a U, a cross, a stepped frontage and
+every skewed plot, which made the solver look narrower than it is. It is not what
+stage A consumes: the CP-SAT model takes the **mandatory-void rectangles**
+(:func:`void_rects_of_mask`, which never had a shape limit), so the live path has
+always solved those plots. The rect list is the grid's own description of itself.
+
+So the decomposition is now general: **any orthogonal mask**, by merging identical
+runs downward, bounded at :data:`MAX_DECOMPOSITION_RECTS` so a pathological mask
+cannot grow an unbounded structure. Rect, L and T still come out as the same one,
+two or three bands they always did (the band path is tried first, and its output
+is preferred when it is within §5.2's three), so nothing that read those rects
+sees a different answer.
+
+**The honest remaining limit is skew, and it is a resolution limit, not a refusal.**
+A trapezoidal or splayed survey plot — common in India — derives its envelope
+exactly (:mod:`services.solver.envelope` offsets the real lines), but this grid is
+axis-aligned, so a diagonal boundary becomes a staircase of 300 mm cells. Two
+consequences worth stating plainly: the buildable area near the diagonal is
+UNDER-used (a cell counts only when all four corners and its centre are inside, so
+the error is always conservative — the solver never places a room outside the
+envelope), and every wall stage A emits is axis-aligned, so the building does not
+follow the skew even where a human architect would splay a wall to match it. A
+plan on a skewed plot is therefore buildable and compliant but leaves a triangular
+sliver along the diagonal unused. Following the skew needs a non-axis-aligned
+model in stage A and is not attempted.
+
 This module is the pure-geometry half of stage A: everything in it is exact integer
 arithmetic, provable on a bare Python interpreter, so the CP-SAT model that consumes it
 (:mod:`services.solver.stage_a`) starts from facts rather than estimates.
@@ -45,8 +75,17 @@ from services.solver.geometry import (
 )
 from services.solver.types import COARSE_MODULE_MM
 
-#: MVP envelope shapes are rect/L/T — a union of at most this many rectangles (§5.2).
+#: §5.2's "rect/L/T = union of ≤3 rects". Kept as the SIMPLE-shape threshold: a mask
+#: the band decomposition covers in this many rectangles is described that way, so
+#: rect/L/T produce exactly the rects they always did.
 MAX_ENVELOPE_RECTS = 3
+
+#: Ceiling on the general decomposition. A 300 mm grid over a plot big enough to
+#: matter is a few hundred cells across; a mask needing more rectangles than this is
+#: not a plot shape, it is a bug or an attack, and it is refused with a typed code
+#: rather than silently building a huge structure. Nothing in the solve path reads
+#: the rect list, so this bound costs no plot anyone will ever draw.
+MAX_DECOMPOSITION_RECTS = 512
 
 #: Grid directions (plot-local, +Y = drawing up) → unit vectors. Compass conversion
 #: lives in :func:`grid_side_to_compass` / :func:`compass_to_grid_side`.
@@ -185,9 +224,11 @@ def build_grid(polygon: Polygon, *, module_mm: int = COARSE_MODULE_MM) -> Grid:
     Raises :class:`GridError` (typed codes, §15-honest copy) rather than returning a
     grid that misrepresents the envelope:
 
-    * ``NOT_RECTILINEAR`` — a slanted boundary edge (not an MVP envelope);
+    * ``NOT_RECTILINEAR`` — a slanted boundary edge. This function's own contract,
+      not the solver's: the live path (``stages.grid_envelope``) grids any polygon
+      and staircases a diagonal, as the module docstring explains;
     * ``TOO_SMALL`` — the envelope holds no whole cell;
-    * ``UNSUPPORTED_SHAPE`` — buildable cells are not a union of ≤3 rects (not rect/L/T).
+    * ``TOO_COMPLEX`` — more rectangles than :data:`MAX_DECOMPOSITION_RECTS`.
     """
     if module_mm <= 0:
         raise ValueError("module_mm must be positive, got %d" % module_mm)
@@ -296,10 +337,17 @@ def _transpose(mask: Sequence[Sequence[bool]]) -> tuple[tuple[bool, ...], ...]:
 
 
 def buildable_rects_of_mask(mask: Sequence[Sequence[bool]]) -> tuple[CellRect, ...]:
-    """Decompose the buildable cells into ≤3 rects (row bands, else column bands).
+    """Partition the buildable cells into rectangles. Any orthogonal mask.
 
-    Rect → 1, L → 2, T → 2 or 3, depending on orientation; anything needing more is
-    outside the MVP envelope contract and raises ``UNSUPPORTED_SHAPE``.
+    Rect → 1, L → 2, T → 2 or 3 (the band decomposition, tried first and preferred
+    while it stays within §5.2's three, so the simple shapes keep exactly the rects
+    they always produced). Everything else — U, cross, stepped frontage, and the
+    staircase a skewed boundary makes on an axis-aligned grid — falls through to
+    :func:`_run_rects`, which merges identical runs downward and covers any mask.
+
+    Raises ``TOO_COMPLEX`` only above :data:`MAX_DECOMPOSITION_RECTS`. The rects are
+    disjoint and their union is exactly the buildable cells; ``test_grid_shapes``
+    asserts both on every shape here.
     """
     row_bands = _bands(mask)
     transposed = _bands(_transpose(mask))
@@ -311,13 +359,42 @@ def buildable_rects_of_mask(mask: Sequence[Sequence[bool]]) -> tuple[CellRect, .
     for candidate in (row_bands, col_bands):
         if candidate is not None and (best is None or len(candidate) < len(best)):
             best = candidate
-    if best is None or len(best) > MAX_ENVELOPE_RECTS:
+    if best is not None and len(best) <= MAX_ENVELOPE_RECTS:
+        return tuple(best)
+
+    general = _run_rects(mask)
+    if best is not None and len(best) <= len(general):
+        general = best
+    if len(general) > MAX_DECOMPOSITION_RECTS:
         raise GridError(
-            "UNSUPPORTED_SHAPE",
-            "This envelope isn't a rectangle, L or T; the solver handles those three.",
-            detail=("buildable cells need %s rects" % ("?" if best is None else str(len(best)))),
+            "TOO_COMPLEX",
+            "This buildable area is too intricate for the solver's grid to describe.",
+            detail="buildable cells need %d rects (limit %d)"
+            % (len(general), MAX_DECOMPOSITION_RECTS),
         )
-    return tuple(best)
+    return tuple(general)
+
+
+def _run_rects(mask: Sequence[Sequence[bool]]) -> list[CellRect]:
+    """Any mask → disjoint rectangles, by extending each run down while it repeats.
+
+    Deterministic and exact: a run is opened at the row it first appears in and
+    closed the row its column span stops repeating, so every buildable cell lands in
+    exactly one rectangle. Output order is row-major by (row, col), which keeps the
+    result stable for a golden to compare.
+    """
+    out: list[CellRect] = []
+    open_runs: dict[tuple[int, int], int] = {}  # (col1, col2) -> row it opened at
+    for row, cells in enumerate(mask):
+        current = {run: open_runs.get(run, row) for run in _runs(cells, value=True)}
+        for run, started in open_runs.items():
+            if run not in current:
+                out.append(CellRect(run[0], started, run[1], row))
+        open_runs = current
+    for run, started in open_runs.items():
+        out.append(CellRect(run[0], started, run[1], len(mask)))
+    out.sort(key=lambda r: (r.row1, r.col1, r.row2, r.col2))
+    return out
 
 
 def void_rects_of_mask(mask: Sequence[Sequence[bool]]) -> tuple[CellRect, ...]:
@@ -449,6 +526,7 @@ def compass_to_grid_side(compass: str, north_deg: int) -> str | None:
 
 __all__ = [
     "GRID_SIDES",
+    "MAX_DECOMPOSITION_RECTS",
     "MAX_ENVELOPE_RECTS",
     "CellRect",
     "Grid",
