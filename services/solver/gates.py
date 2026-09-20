@@ -19,9 +19,20 @@ implement. (``CLAUDE.md`` bug 8 and its plan-library section still carry the old
 "blocks only ``hard`` rules" phrasing; correcting that file is the coordinator's,
 noted here so the next reader does not trust it over this code.)
 
-One thing the gate genuinely does not do yet: it never reads ``overridden``, so an
-architect's accepted override un-blocks an export but not a Generate. That is the
-open half of task #46.
+ACCEPTED OVERRIDES. An override is a logged human decision on this project
+(``POST /projects/:id/compliance/overrides``, with a reason, a name and a timestamp in
+the audit trail). It un-blocks the export, and until 2026-09-20 it did NOT un-block a
+Generate — so an architect could accept a deviation, export the set, and then find the
+solver still refusing to offer them anything. The route's own docstring said overriding
+"stops blocking the solver gate", which was not true of this module. It is now, and
+:meth:`EvaluationReport.blocking_failures` is the definition being mirrored.
+
+The two kinds of override are NOT the same thing and the row JSON does not distinguish
+them by itself. ``overridden: true`` is one display flag meaning "an architect touched
+this rule" and is set for either kind; ``valueOverridden: true`` marks the second kind,
+where the architect moved the LIMIT to their own number. A design that fails against the
+architect's own number is still a blocking failure, so this gate excuses the first kind
+only. Getting that backwards would let any rule be waved through by editing its value.
 
 This is golden rule 2 made executable — *feasible is not plausible; never show a
 hard-fail plan*. It is a pure predicate over a scored option, so it is real today, and
@@ -95,6 +106,31 @@ def circulation_problems(ops: Sequence[Mapping[str, Any]]) -> list[str]:
     return reachability_problems(house)
 
 
+def _accepted_override(finding: Mapping[str, object]) -> bool:
+    """Has the architect knowingly accepted THIS failure, with a reason?
+
+    True only for a rule-level acknowledgement. ``overridden`` alone is not enough:
+    the row sets it for a value override too (see the module docstring), and a plan
+    that fails against the architect's own limit has not been accepted by anybody.
+    """
+    return bool(finding.get("overridden")) and not bool(finding.get("valueOverridden"))
+
+
+def blocking_rule_failures(findings: Sequence[Mapping[str, object]]) -> list[str]:
+    """Rule ids that refuse an option: ``fail`` rows the architect has not accepted.
+
+    A named function rather than a comprehension inside :func:`check_option`, because
+    it is the half of §5.6 that anything producing compliance rows needs to be able to
+    ask about — including a test that wants to put a row THE OVERRIDE ROUTE produced
+    in front of the gate, which is the only way that route's promise can be checked.
+    """
+    return [
+        str(finding.get("ruleId") or "unknown rule")
+        for finding in findings
+        if str(finding.get("status")) == "fail" and not _accepted_override(finding)
+    ]
+
+
 def check_option(
     option: PlanOption,
     *,
@@ -110,11 +146,7 @@ def check_option(
     reasons: list[str] = []
     findings = compliance if compliance is not None else option.compliance
 
-    hard_failures = [
-        str(finding.get("ruleId") or "unknown rule")
-        for finding in findings
-        if str(finding.get("status")) == "fail"
-    ]
+    hard_failures = blocking_rule_failures(findings)
     if hard_failures:
         reasons.append(
             "breaks %d hard rule(s): %s"
@@ -200,6 +232,7 @@ __all__ = [
     "TARGET_OPTION_COUNT",
     "GateResult",
     "banner_for",
+    "blocking_rule_failures",
     "check_option",
     "filter_presentable",
     "should_relax_and_retry",

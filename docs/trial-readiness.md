@@ -380,12 +380,18 @@ sheets_tags` (+ the `{}` and wrong-mapping negative controls),
   the solver gate keys on. `services/solver/gates.py` rejects an option on ANY
   `status == "fail"` row and never reads `overridden`, while the engine's
   `blocking_failures()` (the API's presentability / export check) excludes accepted
-  rows. So an acknowledgement un-blocks export, not Generate; the dialog and the Hard
-  badge say exactly that, and the wording elsewhere in this file that described a
-  hard-only gate has been corrected. The remaining gap — the solver honouring
-  acknowledgements — is the solver's search and is left to task #46. CLAUDE.md still
-  carries the old "blocks only `hard` rules" phrasing in bug 8 and the plan-library
-  section; `services/solver/gates.py` now states the real semantics in its own
+  rows. **Closed 2026-09-20**: an acknowledgement now un-blocks Generate too, which is
+  what the override route's own docstring had always claimed. `gates.blocking_rule_failures`
+  skips a `fail` row the architect has accepted, mirroring
+  `EvaluationReport.blocking_failures` — and, like it, skips ONLY that kind: the row
+  JSON sets `overridden: true` for a value override as well (one display flag, two
+  decisions), and a design that fails against the architect's own limit has been
+  accepted by nobody. Both directions are negative-tested in
+  `services/solver/tests/test_gate_overrides.py`, and
+  `test_compliance_overrides.py` puts a row the ROUTE produced in front of the gate, so
+  the promise is checked across the boundary it is made about rather than on each side
+  of it. CLAUDE.md's "blocks only `hard` rules" phrasing in bug 8 and the plan-library
+  section has been corrected; `services/solver/gates.py` now states the real semantics in its own
   docstring, and `fixtures/plans/README.md` no longer claims the library gate is
   stricter in the rules it reads (it is not — it is a second evaluation, of the
   project a user creates rather than the fragment the solver built).

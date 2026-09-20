@@ -104,6 +104,54 @@ async def test_an_override_marks_the_row_with_the_reason_and_never_removes_it(
     ), actions
 
 
+async def test_the_row_an_override_produces_is_one_the_solver_gate_lets_through(
+    client: Any, api: str, session: Any, firm_a: Any, project_a: Any
+) -> None:
+    """The route's promise, checked across the boundary it is made about.
+
+    ``POST /compliance/overrides`` says it "stops blocking the solver gate". Both
+    sides of that sentence were tested — the route writes the acknowledgement, the
+    gate reads ``overridden`` — and the sentence itself was not, because nothing put
+    a row the ROUTE produced in front of the gate. This does, so a change to the
+    stored shape, the engine's serialisation or the gate's reading breaks here rather
+    than in front of an architect who accepted a deviation and then watched Generate
+    refuse them anyway.
+
+    The negative control is the un-overridden row from the same report: it must still
+    block, or this test would pass against a gate that accepts everything.
+    """
+    from services.solver import gates
+
+    await factories.seed_plot_and_brief(session, firm_a, project_a.id)
+    before = await _report(client, api, firm_a, project_a.id)
+    failing = [r for r in before["results"] if r["status"] == "fail"]
+    assert failing, "the seeded plot should fail something, or this proves nothing"
+    rule_id = failing[0]["ruleId"]
+
+    assert gates.blocking_rule_failures(failing[:1]) == [rule_id], (
+        "the gate did not treat a plain failing row as blocking, so the check below " "is vacuous"
+    )
+
+    response = await client.post(
+        "%s/projects/%s/compliance/overrides" % (api, project_a.id),
+        json={"ruleId": rule_id, "reason": "Corner plot; BBMP approved the deviation."},
+        headers=firm_a.headers,
+    )
+    assert response.status_code == 201, response.text
+
+    after = await _report(client, api, firm_a, project_a.id)
+    row = _row(after, rule_id)
+    assert row["status"] == "fail", "an override never changes the real status"
+    assert row.get("valueOverridden") is not True, (
+        "a rule acknowledgement must not be serialised as a VALUE override — the gate "
+        "treats those differently, and on purpose"
+    )
+    assert gates.blocking_rule_failures([row]) == [], (
+        "the row this route produced still blocks the solver gate, so the architect "
+        "can export the set and not generate one. %s" % (row,)
+    )
+
+
 async def test_revoking_clears_the_mark_and_is_audited_separately(
     client: Any, api: str, session: Any, firm_a: Any, project_a: Any
 ) -> None:
