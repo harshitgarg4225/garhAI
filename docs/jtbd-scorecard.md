@@ -8,23 +8,23 @@ what changed on 2026-09-06/07 and are honest about what is still open. The evide
 behind each score, including the gap lists this page abbreviates, is kept with the
 session's audit output; the tests named here are in the tree.
 
-| Job                                   | Score | Verdict                                                                                                                                      |
-| ------------------------------------- | ----: | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| J01 Sign in and set up the practice   |   5.5 | Sign-up → OTP → session → sign-out is executed, hardened and green (280 API tests, CI browser smoke, one live Brevo sign-up on the deployed  |
-| J02 Capture the plot                  |     6 | Rectangular-plot main path (quick-start → roads → city pack → compliance re-check → DXF round trip) is executed in a real browser and backed |
-| J03 Capture the client brief          |     5 | The main path — typed form or pasted text → assumption chips → one undoable brief                                                            |
-| J04 Generate compliant plan options   |   5.5 | The CP-SAT pipeline is real, executed and gated (129 solver tests + a real solve of the demo brief pass locally; 4 library plans fold and ar |
-| J05 Edit the plan in 2D               |   6.5 | The core loop (typed-length ortho walls, doors/windows with swing, stairs, room typing, dimension click-to-edit, one-group undo/redo, live b |
-| J06 See and tune the building in 3D   |   5.5 | The extrude-select-dress-scrub loop is real and was proven once in a browser (2026-08-26) with 435 unit tests green today, but opening holes |
-| J07 Check compliance continuously     |   6.5 | The engine and live re-check are real and executed (1,240 engine tests, 238/238 fixtures, browser-proven strip); but "Fix it" is never wired |
-| J08 Produce the municipal drawing set |     5 | The pipeline genuinely runs end to end (42 golden sheets diff-clean, 231 chains sum, DXF audits clean, a 42-page vector PDF produced here),  |
-| J09 Produce client renders and mood   |     5 | The mock render pipeline, seed determinism, gallery/stale flag, client pack (server side) and the inspiration board are executed and green,  |
-| J10 Collaborate with client and team  |     5 | Client share link is real and proven in a browser (create → anonymous view → comment → revoke), but team collaboration is unreachable (no in |
-| J11 Edit by natural language          |     5 | The containment pipeline (schema gate → real fold on a fork → rules diff → human apply, one undo group) is executed and green on every layer |
-| J12 Estimate fees, areas and costs    |   4.5 | A well-tested GET /projects/:id/estimate (envelope, binding caps, 4 cost tiers, 3 CoA-anchored fee bands, whole rupees, seed-disclaimed) and |
-| J13 Manage plan, credits and billing  |     5 | The API half is thorough and executed green (186 pytest + 16 vitest run here: plans, quotas, refunds, spend cap, GST invoices, mock checkout |
-| J14 Trust and operations              |     6 | The security core (tenancy 404s, RS256 OTP auth, headers/CSP, body caps, fail-closed auth limits, PII-scrubbed Sentry) is executed and green |
-| J15 Interoperate and hand off         |   4.5 | The worker-side exporters are real and executed (audit-clean DXF, 42-page vector PDF, valid GLB), but the two things an architect would actu |
+| Job                                   | Score | Verdict                                                                                                                                                                                                                                                |
+| ------------------------------------- | ----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| J01 Sign in and set up the practice   |   5.5 | Sign-up → OTP → session → sign-out is executed, hardened and green (280 API tests, CI browser smoke, one live Brevo sign-up on the deployed                                                                                                            |
+| J02 Capture the plot                  |     6 | Rectangular-plot main path (quick-start → roads → city pack → compliance re-check → DXF round trip) is executed in a real browser and backed                                                                                                           |
+| J03 Capture the client brief          |     5 | The main path — typed form or pasted text → assumption chips → one undoable brief                                                                                                                                                                      |
+| J04 Generate compliant plan options   |   5.5 | The CP-SAT pipeline is real, executed and gated (129 solver tests + a real solve of the demo brief pass locally; 4 library plans fold and ar                                                                                                           |
+| J05 Edit the plan in 2D               |   6.5 | The core loop (typed-length ortho walls, doors/windows with swing, stairs, room typing, dimension click-to-edit, one-group undo/redo, live b                                                                                                           |
+| J06 See and tune the building in 3D   |     9 | Holes, terrace, lit facades, GLB export, textures, four kits and walk collision are all executed — in vitest with the real WASM and in a browser; the 3D DoD spec runs in CI. Open: the golden-PNG baseline (CI must mint it), walk mode in a browser. |
+| J07 Check compliance continuously     |   6.5 | The engine and live re-check are real and executed (1,240 engine tests, 238/238 fixtures, browser-proven strip); but "Fix it" is never wired                                                                                                           |
+| J08 Produce the municipal drawing set |     5 | The pipeline genuinely runs end to end (42 golden sheets diff-clean, 231 chains sum, DXF audits clean, a 42-page vector PDF produced here),                                                                                                            |
+| J09 Produce client renders and mood   |     5 | The mock render pipeline, seed determinism, gallery/stale flag, client pack (server side) and the inspiration board are executed and green,                                                                                                            |
+| J10 Collaborate with client and team  |     5 | Client share link is real and proven in a browser (create → anonymous view → comment → revoke), but team collaboration is unreachable (no in                                                                                                           |
+| J11 Edit by natural language          |     5 | The containment pipeline (schema gate → real fold on a fork → rules diff → human apply, one undo group) is executed and green on every layer                                                                                                           |
+| J12 Estimate fees, areas and costs    |   4.5 | A well-tested GET /projects/:id/estimate (envelope, binding caps, 4 cost tiers, 3 CoA-anchored fee bands, whole rupees, seed-disclaimed) and                                                                                                           |
+| J13 Manage plan, credits and billing  |     5 | The API half is thorough and executed green (186 pytest + 16 vitest run here: plans, quotas, refunds, spend cap, GST invoices, mock checkout                                                                                                           |
+| J14 Trust and operations              |     6 | The security core (tenancy 404s, RS256 OTP auth, headers/CSP, body caps, fail-closed auth limits, PII-scrubbed Sentry) is executed and green                                                                                                           |
+| J15 Interoperate and hand off         |   4.5 | The worker-side exporters are real and executed (audit-clean DXF, 42-page vector PDF, valid GLB), but the two things an architect would actu                                                                                                           |
 
 The user's bar for this pass: every job scored above 5 and at most 8 goes to 10/10.
 That set is J01, J02, J04, J05, J06, J07 and J14. J08 and J15 sit at or below 5 but
@@ -121,20 +121,68 @@ What no test looks at: Pixels: plan-canvas.spec asserts op log, folded model and
 
 ## J06 — See and tune the building in 3D
 
-**Score 5.5.** The extrude-select-dress-scrub loop is real and was proven once in a browser (2026-08-26) with 435 unit tests green today, but opening holes have never been asserted anywhere, the 3D e2e is outside CI and the 3D code has changed since, facades are unlit/no-shadow boxes with flat colours, and 3D export does not exist.
+**Score 9 (was 5.5; J06 wave-2 pass, 2026-09-20.)** Every blocking gap below is
+closed and executed — in vitest with the real WASM, and in a real browser
+against a live stack. What holds the score short of 10 is named in "still open".
 
-Blocking gaps the reader found:
+Closed, with how it is now held:
 
-- Prove opening holes actually render, then assert it — Manifold cutting has never been asserted in an executed test: solids.test uses a null cutter, three-d.spec only annotates the engine state, and no ledger records holes=true
-- Put the 3D e2e (and a minted visual baseline) into CI — three-d.spec (@canvas) runs only by hand and last ran 2026-08-26; the 3D/canvas tree changed on 08-27..29
-- 3D export (glTF/GLB, optionally OBJ) of building + facade — Nothing exports the 3D model
-- Facade components must be lit and cast/receive shadows — FacadeLayer uses unlit MeshBasicMaterial with baked shading; chajjas, porches and cladding cast no shadow and ignore the sun scrub, so the sun study lies for exactly the elements meant to shade windows
-- Terrace slab + parapet over set-back lower storeys — roofSolids only roofs the top storey's slab; a G+1 with a smaller first floor leaves the ground floor's exposed portion open to the sky with no parapet — the most common Indian house massing
-- Make openings visible in the no-WASM fallback — The 40 mm opening panel is centred in the wall, so without holes it is buried inside the wall solid and openings vanish
-- Real materials: textures/PBR, per-element assignment UI, more than 2 facade kits — Everything is a flat hex colour (textureUrl ignored); element-scoped material assignment exists in the op and resolver but has no UI; only two kits
-- Walk mode: collision, look-up, and a browser test — Walk passes through walls, cannot pitch above level (MAX_ORBIT_POLAR_DEG clamp), and has never run in a browser
+- **Opening holes** — the engine had never loaded in ANY session (no
+  `locateFile`: Emscripten fetched `index.html` and failed with `found 3c 21 64
+6f`), so every session ran the no-holes fallback while the spec excused it as
+  an environment fact. Fixed at the loader, plus `'wasm-unsafe-eval'` in the CSP
+  so production does not fall back either. Now asserted as GEOMETRY: a ray
+  through the door meets 0 triangles, beside and above it exactly 2, the mesh is
+  watertight, and the uncut prism is the negative control that does hit twice.
+  In the browser the chip must report `ready` + `holes=true`.
+- **The 3D e2e in CI** — the `@canvas` suite runs on every push. The spec also
+  stopped annotating and started asserting; its 2D drawing step had been broken
+  since the plan view grew docked panels, so the walls are arranged through the
+  API with the reason written down (`plan-canvas.spec.ts` still drives the
+  drawing tools for real).
+- **3D export** — an Export panel on the 3D tab: "Download this view" through
+  three's `GLTFExporter` over the ONE live scene, and "Export from the model"
+  through the existing `gltf` job. Gated by tests that read the produced BYTES,
+  including the object names out of the GLB's own JSON chunk.
+- **Lit, shadowed facades** — kit components are `MeshStandardMaterial` with
+  real normals, casting and receiving. The browser check: 09:00 vs 16:00 changes
+  10.6% of pixels while both frames stay lit.
+- **Terrace slab + parapet over a set-back storey** — derived with the model
+  core's own planar arrangement; edges along the upper outline get no parapet
+  (that wall IS the parapet), and an upper floor inset on every side is handled
+  as a hole.
+- **Openings visible without WASM** — the fallback panel stands proud of both
+  faces instead of being buried in the uncut wall.
+- **Materials** — the catalogue's texture family reaches the renderer (both
+  schemas dropped it), ten families are drawn procedurally with no vendored
+  asset, box-mapped UVs make a 600 mm tile 600 mm on the wall, `textureUrl` is
+  honoured and CSP-fenced, every surface group has a default family so an
+  untouched building is still made of something, and the materials panel gained
+  a per-element scope.
+- **Four facade kits** — plus gates that a kit must actually draw: every
+  materialId must exist in the catalogue, every style must be an arm the
+  renderer implements, and the four kits' geometry signatures must differ.
+- **Walk mode** — walls stop you, doors let you through, a stride cannot tunnel
+  through a 115 mm wall, and the eye can look up (the rig gained an optional
+  per-orbit polar limit; every orbit gesture drops it).
 
-What no test looks at: Pixels: no executed test looks at what the 3D view draws — walls could render magenta, holes could be absent, shadows could point the wrong way, and every test still passes (visual-regression.spec is skipped).; Whether Manifold's cut mesh is geometrically right: triangle count, watertightness, or that a ray through a door misses the wall — only the holesApplied boolean is checked, and only with a null cutter.; Which side of an external wall is 'outside' for chajjas/porches when the storey outline is concave or the centroid falls outside (componentBoxes.ts centroid rule is documented for rectan
+Still open, and why:
+
+- **The golden-PNG baseline is still skipped.** `toHaveScreenshot` self-blesses
+  on first run, so a baseline minted on a developer box would make that box's
+  SwiftShader output "correct". It must be minted once on the CI runner class
+  with `--update-snapshots` and committed in the same PR. The frame-statistics
+  assertions cover the blank/flat/unlit failures meanwhile, but not "the wall is
+  the wrong shade".
+- **Walk mode has never run in a browser.** The maths is pinned; the
+  pointer/keyboard plumbing in `useNav3d` is not.
+- **Textures are generated, not judged.** Whether "brick" reads as brick to an
+  architect is a human call, like the rule-pack seeds.
+
+What no test still looks at: which side of an external wall is "outside" for
+chajjas and porches when the storey outline is concave (the `componentBoxes.ts`
+centroid rule is documented for rectangular/L/T envelopes and fails visibly — a
+chajja indoors — rather than silently).
 
 ## J07 — Check compliance continuously
 
