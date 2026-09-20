@@ -98,17 +98,34 @@ test.describe('@smoke Phase 0: login, dashboard, project shell', () => {
 
   test('the seeded demo project is on the dashboard (§17)', async () => {
     // Skipped, not failed, when the stack was never seeded: `make seed` is a separate
-    // command and "you forgot to seed" should read as that, not as a product bug. CI runs
-    // the seed step, so this always executes there.
-    // By the DEMO badge, not by /demo/i on the accessible name: the topbar's
+    // command and "you forgot to seed" should read as that, not as a product bug.
+    //
+    // By the Demo badge, not by /demo/i on the accessible name: the topbar's
     // "Garh AI / Studio Demo" home link also matches that regex and sits
     // earlier in the DOM, so `.first()` was clicking the firm name and going
     // to `/`. Found the first time this file ran in order.
+    //
+    // The badge's TEXT is "Demo"; `uppercase` is a CSS class on it, and Playwright
+    // matches the DOM, not the paint. Matching 'DEMO' exactly therefore never found
+    // it, and because the miss was a skip this test has quietly not run since it was
+    // written — the §17 journey has never once been verified, while the comment here
+    // claimed CI always executes it. Case-insensitive now, so restyling the badge
+    // cannot re-hide the card.
     const demoCard = page
       .getByRole('link')
-      .filter({ has: page.getByText('DEMO', { exact: true }) })
+      .filter({ has: page.getByText(/^demo$/i) })
       .first();
-    const seeded = await demoCard.isVisible().catch(() => false);
+    const seeded = await demoCard
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false);
+    // In CI the seed step ran, so an absent demo card is a REAL failure, never a skip.
+    if (!seeded && process.env.CI) {
+      throw new Error(
+        'No demo project on the dashboard, but CI seeds the stack — this is the §17 ' +
+          'journey failing, not a missing seed.',
+      );
+    }
     test.skip(!seeded, 'No demo project on the dashboard — run `make seed`.');
 
     await demoCard.click();
@@ -238,7 +255,12 @@ test.describe('@smoke Phase 0: login, dashboard, project shell', () => {
     const fixture = fileURLToPath(new URL('../../fixtures/dxf/plot_rect_mm.dxf', import.meta.url));
 
     await page.getByRole('button', { name: 'Import DXF' }).click();
-    const dialog = page.getByRole('dialog');
+    // Named, not bare: the first-run tour card is also a role="dialog", so
+    // getByRole('dialog') alone matched two elements and Playwright's strict mode
+    // refused the whole test (CI run 94). aria-modal hides the tour from a screen
+    // reader while this modal is open; Playwright does not honour that, so the test
+    // has to say which dialog it means — which it should anyway.
+    const dialog = page.getByRole('dialog', { name: 'Import a DXF boundary' });
     await expect(dialog).toBeVisible();
 
     await dialog.getByLabel('DXF file').setInputFiles(fixture);
