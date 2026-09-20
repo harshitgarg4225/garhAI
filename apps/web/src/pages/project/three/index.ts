@@ -13,3 +13,4 @@
 export { ThreeDLayers, elementStoreyFflMm, visibleGroupKeysFor } from './ThreeDLayers';
 export type { ThreeDLayersProps } from './ThreeDLayers';
 export { StoreyVisibilityBar, ThreeDStatusChip } from './ThreeDControls';
+export { ExportPanel3d } from './ExportPanel3d';

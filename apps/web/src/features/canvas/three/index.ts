@@ -57,6 +57,18 @@ export { exposedTerraceFaces } from './terrace';
 export type { TerraceFace } from './terrace';
 
 export {
+  BUILDING_GROUP_PREFIX,
+  countExportableMeshes,
+  exportGlb,
+  exportRootsOf,
+  FACADE_GROUP_NAME,
+  glbFileName,
+  isExportRoot,
+} from './gltfExport';
+export { buildHouseObject } from './headlessScene';
+export type { HeadlessBuildOptions } from './headlessScene';
+
+export {
   balconyRailingFootprintsF,
   fflOfIndexMm,
   MUMTY_HEIGHT_MM,
