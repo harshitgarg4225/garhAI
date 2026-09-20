@@ -165,6 +165,16 @@ export {
 } from './context';
 export type { CorePickOptions } from './context';
 export { useCanvasControls } from './useCanvasControls';
+export {
+  classifyWheel,
+  pinchDelta,
+  pinchState,
+  pinchZoomFactor,
+  MAX_PINCH_FACTOR,
+  PINCH_ZOOM_RATE,
+  WHEEL_NOTCH_MIN_PX,
+} from './wheelGesture';
+export type { PinchState, TouchPoint, WheelGesture, WheelLike } from './wheelGesture';
 export type {
   CanvasControlsCallbacks,
   CanvasControlsOptions,

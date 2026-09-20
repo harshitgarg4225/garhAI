@@ -23,6 +23,7 @@ import {
   makeTwoRoomPlan,
   makeTwoRoomPlanWithOpenings,
   type Op,
+  type Opening,
   type Wall,
 } from '@garh/model';
 
@@ -30,6 +31,7 @@ import {
   buildDimensionChains,
   buildRoomSpanChains,
   chainBaselineMm,
+  chainPointMm,
   editableSegments,
   segmentMidMm,
   type DimChain,
@@ -443,5 +445,110 @@ describe('roomTargetAreaOp', () => {
     expect(roomTargetAreaOp('room_01J0000000000000000000R1', null)).toMatchObject({
       payload: { targetAreaMm2: null },
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Aligned chains — a skew wall is dimensioned in its own frame
+// ---------------------------------------------------------------------------
+
+describe('aligned chains for skew walls', () => {
+  const doc = makeTwoRoomPlan();
+  const skew: Wall = {
+    id: 'wall_01J0000000000000000000SKW',
+    storeyId: FIXTURE_IDS.groundStorey,
+    // A 3-4-5 diagonal: the length is exactly 5000, so nothing here rounds.
+    a: { x: 6000, y: 4000 },
+    b: { x: 9000, y: 8000 },
+    thicknessMm: 115,
+    kind: 'internal',
+    loadBearing: false,
+  };
+  const walls = [...doc.house.walls, skew];
+  const alignedOf = (chains: readonly DimChain[], kind: string): DimChain => {
+    const found = chains.find((c) => c.axis === 'aligned' && c.kind === kind);
+    if (found === undefined) throw new Error(`no aligned ${kind} chain`);
+    return found;
+  };
+
+  it('gives the skew wall a chain of its own length, in along-wall millimetres', () => {
+    const set = buildDimensionChains(walls, []);
+    expect(set.skewWallIds).toEqual([skew.id]);
+    const chain = alignedOf(set.chains, 'wall');
+    expect(chain.segments.map((s) => s.valueMm)).toEqual([5000]);
+    expect(chain.segments[0]?.target).toEqual({ kind: 'wall-length', wallId: skew.id });
+    expect(chain.frame?.origin).toEqual(skew.a);
+    expect(chain.frame?.ux).toBeCloseTo(0.6, 12);
+    expect(chain.frame?.uy).toBeCloseTo(0.8, 12);
+  });
+
+  it('hangs the string on the side away from the building', () => {
+    const set = buildDimensionChains(walls, []);
+    const frame = alignedOf(set.chains, 'wall').frame;
+    if (frame === undefined) throw new Error('no frame');
+    // The building's centre is south-west of this wall; the normal points
+    // the other way (positive x, negative y, i.e. south-east).
+    expect(frame.nx).toBeGreaterThan(0);
+    expect(frame.ny).toBeLessThan(0);
+    // …and the baseline point is genuinely off the wall, on that side.
+    const chain = alignedOf(set.chains, 'wall');
+    const p = chainPointMm(chain, 2500, chainBaselineMm(chain, 300, 200));
+    expect(p.x).toBeCloseTo(7500 + frame.nx * 500, 9);
+    expect(p.y).toBeCloseTo(6000 + frame.ny * 500, 9);
+  });
+
+  it('does not put a skew wall into the axis strings', () => {
+    const set = buildDimensionChains(walls, []);
+    for (const chain of set.chains) {
+      if (chain.axis === 'aligned') continue;
+      for (const tick of chain.ticks) expect(tick.wallIds).not.toContain(skew.id);
+    }
+  });
+
+  it('strings the openings on a skew wall along it, with the usual targets', () => {
+    const door: Opening = {
+      id: 'opening_01J000000000000000000SKD',
+      wallId: skew.id,
+      kind: 'door',
+      widthMm: 900,
+      heightMm: 2100,
+      sillMm: 0,
+      offsetMm: 2000,
+      swing: 'in-left',
+      tag: null,
+    };
+    const set = buildDimensionChains(walls, [door]);
+    const chain = alignedOf(set.chains, 'opening');
+    expect(chain.segments.map((s) => s.valueMm)).toEqual([1550, 900, 2550]);
+    expect(chain.segments.map((s) => s.target?.kind)).toEqual([
+      'opening-gap',
+      'opening-width',
+      'opening-gap',
+    ]);
+    // Along-wall coordinates: the door runs 1550..2450 from `a`.
+    expect(chain.segments[1]?.startMm).toBe(1550);
+    expect(chain.segments[1]?.endMm).toBe(2450);
+  });
+
+  it('typing a length on the aligned chain slides `b` along the wall, integer mm', () => {
+    const set = buildDimensionChains(walls, []);
+    const target = alignedOf(set.chains, 'wall').segments[0]?.target;
+    if (target === undefined || target === null) throw new Error('no target');
+    const house = { ...doc.house, walls };
+    const result = applyDimensionEdit(house, target, 4000);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.label).toBe('Wall resized');
+    expect(wallMoveOps(result.ops)).toEqual([
+      { wallId: skew.id, a: { x: 6000, y: 4000 }, b: { x: 8400, y: 7200 } },
+    ]);
+    // Negative control: the length it already has is not an edit.
+    expect(applyDimensionEdit(house, target, 5000).ok).toBe(false);
+  });
+
+  it('still dimensions a plan that is ALL skew walls', () => {
+    const set = buildDimensionChains([skew], []);
+    expect(set.chains.some((c) => c.axis === 'aligned')).toBe(true);
+    expect(set.extentMm).not.toBeNull();
   });
 });

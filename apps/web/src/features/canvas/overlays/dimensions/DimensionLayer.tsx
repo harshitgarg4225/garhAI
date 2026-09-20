@@ -151,6 +151,8 @@ const scratchQuaternion = /* @__PURE__ */ new Quaternion();
 const scratchScale = /* @__PURE__ */ new Vector3(1, 1, 1);
 /** Flat on the plan: rotate the unit plane from the XY plane onto XZ. */
 const FLAT = /* @__PURE__ */ new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2);
+const WORLD_UP = /* @__PURE__ */ new Vector3(0, 1, 0);
+const scratchSpin = /* @__PURE__ */ new Quaternion();
 
 export function DimensionLayer({
   chains,
@@ -276,6 +278,66 @@ export function DimensionLayer({
       if (tooShort) return;
 
       const outward = chain.kind === 'room' ? 0 : chain.outward;
+
+      if (chain.axis === 'aligned' && chain.frame !== undefined) {
+        // A skew wall's own frame: every point is origin + u·along + n·offset.
+        const f = chain.frame;
+        const at = (alongMm: number, offMm: number): { x: number; y: number } => ({
+          x: f.origin.x + f.ux * alongMm + f.nx * offMm,
+          y: f.origin.y + f.uy * alongMm + f.ny * offMm,
+        });
+        const s0 = at(segment.startMm, baselineMm);
+        const s1 = at(segment.endMm, baselineMm);
+        buffer.push(s0.x, s0.y, s1.x, s1.y, elevationMm);
+        const w0a = at(segment.startMm, gapMm);
+        const w0b = at(segment.startMm, baselineMm + overshootMm);
+        buffer.push(w0a.x, w0a.y, w0b.x, w0b.y, elevationMm);
+        const w1a = at(segment.endMm, gapMm);
+        const w1b = at(segment.endMm, baselineMm + overshootMm);
+        buffer.push(w1a.x, w1a.y, w1b.x, w1b.y, elevationMm);
+        // The 45° slash, in the chain's own frame: along (u + n).
+        const tx = (f.ux + f.nx) * tickHalfMm;
+        const ty = (f.uy + f.ny) * tickHalfMm;
+        buffer.push(s0.x - tx, s0.y - ty, s0.x + tx, s0.y + ty, elevationMm);
+        buffer.push(s1.x - tx, s1.y - ty, s1.x + tx, s1.y + ty, elevationMm);
+        // Text reads along the wall, never upside down: flip a leftward frame.
+        const flip = f.ux < 0 || (f.ux === 0 && f.uy < 0);
+        const angle = Math.atan2(flip ? -f.uy : f.uy, flip ? -f.ux : f.ux);
+        if (group !== null) {
+          const mid = at(
+            (segment.startMm + segment.endMm) / 2,
+            baselineMm + overshootMm + tickHalfMm,
+          );
+          group.position.set(
+            mid.x * WORLD_UNITS_PER_MM,
+            elevationMm * WORLD_UNITS_PER_MM,
+            -mid.y * WORLD_UNITS_PER_MM,
+          );
+          group.rotation.set(-Math.PI / 2, 0, angle);
+        }
+        if (pick !== null && segment.target !== null && instance < pickCapacity) {
+          const mid = at((segment.startMm + segment.endMm) / 2, baselineMm);
+          scratchPosition.set(
+            mid.x * WORLD_UNITS_PER_MM,
+            elevationMm * WORLD_UNITS_PER_MM,
+            -mid.y * WORLD_UNITS_PER_MM,
+          );
+          scratchScale.set(
+            (segment.endMm - segment.startMm) * WORLD_UNITS_PER_MM,
+            pickHalfMm * 2 * WORLD_UNITS_PER_MM,
+            1,
+          );
+          // Spin the flat quad about world up so its long side runs along the
+          // wall: (1,0,0) → (cos θ, 0, −sin θ) is model (ux, uy) with y → −z.
+          scratchSpin.setFromAxisAngle(WORLD_UP, Math.atan2(f.uy, f.ux));
+          scratchQuaternion.copy(scratchSpin).multiply(FLAT);
+          scratchMatrix.compose(scratchPosition, scratchQuaternion, scratchScale);
+          pick.setMatrixAt(instance, scratchMatrix);
+          liveIds.push(segment.id);
+          instance += 1;
+        }
+        return;
+      }
 
       if (chain.axis === 'x') {
         const y = baselineMm;

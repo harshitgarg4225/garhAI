@@ -8,11 +8,20 @@
  * in priority order:
  *
  *   endpoint      a wall centreline end on this storey          rank 100
+ *   intersection  where two wall centrelines cross              rank  95
  *   midpoint      the middle of a wall centreline               rank  80
  *   plot-corner   a vertex of the plot boundary                 rank  75
+ *   perpendicular the foot of the perpendicular from the chain
+ *                 anchor onto a wall centreline                 rank  70
  *   wall-line     the nearest point ON a wall centreline        rank  60
  *   plot-edge     the nearest point on a plot boundary edge     rank  55
  *   grid          the active module (115 mm / 25 mm / off)      rank   0
+ *
+ * The two that need a second thing — `intersection` needs two walls that
+ * actually cross (a T-junction is already an endpoint), `perpendicular` needs
+ * the chain's anchor — exist for skew walls: a partition drawn square off a
+ * diagonal wall, or ended exactly where two diagonals cross, has no grid
+ * module to land on.
  *
  * ────────────────────────────────────────────────────────────────────────────
  * THE CONVERSION BOUNDARY
@@ -47,7 +56,16 @@
  * call except the returned candidate.
  */
 
-import { distMm, polygonEdges, ptEq, ptRound, type Polygon, type Pt, type Wall } from '@garh/model';
+import {
+  distMm,
+  polygonEdges,
+  ptEq,
+  ptRound,
+  segmentIntersection,
+  type Polygon,
+  type Pt,
+  type Wall,
+} from '@garh/model';
 
 import { snapMm } from '../../../lib/units';
 // From the module rather than the `../core` barrel — the barrel drags in
@@ -63,10 +81,12 @@ import type { SnapView, ToolContext } from './types';
 export type SnapKind =
   | 'grid'
   | 'endpoint'
+  | 'intersection'
   | 'midpoint'
   | 'wall-line'
   | 'plot-corner'
   | 'plot-edge'
+  | 'perpendicular'
   | 'extension';
 
 export interface SnapCandidate {
@@ -102,8 +122,10 @@ export interface SnapOptions {
 
 const RANK: Readonly<Record<SnapKind, number>> = {
   endpoint: 100,
+  intersection: 95,
   midpoint: 80,
   'plot-corner': 75,
+  perpendicular: 70,
   'wall-line': 60,
   'plot-edge': 55,
   extension: 50,
@@ -112,8 +134,10 @@ const RANK: Readonly<Record<SnapKind, number>> = {
 
 const LABEL: Readonly<Record<SnapKind, string>> = {
   endpoint: 'Wall end',
+  intersection: 'Walls cross',
   midpoint: 'Wall middle',
   'plot-corner': 'Plot corner',
+  perpendicular: 'Square to wall',
   'wall-line': 'On wall',
   'plot-edge': 'Plot edge',
   extension: 'Aligned',
@@ -200,6 +224,9 @@ export function collectSnapCandidates(
 ): SnapCandidate[] {
   const toleranceMm = snapToleranceMm(ctx.mmPerPx, options.tolerancePx);
   const out: SnapCandidate[] = [];
+  const anchor = options.anchor ?? null;
+  /** Walls whose grown bounding box contains the pointer — the crossing pairs. */
+  const near: Wall[] = [];
 
   for (const wall of snapWalls(ctx, options.excludeIds)) {
     // Cheap reject: the wall's bounding box, grown by the tolerance.
@@ -208,6 +235,18 @@ export function collectSnapCandidates(
     const minY = Math.min(wall.a.y, wall.b.y) - toleranceMm;
     const maxY = Math.max(wall.a.y, wall.b.y) + toleranceMm;
     if (raw.x < minX || raw.x > maxX || raw.y < minY || raw.y > maxY) continue;
+    near.push(wall);
+
+    // The foot of the perpendicular from the chain anchor: where a partition
+    // meets this wall square. Only inside the segment — square to a wall's
+    // extension is not on the wall.
+    if (anchor !== null) {
+      const foot = projectOnSegment(anchor, wall.a, wall.b);
+      const df = distMm(raw, foot.pointMm);
+      if (foot.inside && df <= toleranceMm && !ptEq(foot.pointMm, anchor)) {
+        out.push(candidate('perpendicular', foot.pointMm, wall.id, df));
+      }
+    }
 
     const da = distMm(raw, wall.a);
     if (da <= toleranceMm) out.push(candidate('endpoint', wall.a, wall.id, da));
@@ -221,6 +260,21 @@ export function collectSnapCandidates(
     const proj = projectOnSegment(raw, wall.a, wall.b);
     if (proj.inside && proj.distanceMm <= toleranceMm) {
       out.push(candidate('wall-line', proj.pointMm, wall.id, proj.distanceMm));
+    }
+  }
+
+  // Where two nearby walls genuinely cross. Touching ends are already
+  // endpoint snaps, so only a proper crossing is added; `segmentIntersection`
+  // classifies exactly and rounds the point once.
+  for (let i = 0; i < near.length; i += 1) {
+    for (let j = i + 1; j < near.length; j += 1) {
+      const a = near[i];
+      const b = near[j];
+      if (a === undefined || b === undefined) continue;
+      const hit = segmentIntersection({ a: a.a, b: a.b }, { a: b.a, b: b.b });
+      if (hit.kind !== 'point' || hit.onEndpoint) continue;
+      const d = distMm(raw, hit.point);
+      if (d <= toleranceMm) out.push(candidate('intersection', hit.point, a.id, d));
     }
   }
 

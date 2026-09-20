@@ -31,7 +31,7 @@
  */
 
 import type { HouseModel, Op, Pt, RoomType, Wall } from '@garh/model';
-import { pointOnSegment } from '@garh/model';
+import { pointOnSegment, ptRound } from '@garh/model';
 
 import type { DimAxis, DimensionEditTarget } from './chain';
 
@@ -48,6 +48,7 @@ const LABELS: Readonly<Record<DimensionEditTarget['kind'], string>> = {
   'wall-gap': 'Wall moved',
   'opening-gap': 'Opening moved',
   'opening-width': 'Opening resized',
+  'wall-length': 'Wall resized',
 };
 
 // ---------------------------------------------------------------------------
@@ -78,7 +79,46 @@ export function applyDimensionEdit(
       return editOpeningGap(house, target, valueMm);
     case 'opening-width':
       return editOpeningWidth(house, target, valueMm);
+    case 'wall-length':
+      return editWallLength(house, target, valueMm);
   }
+}
+
+// ---------------------------------------------------------------------------
+// wall-length — a skew wall's aligned dimension
+// ---------------------------------------------------------------------------
+
+/**
+ * Hold `a`, slide `b` along the wall's existing direction to `valueMm`.
+ *
+ * The same arithmetic as the inspector's Length field and the tools'
+ * `pointAtLengthMm`: `ptRound` (half away from zero), so a wall drawn
+ * south-west lands exactly where the same wall drawn north-east does. Joined
+ * walls do NOT follow here: a skew wall's end is usually free, and dragging a
+ * junction along a diagonal is an edit nobody asked for by typing a length.
+ */
+function editWallLength(
+  house: HouseModel,
+  target: Extract<DimensionEditTarget, { kind: 'wall-length' }>,
+  valueMm: number,
+): DimensionEditResult {
+  const wall = house.walls.find((w) => w.id === target.wallId);
+  if (wall === undefined) {
+    return { ok: false, reason: 'That wall is gone. Re-select the dimension.' };
+  }
+  const dx = wall.b.x - wall.a.x;
+  const dy = wall.b.y - wall.a.y;
+  const len = Math.hypot(dx, dy);
+  if (len === 0) return { ok: false, reason: 'That wall has no length to change.' };
+  const b = ptRound(wall.a.x + (dx / len) * valueMm, wall.a.y + (dy / len) * valueMm);
+  if (b.x === wall.b.x && b.y === wall.b.y) {
+    return { ok: false, reason: 'That is already the length.' };
+  }
+  return {
+    ok: true,
+    ops: [{ type: 'wall.move', payload: { wallId: wall.id, a: wall.a, b } }],
+    label: LABELS['wall-length'],
+  };
 }
 
 // ---------------------------------------------------------------------------
