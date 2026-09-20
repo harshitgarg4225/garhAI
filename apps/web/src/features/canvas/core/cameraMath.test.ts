@@ -11,6 +11,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   clampMmPerPx,
+  clampOrbit,
+  clampPolarDeg,
   CSS_MM_PER_PX,
   fitBboxToViewport,
   fitDistanceMm,
@@ -211,6 +213,23 @@ describe('3D', () => {
     expect(normaliseAzimuthDeg(-90)).toBe(270);
     expect(normaliseAzimuthDeg(450)).toBe(90);
     expect(normaliseAzimuthDeg(0)).toBe(0);
+  });
+
+  it('honours an orbit’s own polar limit (walk mode looks up), never the pole itself', () => {
+    const base = { targetMm: { x: 0, y: 0, z: 1600 }, distanceMm: 2000, azimuthDeg: 0 };
+    // Under the walk limit, polar 120 puts the eye BELOW the target: looking up.
+    const up = orbitEyeMm({ ...base, polarDeg: 120, polarLimitDeg: 150 });
+    expect(up.z).toBeLessThan(1600);
+    // The limit itself is capped short of the pole, where lookAt degenerates.
+    expect(clampPolarDeg(179.5, 400)).toBe(179);
+    expect(clampPolarDeg(120, 150)).toBe(120);
+    expect(clampPolarDeg(160, 150)).toBe(150);
+    // Negative control: without the field, 120 clamps to 89 — above the target.
+    expect(orbitEyeMm({ ...base, polarDeg: 120 }).z).toBeGreaterThan(1600);
+    // And clampOrbit (every orbit gesture) drops the field.
+    expect('polarLimitDeg' in clampOrbit({ ...base, polarDeg: 120, polarLimitDeg: 150 })).toBe(
+      false,
+    );
   });
 
   it('reports an equivalent mmPerPx so shared rules keep working in 3D', () => {

@@ -2,8 +2,8 @@
  * NavModeHud.tsx — the 3D navigation controls: Orbit · Walk · Fit.
  *
  * DOM overlay (mounted OUTSIDE the `<Canvas>` by the page, floated over it).
- * §15: the walk hint is honest about v1 — collision is off, and the rig's
- * polar clamp means you look level-or-down (see `orbitOps.ts`'s header).
+ * §15: the walk hint states what walking does — walls stop you, doors let
+ * you through, and you can look up (see `orbitOps.ts`'s header).
  */
 
 import { Button, cn } from '@garh/ui';
@@ -47,7 +47,7 @@ export function NavModeHud({ nav, className }: NavModeHudProps): JSX.Element {
       </div>
       <p className="max-w-56 px-1 text-2xs leading-4 text-ink-subtle">
         {walking
-          ? 'WASD to move, drag to look, Shift to stride. Walk v1 has no collision — you will pass through walls — and looks level or down.'
+          ? 'WASD to move, drag to look around and up, Shift to stride. Walls of this storey stop you; doors let you through.'
           : 'Drag to orbit, scroll to zoom to your cursor, Shift-drag to pan. Double-click fits the building.'}
       </p>
     </div>
