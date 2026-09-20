@@ -25,6 +25,7 @@ from typing import Any
 import pytest
 from garh_api import models
 from garh_api.seed import demo as demo_data
+from garh_api.seed.catalog import FACADE_KIT_IDS
 from garh_api.seed.runner import CREATED, REUSED, SKIPPED, SeedError, SeedOptions, seed
 from sqlalchemy import func, select
 
@@ -131,7 +132,10 @@ async def test_seed_records_the_rulepacks_and_catalogue_on_the_firm(session: Any
     assert set(settings["rulePacks"]["versions"]) == set(result.rulepacks)
     assert settings["catalog"]["counts"]["furniture"] >= 30, "§17 minimum"
     assert settings["catalog"]["counts"]["materials"] >= 20, "§17 minimum"
-    assert settings["catalog"]["facadeKitIds"] == ["contemporary", "modern-minimal"]
+    # The served set, not a frozen pair: kits are added from time to time and
+    # `FACADE_KIT_IDS` is the one list the validator, the seed and the web
+    # mirror all answer to (a fourth kit landed 2026-09-20).
+    assert settings["catalog"]["facadeKitIds"] == list(FACADE_KIT_IDS)
     assert settings["catalog"]["digest"], "no catalogue digest — drift becomes a mystery"
     assert settings["titleBlock"]["firmName"] == demo_data.DEMO_FIRM_NAME
 

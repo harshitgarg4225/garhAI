@@ -126,6 +126,14 @@ class MaterialOut(ResponseModel):
     category: StrictStr
     finish: StrictStr | None = None
     color_hex: StrictStr | None = None
+    #: Texture FAMILY the 3D view draws procedurally (tile, brick, wood, stone,
+    #: concrete, plaster, speckle, vein, metal, glass). The catalogue has always
+    #: carried it; this response dropped it, so every material rendered as a flat
+    #: hex and Kota stone looked like vitrified tile.
+    texture: StrictStr | None = None
+    #: Optional image map. The SPA's CSP allows same-origin and data: URLs only;
+    #: anything else falls back to the procedural family (features/canvas/three).
+    texture_url: StrictStr | None = None
     #: Whole rupees per square metre. Indicative, for the cost chip — never a quotation.
     price_inr_per_sqm: StrictInt | None = None
     surface_groups: list[StrictStr] = Field(default_factory=list)

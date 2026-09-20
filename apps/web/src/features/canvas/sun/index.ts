@@ -61,13 +61,20 @@ export {
   orbitFromWalkPose,
   walkPoseOf,
   walkStep,
+  walkStepAvoiding,
+  walkObstaclesOf,
+  pathBlockedByWalls,
+  pointBlockedByWalls,
   walkTurn,
+  WALK_BODY_RADIUS_MM,
   WALK_EYE_HEIGHT_MM,
   WALK_LOOK_DISTANCE_MM,
+  WALK_MAX_PITCH_UP_DEG,
+  WALK_POLAR_LIMIT_DEG,
   WALK_RUN_FACTOR,
   WALK_SPEED_MM_PER_S,
 } from './nav/orbitOps';
-export type { WalkPose } from './nav/orbitOps';
+export type { WalkObstacles, WalkPose } from './nav/orbitOps';
 export { useNav3d } from './nav/useNav3d';
 export type { Nav3dApi, Nav3dOptions, NavMode } from './nav/useNav3d';
 export { NavModeHud } from './nav/NavModeHud';

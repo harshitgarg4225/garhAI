@@ -1,10 +1,15 @@
 /**
  * materials3d.ts — surface-group materials for the 3D synthesis, wired to the
  * model's MaterialAssignment list (op 29) with a procedural flat-colour
- * default palette. NO textures, NO HDRIs, NO binary assets (inherited fact 4:
- * `scripts/check_web_assets.py` gates absolute asset URLs, and the cheapest
- * way to never fail that gate is to reference nothing) — every material here
- * is a flat-colour `MeshStandardMaterial`.
+ * default palette.
+ *
+ * STILL NO BINARY ASSETS, but no longer flat (2026-09-20): a material whose
+ * catalogue row names a texture family gets a generated `map` from
+ * `textures3d.ts` — pixels computed from a hash, never a vendored image, so
+ * `scripts/check_web_assets.py` has nothing to gate and there is no licence
+ * file to keep beside anything (inherited fact 4 intact). HDRIs are still
+ * out. A catalogue `textureUrl` is honoured when the CSP would allow it and
+ * falls back to the family when it would not.
  *
  * RESOLUTION ORDER for a mesh's colour (most specific wins):
  *   1. an assignment targeting the ELEMENT (`target.elementId`)
@@ -24,14 +29,24 @@
  * would be worse.
  *
  * SINGLETON CACHE, LIKE THE PLAN'S: one `MeshStandardMaterial` per distinct
- * (colour × glassiness), shared across every mesh, so a recolour is a uniform
- * write and never a shader recompile mid-interaction (§14). The cache is
- * bounded by the palette + catalogue size.
+ * (colour × glassiness × texture), shared across every mesh, so a recolour is
+ * a uniform write and never a shader recompile mid-interaction (§14). The
+ * cache is bounded by the palette + catalogue size, and the TEXTURES behind
+ * it are shared per family (one per family, not per colour) because the map
+ * is white-based and multiplied by `color`.
  */
 
 import { Color, DoubleSide, MeshStandardMaterial } from 'three';
 
 import type { MaterialAssignment, SurfaceGroup } from '@garh/model';
+
+import {
+  getProceduralTexture,
+  getUrlTexture,
+  isLoadableTextureUrl,
+  TEXTURE_TILE_MM,
+  type TextureFamily,
+} from './textures3d';
 
 // ---------------------------------------------------------------------------
 // Default palette — procedural flat colours, one per surface group
@@ -50,6 +65,29 @@ export const DEFAULT_SURFACE_COLORS: Readonly<Record<SurfaceGroup, string>> = {
   cladding: '#7A5230',
   plinth: '#9C9C97',
   staircase: '#C4BEB4',
+};
+
+/**
+ * The texture family each surface group wears when NOTHING is assigned —
+ * what an untouched building is made of. Without these the 3D view stays
+ * flat until an architect opens the materials panel, which is most of the
+ * time: plaster on walls, tile on floors, concrete on the roof and the
+ * plinth, metal on railings, glass in the glazing. An assignment overrides
+ * the family exactly as it overrides the colour.
+ */
+export const DEFAULT_SURFACE_TEXTURES: Readonly<Record<SurfaceGroup, TextureFamily>> = {
+  external_wall: 'plaster',
+  internal_wall: 'plaster',
+  floor: 'tile',
+  ceiling: 'plaster',
+  roof: 'concrete',
+  parapet: 'plaster',
+  railing: 'metal',
+  door: 'wood',
+  window: 'glass',
+  cladding: 'wood',
+  plinth: 'concrete',
+  staircase: 'concrete',
 };
 
 // ---------------------------------------------------------------------------
@@ -127,6 +165,39 @@ export function colorForScope(
   return DEFAULT_SURFACE_COLORS[scope.surface];
 }
 
+/**
+ * The texture a mesh wears: the assignment's material, looked up in the
+ * catalogue's texture map. Null when nothing is assigned or the material
+ * declares no family — the flat default palette, as before.
+ */
+export function textureForScope(
+  assignments: readonly MaterialAssignment[],
+  scope: MaterialScope,
+  materialTextures: Readonly<Record<string, SurfaceTextureSpec>> | undefined,
+): SurfaceTextureSpec {
+  const fallback: SurfaceTextureSpec = {
+    family: DEFAULT_SURFACE_TEXTURES[scope.surface],
+    url: null,
+  };
+  if (materialTextures === undefined) return fallback;
+  const materialId = resolveMaterialId(assignments, scope);
+  if (materialId === null) return fallback;
+  const assigned = materialTextures[materialId];
+  if (assigned === undefined) return fallback;
+  // An assignment naming a material the catalogue cannot describe keeps the
+  // group's default family — the same "plainer, never wrong" rule the colour
+  // resolution follows when a materialId has no hex. A row with no family but
+  // a real image url still wins: the url IS its description.
+  if (assigned.family === null && assigned.url === null) return fallback;
+  return assigned;
+}
+
+/** A catalogue row's texture, as the page hands it down. */
+export interface SurfaceTextureSpec {
+  readonly family: TextureFamily | null;
+  readonly url: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Three materials (singletons)
 // ---------------------------------------------------------------------------
@@ -134,11 +205,36 @@ export function colorForScope(
 const cache = new Map<string, MeshStandardMaterial>();
 
 /**
+ * Which texture a mesh wears, resolved from the catalogue by the caller:
+ * a procedural `family` (the catalogue's own `texture` string) and/or a
+ * `url` the CSP allows. Null on both ⇒ the flat colour of old.
+ */
+export type SurfaceTexture = SurfaceTextureSpec;
+
+/** The tile size a `SurfaceTexture` repeats at, mm. */
+function tileSizeMm(texture: SurfaceTexture): number {
+  return texture.family === null ? 1000 : TEXTURE_TILE_MM[texture.family];
+}
+
+/**
  * The shared material for a colour. `glass` renders translucent with no
  * depthWrite so rooms stay readable through glazing and glass railings.
+ *
+ * `texture` (optional) maps the catalogue's texture family — or a
+ * catalogue-declared `textureUrl` the CSP allows — onto the box-mapped UVs
+ * `geometryBuild` emits in METRES, so `repeat` is just "how many tiles per
+ * metre". A url that is not loadable falls back to the family, and no
+ * family at all falls back to the flat colour: a material can only ever
+ * look plainer than intended, never wrong.
  */
-export function getSolidMaterial(hex: string, glass: boolean): MeshStandardMaterial {
-  const key = `${hex}|${glass ? 'g' : 'o'}`;
+export function getSolidMaterial(
+  hex: string,
+  glass: boolean,
+  texture: SurfaceTexture | null = null,
+): MeshStandardMaterial {
+  const family = texture?.family ?? null;
+  const url = texture !== null && isLoadableTextureUrl(texture.url) ? texture.url : null;
+  const key = `${hex}|${glass ? 'g' : 'o'}|${url ?? family ?? '-'}`;
   const hit = cache.get(key);
   if (hit !== undefined) return hit;
 
@@ -152,6 +248,20 @@ export function getSolidMaterial(hex: string, glass: boolean): MeshStandardMater
     material.transparent = true;
     material.opacity = 0.35;
     material.depthWrite = false;
+  }
+  const map =
+    url !== null
+      ? getUrlTexture(url)
+      : family !== null
+        ? getProceduralTexture(family, '#FFFFFF')
+        : null;
+  if (map !== null) {
+    // The map is WHITE-based and multiplied by `color`, so one generated
+    // texture per family serves every colourway — the architect's hex is
+    // still the thing on screen.
+    const perMetre = 1000 / tileSizeMm({ family, url });
+    map.repeat.set(perMetre, perMetre);
+    material.map = map;
   }
   cache.set(key, material);
   return material;

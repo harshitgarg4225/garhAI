@@ -23,7 +23,15 @@
  *     when `tryParseId(primaryId)?.type === 'facadecomp'`.
  */
 
-export { FACADE_KITS, CONTEMPORARY_KIT, MODERN_MINIMAL_KIT, kitById, colorwayById } from './kits';
+export {
+  FACADE_KITS,
+  CONTEMPORARY_KIT,
+  MODERN_MINIMAL_KIT,
+  TROPICAL_MODERN_KIT,
+  TRADITIONAL_MADRAS_KIT,
+  kitById,
+  colorwayById,
+} from './kits';
 export {
   generateFacadeComponents,
   resolveColorway,

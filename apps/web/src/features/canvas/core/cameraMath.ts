@@ -67,7 +67,21 @@ export interface Orbit3D {
   readonly distanceMm: number;
   readonly azimuthDeg: number;
   readonly polarDeg: number;
+  /**
+   * The polar clamp this orbit was built under, degrees. Absent ⇒
+   * `MAX_ORBIT_POLAR_DEG` (89°: an orbit camera never goes under its
+   * target). Walk mode sets it past 90 so a standing eye can look UP at a
+   * chajja — the eye is then below its look-ahead target, which is exactly
+   * what looking up means. Every orbit GESTURE goes through `clampOrbit`,
+   * which rebuilds the orbit without this field, so the next drag is back
+   * under the orbit rule; only `orbitFromWalkPose` sets it. One camera, one
+   * rig, one extra number — not a forked camera.
+   */
+  readonly polarLimitDeg?: number;
 }
+
+/** No orbit may reach the poles: `lookAt` degenerates when eye and up align. */
+export const ABSOLUTE_MAX_POLAR_DEG = 179;
 
 export const DEFAULT_VIEW_2D: View2D = {
   centreMm: { x: 0, y: 0 },
@@ -103,8 +117,10 @@ export function clampMmPerPx(mmPerPx: number): number {
   return Math.min(MAX_MM_PER_PX, Math.max(MIN_MM_PER_PX, mmPerPx));
 }
 
-export function clampPolarDeg(polarDeg: number): number {
-  return Math.min(MAX_ORBIT_POLAR_DEG, Math.max(MIN_ORBIT_POLAR_DEG, polarDeg));
+/** Clamp a polar angle to [MIN, limit]; the limit itself never passes the pole. */
+export function clampPolarDeg(polarDeg: number, limitDeg: number = MAX_ORBIT_POLAR_DEG): number {
+  const limit = Math.min(ABSOLUTE_MAX_POLAR_DEG, Math.max(MIN_ORBIT_POLAR_DEG, limitDeg));
+  return Math.min(limit, Math.max(MIN_ORBIT_POLAR_DEG, polarDeg));
 }
 
 /** Normalise an azimuth into [0, 360) so the readout never shows −450°. */
@@ -269,7 +285,7 @@ const DEG = Math.PI / 180;
  * widget and the north arrow in Phase 5 can share these angles directly.
  */
 export function orbitEyeMm(orbit: Orbit3D): PtF3 {
-  const polar = clampPolarDeg(orbit.polarDeg) * DEG;
+  const polar = clampPolarDeg(orbit.polarDeg, orbit.polarLimitDeg) * DEG;
   const azimuth = orbit.azimuthDeg * DEG;
   const horizontal = orbit.distanceMm * Math.sin(polar);
   return {

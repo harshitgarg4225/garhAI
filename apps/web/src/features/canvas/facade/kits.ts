@@ -1,5 +1,7 @@
 /**
- * kits.ts — the two launch kits (§8), as typed data.
+ * kits.ts — the launch kits (§8), as typed data. Two at Phase 5; FOUR since
+ * 2026-09-20, because two kits is a demo and an architect picking a facade
+ * wants a choice that includes something other than "modern".
  *
  * THIS IS A MIRROR, NOT A SOURCE. The catalogue of record is
  * `fixtures/catalog/facade-kits.json` — the file the seed validates and
@@ -84,8 +86,82 @@ export const MODERN_MINIMAL_KIT: FacadeKitDef = {
   },
 };
 
+export const TROPICAL_MODERN_KIT: FacadeKitDef = {
+  id: 'tropical-modern',
+  name: 'Tropical Modern',
+  description:
+    'Deep 750 chajjas over every opening, a wooden-louver screen at the stair bay and a glass railing — drawn for the long monsoon and the harder sun.',
+  components: {
+    windowTrim: { style: 'flush-band', widthMm: 75, projectionMm: 30 },
+    chajja: {
+      style: 'flat',
+      projectionMm: 750,
+      thicknessMm: 125,
+      allowedProjectionsMm: [750, 900],
+    },
+    parapetProfile: { style: 'plain', heightMm: 1050, capThicknessMm: 100 },
+    claddingZones: {
+      rule: 'stack full-height at entry bay',
+      materialId: 'wooden-louvers',
+      widthMm: 1500,
+    },
+    porch: { style: 'cantilever', projectionMm: 2100, thicknessMm: 200 },
+    railing: { style: 'glass', heightMm: 1050, materialId: 'glass-railing' },
+  },
+  colorways: [
+    { id: 'white-teak', name: 'White + teak', base: '#F7F5F0', accent: '#6B4A2A', trim: '#4A4A46' },
+    { id: 'laterite', name: 'Laterite', base: '#E4D5C3', accent: '#8C4A2F', trim: '#3C3C3C' },
+  ],
+  rules: {
+    minFacadeWidthMm: 5400,
+    // The only kit that shades a ventilator too — that is the point of it.
+    chajjaOverOpenings: ['window', 'door', 'ventilator'],
+    claddingBayPickedBy: 'stair-adjacent external wall',
+  },
+};
+
+export const TRADITIONAL_MADRAS_KIT: FacadeKitDef = {
+  id: 'traditional-madras',
+  name: 'Traditional Madras',
+  description:
+    'A banded parapet, stone cladding at the entry bay, a solid masonry railing and deep-set windows — the plastered-and-banded street front.',
+  components: {
+    windowTrim: { style: 'recessed', widthMm: 0, projectionMm: -100 },
+    chajja: {
+      style: 'flat',
+      projectionMm: 600,
+      thicknessMm: 150,
+      allowedProjectionsMm: [600, 750],
+    },
+    parapetProfile: { style: 'banded', heightMm: 1200, capThicknessMm: 100 },
+    claddingZones: {
+      rule: 'stack full-height at entry bay',
+      materialId: 'stone-cladding',
+      widthMm: 1050,
+    },
+    porch: { style: 'flush', projectionMm: 1500, thicknessMm: 225 },
+    // The one solid railing: a plastered masonry parapet, not a section.
+    railing: { style: 'masonry', heightMm: 1050, materialId: 'exterior-texture' },
+  },
+  colorways: [
+    { id: 'oxide-red', name: 'Oxide red', base: '#EFE7D8', accent: '#8E3B2E', trim: '#5A4632' },
+    { id: 'lime-white', name: 'Lime white', base: '#F4F1E6', accent: '#7A6A4F', trim: '#4A4A4A' },
+  ],
+  rules: {
+    minFacadeWidthMm: 4500,
+    chajjaOverOpenings: ['window', 'door'],
+    claddingBayPickedBy: 'stair-adjacent external wall',
+    recessDepthMm: 200,
+  },
+};
+
 /** The launch kits, in catalogue order. */
-export const FACADE_KITS: readonly FacadeKitDef[] = [CONTEMPORARY_KIT, MODERN_MINIMAL_KIT];
+export const FACADE_KITS: readonly FacadeKitDef[] = [
+  CONTEMPORARY_KIT,
+  MODERN_MINIMAL_KIT,
+  TROPICAL_MODERN_KIT,
+  TRADITIONAL_MADRAS_KIT,
+];
 
 /** Kit by id, or null — an unknown id is a state, not an exception. */
 export function kitById(kitId: string | null): FacadeKitDef | null {

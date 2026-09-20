@@ -63,6 +63,9 @@ import type {
 import { selectHouse, useModelStore } from '../../../stores/model';
 import { useSelectionStore } from '../../../stores/selection';
 import { useCanvasCoreOptional } from '../core';
+// One leaf module, no barrel: `three/index.ts` pulls in the whole synthesis,
+// and §8 keeps the facade independent of it.
+import { facadeMeshName } from '../three/meshNames';
 import { boxesForComponent } from './componentBoxes';
 import { buildBoxTriangles, SELECTION_BOOST } from './geometry3d';
 import { createFacadeMaterial, FACADE_MESH_SHADOW } from './material3d';
@@ -307,6 +310,10 @@ const FacadeComponentMesh = memo(function FacadeComponentMesh({
   return (
     <mesh
       ref={meshRef}
+      // Named for the GLB export, from the SAME namer the headless builder
+      // and the exporter use (three/meshNames.ts). R3F sets no name of its
+      // own, and a nameless mesh reaches Lumion as `mesh_7`.
+      name={facadeMeshName(component)}
       geometry={geometry}
       material={material}
       castShadow={FACADE_MESH_SHADOW.castShadow}

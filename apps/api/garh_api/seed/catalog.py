@@ -51,8 +51,16 @@ _log = get_logger(__name__)
 #: §17's floors. Below these the catalogue cannot furnish a plan, so the seed fails.
 MIN_FURNITURE_ITEMS = 30
 MIN_MATERIALS = 20
-#: The MVP cut line is exactly two kits (playbook §8, SKILL.md "MVP cut lines").
-FACADE_KIT_IDS: tuple[str, ...] = ("contemporary", "modern-minimal")
+#: The kits the catalogue serves, in card order. Two at Phase 5 (the MVP cut
+#: line, playbook §8); four since 2026-09-20 — an architect choosing a facade needs more
+#: than two moderns, and every kit fills the SAME component slots so switching
+#: between them cannot drop a component the model already placed.
+FACADE_KIT_IDS: tuple[str, ...] = (
+    "contemporary",
+    "modern-minimal",
+    "tropical-modern",
+    "traditional-madras",
+)
 
 #: Catalogue files, in the order the seed report lists them.
 CATALOG_FILES: tuple[str, ...] = ("furniture", "materials", "facade-kits")
@@ -293,7 +301,7 @@ def validate_facade_kits(items: Iterable[Any]) -> list[dict[str, Any]]:
             raise SeedDataError("%s.colorways must be a non-empty array." % where)
     if tuple(ids) != FACADE_KIT_IDS:
         raise SeedDataError(
-            "Facade kits must be exactly %s in that order (MVP cut line, playbook §8); "
+            "Facade kits must be exactly %s in that order (the served set, playbook §8); "
             "found %s." % (", ".join(FACADE_KIT_IDS), ", ".join(ids) or "none")
         )
     return rows

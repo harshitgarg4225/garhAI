@@ -39,6 +39,7 @@ import {
   storeyGroupKey,
   ThreeDScene,
   type RebuildStats,
+  type SurfaceTextureSpec,
 } from '../../../features/canvas/three';
 import { useSelectionStore } from '../../../stores/selection';
 import { useThreeStore } from '../../../stores/three';
@@ -48,6 +49,8 @@ export interface ThreeDLayersProps {
   readonly house: HouseModel;
   /** `materialId -> colorHex` (each catalogue item's `swatchHex`). */
   readonly materialColors: Readonly<Record<string, string>> | undefined;
+  /** `materialId -> {family, url}`: what each catalogue material is made of. */
+  readonly materialTextures?: Readonly<Record<string, SurfaceTextureSpec>> | undefined;
 }
 
 /**
@@ -68,7 +71,11 @@ export function visibleGroupKeysFor(
   return keys;
 }
 
-export function ThreeDLayers({ house, materialColors }: ThreeDLayersProps): JSX.Element {
+export function ThreeDLayers({
+  house,
+  materialColors,
+  materialTextures,
+}: ThreeDLayersProps): JSX.Element {
   const visibleStoreyId = useThreeStore((s) => s.visibleStoreyId);
   const noteEngineStatus = useThreeStore((s) => s.noteEngineStatus);
   const noteRebuild = useThreeStore((s) => s.noteRebuild);
@@ -84,6 +91,7 @@ export function ThreeDLayers({ house, materialColors }: ThreeDLayersProps): JSX.
       <ThreeDScene
         house={house}
         materialColors={materialColors}
+        materialTextures={materialTextures}
         // The sun widget owns the lighting; two suns would double every shadow.
         lights={false}
         visibleGroupKeys={visibleGroupKeys}

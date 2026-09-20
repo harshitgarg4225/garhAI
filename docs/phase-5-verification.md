@@ -66,3 +66,72 @@ would have done — the difference is stated rather than papered over.
 - Inter font: still the honest release blocker in the asset gate.
 - `wall.split` still has no emitting tool (Phase-4 gap, unchanged).
 - DXF fixtures still never loaded through real `ezdxf`.
+
+---
+
+# Addendum — 2026-09-20 (J06: "see and tune the building in 3D")
+
+Everything in §3 above that concerned the 3D view has now been executed, and
+executing it found five defects that reading never would. This addendum is the
+new ledger for the 3D tree; the sections above stand as the record of what was
+true in August.
+
+## A. EXECUTED — in vitest, on this machine
+
+| Claim                                                                                                                                                                                                                                                              | Command                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| 979 tests across the whole canvas tree, green                                                                                                                                                                                                                      | `pnpm exec vitest run src/features/canvas` (from `apps/web`) |
+| **Opening holes are geometrically right** — the REAL Manifold WASM cuts the fixture's south wall; a ray through the door meets 0 triangles, beside and above it exactly 2, the mesh is watertight, and the uncut prism is the negative control that DOES hit twice | `vitest run src/features/canvas/three/booleans.test.ts`      |
+| The no-WASM fallback still SHOWS openings (254 mm proud plate vs the 40 mm panel), and a solid with no fallback builds identically either way                                                                                                                      | `vitest run src/features/canvas/three/solids.test.ts`        |
+| The set-back terrace: identical floors, a rear set-back, the hole case, an overhang, no upper walls, an L-shaped set-back whose two faces sum exactly                                                                                                              | `vitest run src/features/canvas/three/terrace.test.ts`       |
+| Box-mapped UVs are metres: one UV unit == one metre on every triangle of every bucket                                                                                                                                                                              | `vitest run src/features/canvas/three/solids.test.ts`        |
+| Ten procedural texture families, each checked for what makes it that material, and every catalogue `texture` string is one the renderer draws                                                                                                                      | `vitest run src/features/canvas/three/textures3d.test.ts`    |
+| The GLB round trip through the real `GLTFExporter` → `GLTFLoader`, including a ray through the door in the PARSED file                                                                                                                                             | `vitest run src/features/canvas/three/gltfExport.test.ts`    |
+| Walk collision (walls stop you, doors let you through, a stride cannot tunnel) and the look-up clamp                                                                                                                                                               | `vitest run src/features/canvas/sun/nav`                     |
+| Four facade kits, each instantiating components that all extrude, with four distinct geometry signatures                                                                                                                                                           | `vitest run src/features/canvas/facade`                      |
+
+## B. EXECUTED — in a real browser (Chromium + SwiftShader, live stack)
+
+`e2e/tests/three-d.spec.ts`, green in 18 s against a seeded stack. It now
+asserts, rather than annotates:
+
+- the boolean engine reaches `ready` and `data-garh-holes` is `true`;
+- the canvas DRAWS — frame statistics (distinct colours, dominant share, mean
+  brightness), not a golden PNG, so it needs no baseline and holds on any GPU;
+- 09:00 vs 16:00 changes 10.6% of pixels while both frames stay lit — the sun
+  study, which the unlit facade layer used to break silently;
+- a real click on the building selects a model element through the one picker;
+- the GLB the Export panel produces: magic word, version, declared length, and
+  the object NAMES read out of its JSON chunk;
+- §14: the incremental rebuild after a real inspector edit, 14.4 ms of 100 ms.
+
+CI runs the whole `@canvas` suite on every push (`e2e (smoke)` job).
+
+## C. What executing it FOUND (five defects, all fixed)
+
+1. **The Manifold WASM had never loaded, in any session.** No `locateFile`, so
+   Emscripten resolved `manifold.wasm` against Vite's pre-bundled script, got
+   `index.html`, and failed with `expected magic word 00 61 73 6d, found 3c 21
+64 6f`. Every session silently ran the no-holes fallback, and the spec
+   _excused_ it as "an environment fact". Also needed `'wasm-unsafe-eval'` in
+   the SPA's CSP, or production would have fallen back the moment dev worked.
+2. **Openings vanished in that fallback** — the 40 mm panel is centred in a
+   230 mm wall, so it was buried inside the uncut prism.
+3. **The facade cast no shadows and ignored the sun** — unlit `MeshBasicMaterial`
+   with shading baked against a fixed direction, on exactly the elements whose
+   job is to shade openings.
+4. **Every exported GLB named its objects `mesh_0 … mesh_N`.** R3F sets no
+   `name`; the unit test exported a headless fixture that named its own meshes.
+   CLAUDE.md bug 6.
+5. **The rebuild counter counted rebuilds that never happened**, because the
+   same stats were re-reported whenever the callback changed identity — which
+   made the §8 isolation claim fail on a kit apply that re-meshed nothing.
+
+## D. STILL UNVERIFIED after this pass
+
+| Item                                                                   | What settles it                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The golden-PNG baseline (`visual-regression.spec.ts`) is still skipped | One run on the CI runner class with `--update-snapshots`, committing `three-d-facade.png` in the same PR. It must NOT be minted on a developer machine: `toHaveScreenshot` self-blesses, and this box's SwiftShader output is not the runner's. The frame-statistics assertions in `three-d.spec.ts` are what covers the gap meanwhile — they catch a blank, flat or unlit view, but not a wrong shade. |
+| Walk mode has never run in a browser                                   | A spec that enters Walk, presses W into a wall and asserts the pose stopped. The maths (collision, doors, the look-up clamp, tunnelling) is pinned in `orbitOps.test.ts`; what is unproven is the pointer/keyboard plumbing in `useNav3d`.                                                                                                                                                              |
+| Textures have not been looked at by an architect                       | They are generated, not photographed: ten families, each pinned by what makes it that material. Whether "brick" reads as brick at 1:1 on a client's screen is a human judgement, like the rule-pack seeds.                                                                                                                                                                                              |
+| `componentBoxes`' outward-normal rule on a concave envelope            | Unchanged from August: the centroid rule is documented for rectangular/L/T envelopes and fails visibly (a chajja indoors) rather than silently.                                                                                                                                                                                                                                                         |

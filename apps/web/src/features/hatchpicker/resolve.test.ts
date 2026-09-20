@@ -46,7 +46,7 @@ function assignment(
 }
 
 function item(id: string, name: string, category: string): MaterialItem {
-  return { id, name, category, colorHex: null, textureUrl: null, surfaceGroups: [] };
+  return { id, name, category, colorHex: null, texture: null, textureUrl: null, surfaceGroups: [] };
 }
 
 const CATALOG: ReadonlyMap<string, MaterialItem> = new Map([

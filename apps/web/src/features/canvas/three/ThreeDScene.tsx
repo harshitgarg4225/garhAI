@@ -72,12 +72,15 @@ import {
   type BooleanEngineStatus,
 } from './booleans';
 import { groupSignatures } from './dirty';
+import { bucketMeshName } from './meshNames';
 import { buildGroup, type BuiltBucket, type GroupBuild } from './geometryBuild';
 import {
   colorForScope,
   elementScopedAssignmentIds,
   getGroundMaterial,
   getSolidMaterial,
+  textureForScope,
+  type SurfaceTextureSpec,
 } from './materials3d';
 
 // ---------------------------------------------------------------------------
@@ -99,6 +102,9 @@ export interface ThreeDSceneProps {
   /** materialId → colorHex, from `GET /catalog/materials`. Optional — the
    * procedural palette covers every surface group without it. */
   readonly materialColors?: Readonly<Record<string, string>> | undefined;
+  /** materialId → its texture family/url, from the same catalogue fetch.
+   * Absent ⇒ flat colours (the pre-2026-09-20 look). */
+  readonly materialTextures?: Readonly<Record<string, SurfaceTextureSpec>> | undefined;
   /** Render the built-in hemisphere + sun lights. Pass false when a sun
    * widget module owns the lighting. */
   readonly lights?: boolean | undefined;
@@ -144,16 +150,25 @@ function renderOrderOf(bucket: BuiltBucket): number {
 // Geometry lifecycle (same discipline as PlanScene.useGeometry)
 // ---------------------------------------------------------------------------
 
-function useSolidGeometry(positions: Float32Array, normals: Float32Array): BufferGeometry {
+function useSolidGeometry(
+  positions: Float32Array,
+  normals: Float32Array,
+  uvs: Float32Array,
+): BufferGeometry {
   const geometry = useMemo(() => {
     const g = new BufferGeometry();
     g.setAttribute('position', new BufferAttribute(positions, 3));
     g.setAttribute('normal', new BufferAttribute(normals, 3));
+    // Box-mapped, in metres (geometryBuild) — a textured material scales
+    // them to its own tile size. Without this attribute a `map` draws black.
+    if (uvs.length === (positions.length / 3) * 2) {
+      g.setAttribute('uv', new BufferAttribute(uvs, 2));
+    }
     // Raycaster and frustum culling both want the sphere; guard the empty
     // buffer to avoid three's NaN-radius warning on empty layers.
     if (positions.length > 0) g.computeBoundingSphere();
     return g;
-  }, [positions, normals]);
+  }, [positions, normals, uvs]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
   return geometry;
@@ -168,10 +183,17 @@ interface BucketMeshProps {
   readonly house: HouseModel;
   readonly rooms: readonly Room[];
   readonly materialColors: Readonly<Record<string, string>> | undefined;
+  readonly materialTextures: Readonly<Record<string, SurfaceTextureSpec>> | undefined;
 }
 
-function BucketMesh({ bucket, house, rooms, materialColors }: BucketMeshProps): JSX.Element | null {
-  const geometry = useSolidGeometry(bucket.positions, bucket.normals);
+function BucketMesh({
+  bucket,
+  house,
+  rooms,
+  materialColors,
+  materialTextures,
+}: BucketMeshProps): JSX.Element | null {
+  const geometry = useSolidGeometry(bucket.positions, bucket.normals, bucket.uvs);
 
   const resolver = useMemo<PickResolver>(() => {
     if (bucket.pickRoomByPoint) {
@@ -198,18 +220,26 @@ function BucketMesh({ bucket, house, rooms, materialColors }: BucketMeshProps): 
 
   const pickRef = usePickableResolver(resolver);
 
-  const color = colorForScope(
-    house.materials,
-    { surface: bucket.surface, storeyId: bucket.storeyId, elementId: bucket.elementId },
-    materialColors,
-    bucket.overrideColor,
+  const scope = {
+    surface: bucket.surface,
+    storeyId: bucket.storeyId,
+    elementId: bucket.elementId,
+  };
+  const color = colorForScope(house.materials, scope, materialColors, bucket.overrideColor);
+  const material = getSolidMaterial(
+    color,
+    bucket.glass,
+    textureForScope(house.materials, scope, materialTextures),
   );
-  const material = getSolidMaterial(color, bucket.glass);
 
   if (bucket.positions.length === 0) return null;
   return (
     <mesh
       ref={pickRef}
+      // R3F never sets `name` itself, and the GLB an architect downloads is
+      // made of these: without it every object in Lumion is `mesh_0`
+      // (meshNames.ts). One shared namer for the live scene and the export.
+      name={bucketMeshName(bucket)}
       geometry={geometry}
       material={material}
       renderOrder={renderOrderOf(bucket)}
@@ -329,6 +359,7 @@ function houseExtentMm(house: HouseModel): Bbox | null {
 export function ThreeDScene({
   house,
   materialColors,
+  materialTextures,
   lights = true,
   onEngineStatus,
   onRebuildStats,
@@ -392,9 +423,21 @@ export function ThreeDScene({
     return out;
   }, [house, engineReady]);
 
+  // Report each rebuild EXACTLY ONCE. `statsRef` gets a fresh object only
+  // inside the memo above, but this effect also re-runs whenever the callback
+  // changes identity — and the page passes an inline arrow, so it does on
+  // every render of the page. Without this guard the same rebuild was
+  // reported again and again, and `stores/three.ts` counts a report with a
+  // non-empty `rebuiltGroups` as a rebuild: the counter climbed while nothing
+  // re-meshed. That is not cosmetic — the §8 isolation claim ("a facade op
+  // must not dirty the building meshes") is asserted against that counter,
+  // and it failed in the browser on a kit apply that had re-meshed nothing.
+  const reportedRef = useRef<RebuildStats | null>(null);
   useEffect(() => {
     const stats = statsRef.current;
-    if (stats !== null) onRebuildStats?.(stats);
+    if (stats === null || stats === reportedRef.current) return;
+    reportedRef.current = stats;
+    onRebuildStats?.(stats);
   }, [groups, onRebuildStats]);
 
   // ── camera plumbing: fit height + demand-frameloop invalidation ─────────
@@ -442,6 +485,7 @@ export function ThreeDScene({
                   : (roomsByStorey.get(bucket.storeyId) ?? NO_ROOMS)
               }
               materialColors={materialColors}
+              materialTextures={materialTextures}
             />
           ))}
         </group>

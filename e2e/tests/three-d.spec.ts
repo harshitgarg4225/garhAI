@@ -33,39 +33,58 @@
  * ════════════════════════════════════════════════════════════════════════════
  * The plot + city pack (Phase 2's editor owns plot drawing), the two storeys
  * (no UI creates a storey yet — the §12 keymap switches between existing
- * ones), and one door + one window (aiming the opening tool needs the wall's
- * PIXEL position, which typed-length drawing deliberately does not reveal;
- * `plan-canvas.spec.ts` covers the opening tool's real pointer path). The
- * openings are appended before a reload so the hydrate picks them up — this
- * client has no live pull for ops it did not send. Walls, the kit, the
- * component edit, the scrub and every toggle are real interactions.
+ * ones), one door + one window (aiming the opening tool needs the wall's
+ * PIXEL position, which typed-length drawing deliberately does not reveal),
+ * and — since 2026-09-20 — THE WALLS. The step that drove the wall tool with
+ * real pointer events broke when the 2D view grew its docked panels: they
+ * cover the right half of the canvas and two of four legs landed on a panel.
+ * `plan-canvas.spec.ts` is the spec whose subject is the drawing tools and
+ * it still drives them for real; this one is the 3D DoD, and none of its
+ * claims depend on how the walls arrived. The openings are appended before a
+ * reload so the hydrate picks them up — this client has no live pull for ops
+ * it did not send. The kit, the component edit, the inspector edit that
+ * drives the §14 rebuild, the scrub, the click-to-select, the GLB export and
+ * every toggle are real interactions.
  *
  * ════════════════════════════════════════════════════════════════════════════
  * WHAT THIS SPEC CANNOT ASSERT, STATED PLAINLY
  * ════════════════════════════════════════════════════════════════════════════
- *  · **Pixels.** No claim the extrusion LOOKS right — walls could render
- *    magenta and this passes. That is `visual-regression.spec.ts`'s job.
- *  · **Opening holes.** Whether Manifold's WASM loads in the CI browser is an
- *    environment fact; the chip reports it (`data-garh-holes`) and the spec
- *    records it in an annotation instead of failing on either answer — the
- *    no-WASM fallback is a designed, honest state, not a defect.
- *  · **Shadow/sun direction.** Pinned by the sun module's 36-row NOAA table
- *    in vitest; a browser screenshot cannot re-derive it.
+ *  · **Which pixel is which colour.** The spec reads the frame's STATISTICS
+ *    (2026-09-20) — distinct colours, the dominant colour's share, mean
+ *    brightness, and how much two frames differ — not a baseline image. That
+ *    catches a blank canvas, a flat canvas and an unlit one on any GPU and
+ *    any font stack. "The wall is the right shade of cream" still needs the
+ *    golden PNG in `visual-regression.spec.ts`, which only the CI runner
+ *    class may mint.
+ *  · **Shadow/sun DIRECTION.** Pinned by the sun module's 36-row NOAA table
+ *    in vitest; a browser screenshot cannot re-derive an azimuth. What the
+ *    spec does assert is that moving the sun between two daylight hours
+ *    really repaints the scene — the claim the unlit facade layer used to
+ *    break silently.
  *  · **Storey-visibility pixels.** Asserted through the store probe; whether
  *    the GPU stopped drawing the hidden storey is a pixel claim this spec
  *    refuses to fake. (Hidden ⇒ unpickable is pinned in the canvas core.)
  *  · **Walk mode.** No CI runner exercises pointer-lock-style navigation
- *    honestly; `orbitOps.test.ts` owns the maths.
+ *    honestly; `orbitOps.test.ts` owns the maths — including, since
+ *    2026-09-20, wall collision and the look-up clamp.
+ *
+ * WHAT IT NOW ASSERTS THAT IT ONCE ONLY ANNOTATED: the boolean engine
+ * reaching `ready` with holes cut. That was called an environment fact for a
+ * month while the real cause was a missing `locateFile` in our own loader —
+ * every session ran the no-holes fallback and no test could say so.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import { appendOps, createProject, opsSince, projectModel, signUpFirm } from '../support/api';
 import { APP_URL, uniqueEmail } from '../support/env';
+import { readFile } from 'node:fs/promises';
+
 import {
   canvasBox,
+  changedPixelShare,
   clickEmpty3d,
-  drawWallChain,
+  describeCanvasPixels,
   focusCanvasKeyboard,
   hooksSnapshot,
   inspector,
@@ -94,6 +113,19 @@ const STOREY_1 = 'storey_01J3D00000000000000000000F';
 const DOOR_ID = 'opening_01J3D00000000000000000000D';
 const WINDOW_ID = 'opening_01J3D00000000000000000000W';
 
+/** Caller-minted wall ids for the arranged envelope (see the step's note). */
+const WALL_G_S = 'wall_01J3D0000000000000000000G1';
+const WALL_G_E = 'wall_01J3D0000000000000000000G2';
+const WALL_G_N = 'wall_01J3D0000000000000000000G3';
+const WALL_G_W = 'wall_01J3D0000000000000000000G4';
+const WALL_F_S = 'wall_01J3D0000000000000000000F1';
+const WALL_F_E = 'wall_01J3D0000000000000000000F2';
+const WALL_F_N = 'wall_01J3D0000000000000000000F3';
+const WALL_F_W = 'wall_01J3D0000000000000000000F4';
+
+/** The first floor stops here: the rest of the ground floor is terrace. */
+const SETBACK_H_MM = 2300;
+
 /** Server round trip with headroom. */
 const SYNC_TIMEOUT_MS = 20_000;
 
@@ -102,6 +134,45 @@ const REBUILD_BUDGET_MS = 100;
 
 function wallLengthMm(wall: { a: { x: number; y: number }; b: { x: number; y: number } }): number {
   return Math.hypot(wall.b.x - wall.a.x, wall.b.y - wall.a.y);
+}
+
+/**
+ * Wait until the 3D scene stops re-meshing, then return the settled counter.
+ *
+ * The scene rebuilds asynchronously for reasons that have nothing to do with
+ * the step under test: the boolean engine arriving salts every group's
+ * signature, so the whole building re-meshes once more AFTER the chip first
+ * reports `ready`. A baseline captured during that window makes the §8
+ * isolation claim ("a facade op must not dirty the building meshes") fail for
+ * a timing reason — executed, 2026-09-20: 3 → 5 with no group re-meshed.
+ * A settle is honest here in a way that a bare `waitForTimeout` is not: it
+ * asserts the scene reached a quiet state, and fails loudly if it never does.
+ */
+async function settledRebuildCount(page: Page): Promise<number> {
+  let last = -1;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const now = (await hooksSnapshot(page)).rebuildCount;
+    if (now === last) return now;
+    last = now;
+    await page.waitForTimeout(400);
+  }
+  throw new Error('the 3D scene never stopped re-meshing');
+}
+
+/**
+ * The JSON chunk of a GLB, by the spec's own layout: a 12-byte header, then
+ * chunks of `[uint32 length][uint32 type][payload]`, the first of which is
+ * JSON (type 0x4E4F534A). Parsed here rather than with a glTF library
+ * because the point is to read what the FILE says, in as few layers as
+ * possible — a loader that repaired or renamed anything would hide the very
+ * defect this asserts against.
+ */
+function readGlbJsonChunk(bytes: Buffer): { nodes?: { name?: string }[] } {
+  const chunkLength = bytes.readUInt32LE(12);
+  const chunkType = bytes.readUInt32LE(16);
+  expect(chunkType, 'the first GLB chunk is not JSON').toBe(0x4e4f534a);
+  const text = bytes.subarray(20, 20 + chunkLength).toString('utf8');
+  return JSON.parse(text) as { nodes?: { name?: string }[] };
 }
 
 test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
@@ -144,69 +215,62 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
       await expect(page.locator('[data-garh-canvas="plan"]')).toBeVisible({ timeout: 20_000 });
     });
 
-    await test.step('draw the plan in 2D — every wall through the real tools', async () => {
-      const box = await canvasBox(page);
-      await focusCanvasKeyboard(page);
-
-      // Minimal calibration, the plan-canvas trick: fit, draw ONE wall across a
-      // known pixel run, read its mm length off the server, undo. Without the
-      // derived scale a multi-leg chain's pointer falls metres behind its typed
-      // anchor and the tool (correctly) refuses the whole chain — this spec's
-      // first execution committed zero walls exactly that way.
-      await page.keyboard.press('0');
-      await page.waitForTimeout(400);
-      const RUN_PX = 240;
-      const calibFrom = { x: box.x + box.width * 0.15, y: box.y + box.height * 0.85 };
-      await page.keyboard.press('w');
-      await page.mouse.move(calibFrom.x, calibFrom.y);
-      await page.mouse.click(calibFrom.x, calibFrom.y);
-      await page.mouse.move(calibFrom.x + RUN_PX, calibFrom.y, { steps: 6 });
-      await page.mouse.click(calibFrom.x + RUN_PX, calibFrom.y);
-      await page.keyboard.press('Enter');
-      await expect
-        .poll(
-          async () => (await projectModel(request, token, projectId)).model.house.walls.length,
-          { timeout: SYNC_TIMEOUT_MS, message: 'the calibration wall never reached the server' },
-        )
-        .toBe(1);
-      const calib = await projectModel(request, token, projectId);
-      const calibWall = calib.model.house.walls[0]!;
-      const mmPerPx =
-        Math.hypot(calibWall.b.x - calibWall.a.x, calibWall.b.y - calibWall.a.y) / RUN_PX;
-      await page.keyboard.press(`${process.platform === 'darwin' ? 'Meta' : 'Control'}+z`);
-      await expect
-        .poll(
-          async () => (await projectModel(request, token, projectId)).model.house.walls.length,
-          { timeout: SYNC_TIMEOUT_MS, message: 'undo should have removed the calibration wall' },
-        )
-        .toBe(0);
-
-      const start = { x: box.x + box.width * 0.35, y: box.y + box.height * 0.65 };
-      await drawWallChain(
-        page,
-        start,
+    await test.step('arrange the envelope: a G+1 whose first floor is set back', async () => {
+      // WHY THE WALLS ARE APPENDED, NOT DRAWN (changed 2026-09-20). This step
+      // used to drive the wall tool with real pointer events, calibrating the
+      // camera scale from one throwaway wall. It stopped working when the 2D
+      // view grew its docked panels (layers, measure, views, underlay): they
+      // cover the right half of the canvas, so two of the four legs landed on
+      // a panel and the chain committed two walls instead of four. Executed
+      // on this machine, 2026-09-20 — the screenshot shows the panels over
+      // the drawing.
+      //
+      // Drawing tools are `plan-canvas.spec.ts`'s subject and it still drives
+      // them for real. THIS spec is the 3D DoD, and every 3D claim below —
+      // the extrusion, the picker, the kit, the sun, the §14 incremental
+      // rebuild through the real inspector field — is unaffected by how the
+      // walls got there. Arranging them keeps the 3D suite from going red for
+      // a 2D reason, which is the difference between a signal and a nuisance.
+      //
+      // The first floor is deliberately SMALLER than the ground floor: that
+      // is the commonest Indian massing, and it is what puts a terrace slab
+      // and parapet on the ground floor's exposed rear (`three/terrace.ts`).
+      const log = await opsSince(request, token, projectId, -1);
+      const wall = (
+        id: string,
+        storeyId: string,
+        a: { x: number; y: number },
+        b: { x: number; y: number },
+      ) => ({
+        type: 'wall.add',
+        payload: { id, storeyId, a, b, thicknessMm: 230, kind: 'external' },
+      });
+      await appendOps(
+        request,
+        token,
+        projectId,
         [
-          { dir: 'right', lengthMm: OUTER_W_MM },
-          { dir: 'up', lengthMm: OUTER_H_MM },
-          { dir: 'left', lengthMm: OUTER_W_MM },
-          { dir: 'down', lengthMm: OUTER_H_MM },
+          wall(WALL_G_S, STOREY_G, { x: 0, y: 0 }, { x: OUTER_W_MM, y: 0 }),
+          wall(WALL_G_E, STOREY_G, { x: OUTER_W_MM, y: 0 }, { x: OUTER_W_MM, y: OUTER_H_MM }),
+          wall(WALL_G_N, STOREY_G, { x: OUTER_W_MM, y: OUTER_H_MM }, { x: 0, y: OUTER_H_MM }),
+          wall(WALL_G_W, STOREY_G, { x: 0, y: OUTER_H_MM }, { x: 0, y: 0 }),
+          wall(WALL_F_S, STOREY_1, { x: 0, y: 0 }, { x: OUTER_W_MM, y: 0 }),
+          wall(WALL_F_E, STOREY_1, { x: OUTER_W_MM, y: 0 }, { x: OUTER_W_MM, y: SETBACK_H_MM }),
+          wall(WALL_F_N, STOREY_1, { x: OUTER_W_MM, y: SETBACK_H_MM }, { x: 0, y: SETBACK_H_MM }),
+          wall(WALL_F_W, STOREY_1, { x: 0, y: SETBACK_H_MM }, { x: 0, y: 0 }),
         ],
-        { mmPerPx },
+        log.headIdx,
       );
-      await page.keyboard.press('v'); // select tool — later corner clicks must not draw
 
       await expect
         .poll(
           async () => (await projectModel(request, token, projectId)).model.house.walls.length,
-          {
-            timeout: SYNC_TIMEOUT_MS,
-            message: 'the four drawn walls never reached the server',
-          },
+          { timeout: SYNC_TIMEOUT_MS, message: 'the arranged walls never reached the server' },
         )
-        .toBe(4);
+        .toBe(8);
     });
 
-    await test.step('arrange one door + one window on the drawn walls (header: why)', async () => {
+    await test.step('arrange one door + one window on the ground-floor walls', async () => {
       const log = await opsSince(request, token, projectId, -1);
       const folded = await projectModel(request, token, projectId);
       const [w0, w1] = folded.model.house.walls;
@@ -269,13 +333,48 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
 
       const snapshot = await hooksSnapshot(page);
       expect(snapshot.viewMode).toBe('3d');
-      // Record the boolean-engine outcome instead of asserting it (see header).
+
+      // THE OPENING HOLES, ASSERTED (2026-09-20). This used to be an
+      // annotation — "whether Manifold's WASM loads in the CI browser is an
+      // environment fact" — and that politeness hid a real defect for a
+      // month: no `locateFile`, so Emscripten fetched `manifold.wasm`
+      // relative to Vite's pre-bundled script, got index.html, and failed
+      // with `expected magic word 00 61 73 6d, found 3c 21 64 6f`. EVERY
+      // session silently ran the no-holes fallback. The loader now hands it
+      // the bundled asset URL (features/canvas/three/booleans.ts), so the
+      // engine reaching `ready` is a PRODUCT claim and belongs in a claim
+      // that can fail.
+      await expect
+        .poll(async () => (await hooksSnapshot(page)).engineStatus, {
+          timeout: SYNC_TIMEOUT_MS,
+          message:
+            'the Manifold boolean engine never became ready — walls would render without their opening holes',
+        })
+        .toBe('ready');
+      await expect
+        .poll(async () => statusChip3d(page).getAttribute('data-garh-holes'), {
+          timeout: SYNC_TIMEOUT_MS,
+          message: 'the engine is ready but the scene still reports uncut walls',
+        })
+        .toBe('true');
+    });
+
+    await test.step('the view actually DRAWS a building — pixels, not just state', async () => {
+      // §16's third claim, in the one form a CI runner can hold honestly:
+      // not a golden PNG (that needs a baseline minted on the runner class),
+      // but the two properties a broken 3D view always violates — a blank
+      // frame, or a frame of one flat colour. Executed on the first run:
+      // a project with no walls drew 53.8% one colour and 0 selectable
+      // elements, which is exactly what this catches.
+      const { distinctColours, dominantShare } = await describeCanvasPixels(page);
       test.info().annotations.push({
-        type: 'boolean-engine',
-        description: `status=${snapshot.engineStatus} holes=${
-          (await statusChip3d(page).getAttribute('data-garh-holes')) ?? '?'
-        }`,
+        type: 'pixels',
+        description: `${distinctColours} distinct colours, dominant ${(dominantShare * 100).toFixed(1)}%`,
       });
+      expect(distinctColours, 'the 3D canvas drew almost nothing').toBeGreaterThan(40);
+      expect(dominantShare, 'the 3D canvas is one flat colour — nothing was extruded').toBeLessThan(
+        0.92,
+      );
     });
 
     await test.step('selection crosses the views, both directions', async () => {
@@ -351,7 +450,7 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
     await test.step('apply a facade kit — op 27 in the log, walls untouched (§8)', async () => {
       const before = await projectModel(request, token, projectId);
       wallsBeforeKit = JSON.stringify(before.model.house.walls);
-      rebuildsBeforeKit = (await hooksSnapshot(page)).rebuildCount;
+      rebuildsBeforeKit = await settledRebuildCount(page);
 
       await page.getByRole('button', { name: 'Apply Contemporary' }).click();
 
@@ -453,6 +552,78 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
       ).toBe(opsBefore);
     });
 
+    await test.step('…and the sun really MOVES the shadows, in pixels', async () => {
+      // The claim behind the sun study, and the one the facade change of
+      // 2026-09-20 was about: kit components used to be unlit boxes with
+      // shading baked against a fixed direction, so chajjas and porches —
+      // the elements whose job is to shade — did not move with the sun.
+      // Two DAYLIGHT angles, not day vs night: a dark frame would "differ"
+      // while proving nothing, so both frames must also still be lit.
+      const slider = page.getByLabel('Time of day, IST');
+      const at = async (minutes: number) => {
+        await slider.fill(String(minutes));
+        await slider.dispatchEvent('input');
+        await slider.dispatchEvent('change');
+        await page.waitForTimeout(900); // demand frameloop: one settle beat
+        return describeCanvasPixels(page);
+      };
+      const morning = await at(9 * 60);
+      const evening = await at(16 * 60);
+      const changed = changedPixelShare(morning, evening);
+      test.info().annotations.push({
+        type: 'sun-shadows',
+        description: `09:00→16:00 changed ${(changed * 100).toFixed(1)}% of pixels; brightness ${morning.meanBrightness.toFixed(0)} → ${evening.meanBrightness.toFixed(0)}`,
+      });
+      expect(morning.meanBrightness, '09:00 should be daylight').toBeGreaterThan(90);
+      expect(evening.meanBrightness, '16:00 should be daylight').toBeGreaterThan(90);
+      expect(
+        changed,
+        'moving the sun from morning to afternoon changed almost no pixels — the shadows are not following it',
+      ).toBeGreaterThan(0.02);
+    });
+
+    await test.step('export the model as a GLB, from this very view', async () => {
+      // Reads the produced BYTES (glTF magic, version, declared length) —
+      // a test that mocked the exporter would prove the mock.
+      const download = page.waitForEvent('download', { timeout: 60_000 });
+      await page.getByTestId('export-glb-client').click();
+      const file = await download;
+      const path = await file.path();
+      expect(path, 'the GLB download produced no file').toBeTruthy();
+      const bytes = await readFile(path);
+      expect(file.suggestedFilename()).toMatch(/\.glb$/);
+      expect(bytes.length, 'the GLB is suspiciously small').toBeGreaterThan(2048);
+      expect(bytes.readUInt32LE(0), 'not a glTF magic word').toBe(0x46546c67);
+      expect(bytes.readUInt32LE(4), 'not glTF 2.0').toBe(2);
+      expect(bytes.readUInt32LE(8), 'the GLB header length disagrees with the file').toBe(
+        bytes.length,
+      );
+
+      // THE NAMES, read out of the real file. A GLB whose objects are all
+      // `mesh_0 … mesh_N` is useless to the renderer artist the panel
+      // advertises it for — they cannot select "the external walls". That is
+      // exactly what shipped when the live meshes had no `name` prop while
+      // the unit test exported a headless fixture that named its own
+      // (CLAUDE.md bug 6). This reads the LIVE scene's bytes, so it goes red
+      // if either producer forgets `meshNames.ts` again.
+      const json = readGlbJsonChunk(bytes);
+      const names: string[] = (json.nodes ?? []).map((node) => node.name ?? '');
+      expect(names.length, 'the GLB carries no nodes at all').toBeGreaterThan(3);
+      expect(
+        names.filter((n) => /^mesh_\d+$/.test(n)),
+        'unnamed meshes: the exporter fell back to glTF defaults',
+      ).toEqual([]);
+      expect(
+        names.some((n) => n.startsWith('external_wall')),
+        `no external-wall object in the export; names were ${names.join(', ')}`,
+      ).toBe(true);
+      expect(
+        names.some((n) => n.startsWith('facade_')),
+        'the applied facade kit is missing from the export',
+      ).toBe(true);
+      expect(names).toContain('garh-facade');
+    });
+
     await test.step('§14: a plan edit re-meshes, incrementally, under 100 ms', async () => {
       // The scene has been mounted since the Tab — this is the INCREMENTAL
       // path (per-storey signature cache), not a first build. The edit goes
@@ -533,7 +704,7 @@ test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
       expect((await hooksSnapshot(page)).viewMode).toBe('2d');
       await expect
         .poll(async () => (await projectModel(request, token, projectId)).model.house.walls.length)
-        .toBe(4);
+        .toBe(8);
     });
   });
 });

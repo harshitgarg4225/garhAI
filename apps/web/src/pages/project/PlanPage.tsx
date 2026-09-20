@@ -114,6 +114,7 @@ import {
 } from '../../features/canvas/core';
 import { FacadeKitPanel } from '../../features/canvas/facade';
 import { swatchHex, useMaterialsCatalogue } from '../../features/canvas/materials';
+import { textureFamilyOf, type SurfaceTextureSpec } from '../../features/canvas/three';
 import { buildingExtentOf, NavModeHud, SunPanel, useNav3d } from '../../features/canvas/sun';
 import {
   ComplianceMarkerLayer,
@@ -313,6 +314,16 @@ function PlanEditor(): JSX.Element {
     if (materialsCatalogue.loadable.state !== 'ready') return undefined;
     const out: Record<string, string> = {};
     for (const item of materialsCatalogue.loadable.data) out[item.id] = swatchHex(item);
+    return out;
+  }, [materialsCatalogue.loadable]);
+  // …and what each one is MADE of: the catalogue's texture family (drawn
+  // procedurally — no binary assets) plus any CSP-loadable textureUrl.
+  const materialTextures = useMemo<Readonly<Record<string, SurfaceTextureSpec>> | undefined>(() => {
+    if (materialsCatalogue.loadable.state !== 'ready') return undefined;
+    const out: Record<string, SurfaceTextureSpec> = {};
+    for (const item of materialsCatalogue.loadable.data) {
+      out[item.id] = { family: textureFamilyOf(item.texture), url: item.textureUrl };
+    }
     return out;
   }, [materialsCatalogue.loadable]);
 
@@ -918,7 +929,11 @@ function PlanEditor(): JSX.Element {
           /* ── the 3D layer set (Phase 5) ────────────────────────────────
              The extruded building, the facade kit meshes, the sun light and
              the selection bridge — same scene graph, same PickRegistry. */
-          <ThreeDLayers house={house} materialColors={materialColors} />
+          <ThreeDLayers
+            house={house}
+            materialColors={materialColors}
+            materialTextures={materialTextures}
+          />
         )}
       </CanvasRoot>
 

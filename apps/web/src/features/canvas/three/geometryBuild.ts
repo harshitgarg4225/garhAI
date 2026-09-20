@@ -59,6 +59,13 @@ export interface BuiltBucket {
   readonly pickRoomByPoint: boolean;
   readonly positions: Float32Array;
   readonly normals: Float32Array;
+  /**
+   * Box-mapped UVs, **in metres of surface** (see `addTriangleMm`). A
+   * material scales them to its own tile size with `map.repeat`, so one
+   * texture serves every surface at the right physical scale without the
+   * synthesis knowing which material will land on it.
+   */
+  readonly uvs: Float32Array;
   /** One pick target per triangle; null = registered but not selectable. */
   readonly faceTargets: readonly (PickTarget | null)[];
 }
@@ -80,6 +87,8 @@ class BucketAccumulator {
   readonly positions: number[] = [];
 
   readonly normals: number[] = [];
+
+  readonly uvs: number[] = [];
 
   readonly faceTargets: (PickTarget | null)[] = [];
 
@@ -120,6 +129,22 @@ class BucketAccumulator {
     const nz = wnz / len;
     this.positions.push(ax * k, az * k, -ay * k, bx * k, bz * k, -by * k, cx * k, cz * k, -cy * k);
     this.normals.push(nx, ny, nz, nx, ny, nz, nx, ny, nz);
+    // BOX MAPPING, in metres: drop the axis the face points along and use
+    // the other two as (u, v). Flat-shaded triangles all point along one
+    // axis, so the seam a box map is famous for falls exactly on the mesh's
+    // own edges. Metres (not tiles) so the material owns the tile size, and
+    // a wall's brick courses line up with the slab's tiles at the corner.
+    const ux = Math.abs(nx);
+    const uy = Math.abs(ny);
+    const uz = Math.abs(nz);
+    const push = (x: number, yUp: number, zNorth: number): void => {
+      if (uy >= ux && uy >= uz) this.uvs.push(x * k, -zNorth * k);
+      else if (ux >= uz) this.uvs.push(-zNorth * k, yUp * k);
+      else this.uvs.push(x * k, yUp * k);
+    };
+    push(ax, az, ay);
+    push(bx, bz, by);
+    push(cx, cz, cy);
     this.faceTargets.push(target);
   }
 
@@ -134,6 +159,7 @@ class BucketAccumulator {
       pickRoomByPoint: this.pickRoomByPoint,
       positions: new Float32Array(this.positions),
       normals: new Float32Array(this.normals),
+      uvs: new Float32Array(this.uvs),
       faceTargets: this.faceTargets,
     };
   }

@@ -1,5 +1,5 @@
 {
-  "$comment": "Manifest for fixtures/catalog. Written by hand; counts are asserted by apps/api/tests/test_catalog_fixtures.py, so a file edited without updating this manifest fails CI. furniture.json and materials.json are part hand-authored and part expanded from the parametric families in scripts/expand_catalog.py, which is append-only and idempotent — it never rewrites a row that already exists.",
+  "$comment": "Manifest for fixtures/catalog. Written by hand; counts are asserted by apps/api/tests/test_catalog_fixtures.py, so a file edited without updating this manifest fails CI. furniture.json and materials.json are part hand-authored and part expanded from the parametric families in scripts/expand_catalog.py, which is append-only and idempotent \u2014 it never rewrites a row that already exists.",
   "schemaVersion": 1,
   "units": "integer millimetres; money in whole rupees",
   "files": [
@@ -35,8 +35,8 @@
     {
       "name": "facade-kits.json",
       "shape": "array of FacadeKitOut",
-      "count": 2,
-      "minimum": 2,
+      "count": 4,
+      "minimum": 4,
       "requiredKeys": [
         "id",
         "name",
@@ -55,6 +55,8 @@
   ],
   "facadeKitIds": [
     "contemporary",
-    "modern-minimal"
+    "modern-minimal",
+    "tropical-modern",
+    "traditional-madras"
   ]
 }

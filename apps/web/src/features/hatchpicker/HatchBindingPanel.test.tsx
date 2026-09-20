@@ -34,6 +34,7 @@ const ITEMS: readonly MaterialItem[] = [
     name: 'Exposed brick',
     category: 'wall',
     colorHex: '#9C5B3C',
+    texture: null,
     textureUrl: null,
     surfaceGroups: ['wall.exterior'],
   },

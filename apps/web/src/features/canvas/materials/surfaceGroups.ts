@@ -23,6 +23,7 @@
 
 import type {
   FacadeComponentKind,
+  HouseModel,
   OpeningKind,
   SlabKind,
   SurfaceGroup,
@@ -142,6 +143,33 @@ export const SURFACE_PICKS: readonly SurfacePick[] = [
 
 export function surfacePickFor(group: SurfaceGroup): SurfacePick | null {
   return SURFACE_PICKS.find((p) => p.group === group) ?? null;
+}
+
+/**
+ * The surface group an ELEMENT ID belongs to, by looking it up in the model —
+ * the bridge from "what the architect clicked in the canvas" to "which
+ * shelf of the catalogue applies to it", for the panel's per-element scope.
+ * Null when the id is not an element this panel can paint (a room, a deleted
+ * id, a facade component — the facade has its own inspector).
+ *
+ * Deliberately built on {@link surfaceGroupOf}, so the element scope and the
+ * renderer can never disagree about what a wall is.
+ */
+export function surfaceGroupOfElement(house: HouseModel, id: string): SurfaceGroup | null {
+  const wall = house.walls.find((w) => w.id === id);
+  if (wall !== undefined) return surfaceGroupOf({ kind: 'wall', wallKind: wall.kind });
+  const opening = house.openings.find((o) => o.id === id);
+  if (opening !== undefined) {
+    return surfaceGroupOf({ kind: 'opening', openingKind: opening.kind });
+  }
+  const slab = house.slabs.find((s) => s.id === id);
+  if (slab !== undefined) return surfaceGroupOf({ kind: 'slab', slabKind: slab.kind });
+  if (house.stairs.some((s) => s.id === id)) return surfaceGroupOf({ kind: 'stair' });
+  // A balcony is two surfaces; its deck is the one an architect means by
+  // "this balcony's material" (the railing follows the facade kit).
+  if (house.balconies.some((b) => b.id === id)) return surfaceGroupOf({ kind: 'balconySlab' });
+  if (house.columns.some((c) => c.id === id)) return surfaceGroupOf({ kind: 'column' });
+  return null;
 }
 
 /**

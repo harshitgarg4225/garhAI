@@ -38,14 +38,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ndcFromPixel, orbitByPx, wheelZoomFactor, type CanvasCore, type PtF3 } from '../../core';
 import { useModelStore } from '../../../../stores/model';
+import { useUiStore } from '../../../../stores/ui';
 import { buildingExtentOf, type BuildingExtent } from '../buildingBbox';
 import {
   dollyOrbitAboutAnchor,
   enterWalkOrbit,
-  walkStep,
+  walkObstaclesOf,
+  walkStepAvoiding,
   walkTurn,
   WALK_RUN_FACTOR,
   WALK_SPEED_MM_PER_S,
+  type WalkObstacles,
 } from './orbitOps';
 
 export type NavMode = 'orbit' | 'walk';
@@ -59,6 +62,12 @@ export interface Nav3dOptions {
    * store. Return null for "nothing to fit" — the action then no-ops honestly.
    */
   getFitExtent?: (() => BuildingExtent | null) | undefined;
+  /**
+   * What a walker collides with. Defaults to the ACTIVE storey's walls and
+   * openings from the stores (doors are passable, windows are not). Return
+   * `{walls: [], openings: []}` for free flight.
+   */
+  getWalkObstacles?: (() => WalkObstacles) | undefined;
 }
 
 export interface Nav3dApi {
@@ -97,6 +106,11 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 function defaultFitExtent(): BuildingExtent | null {
   return buildingExtentOf(useModelStore.getState().doc.house);
+}
+
+/** The active storey's walls + openings — the storey whose FFL you walk on. */
+function defaultWalkObstacles(): WalkObstacles {
+  return walkObstaclesOf(useModelStore.getState().doc.house, useUiStore.getState().activeStoreyId);
 }
 
 export function useNav3d(element: HTMLElement | null, options: Nav3dOptions): Nav3dApi {
@@ -219,7 +233,10 @@ export function useNav3d(element: HTMLElement | null, options: Nav3dOptions): Na
       const factor = wheelZoomFactor(event.deltaY, event.deltaMode);
       if (navModeRef.current === 'walk') {
         // Wheel walks: a notch is a step, in the direction you face.
-        viewport.setOrbit(walkStep(viewport.orbit, -Math.sign(event.deltaY) * 600, 0));
+        const obstacles = (latest.current.getWalkObstacles ?? defaultWalkObstacles)();
+        viewport.setOrbit(
+          walkStepAvoiding(viewport.orbit, -Math.sign(event.deltaY) * 600, 0, obstacles),
+        );
         return;
       }
       const pixel = { x: event.clientX - rect.left, y: event.clientY - rect.top };
@@ -255,7 +272,10 @@ export function useNav3d(element: HTMLElement | null, options: Nav3dOptions): Na
       const forward = (held.has('f') ? 1 : 0) - (held.has('b') ? 1 : 0);
       const right = (held.has('r') ? 1 : 0) - (held.has('l') ? 1 : 0);
       if (forward !== 0 || right !== 0) {
-        viewport.setOrbit(walkStep(viewport.orbit, forward * speed * dtS, right * speed * dtS));
+        const obstacles = (latest.current.getWalkObstacles ?? defaultWalkObstacles)();
+        viewport.setOrbit(
+          walkStepAvoiding(viewport.orbit, forward * speed * dtS, right * speed * dtS, obstacles),
+        );
       }
       walkFrame = requestAnimationFrame(stepLoop);
     };
