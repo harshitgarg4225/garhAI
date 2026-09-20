@@ -86,6 +86,7 @@ ignore = [
 "**/garh_api/models.py" = ["RUF012"]               # ClassVar-ish declarative attrs
 # Imports must follow pytest.importorskip("ortools") — order is the point.
 "**/services/solver/tests/test_stages_integration.py" = ["E402"]
+"**/services/solver/tests/test_time_budget.py" = ["E402"]
 
 [tool.ruff.format]
 quote-style = "double"
