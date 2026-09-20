@@ -94,6 +94,7 @@ import {
   complianceStrip,
   drawWallChain,
   focusCanvas,
+  skipFirstRunTour,
   inspector,
   adoptApiSession,
   type CanvasBox,
@@ -130,6 +131,18 @@ const PLOT_MM = [
 const SYNC_TIMEOUT_MS = 20_000;
 
 test.describe('@canvas Phase 4 DoD — the 2D editor', () => {
+  /*
+   * These specs are the EDITOR's, not the first run's. A fresh browser context
+   * has never seen the tour, so without this every one of them would open with
+   * the tour card over the canvas — which is what happened in CI run 95, where
+   * it took the keyboard with it and three specs reported "the wall tool is not
+   * committing". The tour itself is exercised by `accessibility.spec.ts` and,
+   * for the keyboard, by the case at the bottom of `plan-canvas.spec.ts`.
+   */
+  test.beforeEach(async ({ page }) => {
+    await skipFirstRunTour(page);
+  });
+
   // Six steps, each with a server round trip and a debounce. The default 60 s
   // is not enough and a timeout here should mean "something is stuck", not
   // "the machine is slow".
@@ -538,3 +551,100 @@ function dividerWall(
     (w) => w.a.x === w.b.x && Math.abs(w.a.x - minX) > 1 && Math.abs(w.a.x - maxX) > 1,
   );
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * The first run, with the tour ON.
+ *
+ * Every spec above skips the tour, because their subject is the editor. This
+ * one's subject IS the tour, and precisely the thing CI run 95 found: an
+ * architect's very first project opens on the Plan tab, the tour auto-starts on
+ * its Plan step over the canvas, and the empty-state card behind it says
+ * "Press W and click twice to draw your first wall". It used to be a lie — the
+ * tour held `keyboardEnabled` false for as long as it was on screen, so W, 0
+ * and Enter all went nowhere and the drawing tools looked broken. Three specs
+ * failed on it in one CI run and every one of them reported a different
+ * symptom.
+ *
+ * The rule is focus: the card owns the keyboard while it has focus, and hands
+ * it straight back when the architect clicks the canvas. The tour stays up —
+ * nobody has to dismiss a dialog to use the app underneath it.
+ * ──────────────────────────────────────────────────────────────────────────── */
+test.describe('@canvas the first-run tour does not hold the canvas hostage', () => {
+  test.setTimeout(120_000);
+
+  test('with the tour open on the Plan step, clicking the canvas gives W back', async ({
+    page,
+    request,
+  }) => {
+    const session = await signUpFirm(request, {
+      email: uniqueEmail('tourkeys'),
+      firmName: 'First Run Associates',
+    });
+    const token = session.accessToken;
+    const project = await createProject(request, token, 'First run, tour open');
+    await appendOps(
+      request,
+      token,
+      project.id,
+      [
+        { type: 'plot.set_boundary', payload: { polygon: PLOT_MM, source: 'manual' } },
+        { type: 'plot.set_road', payload: { edgeIndex: 0, widthMm: 9000, name: '9m Road' } },
+        { type: 'plot.set_reg_profile', payload: { cityPack: 'blr', overrides: {} } },
+        {
+          type: 'storey.add',
+          payload: {
+            id: 'storey_01J3D00000000000000000000A',
+            index: 0,
+            name: 'Ground Floor',
+            heightMm: 3000,
+          },
+        },
+      ],
+      -1,
+    );
+
+    // Deliberately NO skipFirstRunTour: this is someone's first project.
+    await adoptApiSession(page, request);
+    await page.goto(`${APP_URL}/projects/${project.id}/plan`);
+    await expect(page.getByRole('toolbar', { name: 'Drawing tools' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    const card = page.locator('[data-testid="tour-card"]');
+    await expect(card, 'the tour should auto-start for a first-time architect').toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(
+      card,
+      'this case is only meaningful on the step that opens over the canvas',
+    ).toHaveAttribute('data-step', 'plan');
+
+    // The architect does what the empty state tells them to.
+    const box = await canvasBox(page);
+    await focusCanvas(page);
+    await page.keyboard.press('0');
+    await page.waitForTimeout(400);
+
+    const from = { x: box.x + box.width * 0.18, y: box.y + box.height * 0.86 };
+    await page.keyboard.press('w');
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.click(from.x, from.y);
+    await page.mouse.move(from.x + 240, from.y, { steps: 6 });
+    await page.mouse.click(from.x + 240, from.y);
+    await page.keyboard.press('Enter');
+
+    await expect
+      .poll(async () => (await projectModel(request, token, project.id)).model.house.walls.length, {
+        timeout: SYNC_TIMEOUT_MS,
+        message:
+          'the wall never reached the server while the tour was open. The tour is holding the ' +
+          'canvas keyboard again — this is CI run 95, and the architect it hits is on their ' +
+          'first project, following the empty state’s own instruction.',
+      })
+      .toBe(1);
+
+    // ...and the tour is still there, un-dismissed. That is the point: the app
+    // under a coach mark is usable, not merely re-enabled once you close it.
+    await expect(card).toBeVisible();
+  });
+});

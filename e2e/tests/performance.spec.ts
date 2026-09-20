@@ -42,6 +42,7 @@ import {
   canvasBox,
   findPickPixel,
   focusCanvas,
+  skipFirstRunTour,
   hooksSnapshot,
 } from '../support/ui';
 
@@ -354,6 +355,18 @@ async function dragLongestWall(
 }
 
 test.describe('@perf §14 budgets', () => {
+  /*
+   * These specs are the EDITOR's, not the first run's. A fresh browser context
+   * has never seen the tour, so without this every one of them would open with
+   * the tour card over the canvas — which is what happened in CI run 95, where
+   * it took the keyboard with it and three specs reported "the wall tool is not
+   * committing". The tour itself is exercised by `accessibility.spec.ts` and,
+   * for the keyboard, by the case at the bottom of `plan-canvas.spec.ts`.
+   */
+  test.beforeEach(async ({ page }) => {
+    await skipFirstRunTour(page);
+  });
+
   test('the login screen loads within the initial-load budget', async ({ page }) => {
     // This one is NOT skipped: it needs no canvas, and it is the budget most likely to rot
     // silently as dependencies accumulate.
@@ -534,5 +547,52 @@ test.describe('@perf §14 budgets', () => {
     });
     await reportStats('storey-switch', stats);
     expect(stats.p95Ms).toBeLessThan(FRAME_BUDGET_MS);
+  });
+
+  /*
+   * THE GUARD ON THE HELPER THE THREE BUDGETS ABOVE DEPEND ON.
+   *
+   * `findPickPixel` promises a pixel a CLICK can reach, not merely one the
+   * raycaster likes. The difference is not academic: the plan tab floats the
+   * layers list, the measure panel and the underlay bar over the drawing, all
+   * of them descendants of `[data-garh-canvas]`, so a containment check passes
+   * while the click lands on a `<label>`. That is how CI run 95's drag budget
+   * failed — the picker said wall, the click selected a room, and the message
+   * blamed the wall layer.
+   *
+   * Covering the surface completely is the negative control: with a sheet of
+   * DOM over the canvas there is no reachable pixel, so the honest answer is
+   * null. A helper that only asked the raycaster would still answer with a
+   * pixel here, and this line would go red.
+   */
+  test('@canvas findPickPixel refuses a pixel a click cannot reach', async ({ page, request }) => {
+    const token = await newFirm(page, request);
+    const projectId = await openControlPlan(page, request, token);
+    const before = await projectModel(request, token, projectId);
+    const wall = before.model.house.walls[0];
+    expect(wall, 'the control plan should hold exactly one wall').toBeDefined();
+
+    expect(
+      await findPickPixel(page, wall!.id),
+      'the one wall on an empty control plan should be clickable somewhere',
+    ).not.toBeNull();
+
+    await page.evaluate(() => {
+      const cover = document.createElement('div');
+      cover.id = 'garh-e2e-cover';
+      cover.setAttribute(
+        'style',
+        'position:fixed;inset:0;z-index:2147483647;pointer-events:auto;background:transparent',
+      );
+      document.body.appendChild(cover);
+    });
+    expect(
+      await findPickPixel(page, wall!.id),
+      'the canvas is completely covered, so no pixel on it can be clicked — but the helper ' +
+        'still found one, which means it is asking the raycaster and not the DOM',
+    ).toBeNull();
+
+    await page.evaluate(() => document.getElementById('garh-e2e-cover')?.remove());
+    expect(await findPickPixel(page, wall!.id)).not.toBeNull();
   });
 });

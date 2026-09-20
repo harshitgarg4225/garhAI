@@ -24,7 +24,14 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 import { appendOps, createProject, projectModel, signUpFirm } from '../support/api';
 import { APP_URL, uniqueEmail } from '../support/env';
-import { adoptApiSession, canvasBox, focusCanvas, hooksSnapshot, pickProbe } from '../support/ui';
+import {
+  adoptApiSession,
+  canvasBox,
+  focusCanvas,
+  skipFirstRunTour,
+  hooksSnapshot,
+  pickProbe,
+} from '../support/ui';
 
 const STOREY_ID = 'storey_01J3D00000000000000000000A';
 const WALL_SOUTH = 'wall_01J3D0000000000000000000S1';
@@ -42,6 +49,18 @@ const PLOT_MM = [
 const SYNC_TIMEOUT_MS = 20_000;
 
 test.describe('@canvas hatches on the 2D canvas', () => {
+  /*
+   * These specs are the EDITOR's, not the first run's. A fresh browser context
+   * has never seen the tour, so without this every one of them would open with
+   * the tour card over the canvas — which is what happened in CI run 95, where
+   * it took the keyboard with it and three specs reported "the wall tool is not
+   * committing". The tour itself is exercised by `accessibility.spec.ts` and,
+   * for the keyboard, by the case at the bottom of `plan-canvas.spec.ts`.
+   */
+  test.beforeEach(async ({ page }) => {
+    await skipFirstRunTour(page);
+  });
+
   test.setTimeout(180_000);
 
   test('a bound wall draws its pattern and stays clickable', async ({ page, request }) => {

@@ -209,6 +209,34 @@ export async function canvasBox(page: Page): Promise<CanvasBox> {
   return box as CanvasBox;
 }
 
+/**
+ * Start this page as a RETURNING architect: no first-run tour.
+ *
+ * `addInitScript`, not `page.evaluate`, and that is the whole point — the ui
+ * store reads `garh.tourDone` once, when its module initialises, so a value
+ * written after the app has booted is read by nobody until the next full
+ * navigation. This runs before any script on every navigation, so the store
+ * sees it.
+ *
+ * Call it in a spec whose subject is the editor rather than the first run. CI
+ * run 95: three canvas specs failed with "the wall tool is not committing",
+ * because the tour had auto-started on the Plan step and the keyboard belonged
+ * to its card. The product side of that is fixed (`ProjectTour` hands the
+ * shortcuts back as soon as focus leaves the card, and
+ * `plan-canvas.spec.ts` asserts it in a browser) — but a spec measuring frame
+ * budgets or hatch pixels should not also be measuring a dialog floating over
+ * a third of the canvas.
+ */
+export async function skipFirstRunTour(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem('garh.tourDone', '1');
+    } catch {
+      /* a context with storage blocked still runs the spec, just with the tour */
+    }
+  });
+}
+
 /** Click the canvas so it owns the keyboard (Tab and Enter are canvas-scoped). */
 export async function focusCanvas(page: Page): Promise<void> {
   const box = await canvasBox(page);
@@ -435,7 +463,8 @@ export async function hooksSnapshot(page: Page): Promise<HooksSnapshot> {
 
 /**
  * The first pixel on the canvas where the product's own picker resolves to
- * `id` — found by ASKING it, on a coarse grid, in one round trip.
+ * `id` AND a real click would reach the canvas — found by ASKING both, on a
+ * coarse grid, in one round trip.
  *
  * The alternative is what the other canvas specs do: draw a wall of a known
  * pixel length, read its millimetres back from the server, and derive the
@@ -444,7 +473,39 @@ export async function hooksSnapshot(page: Page): Promise<HooksSnapshot> {
  * it and the derived scale is quietly wrong. This asks the picker instead, so
  * it cannot disagree with where the element actually is, and it needs no
  * assumption about the camera at all.
+ *
+ * TWO THINGS MAKE A PIXEL USABLE, and this returns only pixels with both.
+ *
+ * 1. `elementFromPoint` must return the `<canvas>` ITSELF. `hooks.pick()` is a
+ *    raycast into the scene; it knows nothing about the DOM stacked on top of
+ *    it. The plan tab floats the layers list, the measure panel, the underlay
+ *    bar and — on a first run — the tour card over the drawing, and this scan
+ *    starts at the top-left corner, which is where most of them live.
+ *
+ *    "Inside `[data-garh-canvas]`" is NOT the test, and that mistake is worth
+ *    recording: every one of those panels is a DESCENDANT of the scope div, so
+ *    a containment check passes while the click lands on a `<label>`. Measured
+ *    on the G+2 at (532, 145): the picker said wall, `elementFromPoint` said
+ *    LABEL inside an `absolute inset-0` overlay, and the click selected a
+ *    room. That was CI run 95's §14 drag budget, blaming the wall layer.
+ *
+ * 2. The pick must hold across the pixel's neighbours. A scan that takes the
+ *    FIRST hit takes one on the target's leading EDGE — for a 230 mm wall at a
+ *    fitted scale that is three or four pixels of band, so the first hit is
+ *    within a pixel of the room beside it. A click there is a coin toss
+ *    between them, because the pointer event and this probe compute their NDC
+ *    from different rounding of the same position. That is how CI run 95's
+ *    §14 drag budget failed: `findPickPixel` returned a wall pixel and the
+ *    click on it selected the room, and the message blamed the wall layer.
+ *    Requiring the four neighbours at ±`EDGE_MARGIN_PX` moves the answer into
+ *    the target's interior, where a click means what it looks like it means.
+ *
+ * Deliberately NOT a fix in the app: a hit test disagreeing at a shared border
+ * is what a hit test does. An architect clicks the middle of a wall.
  */
+/** How far from a pixel the pick must still hold for it to count. See above. */
+export const EDGE_MARGIN_PX = 2;
+
 export async function findPickPixel(
   page: Page,
   id: string,
@@ -452,18 +513,41 @@ export async function findPickPixel(
 ): Promise<{ x: number; y: number } | null> {
   const box = await canvasBox(page);
   return page.evaluate(
-    ([rect, target, step]) => {
+    ([rect, target, step, margin]) => {
       const hooks = (window as unknown as HooksWindow).__garhTestHooks;
       if (hooks === undefined) return null;
       const r = rect as { x: number; y: number; width: number; height: number };
+      const surface = document.querySelector('[data-garh-canvas] canvas');
+      const reaches = (x: number, y: number): boolean =>
+        surface === null || document.elementFromPoint(x, y) === surface;
+      const holds = (x: number, y: number): boolean =>
+        hooks.pick(x, y).id === target &&
+        hooks.pick(x - margin, y).id === target &&
+        hooks.pick(x + margin, y).id === target &&
+        hooks.pick(x, y - margin).id === target &&
+        hooks.pick(x, y + margin).id === target;
+
       for (let y = r.y + step; y < r.y + r.height - step; y += step) {
         for (let x = r.x + step; x < r.x + r.width - step; x += step) {
-          if (hooks.pick(x, y).id === target) return { x, y };
+          if (hooks.pick(x, y).id !== target) continue;
+          if (!reaches(x, y)) continue;
+          if (holds(x, y)) return { x, y };
+          // On the target's edge. Walk perpendicular to the scan, a pixel at a
+          // time, to find its interior rather than giving up on this row.
+          for (let dy = 1; dy <= step; dy += 1) {
+            for (const candidate of [
+              { x, y: y + dy },
+              { x, y: y - dy },
+            ]) {
+              if (!reaches(candidate.x, candidate.y)) continue;
+              if (holds(candidate.x, candidate.y)) return candidate;
+            }
+          }
         }
       }
       return null;
     },
-    [box, id, stepPx] as [typeof box, string, number],
+    [box, id, stepPx, EDGE_MARGIN_PX] as [typeof box, string, number, number],
   );
 }
 

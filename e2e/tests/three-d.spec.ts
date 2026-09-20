@@ -86,6 +86,7 @@ import {
   clickEmpty3d,
   describeCanvasPixels,
   focusCanvasKeyboard,
+  skipFirstRunTour,
   hooksSnapshot,
   inspector,
   selectViaHooks,
@@ -176,6 +177,18 @@ function readGlbJsonChunk(bytes: Buffer): { nodes?: { name?: string }[] } {
 }
 
 test.describe('@canvas Phase 5 DoD — instant 3D + facade kits', () => {
+  /*
+   * These specs are the EDITOR's, not the first run's. A fresh browser context
+   * has never seen the tour, so without this every one of them would open with
+   * the tour card over the canvas — which is what happened in CI run 95, where
+   * it took the keyboard with it and three specs reported "the wall tool is not
+   * committing". The tour itself is exercised by `accessibility.spec.ts` and,
+   * for the keyboard, by the case at the bottom of `plan-canvas.spec.ts`.
+   */
+  test.beforeEach(async ({ page }) => {
+    await skipFirstRunTour(page);
+  });
+
   test.setTimeout(240_000);
 
   test('extrude the plan, select across views, dress it in a kit, scrub the sun', async ({
