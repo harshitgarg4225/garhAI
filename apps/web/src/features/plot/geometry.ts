@@ -29,6 +29,7 @@
 
 import {
   distMm,
+  polygonContains,
   polygonDoubledAreaMm2,
   polygonIsSimple,
   ptEq,
@@ -482,6 +483,28 @@ export function edgeRoles(boundary: Polygon, roads: readonly Road[]): EdgeRole[]
     roles[i] = toLeft > 0 ? 'side-a' : 'side-b';
   }
   return roles;
+}
+
+// ---------------------------------------------------------------------------
+// The plan after a plot edit
+// ---------------------------------------------------------------------------
+
+/**
+ * How many walls of the house now have an end outside the plot boundary. A
+ * cheap, exact (integer point-in-polygon) signal for the "you changed the plot
+ * after a plan was applied" banner — it is NOT the compliance check (setbacks
+ * are the engine's job), only the part that needs no rule pack to be certain.
+ */
+export function wallsOutsideBoundary(
+  boundary: Polygon,
+  walls: readonly { readonly a: Pt; readonly b: Pt }[],
+): number {
+  if (boundary.length < 3) return 0;
+  let count = 0;
+  for (const wall of walls) {
+    if (!polygonContains(boundary, wall.a) || !polygonContains(boundary, wall.b)) count += 1;
+  }
+  return count;
 }
 
 // ---------------------------------------------------------------------------

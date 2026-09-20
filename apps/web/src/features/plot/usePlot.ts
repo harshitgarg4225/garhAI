@@ -6,8 +6,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { create } from 'zustand';
 
-import type { JsonObject, PlotDoc, Polygon, Road, UnitsDisplay } from '@garh/model';
+import type { JsonObject, Op, PlotDoc, Polygon, Road, UnitsDisplay } from '@garh/model';
 
 import { api } from '../../lib/api';
 import { AppError } from '../../lib/errors';
@@ -20,7 +21,7 @@ import {
   roadOp,
   type BoundarySource,
 } from './ops';
-import { rulepackDocSchema, type RulepackDoc } from './rules';
+import { rulepackDocSchema, withDeedAreaMm2, type RulepackDoc } from './rules';
 
 // ---------------------------------------------------------------------------
 // Reading
@@ -41,6 +42,42 @@ export function useModelReady(): boolean {
   return useModelStore((s) => s.status === 'ready');
 }
 
+/** The house's walls — the plot banner counts the ones a plot edit left outside. */
+export function useHouseWalls(): PlotEditWalls {
+  return useModelStore((s) => s.doc.house.walls);
+}
+type PlotEditWalls = ReturnType<typeof useModelStore.getState>['doc']['house']['walls'];
+
+// ---------------------------------------------------------------------------
+// "The plan may now be outside its envelope" — session state, not document
+//
+// A plot edit (boundary, road → front edge → setbacks) never touches the house,
+// so nothing in the document says the applied plan was drawn for a different
+// plot. This tiny view-state store remembers that a plot op was dispatched
+// while walls existed; the banner reads it, the architect dismisses it, and a
+// reload forgets it — the compliance report is the durable answer.
+// ---------------------------------------------------------------------------
+
+export interface PlotEditSession {
+  /** Set when a boundary/road change was dispatched while the house had walls. */
+  readonly planTouchedAt: number | null;
+  readonly markPlanTouched: () => void;
+  readonly dismiss: () => void;
+}
+
+export const usePlotEditSession = create<PlotEditSession>()((set) => ({
+  planTouchedAt: null,
+  markPlanTouched: () => set({ planTouchedAt: Date.now() }),
+  dismiss: () => set({ planTouchedAt: null }),
+}));
+
+function noteEnvelopeRisk(result: DispatchResult): DispatchResult {
+  if (result.ok && useModelStore.getState().doc.house.walls.length > 0) {
+    usePlotEditSession.getState().markPlanTouched();
+  }
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // Writing — every mutation is an op dispatch with an undo-toast label
 // ---------------------------------------------------------------------------
@@ -54,11 +91,18 @@ export interface PlotActions {
       source?: BoundarySource;
       /** Roads as they should read AFTER the change. Defaults to current roads. */
       nextRoads?: readonly Road[];
+      /**
+       * Also set north in the SAME undo group — a bearing traverse is built
+       * north-up, so the ring and `northDeg: 0` must land (and undo) together.
+       */
+      northDeg?: number;
     },
   ) => DispatchResult;
   setNorth: (deg: number) => DispatchResult;
   setRoad: (edgeIndex: number, widthMm: number | null, name?: string | null) => DispatchResult;
   setRegProfile: (cityPack: string | null, overrides: JsonObject, label?: string) => DispatchResult;
+  /** Record (or clear) the registered sale-deed area, mm². */
+  setDeedArea: (areaMm2: number | null) => DispatchResult;
 }
 
 export function usePlotActions(): PlotActions {
@@ -71,21 +115,33 @@ export function usePlotActions(): PlotActions {
       setBoundary: (nextPolygon, options = {}) => {
         const prevRoads = useModelStore.getState().doc.plot.roads;
         const nextRoads = options.nextRoads ?? prevRoads;
-        const ops =
+        const ops: Op[] =
           nextPolygon.length === 0
             ? [boundaryOp(nextPolygon, options.source ?? 'manual')]
             : boundaryGroupOps(prevRoads, nextPolygon, nextRoads, options.source ?? 'manual');
-        return dispatch(ops, { label: options.label ?? 'Plot boundary' });
+        if (options.northDeg !== undefined) ops.push(northOp(options.northDeg));
+        return noteEnvelopeRisk(dispatch(ops, { label: options.label ?? 'Plot boundary' }));
       },
       setNorth: (deg) => dispatch([northOp(deg)], { label: 'North direction' }),
       setRoad: (edgeIndex, widthMm, name) =>
-        dispatch([roadOp(edgeIndex, widthMm, name ?? null)], {
-          label: widthMm === null ? 'Road removed' : 'Road on plot edge',
-        }),
+        noteEnvelopeRisk(
+          dispatch([roadOp(edgeIndex, widthMm, name ?? null)], {
+            label: widthMm === null ? 'Road removed' : 'Road on plot edge',
+          }),
+        ),
       setRegProfile: (cityPack, overrides, label) =>
         dispatch([regProfileOp(cityPack, overrides)], {
           label: label ?? 'Regulatory profile',
         }),
+      setDeedArea: (areaMm2) => {
+        const profile = useModelStore.getState().doc.plot.regProfile;
+        return dispatch(
+          [regProfileOp(profile.cityPack, withDeedAreaMm2(profile.overrides, areaMm2))],
+          {
+            label: areaMm2 === null ? 'Deed area cleared' : 'Deed area',
+          },
+        );
+      },
     }),
     [dispatch],
   );

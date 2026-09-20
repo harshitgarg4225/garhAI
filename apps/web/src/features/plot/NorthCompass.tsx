@@ -13,6 +13,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerE
 import { cn } from '@garh/ui';
 
 import { normalizeNorthDeg } from './ops';
+import { capturePointer, releasePointer } from './pointerCapture';
 import { usePlotActions, usePlotDoc } from './usePlot';
 
 export interface NorthCompassProps {
@@ -61,7 +62,7 @@ export function NorthCompass({ size = 88, className }: NorthCompassProps): JSX.E
   const onPointerDown = (e: ReactPointerEvent<SVGSVGElement>): void => {
     e.preventDefault();
     draggingRef.current = true;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    capturePointer(e.currentTarget, e.pointerId);
     setPreview(degFromPointer(e));
   };
   const onPointerMove = (e: ReactPointerEvent<SVGSVGElement>): void => {
@@ -71,7 +72,7 @@ export function NorthCompass({ size = 88, className }: NorthCompassProps): JSX.E
   const onPointerUp = (e: ReactPointerEvent<SVGSVGElement>): void => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    releasePointer(e.currentTarget, e.pointerId);
     commit(degFromPointer(e));
   };
 

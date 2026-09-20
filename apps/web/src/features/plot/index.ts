@@ -30,6 +30,12 @@ export { RectQuickStart } from './RectQuickStart';
 export type { RectQuickStartProps } from './RectQuickStart';
 export { AreaReadout } from './AreaReadout';
 export type { AreaReadoutProps } from './AreaReadout';
+export { DeedEntry } from './DeedEntry';
+export type { DeedEntryMode, DeedEntryProps } from './DeedEntry';
+export { PlotReadouts, DEED_AREA_TOLERANCE_PCT } from './PlotReadouts';
+export type { PlotReadoutsProps } from './PlotReadouts';
+export { PlanEnvelopeBanner } from './PlanEnvelopeBanner';
+export type { PlanEnvelopeBannerProps } from './PlanEnvelopeBanner';
 
 export {
   EDGE_ROLE_LABELS,
@@ -65,6 +71,7 @@ export {
   edgeBearingDeg,
   formatBearingDms,
   parseBearingDeg,
+  ringDiagonals,
   ringFromSidesAndDiagonals,
   ringFromTraverse,
 } from './deed';
@@ -89,8 +96,12 @@ export type { BoundarySource } from './ops';
 
 export {
   CITY_PACK_OPTIONS,
+  DEED_AREA_KEY,
   LEGACY_SIDE_OVERRIDE_KEY,
   REG_VALUE_KEYS,
+  readDeedAreaMm2,
+  reconcileDeedArea,
+  withDeedAreaMm2,
   REG_VALUE_META,
   buildRegFacts,
   cityPackFromStored,
@@ -104,6 +115,7 @@ export {
   withValueOverride,
 } from './rules';
 export type {
+  DeedReconciliation,
   RegFacts,
   RegValueKey,
   ResolvedRegProfile,
@@ -112,11 +124,13 @@ export type {
 } from './rules';
 
 export {
+  useHouseWalls,
   useModelReady,
   usePlotActions,
   usePlotDoc,
+  usePlotEditSession,
   useRulepack,
   useRulepackList,
   useUnitsDisplay,
 } from './usePlot';
-export type { PlotActions } from './usePlot';
+export type { PlotActions, PlotEditSession } from './usePlot';

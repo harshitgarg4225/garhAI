@@ -199,6 +199,8 @@ export function LengthInput({
    * handler already resolved, and that blur commits nothing.
    */
   const skipBlurCommit = useRef(false);
+  /** True once the person has typed since the last commit — the only state a blur may commit. */
+  const dirty = useRef(false);
 
   // Re-sync when the model changes underneath us (undo, copilot, solver apply)
   // — but never while the user is mid-edit, which would eat their keystrokes.
@@ -275,6 +277,7 @@ export function LengthInput({
           invalid={invalid}
           className="garh-nums"
           onChange={(e) => {
+            dirty.current = true;
             setText(e.target.value);
             if (error !== undefined) setError(undefined);
           }}
@@ -288,12 +291,21 @@ export function LengthInput({
               skipBlurCommit.current = false;
               return;
             }
+            // Only what the person TYPED is committed. The field redisplays a
+            // metric value rounded to the inch (12000 mm → 39'-4"), so
+            // re-parsing untouched text on a stray blur would move the value
+            // by up to half an inch — tabbing through a deed side is not an edit.
+            if (!dirty.current) return;
+            dirty.current = false;
             commit(e.target.value);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
-              commit(e.currentTarget.value);
+              if (dirty.current) {
+                dirty.current = false;
+                commit(e.currentTarget.value);
+              }
               skipBlurCommit.current = true;
               e.currentTarget.blur();
             } else if (e.key === 'Escape') {
