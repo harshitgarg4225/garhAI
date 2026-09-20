@@ -222,6 +222,14 @@ class Settings(BaseSettings):
     #: drawings worker, so splitting the bucket would let a firm double it by alternating.
     rate_limit_export_jobs_per_hour: int = Field(default=40, ge=1)
     rate_limit_auth_per_hour: int = Field(default=20, ge=1)
+    #: Verification attempts per IP per hour — the second half of the same per-network
+    #: budget, and configurable for the same reason its sibling is: EVERY client behind
+    #: one NAT shares it. An office, a co-working floor and a CI runner are all one IP,
+    #: and a runner that signs up a firm per spec exhausts 20 in a single job — CI run 95
+    #: lost a Phase-5 spec to exactly that, reporting a 3D failure that was a 429.
+    #: The real guard against guessing a code is the 5-attempts-per-challenge cap in the
+    #: OTP repository, which is per challenge and cannot be widened from here.
+    rate_limit_auth_verify_per_hour: int = Field(default=30, ge=1)
     #: §13 rate limits, applied to the LLM routes (``POST /projects/:id/brief/parse``
     #: today, the copilot in Phase 6). These are the only endpoints that spend money at
     #: a third party per request, so an authenticated user with a loop is a billing

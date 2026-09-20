@@ -108,11 +108,30 @@ execution caught, and each will recur if you build fast without running things.
    faces sum exactly, while the model's room detection floors both faces to 57, so
    the compliance tab measured every room 1 mm wider on one side and wanted a few
    hundred mm² more window than the solver had given it. Two library plans failed
-   `nbc.ventilation.habitable.min` by 352 and 1,046 mm². The solver's gate blocks
-   only `hard` rules, so it shipped them green. The fix sizes windows against the
-   detected polygon, and `test_walls` folds real wall ops through the model and
-   requires the two conventions to agree to the millimetre — with the physical
-   polygon as the negative control that must NOT match.
+   `nbc.ventilation.habitable.min` by 352 and 1,046 mm², and shipped green — not
+   because the §5.6 gate is lenient (`services/solver/gates.py` rejects ANY row with
+   `status == "fail"`; it has never keyed on the packs' `hard` flag) but because the
+   gate was reading the solver's own evaluation, over the solver's own geometry,
+   which agreed with itself. The disagreement existed only across the two
+   conventions, so nothing that looked at one of them could see it. The fix sizes
+   windows against the detected polygon, and `test_walls` folds real wall ops through
+   the model and requires the two conventions to agree to the millimetre — with the
+   physical polygon as the negative control that must NOT match.
+9. **Half a modal.** The first-run tour dimmed the app and took the keyboard
+   (`setKeyboardEnabled(false)`) for as long as its card was on screen — correct for a
+   modal, except that its dim layer had already been made `pointer-events-none` so the
+   app underneath stayed clickable. The result was a dialog you could click past but
+   not type past. Its Plan step opens over the 2D canvas, beside an empty state that
+   says "Press W and click twice to draw your first wall", and W did nothing. CI run 95
+   found it three specs at once, each reporting a different symptom and none naming the
+   tour. The rule is now focus: the card owns the keyboard only while it has focus.
+   Whenever an overlay stops being modal in one dimension, check the others.
+
+   The same run carried the test-side twin. `findPickPixel` asked the product's own
+   picker for a pixel and clicked it; the picker is a raycast and knows nothing about
+   the DOM, so the returned pixel could sit under a floating panel. The guard that
+   fixed it had to be `elementFromPoint(x, y) === the <canvas>` — "inside
+   `[data-garh-canvas]`" passes, because every panel is a descendant of that div.
 
 The through-line: **a green check that cannot go red is worse than no check.**
 When you add a gate, negative-test it — break the thing deliberately and confirm
@@ -192,10 +211,11 @@ PYTHONPATH=.:apps/api python scripts/render_plan_previews.py   # <id>.svg throug
 Add the cell (plot, city pack, storeys, rooms, **carParking**) to `CELLS` in the seed
 script first. `test_plan_library.py` then requires: no `solver.apply_option` wrapper,
 fold counts equal to what was captured, the stored SVG byte-equal to a fresh render,
-and a project created from it with no `fail` on the compliance tab. That last gate is
-stricter than the solver's own (which blocks only on `hard: true` rules) — a plan can
-pass Generate and still fail here, and that is the point: nobody should pick a
-"ready-made" plan and see red.
+and a project created from it with no `fail` on the compliance tab. That last gate asks
+the same question the solver's §5.6 gate does — both reject any row whose `status` is
+`"fail"` — but it asks it of the MODEL's geometry rather than the solver's, so a plan
+can pass Generate and still fail here wherever the two conventions disagree (bug 8 is
+exactly that). That is the point: nobody should pick a "ready-made" plan and see red.
 
 ## The inspiration board, and what it does not claim
 

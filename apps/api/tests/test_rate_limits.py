@@ -229,7 +229,18 @@ def test_shipped_rules_carry_the_playbook_numbers(settings: Settings) -> None:
 
     assert rules["otp_per_email_rule"].limit == OTP_PER_EMAIL_PER_HOUR == 5
     assert rules["otp_resend_rule"].window_seconds == OTP_RESEND_COOLDOWN_SECONDS == 60
-    assert rules["verify_ip_rule"].limit == VERIFY_PER_IP_PER_HOUR == 30
+    # Both per-IP auth limits read their setting, and the setting's default is the
+    # constant. Asserting only the constant would leave `verify_ip_rule` free to
+    # ignore the env var entirely, which is how it behaved until CI run 95 spent
+    # the budget on sign-ups and a Phase-5 spec reported a 429 as a 3D failure.
+    assert rules["verify_ip_rule"].limit == settings.rate_limit_auth_verify_per_hour
+    # The DECLARED default, not `Settings()` — that one reads whatever `.env` the
+    # machine happens to carry, so it would assert the developer's environment.
+    assert (
+        Settings.model_fields["rate_limit_auth_verify_per_hour"].default
+        == VERIFY_PER_IP_PER_HOUR
+        == 30
+    )
     assert rules["auth_ip_rule"].limit == settings.rate_limit_auth_per_hour
 
     # Every rule must be able to explain itself in the 429 body (golden rule 9).

@@ -626,7 +626,18 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Create .env
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          # The whole job is ONE IP, and nearly every spec signs up its own firm
+          # so that it cannot see another spec's data. The shipped per-network
+          # auth budget (20 codes, 30 verifications an hour) is sized for an
+          # office, not for that, and CI run 95 spent it mid-suite: the Phase-5
+          # 3D spec died at signup with a 429 and reported it as a 3D failure.
+          # Raised HERE and not in .env.example, because the product default is
+          # the one a deployment gets.
+          sed -i 's/^RATE_LIMIT_AUTH_PER_HOUR=.*/RATE_LIMIT_AUTH_PER_HOUR=2000/' .env
+          sed -i 's/^RATE_LIMIT_AUTH_VERIFY_PER_HOUR=.*/RATE_LIMIT_AUTH_VERIFY_PER_HOUR=2000/' .env
+          grep -E '^RATE_LIMIT_AUTH' .env
 
       - name: Bring up the stack
         run: docker compose up -d --build --wait --wait-timeout 600

@@ -420,8 +420,10 @@ OTP_PER_EMAIL_PER_HOUR: Final = 5
 #: counts down against.
 OTP_RESEND_COOLDOWN_SECONDS: Final = 60
 
-#: Verification attempts per IP per hour. Higher than the issue limit (typos are
-#: normal); the 5-attempts-per-challenge cap in the OTP repository is the real guard.
+#: Default verification attempts per IP per hour. Higher than the issue limit (typos
+#: are normal); the 5-attempts-per-challenge cap in the OTP repository is the real
+#: guard. Overridable per deployment through ``RATE_LIMIT_AUTH_VERIFY_PER_HOUR``,
+#: because one IP is one whole office — or one CI runner.
 VERIFY_PER_IP_PER_HOUR: Final = 30
 
 
@@ -475,9 +477,10 @@ def otp_resend_rule(settings: Settings | None = None) -> RateLimitRule:
 
 
 def verify_ip_rule(settings: Settings | None = None) -> RateLimitRule:
+    cfg = settings or get_settings()
     return RateLimitRule(
         name="auth.verify_per_ip",
-        limit=VERIFY_PER_IP_PER_HOUR,
+        limit=cfg.rate_limit_auth_verify_per_hour,
         window_seconds=3600,
         scope="ip",
         fail_closed=True,
