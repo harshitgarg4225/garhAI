@@ -71,6 +71,7 @@ import { useSolverJob } from '../features/options';
 import { api } from '../lib/api';
 import { AppError } from '../lib/errors';
 import { useKeyboardMap, type CommandHandlers } from '../lib/keymap';
+import { ProjectTour } from '../features/tour';
 import { selectCollabUsers, useCollabStore } from '../stores/collab';
 import { useJobsStore } from '../stores/jobs';
 import { useModelStore, selectCanRedo, selectCanUndo } from '../stores/model';
@@ -604,6 +605,7 @@ export function ProjectShell(): JSX.Element {
             onShare={() => setShareOpen(true)}
             onGenerate={handleGenerate}
             generateLabel="Generate plans"
+            onStartTour={() => useUiStore.getState().startTour()}
           />
         }
         tabs={
@@ -612,7 +614,12 @@ export function ProjectShell(): JSX.Element {
             activeKey={currentTab?.key ?? 'brief'}
             label="Project sections"
             renderLink={({ href, className, children, 'aria-current': ariaCurrent }) => (
-              <Link to={href} className={className} aria-current={ariaCurrent}>
+              <Link
+                to={href}
+                className={className}
+                aria-current={ariaCurrent}
+                data-tour={`tab-${href.slice(href.lastIndexOf('/') + 1)}`}
+              >
                 {children}
               </Link>
             )}
@@ -702,6 +709,10 @@ export function ProjectShell(): JSX.Element {
       >
         <Outlet context={outletContext} />
       </ProjectLayout>
+
+      {/* The first-run tour (§15): starts itself once per browser, re-runs from the
+          top bar's lightbulb, and owns the keyboard while open. */}
+      <ProjectTour projectId={project.id} currentTab={currentTab?.key} />
 
       <ShareDialog
         open={shareOpen}

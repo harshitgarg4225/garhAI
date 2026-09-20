@@ -149,10 +149,13 @@ export interface UiState {
   toasts: Toast[];
   theme: ThemePreference;
 
-  /** First-run coach marks (§15). `null` = not running. */
+  /**
+   * First-run tour (§15), rendered by `features/tour/ProjectTour`. `null` = not
+   * running; otherwise the zero-based step index.
+   */
   tourStep: number | null;
   /**
-   * Whether the 5-step tour has been completed or skipped. Persisted, because
+   * Whether the six-step tour has been completed or skipped. Persisted, because
    * "first run" means once per person, not once per tab.
    */
   tourDone: boolean;
