@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 
@@ -32,17 +33,18 @@ from services.common.testing import FakeRedis
 
 
 class _NoopHandler(BaseJobHandler):
-    kinds = ("solve",)
+    kinds: tuple[str, ...] = ("solve",)
 
     async def handle(self, ctx: JobContext) -> JobResult:  # pragma: no cover - never run
         raise AssertionError("the heartbeat tests never run a job")
 
 
-def _settings(**overrides: object) -> WorkerSettings:
+def _settings(**overrides: Any) -> WorkerSettings:
+    # pydantic-settings takes _env_file at runtime; its stubs do not declare it.
     return WorkerSettings(_env_file=None, **overrides)  # type: ignore[call-arg]
 
 
-def _worker(redis: FakeRedis, **overrides: object) -> Worker:
+def _worker(redis: FakeRedis, **overrides: Any) -> Worker:
     return Worker(
         name="solver", handler=_NoopHandler(), settings=_settings(**overrides), redis=redis
     )
