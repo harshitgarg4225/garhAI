@@ -118,7 +118,7 @@ def test_generated_rows_pass_the_seed_validators(expander) -> None:
     from garh_api.seed.catalog import validate_furniture, validate_materials
     from garh_model.model import ROOM_TYPES
 
-    assert len(validate_furniture(_load("furniture.json"), room_types=ROOM_TYPES)) == 469
+    assert len(validate_furniture(_load("furniture.json"), room_types=ROOM_TYPES)) == 470
     assert len(validate_materials(_load("materials.json"))) == 184
 
 

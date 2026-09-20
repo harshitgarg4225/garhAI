@@ -532,6 +532,7 @@ async def run_solver(context: SolveContext) -> SolveResult:
         announce=announce,
         discard=discard,
         relaxed=False,
+        shortfalls=shortfalls,
     )
 
     await announce(
@@ -569,6 +570,7 @@ async def run_solver(context: SolveContext) -> SolveResult:
                 announce=announce,
                 discard=discard,
                 relaxed=True,
+                shortfalls=shortfalls,
             )
             combined = _dedupe_by_id(tuple(scored) + tuple(relaxed_scored))
             result = finalise(
@@ -621,6 +623,7 @@ async def run_solver(context: SolveContext) -> SolveResult:
             announce=announce,
             discard=discard,
             relaxed=False,
+            shortfalls=shortfalls,
         )
         result = finalise(
             _dedupe_by_id(tuple(round_scored)),
@@ -731,8 +734,9 @@ async def _refine_and_score(
     announce: Callable[..., Awaitable[Any]],
     discard: Callable[[str, str, str], None],
     relaxed: bool,
+    shortfalls: list[Any] | None = None,
 ) -> list[PlanOption]:
-    """§5.3 stage B, then the two critic passes (§5.4), assembling PlanOptions."""
+    """§5.3 stage B, the parking pass, then the two critic passes (§5.4)."""
     params = context.params
 
     # -- §5.3 refinement --------------------------------------------------
@@ -756,6 +760,27 @@ async def _refine_and_score(
                     "refinement touched a locked wall (§5.7: locked side wins)",
                 )
                 continue
+        # -- car parking: bays in the front setback, as many as the packs demand.
+        # The requirement is read off a first rules pass over the refined house
+        # (the pack's own limit, never a number typed into the brief); a strip that
+        # cannot hold it is a typed discard and, with nothing else to show, the
+        # banner — "needs 2 bays, 1 fits" beats "no plan cleared".
+        model, parking_problem = _provide_parking(model, params, stage_set)
+        if parking_problem is not None:
+            discard(candidate.stair_anchor.id, "parking", parking_problem.shortfall_message())
+            if shortfalls is not None:
+                from services.solver.diagnose import StoreyShortfall
+
+                shortfalls.append(
+                    StoreyShortfall(
+                        storey_index=0,
+                        kind="parking",
+                        message=parking_problem.shortfall_message(),
+                        action=parking_problem.shortfall_action(),
+                        proved=True,
+                    )
+                )
+            continue
         refined.append((candidate, model))
         context.check_cancelled()
 
@@ -841,6 +866,38 @@ async def _refine_and_score(
         )
         context.check_cancelled()
     return scored
+
+
+def _provide_parking(
+    model: Mapping[str, Any], params: SolveParams, stage_set: StageSet
+) -> tuple[Mapping[str, Any], Any | None]:
+    """The refined house with its car bays, or the plan that could not place them.
+
+    Skips cleanly when no applicable ``parking_min`` row exists (a pack without a
+    parking rule, or a test stage set whose rules pass carries none), so the fakes
+    and the single-storey smoke never grow bays they did not ask for.
+    """
+    from services.solver import parking
+
+    rows = tuple(dict(row) for row in stage_set.compliance(model, params))
+    requirement = parking.requirement_from_rows(rows)
+    wish = params.brief_data.get("carParking")
+    wanted = int(wish) if isinstance(wish, int) and not isinstance(wish, bool) else 0
+    if not requirement.applies and wanted <= 0:
+        return model, None
+    with_bays, plan = parking.with_parking(model, params, required=requirement.count, wanted=wanted)
+    log.info(
+        "solver.parking",
+        required=plan.required,
+        wanted=plan.wanted,
+        placed=len(plan.bays),
+        orientation=plan.orientation,
+        strip_depth_mm=plan.strip_depth_mm,
+        rules=",".join(requirement.rule_ids),
+    )
+    if not plan.satisfied:
+        return with_bays, plan
+    return with_bays, None
 
 
 def finalise(

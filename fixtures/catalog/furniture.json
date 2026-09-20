@@ -472,6 +472,20 @@
     "clearanceMm": 450
   },
   {
+    "id": "parking-bay",
+    "name": "Car parking bay (2.5 x 5 m)",
+    "category": "vehicle",
+    "widthMm": 2500,
+    "depthMm": 5000,
+    "heightMm": 50,
+    "roomTypes": [
+      "garage",
+      "stilt",
+      "porch"
+    ],
+    "clearanceMm": 0
+  },
+  {
     "id": "water-tank-oht",
     "name": "Overhead water tank (1000 L)",
     "category": "service",

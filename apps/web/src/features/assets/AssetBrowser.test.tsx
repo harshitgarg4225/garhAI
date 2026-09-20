@@ -9,7 +9,7 @@
  * the rows the browser would actually show.
  *
  * The corpus is the real one (`fixtures/catalog/*.json`, 469 + 184), so "search
- * finds it" means "found among 653", not "found among the six I wrote".
+ * finds it" means "found among 654", not "found among the six I wrote".
  *
  * ════════════════════════════════════════════════════════════════════════════
  * NEGATIVE CONTROLS RUN FOR THE WHOLE FEATURE
@@ -22,7 +22,7 @@
  *   A. `search.ts` `termScore` — delete the `term.mm` dimension branch
  *        Tests  5 failed | 63 passed   (the four dimension cases in
  *        search.test.ts, plus "search by dimension finds the 1800 mm wardrobe
- *        among 653" here)
+ *        among 654" here)
  *
  *   B. `filters.ts` `passesFilters` — delete the depth comparison
  *        Tests  12 failed | 74 passed  (every compose case, both empty-state
@@ -185,9 +185,9 @@ describe('search, through the real input', () => {
     expect(rowNames()).toContain('Kota stone');
   });
 
-  it('search by dimension finds the 1800 mm wardrobe among 653', () => {
+  it('search by dimension finds the 1800 mm wardrobe among 654', () => {
     mount(<AssetBrowserView index={INDEX} status="ready" />);
-    expect(countText()).toBe('653 of 653 items');
+    expect(countText()).toBe('654 of 654 items');
 
     type(byLabel<HTMLInputElement>('Search the asset library'), 'wardrobe 1800');
 
@@ -197,13 +197,13 @@ describe('search, through the real input', () => {
     // row that disappears if the dimension path is removed.
     expect(names).toContain('Wardrobe (3 door)');
     expect(names).not.toContain('Wardrobe, hinged 1200 mm');
-    expect(countText()).toBe(`${String(names.length)} of 653 items`);
+    expect(countText()).toBe(`${String(names.length)} of 654 items`);
   });
 
   it('reports the true match count, not the number of rows it mounted', () => {
     mount(<AssetBrowserView index={INDEX} status="ready" />);
     // 653 matches, capped rendering. The count line must still say 653.
-    expect(countText()).toBe('653 of 653 items');
+    expect(countText()).toBe('654 of 654 items');
     expect(rowNames().length).toBeLessThan(653);
     const more = [...container.querySelectorAll('button')].find((b) =>
       (b.textContent ?? '').startsWith('Show '),
@@ -222,10 +222,10 @@ describe('filters compose, through the real controls', () => {
     mount(<AssetBrowserView index={INDEX} status="ready" />);
 
     choose(byLabel<HTMLSelectElement>('Filter by category'), 'furniture:storage');
-    expect(countText()).toBe('91 of 653 items');
+    expect(countText()).toBe('91 of 654 items');
 
     type(byLabel<HTMLInputElement>('Maximum depth, front to back'), '900');
-    expect(countText()).toBe('26 of 653 items');
+    expect(countText()).toBe('26 of 654 items');
 
     // Every rendered row really does fit, access strip included.
     for (const name of rowNames()) {
@@ -238,16 +238,16 @@ describe('filters compose, through the real controls', () => {
   it('the depth filter is a real gate — the access strip switch moves the number', () => {
     mount(<AssetBrowserView index={INDEX} status="ready" />);
     type(byLabel<HTMLInputElement>('Maximum depth, front to back'), '900');
-    expect(countText()).toBe('111 of 653 items');
+    expect(countText()).toBe('111 of 654 items');
 
     click(byLabel<HTMLInputElement>('Count the access strip in front'));
-    expect(countText()).toBe('371 of 653 items');
+    expect(countText()).toBe('371 of 654 items');
   });
 
   it('accepts a depth typed in metres, because lib/units parses it', () => {
     mount(<AssetBrowserView index={INDEX} status="ready" />);
     type(byLabel<HTMLInputElement>('Maximum depth, front to back'), '0.9m');
-    expect(countText()).toBe('111 of 653 items');
+    expect(countText()).toBe('111 of 654 items');
   });
 
   it('ignores a number below the smallest real dimension, and applies the rest', () => {
@@ -256,15 +256,15 @@ describe('filters compose, through the real controls', () => {
     // 9 mm is below anything in the catalogue: applying it would blank the list
     // on the way to typing "900", so it does not apply at all.
     type(depth, '9');
-    expect(countText()).toBe('653 of 653 items');
+    expect(countText()).toBe('654 of 654 items');
     // 90 mm is a real limit and is applied as one — eight wall-mounted items.
     type(depth, '90');
-    expect(countText()).toBe('8 of 653 items');
+    expect(countText()).toBe('8 of 654 items');
     type(depth, '900');
-    expect(countText()).toBe('111 of 653 items');
+    expect(countText()).toBe('111 of 654 items');
     // Emptying the box turns the filter off again.
     type(depth, '');
-    expect(countText()).toBe('653 of 653 items');
+    expect(countText()).toBe('654 of 654 items');
   });
 
   it('composes the search with the filters', () => {
@@ -373,7 +373,7 @@ describe('a localStorage that throws', () => {
         useAssetBrowserStore.getState().bind('user_a');
       });
       mount(<AssetBrowserView index={INDEX} status="ready" />);
-      expect(countText()).toBe('653 of 653 items');
+      expect(countText()).toBe('654 of 654 items');
 
       type(byLabel<HTMLInputElement>('Search the asset library'), 'kota stone');
       const pin = pinButtons()[0];
@@ -402,7 +402,7 @@ describe('a localStorage that throws', () => {
       expect(useAssetBrowserStore.getState().favourites).toEqual([]);
       expect(useAssetBrowserStore.getState().recents).toEqual([]);
       mount(<AssetBrowserView index={INDEX} status="ready" />);
-      expect(countText()).toBe('653 of 653 items');
+      expect(countText()).toBe('654 of 654 items');
     });
   });
 });
@@ -413,7 +413,7 @@ describe('the empty state', () => {
     choose(byLabel<HTMLSelectElement>('Filter by category'), 'furniture:vehicle');
     type(byLabel<HTMLInputElement>('Maximum depth, front to back'), '900');
 
-    expect(countText()).toBe('0 of 653 items');
+    expect(countText()).toBe('0 of 654 items');
     expect(emptyStateText()).toContain('access strip');
 
     const fix = [...container.querySelectorAll('button')].find((button) =>
@@ -423,7 +423,7 @@ describe('the empty state', () => {
     if (fix === undefined) return;
     click(fix);
 
-    expect(countText()).not.toBe('0 of 653 items');
+    expect(countText()).not.toBe('0 of 654 items');
     expect(rowNames().length).toBeGreaterThan(0);
     // The fix cleared the field as well as the filter — a number left sitting
     // in a box that no longer filters is its own bug.
@@ -433,7 +433,7 @@ describe('the empty state', () => {
   it('quotes the search text when the search is the culprit', () => {
     mount(<AssetBrowserView index={INDEX} status="ready" />);
     type(byLabel<HTMLInputElement>('Search the asset library'), 'zzzzzz');
-    expect(countText()).toBe('0 of 653 items');
+    expect(countText()).toBe('0 of 654 items');
     expect(emptyStateText()).toContain('zzzzzz');
   });
 });
@@ -517,7 +517,7 @@ describe('the connected browser', () => {
 
     expect(furniture).toHaveBeenCalledTimes(1);
     expect(materials).toHaveBeenCalledTimes(1);
-    expect(countText()).toBe('653 of 653 items');
+    expect(countText()).toBe('654 of 654 items');
     expect(rowNames().length).toBeGreaterThan(0);
     expect(useAssetBrowserStore.getState().userId).toBe('user_a');
   });

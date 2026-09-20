@@ -831,6 +831,19 @@ _FURNITURE: list[dict[str, Any]] = [
         "clearanceMm": 600,
     },
     {
+        # A car SPACE, not a car: the rectangle every seeded pack's parking rule
+        # measures (spaceSizeMm 2500 x 5000). The solver places it, the site plan
+        # draws a car in it, the rules engine counts it (garh_api.parking_geometry).
+        "id": "parking-bay",
+        "name": "Car parking bay (2.5 x 5 m)",
+        "category": "vehicle",
+        "widthMm": 2500,
+        "depthMm": 5000,
+        "heightMm": 50,
+        "roomTypes": ["garage", "stilt", "porch"],
+        "clearanceMm": 0,
+    },
+    {
         "id": "two-wheeler",
         "name": "Scooter / motorcycle",
         "category": "vehicle",
