@@ -166,7 +166,9 @@ services:
 
   # ─── MinIO — S3-compatible object storage ───────────────────────────────────
   minio:
-    image: minio/minio:latest
+    # quay.io is MinIO's own registry; Docker Hub stopped serving `minio/minio`
+    # to anonymous pulls in September 2026 (CI run 89).
+    image: quay.io/minio/minio:latest
     restart: unless-stopped
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
@@ -189,7 +191,7 @@ services:
   # One-shot init sidecar for `minio`. Idempotent, so `docker compose up`
   # re-runs it harmlessly on every start.
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:latest
     restart: "no"
     depends_on:
       minio:

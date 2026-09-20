@@ -117,6 +117,7 @@ Smaller calls that a later reader would otherwise have to reverse-engineer.
 | 2026-08-27 | **DWG import/export is deliberately NOT offered; DXF is the interchange base layer.**                                                                                                                                                                                                                                                                                                   | Rayon-parity review: every open-source route to DWG is closed by our own gates — LibreDWG is GPL (the licence scan refuses GPL/AGPL, §13), and the Open Design Alliance SDK is proprietary/paid. DXF R2010+ round-trips losslessly with AutoCAD, Revit, DraughtBoard et al., and every tool that writes DWG reads/writes DXF, so the neutral format covers the actual workflow. Revisit only if a permissively-licensed DWG writer appears or a paying customer's toolchain genuinely cannot use DXF.                                                                                                                                                                                                                           | §7, §13                           |
 | 2026-08-27 | **Live collaboration is notify-and-refetch over the op log, not CRDT.** A per-project redis pub/sub channel (`garh:collab:{id}`) carries "the head advanced" + presence; clients answer an `ops` frame by calling the model store's existing `pull()` (fetch since baseIdx, rebase). No new dependencies.                                                                               | The op log is already server-sequenced with a battle-tested 409/rebase machine on the client — CRDT machinery (yjs et al.) would add a second source of truth for state the sequencer already owns, and §14's byte-identical fold across TS/Python could not survive concurrent merge semantics. Notify-and-refetch keeps fold correctness exactly where it lives today and made multiplayer a fan-out layer instead of a rewrite; proven end to end by a two-client probe (hello/presence/ops frames, broadcast received in real time).                                                                                                                                                                                        | §2, §11, §13                      |
 | 2026-08-28 | **The standard ISO/ANSI hatch pattern definitions are vendored as data** in `services/drawings/render/hatch_patterns.py`, extracted from ezdxf 1.3.4's `acadiso.pat` table, with its MIT licence in `HATCH-PATTERNS-LICENSE.txt` beside it. The renderer's pattern vocabulary goes from 4 to 15 (brick, concrete, insulation, plaster, stone, steel, glass, sand, timber, tile, grass). | ezdxf is already a pinned dependency, but `services/drawings/render/` must import without it — ezdxf is optional at runtime (`_require_ezdxf` raises a typed error) so SVG and PDF export work in deployments that never write DXF. Importing it in the renderer would make every PDF depend on a DXF library. Copying also pins the geometry: an upstream change to a definition would otherwise silently redraw every sheet already issued. The copy is not trusted — `test_hatch_patterns.py` re-reads ezdxf and fails on any drift, so DXF's pattern _name_ and SVG's generated _lines_ cannot diverge. Consolidating the three hand-kept pattern tables into one is what surfaced the three defects the same commit fixes. | §7 (drawings), §13 (dependencies) |
+| 2026-09-20 | **MinIO is pulled from `quay.io/minio/minio`, not Docker Hub**, in both `docker-compose.yml` and the CI unit job; the CI step tries quay first and falls back to Docker Hub.                                                                                                                                                                                                            | CI run 89 failed at `docker run minio/minio:latest` with "pull access denied ... may require 'docker login'" while the official `postgres` and `redis` images in the same job pulled fine — Docker Hub stopped serving that namespaced repository anonymously. quay.io is MinIO's own registry. The unit job keeps REAL MinIO rather than a mock because the underlay upload signs SigV4 and PUTs for real; a mock would test our string formatting instead of whether S3 accepts the signature, which is the reason that step exists. The fallback covers either registry breaking, and the step still fails loudly when neither pulls.                                                                                        | §18 (compose/deployment)          |
 
 ---
 
@@ -249,15 +250,15 @@ assumed fine.
 
 ### Images
 
-| Image                     | Note                                                |
-| ------------------------- | --------------------------------------------------- |
-| postgres:15-alpine        | pinned                                              |
-| redis:7-alpine            | pinned                                              |
-| minio/minio:latest        | pinned by the stack spec                            |
-| minio/mc:latest           | added — see the deviation row above                 |
-| python:3.11-slim-bookworm | api + worker base                                   |
-| node:20-bookworm-slim     | web base                                            |
-| nginx:1.27-alpine         | web `prod` stage only — see the deviation row above |
+| Image                      | Note                                                                       |
+| -------------------------- | -------------------------------------------------------------------------- |
+| postgres:15-alpine         | pinned                                                                     |
+| redis:7-alpine             | pinned                                                                     |
+| quay.io/minio/minio:latest | pinned by the stack spec; quay.io is MinIO's own registry (see 2026-09-20) |
+| quay.io/minio/mc:latest    | added — see the deviation rows above                                       |
+| python:3.11-slim-bookworm  | api + worker base                                                          |
+| node:20-bookworm-slim      | web base                                                                   |
+| nginx:1.27-alpine          | web `prod` stage only — see the deviation row above                        |
 
 ### CI-only tooling
 

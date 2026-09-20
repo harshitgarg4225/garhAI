@@ -332,11 +332,27 @@ jobs:
           AWS_SECRET_ACCESS_KEY: garhminio_local_dev
           AWS_DEFAULT_REGION: ap-south-1
         run: |
+          # Docker Hub stopped serving `minio/minio` to anonymous pulls (run 89:
+          # "pull access denied ... may require 'docker login'"), while the
+          # official images kept working. quay.io is MinIO's own registry and is
+          # tried first; Docker Hub stays as a fallback so a failure at either
+          # registry does not stop the build. Both refs are the same image, so
+          # what this step proves is unchanged — and if neither pulls, it fails
+          # loudly rather than skipping the object store.
+          image=""
+          for ref in quay.io/minio/minio:latest minio/minio:latest; do
+            if docker pull -q "$ref" >/dev/null 2>&1; then image="$ref"; break; fi
+          done
+          if [ -z "$image" ]; then
+            echo "::error::no MinIO image could be pulled from quay.io or docker.io"
+            exit 1
+          fi
+          echo "using $image"
           docker run -d --name garh-minio -p 9000:9000 \
             -e MINIO_ROOT_USER=garhminio \
             -e MINIO_ROOT_PASSWORD=garhminio_local_dev \
             -e MINIO_REGION_NAME=ap-south-1 \
-            minio/minio:latest server /data
+            "$image" server /data
           for i in $(seq 1 40); do
             if curl -sf http://localhost:9000/minio/health/live >/dev/null; then break; fi
             sleep 2
