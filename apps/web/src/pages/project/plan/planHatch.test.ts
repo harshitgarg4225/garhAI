@@ -48,6 +48,10 @@ const BRICK: MaterialItem = {
   name: 'Exposed wire-cut brick',
   category: 'wall',
   colorHex: '#B5573A',
+  // `texture` became required when the 3D work gave materials real textures; a
+  // hatch fixture has no texture, and null is the honest value rather than a name
+  // nothing would load.
+  texture: null,
   textureUrl: null,
   surfaceGroups: ['wall.exterior'],
 };
