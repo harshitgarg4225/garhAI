@@ -225,6 +225,13 @@ export async function opsSince(
 export interface FoldedModel {
   headIdx: number;
   model: {
+    /** The plot as the op log folds it — what the plot-editor spec asserts against. */
+    plot: {
+      boundary: { x: number; y: number }[];
+      northDeg: number;
+      roads: { edgeIndex: number; widthMm: number | null; name: string | null }[];
+      regProfile: { cityPack: string | null; overrides: Record<string, unknown> };
+    };
     house: {
       storeys: { id: string; name: string }[];
       walls: {
@@ -313,7 +320,10 @@ export async function projectModel(
 
   return {
     headIdx: Math.max(idx, state.headIdx),
-    model: { house: doc.house as unknown as FoldedModel['model']['house'] },
+    model: {
+      plot: doc.plot as unknown as FoldedModel['model']['plot'],
+      house: doc.house as unknown as FoldedModel['model']['house'],
+    },
   };
 }
 

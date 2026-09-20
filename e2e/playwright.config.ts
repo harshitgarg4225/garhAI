@@ -95,6 +95,16 @@ export default defineConfig({
     },
     {
       /*
+       * The plot editor's SVG handles under a real pointer (the furniture-layer
+       * class of bug). Signs up its own firm, so it needs no seed and no other
+       * project — it runs alone against any mocked stack.
+       */
+      name: 'plot',
+      testMatch: /(^|[\\/])plot-editor\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+    },
+    {
+      /*
        * Everything that needs a canvas: the Phase 4 DoD, the Phase 9 happy
        * path and the §14 budgets.
        *

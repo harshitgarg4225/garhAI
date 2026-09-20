@@ -36,6 +36,8 @@ export { PlotReadouts, DEED_AREA_TOLERANCE_PCT } from './PlotReadouts';
 export type { PlotReadoutsProps } from './PlotReadouts';
 export { PlanEnvelopeBanner } from './PlanEnvelopeBanner';
 export type { PlanEnvelopeBannerProps } from './PlanEnvelopeBanner';
+export { PlotUnderlayControls, PlotUnderlayImage } from './PlotUnderlay';
+export type { PlotUnderlayControlsProps, PlotUnderlayImageProps } from './PlotUnderlay';
 
 export {
   EDGE_ROLE_LABELS,

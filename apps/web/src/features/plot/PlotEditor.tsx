@@ -49,7 +49,9 @@ import {
 import { NorthCompass } from './NorthCompass';
 import { PlanEnvelopeBanner } from './PlanEnvelopeBanner';
 import { capturePointer, releasePointer } from './pointerCapture';
+import { PlotUnderlayControls, PlotUnderlayImage } from './PlotUnderlay';
 import { RectQuickStart } from './RectQuickStart';
+import { useUnderlayStore } from '../underlay';
 import { useModelReady, usePlotActions, usePlotDoc, useUnitsDisplay } from './usePlot';
 import { clientToModel, gridStep, makeViewport, outwardNormal, toSvg } from './viewport';
 
@@ -75,10 +77,15 @@ interface Notice {
 export interface PlotEditorProps {
   /** Route of the compliance tab, for the "plan may be outside its envelope" banner. */
   complianceHref?: string | undefined;
+  /**
+   * The project whose tracing underlay to show behind the boundary. Omit and
+   * the editor simply has no scan layer — it never invents one.
+   */
+  projectId?: string | undefined;
   className?: string | undefined;
 }
 
-export function PlotEditor({ complianceHref, className }: PlotEditorProps): JSX.Element {
+export function PlotEditor({ complianceHref, projectId, className }: PlotEditorProps): JSX.Element {
   const ready = useModelReady();
   const plot = usePlotDoc();
   const display = useUnitsDisplay();
@@ -102,6 +109,16 @@ export function PlotEditor({ complianceHref, className }: PlotEditorProps): JSX.
     setEditingEdge(null);
     setSelectedVertex((v) => (v !== null && v < boundary.length ? v : null));
   }, [boundary]);
+
+  // The underlay record is shared with the Plan tab's canvas layer, so load it
+  // only when this project's record is not already in hand — and never reset it
+  // on unmount, which would pull the scan out from under the other surface.
+  useEffect(() => {
+    if (projectId === undefined) return;
+    const store = useUnderlayStore.getState();
+    if (store.projectId === projectId) return;
+    void store.load(projectId);
+  }, [projectId]);
 
   if (!ready) return <SkeletonCanvas className={cn('min-h-[420px]', className)} />;
 
@@ -383,11 +400,11 @@ export function PlotEditor({ complianceHref, className }: PlotEditorProps): JSX.
               : ''}
           </span>
         )}
+        <PlotUnderlayControls className="ml-auto" />
         <Button
           variant="ghost"
           size="sm"
           iconLeft="edit"
-          className="ml-auto"
           onClick={() => setDeedOpen(true)}
           data-testid="plot-from-deed"
         >
@@ -437,6 +454,9 @@ export function PlotEditor({ complianceHref, className }: PlotEditorProps): JSX.
           role="application"
           aria-label="Plot boundary editor"
         >
+          {/* The scan to trace, under everything and outside the hit test. */}
+          <PlotUnderlayImage vp={vp} />
+
           {gridLines}
 
           {/* Roads: honest width bands outside their edges */}
