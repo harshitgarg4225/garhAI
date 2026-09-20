@@ -53,6 +53,9 @@
 <g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="159.732,218.152 257.268,218.152 257.268,71.848 159.732,71.848" fill="none"/>
 <polygon points="159.732,218.152 257.268,218.152 257.268,314.152 159.732,314.152" fill="none" stroke-dasharray="3.000 1.500"/>
+<polygon points="212.468,218.152 252.468,218.152 252.468,198.152 212.468,198.152" fill="none" stroke-dasharray="3.000 1.500"/>
+<polygon points="248.788,215.352 251.668,212.472 251.668,203.832 248.788,200.952 218.068,200.952 213.268,205.752 213.268,210.552 218.068,215.352" fill="none"/>
+<polygon points="243.988,213.552 243.988,202.752 228.628,202.752 228.628,213.552" fill="none"/>
 </g>
 <g class="layer" data-layer="A-DIM" stroke="#1a1a1a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <line x1="184.116" y1="314.152" x2="184.116" y2="218.152"/>
@@ -104,6 +107,7 @@
 <polygon points="269.268,71.848 266.268,86.848 269.268,89.848 272.268,86.848" fill="none"/>
 <g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
 <text x="208.500" y="266.152" font-size="2.000" text-anchor="middle" dominant-baseline="central">12000 mm WIDE ROAD</text>
+<text x="232.468" y="216.952" font-size="2.000" text-anchor="middle" dominant-baseline="central">C.P. 2.5 x 5.0 M</text>
 <text x="269.268" y="67.848" font-size="2.500" text-anchor="middle" dominant-baseline="central" font-weight="600">N</text>
 </g>
 </g>

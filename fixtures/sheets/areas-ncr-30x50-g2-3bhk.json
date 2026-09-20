@@ -101,9 +101,9 @@
       "value": 6910
     },
     {
-      "key": "setback.side-a",
+      "key": "setback.side-b",
       "kind": "requirement",
-      "label": "Side A setback",
+      "label": "Side B setback",
       "unit": "mm",
       "value": 1094
     },
@@ -115,9 +115,9 @@
       "value": 1085
     },
     {
-      "key": "setback.side-b",
+      "key": "setback.side-a",
       "kind": "requirement",
-      "label": "Side B setback",
+      "label": "Side A setback",
       "unit": "mm",
       "value": 0
     },
@@ -174,10 +174,10 @@
     },
     {
       "edgeIndex": 1,
-      "elementId": "plot.edge.side-a",
+      "elementId": "plot.edge.side-b",
       "providedMm": 1094,
       "requiredMm": null,
-      "role": "side-a",
+      "role": "side-b",
       "ruleIds": [],
       "shortfallMm": 0,
       "status": "not_regulated"
@@ -194,10 +194,10 @@
     },
     {
       "edgeIndex": 3,
-      "elementId": "plot.edge.side-b",
+      "elementId": "plot.edge.side-a",
       "providedMm": 0,
       "requiredMm": null,
-      "role": "side-b",
+      "role": "side-a",
       "ruleIds": [],
       "shortfallMm": 0,
       "status": "not_regulated"

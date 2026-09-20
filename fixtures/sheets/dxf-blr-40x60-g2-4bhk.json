@@ -10,10 +10,10 @@
         "A-AREA/TEXT": 8,
         "A-DIM/DIMENSION": 11,
         "A-TEXT/LWPOLYLINE": 1,
-        "A-TEXT/TEXT": 21,
+        "A-TEXT/TEXT": 22,
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
-        "A-WALL-PART/LWPOLYLINE": 2,
+        "A-WALL-PART/LWPOLYLINE": 5,
         "A-WALL/LWPOLYLINE": 1
       },
       "hatches": [
