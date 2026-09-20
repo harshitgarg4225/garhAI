@@ -62,6 +62,9 @@ ran zero tenancy tests is worse than a red one: ``CI=true`` (GitHub sets it) or
 from __future__ import annotations
 
 import os
+import sys
+import urllib.error
+import urllib.request
 import uuid
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
@@ -219,6 +222,44 @@ def redis_available(settings: Settings) -> Iterator[Any]:
         _unavailable("Redis", "%s: %s" % (type(exc).__name__, exc))
     yield client
     client.close()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def object_store_bucket(settings: Settings) -> None:
+    """Make sure ``S3_BUCKET`` exists before any test writes to it.
+
+    Every object-store test (underlay, references, exports, the drawing pins, the
+    backup CLI) fails the same way against a bucket that is not there: the PUT
+    answers 404 and the assertion that reads it back blames the feature. That is
+    exactly what it looked like three times here, after a moto restart dropped the
+    bucket and 27 tests went red for a reason no diff could explain.
+
+    CI creates the bucket in its own MinIO step, so this is a no-op there. It is a
+    no-op on a real S3 too, where the CreateBucket either succeeds once or reports
+    that the bucket already exists. A storage endpoint that is genuinely
+    unreachable still fails the individual tests rather than being papered over —
+    this only removes "nobody ran the provisioning step" from the list of things a
+    red object-store suite can mean.
+    """
+    endpoint = (settings.s3_endpoint_url or "").strip()
+    if not endpoint:  # pragma: no cover - a deployment against AWS proper
+        return
+    url = "%s/%s" % (endpoint.rstrip("/"), settings.s3_bucket)
+    request = urllib.request.Request(url, method="PUT", data=b"")
+    try:
+        with urllib.request.urlopen(request, timeout=5):
+            pass
+    except urllib.error.HTTPError as exc:
+        # 409 BucketAlreadyOwnedByYou / BucketAlreadyExists is the happy path on a
+        # second run; anything else is left for the tests themselves to report.
+        if exc.code not in (409, 200):
+            _log_bucket_note(url, "%s %s" % (exc.code, exc.reason))
+    except OSError as exc:
+        _log_bucket_note(url, "%s: %s" % (type(exc).__name__, exc))
+
+
+def _log_bucket_note(url: str, detail: str) -> None:
+    print("\n[conftest] could not ensure the bucket at %s (%s)." % (url, detail), file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
