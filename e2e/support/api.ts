@@ -110,14 +110,26 @@ export async function createProject(
   request: APIRequestContext,
   token: string,
   name: string,
+  templateId?: string,
 ): Promise<Project> {
   const response = await request.post(`${apiBase()}/projects`, {
     headers: authHeaders(token),
-    data: { name },
+    data: templateId === undefined ? { name } : { name, templateId },
   });
   await expectOk(`POST /projects (${name})`, response);
   return (await response.json()) as Project;
 }
+
+/**
+ * The ready-made plan the §14 frame budgets are measured on.
+ *
+ * `fixtures/plans/blr-40x60-g2-4bhk.json` is a G+2 captured from a REAL solver
+ * run (CLAUDE.md: never typed by hand) — three storeys, 29 walls and the whole
+ * opening/stair/room expansion. The budgets say "the demo G+2", and the seeded
+ * demo has no solved plan until the solver has run on it, which is why they sat
+ * skipped; this template is the same load, arranged in one POST.
+ */
+export const G2_PLAN_TEMPLATE_ID = 'blr-40x60-g2-4bhk';
 
 export async function listProjects(request: APIRequestContext, token: string): Promise<Project[]> {
   const response = await request.get(`${apiBase()}/projects`, { headers: authHeaders(token) });
@@ -233,7 +245,9 @@ export interface FoldedModel {
       regProfile: { cityPack: string | null; overrides: Record<string, unknown> };
     };
     house: {
-      storeys: { id: string; name: string }[];
+      /** `index` is the storey ORDER (0 = ground); a spec that wants the
+          ground storey must sort by it, not trust array order. */
+      storeys: { id: string; name: string; index: number }[];
       walls: {
         id: string;
         storeyId: string;

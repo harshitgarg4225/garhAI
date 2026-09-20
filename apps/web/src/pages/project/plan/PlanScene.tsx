@@ -41,6 +41,15 @@
  * §15's "switching storeys instant". Pre-building every storey's meshes would
  * be faster still and is the obvious next step if a G+3 ever feels slow.
  *
+ * ════════════════════════════════════════════════════════════════════════════
+ * HATCHES
+ * ════════════════════════════════════════════════════════════════════════════
+ * A wall whose surface is bound to a material (op 29) or hand-picked in the
+ * hatch panel is drawn the way the SHEET will poché it: the same line families
+ * the drawings service generates, at the sheet's own density, clipped to the
+ * wall's solid runs. `planHatch.ts` owns that derivation; an unbound wall
+ * keeps the flat ink poché, so the pattern appears exactly where a binding was
+ * made. Hatched walls are a second merged mesh with the same pick resolver.
  */
 
 import { useEffect, useMemo } from 'react';
@@ -56,6 +65,8 @@ import {
   type PickKind,
 } from '../../../features/canvas/core';
 import { CoPresenceLayer } from '../../../features/canvas/copresence';
+import type { HatchOverrides } from '../../../features/hatchpicker';
+import type { MaterialItem } from '../../../lib/schemas';
 import {
   buildBalconyBuffers,
   buildColumnBuffers,
@@ -67,7 +78,9 @@ import {
   faceResolver,
   type MergedFaces,
 } from './planBuffers';
+import { buildWallHatch, EMPTY_HATCH } from './planHatch';
 import { getPlanMaterials } from './planMaterials';
+import { publishPlanGeometryStats } from './planProbe';
 
 // ---------------------------------------------------------------------------
 // Geometry lifecycle
@@ -172,6 +185,16 @@ export interface PlanSceneProps {
   readonly elevationMm: number;
   /** Draw the room washes. Off with the room-tag layer. */
   readonly showRooms?: boolean | undefined;
+  /**
+   * What the hatch panel decided, so a bound wall is drawn the way the sheet
+   * will poché it. Omitted (a preview, a share view) = every wall flat.
+   */
+  readonly hatch?:
+    | {
+        readonly catalog: ReadonlyMap<string, MaterialItem>;
+        readonly overrides: HatchOverrides;
+      }
+    | undefined;
 }
 
 export function PlanScene({
@@ -179,14 +202,37 @@ export function PlanScene({
   storeyId,
   elevationMm,
   showRooms = true,
+  hatch,
 }: PlanSceneProps): JSX.Element {
   const core = useCanvasCore();
   const materials = getPlanMaterials();
 
+  // ── hatches: which walls the sheet will pattern, and the lines it draws ──
+  const hatched = useMemo(() => {
+    if (hatch === undefined || storeyId === null) return EMPTY_HATCH;
+    return buildWallHatch({ house, storeyId, catalog: hatch.catalog, overrides: hatch.overrides });
+  }, [house, storeyId, hatch]);
+
   // ── walls: poché with the openings genuinely cut out ─────────────────────
-  const wallFaces = useMemo(
-    () => buildWallFaces(house, storeyId, elevationMm),
-    [house, storeyId, elevationMm],
+  // Two merged meshes when anything is hatched: the patterned walls wear a
+  // faint wash under their linework, the rest keep the ink poché. Both come
+  // from the same builder and register the same resolver, so a hatched wall
+  // is exactly as clickable as a flat one.
+  const { wallFaces, hatchedWallFaces } = useMemo(() => {
+    if (hatched.wallIds.size === 0) {
+      return { wallFaces: buildWallFaces(house, storeyId, elevationMm), hatchedWallFaces: null };
+    }
+    const flat = { ...house, walls: house.walls.filter((w) => !hatched.wallIds.has(w.id)) };
+    const patterned = { ...house, walls: house.walls.filter((w) => hatched.wallIds.has(w.id)) };
+    return {
+      wallFaces: buildWallFaces(flat, storeyId, elevationMm),
+      hatchedWallFaces: buildWallFaces(patterned, storeyId, elevationMm),
+    };
+  }, [house, storeyId, elevationMm, hatched]);
+
+  const hatchLinePositions = useMemo(
+    () => hatched.linePositions(elevationMm),
+    [hatched, elevationMm],
   );
 
   // ── rooms: the wash that makes a plan readable at a glance ───────────────
@@ -226,7 +272,26 @@ export function PlanScene({
   // change only the memo inputs, so ask explicitly.
   useEffect(() => {
     core.invalidate();
-  }, [core, wallFaces, roomFaces, openings, stairs, balconies, columns]);
+    // What was built, for the dev test handle. Once per geometry rebuild, in
+    // the effect that already runs then — never per frame. See `planProbe`.
+    publishPlanGeometryStats({
+      hatchLineVertices: hatchLinePositions.length / 3,
+      wallFaceVertices:
+        wallFaces.positions.length / 3 + (hatchedWallFaces?.positions.length ?? 0) / 3,
+      hatchedWallCount: hatched.wallIds.size,
+    });
+  }, [
+    core,
+    wallFaces,
+    hatchedWallFaces,
+    hatchLinePositions,
+    hatched,
+    roomFaces,
+    openings,
+    stairs,
+    balconies,
+    columns,
+  ]);
 
   return (
     <group name="plan">
@@ -253,6 +318,16 @@ export function PlanScene({
         layer="wall"
         material={materials.wallFill}
       />
+      {hatchedWallFaces === null ? null : (
+        <MergedLayer
+          faces={hatchedWallFaces}
+          kind="wall"
+          storeyId={storeyId}
+          layer="wall"
+          material={materials.hatchedWallFill}
+        />
+      )}
+      <LineLayer positions={hatchLinePositions} layer="wall" material={materials.hatchLine} />
       <LineLayer positions={wallOutlinePositions} layer="wall" material={materials.wallLine} />
       <MergedLayer
         faces={openings.faces}

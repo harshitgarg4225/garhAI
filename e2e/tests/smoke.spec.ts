@@ -90,7 +90,7 @@ test.describe('@smoke Phase 0: login, dashboard, project shell', () => {
   test('login with the dev OTP lands on the dashboard', async () => {
     await signInThroughUi(page, DEMO_EMAIL);
 
-    await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
     // The shell knows who is signed in — the firm name comes from the API, not the token.
     await expect(page.getByText(DEMO_FIRM_NAME).first()).toBeVisible();
     expect(new URL(page.url()).pathname).toBe('/');
@@ -120,7 +120,7 @@ test.describe('@smoke Phase 0: login, dashboard, project shell', () => {
     await expect(page.getByText(/30/).first()).toBeVisible();
 
     await page.goto(`${APP_URL}/`);
-    await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
   });
 
   test('create an empty project — the Phase 0 DoD sentence', async () => {
@@ -258,7 +258,7 @@ test.describe('@smoke Phase 0: login, dashboard, project shell', () => {
 
   test('signing out returns to the login screen', async () => {
     await page.goto(`${APP_URL}/`);
-    await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
 
     // `AppShell` renders it as an icon button with an accessible name — which is exactly
     // why the locator can be a role query (§15 accessibility: no unlabelled icon buttons).

@@ -21,6 +21,10 @@ import { readTokenColor } from '../../../features/canvas/core';
 export type PlanMaterials = {
   /** Wall poché — the solid fill an architect reads as "wall". */
   readonly wallFill: MeshBasicMaterial;
+  /** A hatched wall's fill: a faint wash under its linework, so the pattern reads. */
+  readonly hatchedWallFill: MeshBasicMaterial;
+  /** The hatch lines themselves — ink, like the sheet's poché. */
+  readonly hatchLine: LineBasicMaterial;
   /** Room wash, very light: it must not fight the walls for attention. */
   readonly roomFill: MeshBasicMaterial;
   /** The reveal inside an opening: paper, so the wall reads as interrupted. */
@@ -56,6 +60,19 @@ function build(): PlanMaterials {
       // Not 1.0: at 0.88 a wall under a selection wash still reads as a wall,
       // and overlapping poché from two coplanar walls does not go pure black.
       opacity: 0.88,
+      depthWrite: false,
+    }),
+    hatchedWallFill: new MeshBasicMaterial({
+      color: ink.clone(),
+      side: DoubleSide,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+    }),
+    hatchLine: new LineBasicMaterial({
+      color: ink.clone(),
+      transparent: true,
+      opacity: 0.85,
       depthWrite: false,
     }),
     roomFill: new MeshBasicMaterial({
@@ -128,6 +145,8 @@ export function refreshPlanMaterials(): void {
   const brand = readTokenColor('--garh-brand');
 
   cache.wallFill.color.copy(ink);
+  cache.hatchedWallFill.color.copy(ink);
+  cache.hatchLine.color.copy(ink);
   cache.roomFill.color.copy(brand);
   cache.openingFill.color.copy(paper);
   cache.balconyFill.color.copy(inkSubtle);

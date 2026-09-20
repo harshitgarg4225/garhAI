@@ -31,6 +31,7 @@
  */
 
 import { useCopilotStore } from '../features/copilot/useCopilot';
+import { planGeometryStats, planPickAt, type PickProbe } from '../pages/project/plan/planProbe';
 import { useModelStore } from '../stores/model';
 import { useSelectionStore } from '../stores/selection';
 import { useThreeStore } from '../stores/three';
@@ -53,6 +54,18 @@ import { useUiStore } from '../stores/ui';
 export interface GarhTestHooks {
   /** Replace the selection — the same store write a canvas pick performs. */
   readonly select: (ids: readonly string[]) => void;
+  /**
+   * What a click at this PAGE pixel would hit, through the one picker.
+   *
+   * Read-only, and it is not a shortcut around clicking: the specs still
+   * click. It answers the one question a click CANNOT, because
+   * `selectTool.pick()` falls back to a geometric search when the raycast is
+   * empty — so an unregistered mesh is still selected by clicking it, and a
+   * click-only test of CLAUDE.md bug 4 cannot go red. Measured, not assumed:
+   * removing the hatched-wall layer's registration left `plan-hatch.spec.ts`
+   * green until this probe was added.
+   */
+  readonly pick: (clientX: number, clientY: number) => PickProbe;
   /** Read-only state probe for expect.poll. */
   readonly snapshot: () => {
     readonly selectedIds: readonly string[];
@@ -76,6 +89,19 @@ export interface GarhTestHooks {
     readonly copilotLastOpCount: number;
     /** Undo entries. One copilot apply must add exactly one, whatever its size. */
     readonly undoDepth: number;
+    /* ── The 2D plan's geometry, as counts (`pages/project/plan/planProbe`).
+       A WebGL canvas has no accessible structure, so "did the hatch actually
+       draw?" has no other honest answer — and a layer that renders nothing
+       while every op-log assertion passes is CLAUDE.md's bug 4. Counts only:
+       they say geometry was built and mounted, never what it looks like. ── */
+    /** Vertices in the hatch `LineSegments`. 0 when no surface is bound. */
+    readonly hatchLineVertices: number;
+    /** Triangle vertices across the flat and hatched wall meshes. */
+    readonly wallFaceVertices: number;
+    /** Walls drawn with a pattern rather than the flat poché. */
+    readonly hatchedWallCount: number;
+    /** Plan geometry rebuilds since load — a pan must not move this. */
+    readonly planRebuildCount: number;
   };
 }
 
@@ -93,11 +119,13 @@ export function installTestHooks(): void {
     select: (ids) => {
       useSelectionStore.getState().selectMany(ids);
     },
+    pick: (clientX, clientY) => planPickAt(clientX, clientY),
     snapshot: () => {
       const model = useModelStore.getState();
       const three = useThreeStore.getState();
       const turns = useCopilotStore.getState().turns;
       const lastTurn = turns[turns.length - 1];
+      const plan = planGeometryStats();
       return {
         selectedIds: useSelectionStore.getState().ids,
         viewMode: useUiStore.getState().viewMode,
@@ -117,6 +145,10 @@ export function installTestHooks(): void {
         // what "one group of N" is asserted against.
         copilotLastOpCount: lastTurn?.proposal?.ops.length ?? 0,
         undoDepth: model.undoStack.length,
+        hatchLineVertices: plan.hatchLineVertices,
+        wallFaceVertices: plan.wallFaceVertices,
+        hatchedWallCount: plan.hatchedWallCount,
+        planRebuildCount: plan.rebuildCount,
       };
     },
   };

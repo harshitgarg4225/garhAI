@@ -104,6 +104,7 @@ import {
   CanvasRoot,
   dollyOrbit,
   Grid,
+  ndcFromPointer,
   OutlinePolyline,
   scaleLabel,
   watchCanvasTheme,
@@ -150,7 +151,7 @@ import { RenderCaptureBridge, RenderLauncher } from '../../features/renders';
 // Tracing underlay (features/underlay). Two mounts below, both tagged
 // "UNDERLAY" — the layer inside the canvas, the panel in the DOM overlay.
 import { AssetBrowser } from '../../features/assets';
-import { HatchBindingPanel } from '../../features/hatchpicker';
+import { HatchBindingPanel, useHatchOverrides } from '../../features/hatchpicker';
 import {
   LayerPanel,
   useLayerPickGate,
@@ -188,6 +189,7 @@ import {
   disposePlanMaterials,
   planExtentMm,
   elementsExtentMm,
+  publishPlanPicker,
   refreshPlanMaterials,
   storeyFflMm,
   useFurnitureItems,
@@ -291,6 +293,32 @@ function PlanEditor(): JSX.Element {
 
   const [core, setCore] = useState<CanvasCore | null>(null);
 
+  /**
+   * DEV-only: hand the specs the RAYCAST's own answer at a page pixel.
+   *
+   * A click is not a test of registration — `selectTool` falls back to a
+   * geometric search when the pick is empty, so an unregistered mesh is still
+   * selected by clicking it (measured: sabotaging the hatched-wall layer left
+   * `plan-hatch.spec.ts` green). This publishes `CanvasCore.pick`, the one
+   * picker, so a spec can assert that a layer genuinely reached the registry.
+   * Read-only, tree-shaken out of production with the rest of the handle.
+   */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    if (core === null) return undefined;
+    publishPlanPicker((clientX, clientY) => {
+      // The <canvas> itself: NDC is defined against the drawing surface, and
+      // the scope marker sits on an ancestor that may be larger.
+      const surface = document.querySelector('[data-garh-canvas] canvas');
+      if (surface === null) return { kind: 'unavailable', id: null };
+      const hit = core.pick(ndcFromPointer(clientX, clientY, surface.getBoundingClientRect()));
+      return { kind: hit.kind, id: hit.id };
+    });
+    return () => {
+      publishPlanPicker(null);
+    };
+  }, [core]);
+
   // The lock half of the layer manager. Here rather than beside the other two
   // layer calls because it needs `core`, which is state declared on this line.
   useLayerPickGate(core, house);
@@ -310,6 +338,14 @@ function PlanEditor(): JSX.Element {
   // Module-level promise cache inside the hook: one fetch per session, shared
   // with the MaterialsPanel in the inspector rail.
   const materialsCatalogue = useMaterialsCatalogue();
+  // The hatch panel's decisions, so the plan draws a bound wall the way the
+  // sheet will poché it (`planHatch.ts`). One object per change, memoised, so
+  // PlanScene's geometry memo is not rebuilt on every render.
+  const hatchOverrides = useHatchOverrides();
+  const hatch = useMemo(
+    () => ({ catalog: materialsCatalogue.index, overrides: hatchOverrides }),
+    [materialsCatalogue.index, hatchOverrides],
+  );
   const materialColors = useMemo<Readonly<Record<string, string>> | undefined>(() => {
     if (materialsCatalogue.loadable.state !== 'ready') return undefined;
     const out: Record<string, string> = {};
@@ -874,6 +910,7 @@ function PlanEditor(): JSX.Element {
               house={layerView.house}
               storeyId={activeStoreyId}
               elevationMm={elevationMm}
+              hatch={hatch}
             />
 
             {/* `axes` and `sceneUnitsPerMm` are the two values the furniture

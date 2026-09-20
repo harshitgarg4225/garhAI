@@ -67,6 +67,8 @@ import {
 const VIEW = { centreMm: { x: 3000, y: 2000 }, mmPerPx: 5 };
 const SIZE = { width: 1600, height: 1000 };
 const STOREY = FIXTURE_IDS.groundStorey;
+/** The south wall, named once for the split-mesh describe below. */
+const SOUTH_ID = FIXTURE_IDS.wallSouth;
 
 /** A plan camera framed like `CameraRig.sync` for the 2D view. */
 function planCamera(planeElevationMm: number): OrthographicCamera {
@@ -345,5 +347,42 @@ describe('packTriangles', () => {
     expect(faces.positions[4]).toBeCloseTo(2.7, 5);
     // Vertex 2: (1000, 1000) → z = −1.
     expect(faces.positions[8]).toBeCloseTo(-1, 5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Hatched walls are a SECOND merged mesh — and must stay clickable (bug 4)
+// ---------------------------------------------------------------------------
+
+describe('walls split across two meshes (hatched and flat) stay clickable', () => {
+  const doc = makeTwoRoomPlan();
+  // Exactly what `PlanScene` does when a binding exists: the bound walls are
+  // built into their own buffer and the rest into another. A resolver built
+  // from the wrong faces array would resolve a click to the wrong wall, and
+  // nothing about that is visible to the compiler.
+  const hatchedIds = new Set([SOUTH_ID]);
+  const flatHouse = { ...doc.house, walls: doc.house.walls.filter((w) => !hatchedIds.has(w.id)) };
+  const patternedHouse = {
+    ...doc.house,
+    walls: doc.house.walls.filter((w) => hatchedIds.has(w.id)),
+  };
+
+  const registry = new PickRegistry();
+  mountLayer(registry, buildWallFaces(flatHouse, STOREY, 0), 'wall');
+  mountLayer(registry, buildWallFaces(patternedHouse, STOREY, 0), 'wall');
+
+  it('clicks the hatched wall and gets the hatched wall', () => {
+    const hit = click(registry, { x: 1500, y: 0 });
+    expect(hit.kind).toBe('wall');
+    expect(hit.id).toBe(SOUTH_ID);
+  });
+
+  it('clicks a flat wall and gets that one, not the hatched one', () => {
+    const hit = click(registry, { x: 3000, y: 2000 });
+    expect(hit.id).toBe(FIXTURE_IDS.wallSpine);
+  });
+
+  it('still reports empty off every wall (negative control)', () => {
+    expect(click(registry, { x: 1500, y: 600 }).kind).toBe('empty');
   });
 });

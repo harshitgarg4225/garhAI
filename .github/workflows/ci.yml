@@ -590,13 +590,23 @@ jobs:
 
   # ══════════════════════════════════════════════════════════════════════════
   # 5. e2e (smoke + canvas) — login → open demo → edit wall → undo → chip,
-  #    then the 2D editor and the 3D DoD in a real (SwiftShader) browser.
+  #    then the 2D editor, the 3D DoD and the §14 budgets in a real
+  #    (SwiftShader) browser.
   # ══════════════════════════════════════════════════════════════════════════
   # Runs the real stack via `docker compose up`, because that is the supported
   # way to run this app (playbook §1) — testing a bespoke CI-only wiring would
   # be testing something users never run.
+  #
+  # The @canvas step is the second half, and it is not decoration: the 2D
+  # editor's DoD walk, the 3D DoD walk, the hatch layer's PickRegistry test and
+  # the §14 frame budgets are all claims only a browser can settle. Until this
+  # step existed they ran on whoever remembered to run them locally — and
+  # `plan-canvas.spec.ts` had in fact been UNLOADABLE (a TypeScript parameter
+  # property in `@garh/model`, which Node's strip-only transform refuses), which
+  # every tsc, eslint and vitest run happily missed. A spec nothing executes is
+  # not a test.
   e2e-smoke:
-    name: e2e (smoke)
+    name: e2e (smoke + canvas)
     runs-on: ubuntu-latest
     timeout-minutes: 50
     needs: [golden]
@@ -633,14 +643,22 @@ jobs:
           API_URL: http://localhost:8000
         run: pnpm --filter @garh/e2e test:smoke
 
+      # Reuses the stack the smoke step just proved healthy, so this costs a
+      # few minutes rather than another compose boot.
+      #
       # The canvas suites need a GPU-less WebGL context, which is what
-      # SwiftShader is; Chromium falls back to it on a headless runner. They
-      # ran only by hand until 2026-09-20 — and the 3D tree changed under
-      # them repeatedly — so the one thing nobody had executed since August
-      # was the 3D DoD itself: the boolean engine's holes, a real click
-      # resolved by the shared picker, the sun moving the shadows, and the
-      # GLB the Export panel produces.
-      - name: Playwright canvas (2D editor + the 3D DoD)
+      # SwiftShader is; Chromium falls back to it on a headless runner. They ran
+      # only by hand until 2026-09-20 — and the 3D tree changed under them
+      # repeatedly — so the one thing nobody had executed since August was the 3D
+      # DoD itself: the boolean engine's holes, a real click resolved by the
+      # shared picker, the sun moving the shadows, and the GLB the Export panel
+      # produces.
+      #
+      # It also carries the §14 budgets, written to survive a runner with no GPU:
+      # each frame budget measures the SAME gesture on a one-wall plan first and
+      # holds the G+2 to a multiple of it, and asserts the plan's geometry REBUILD
+      # COUNT, which is the same integer on every machine. See performance.spec.ts.
+      - name: Playwright canvas DoD (2D editor, 3D) + §14 budgets
         env:
           APP_URL: http://localhost:5173
           API_URL: http://localhost:8000

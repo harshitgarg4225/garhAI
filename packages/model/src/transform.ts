@@ -684,10 +684,22 @@ function resolveSelection(house: HouseModel, elementIds: readonly string[]): Res
 class IdMint {
   private readonly taken: Set<string>;
 
-  constructor(
-    house: HouseModel,
-    private readonly groupId: string,
-  ) {
+  /**
+   * NOT a constructor parameter property (`private readonly groupId: string`
+   * in the signature), though that is what this was. A parameter property is
+   * the one TypeScript feature that needs real code EMIT rather than type
+   * erasure, and Playwright loads specs through Node's strip-only transform —
+   * so the whole of `@garh/model` failed to parse there, which took every e2e
+   * spec that imports the model core with it, including the @canvas DoD spec.
+   * It fails at load with `SyntaxError: TypeScript parameter property is not
+   * supported in strip-only mode`, names no file, and no `tsc`, lint or vitest
+   * run sees it. An explicit field costs one line and keeps the model core
+   * loadable by every runtime that erases types.
+   */
+  private readonly groupId: string;
+
+  constructor(house: HouseModel, groupId: string) {
+    this.groupId = groupId;
     this.taken = new Set<string>();
     for (const s of house.storeys) this.taken.add(s.id);
     for (const w of house.walls) this.taken.add(w.id);

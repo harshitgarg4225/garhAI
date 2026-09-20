@@ -46,6 +46,16 @@ export { RoomTagEditor } from './RoomTagEditor';
 export type { RoomTagEditorProps, RoomTagEditSession, RoomTagPart } from './RoomTagEditor';
 
 export { getPlanMaterials, refreshPlanMaterials, disposePlanMaterials } from './planMaterials';
+
+export {
+  buildWallHatch,
+  CANVAS_HATCH_SCALE_DENOMINATOR,
+  CANVAS_HATCH_SPACING_MM,
+  clipToConvexQuad,
+  EMPTY_HATCH,
+  wallHatchPattern,
+} from './planHatch';
+export type { WallHatch, WallHatchInput } from './planHatch';
 export type { PlanMaterials } from './planMaterials';
 
 export {
@@ -72,6 +82,11 @@ export {
   wallsOfStorey,
 } from './planGeometry';
 export type { OpeningSymbol, PtF, QuadF, StairSymbol, WallRun } from './planGeometry';
+
+/* The DEV test handle's probes. `publishPlanPicker` is the plan page's; the
+   readers live in `lib/testHooks`, which deep-imports them. */
+export { publishPlanPicker } from './planProbe';
+export type { PickProbe } from './planProbe';
 
 export { useSetbackContext } from './useSetbackContext';
 export { useFurnitureItems, resetFurnitureItemsCache } from './useFurnitureItems';
