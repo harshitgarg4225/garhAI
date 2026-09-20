@@ -57,6 +57,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import Any
 
+from services.drawings.blocks.base import Insertion
+from services.drawings.blocks.site import parked_car as car_block
 from services.drawings.dimensions import (
     DEFAULT_DIM_TO_JAMB,
     LEVEL_1_OFFSET_MM,
@@ -1490,6 +1492,85 @@ _SITE_FOOTPRINT_CHAIN_OFFSET_PAPER_UM = 5_000
 _SITE_NOTE_LINE_PAPER_UM = 4_000
 
 
+#: The catalogue id a car space is drawn as (garh_api.parking_geometry names the
+#: same one; services.solver.parking places it). A furniture instance with any
+#: other catalogue id is not site fabric and the site plan leaves it alone.
+PARKING_BAY_CATALOG_ID = "parking-bay"
+
+
+def _parking_bay_primitives(house: Any, scale_denominator: int) -> tuple[Primitive, ...]:
+    """Each ground-storey parking bay: its outline, a car symbol, and its label.
+
+    The bay's size comes from the furniture catalogue — the same source the rules
+    engine measures against — so a bay drawn here is the rectangle that was counted.
+    The car is :func:`services.drawings.blocks.site.parked_car`, turned to the bay's
+    own rotation, and the label is centred under it in the bay.
+    """
+    storeys = list(getattr(house, "storeys", ()) or ())
+    furniture = list(getattr(house, "furniture", ()) or ())
+    if not storeys or not furniture:
+        return ()
+    ground_id = storeys[0].id
+    size = _parking_bay_size_mm()
+    if size is None:
+        return ()
+    width_mm, depth_mm = size
+    out: list[Primitive] = []
+    for item in furniture:
+        if item.catalog_id != PARKING_BAY_CATALOG_ID or item.storey_id != ground_id:
+            continue
+        rotation = int(getattr(item, "rotation_deg", 0)) % 360
+        along_x = depth_mm if rotation % 180 else width_mm
+        along_y = width_mm if rotation % 180 else depth_mm
+        cx, cy = item.pt.x, item.pt.y
+        x1, y1 = cx - along_x // 2, cy - along_y // 2
+        x2, y2 = x1 + along_x, y1 + along_y
+        out.append(
+            Polyline(
+                ((x1, y1), (x2, y1), (x2, y2), (x1, y2)),
+                A_WALL_PART,
+                closed=True,
+                style=STYLE_DASHED,
+            )
+        )
+        out.extend(
+            car_block(
+                element_id=str(item.id),
+                insertion=Insertion(at=(cx, cy), rotation_deg=rotation),
+            )
+        )
+        out.append(
+            Text(
+                at=(cx, y1 + paper_to_model_mm(1_200, scale_denominator)),
+                text="C.P. %s x %s M" % (_metres(width_mm), _metres(depth_mm)),
+                layer=A_TEXT,
+                height_paper_um=TEXT_HEIGHT_SMALL_PAPER_UM,
+                anchor="middle",
+                baseline="middle",
+            )
+        )
+    return tuple(out)
+
+
+def _parking_bay_size_mm() -> tuple[int, int] | None:
+    """``(widthMm, depthMm)`` of the catalogue's parking bay, or ``None``.
+
+    The rules engine's own reader (``garh_api.parking_geometry``, pure stdlib), so
+    the bay the desk sees is the bay that was counted.
+    """
+    try:
+        from garh_api.parking_geometry import catalog_bay_size_mm
+    except ImportError:  # pragma: no cover - the drawings worker carries apps/api
+        return None
+    return catalog_bay_size_mm()
+
+
+def _metres(mm: int) -> str:
+    """``2500`` -> ``"2.5"``; a whole number of metres keeps one decimal ("5.0")."""
+    whole, rest = divmod(mm, 1_000)
+    return "%d.%d" % (whole, (rest + 50) // 100)
+
+
 def _edge_outward(a: Pt2, b: Pt2, centre: Pt2) -> tuple[int, int]:
     """Unit outward normal of an axis-aligned plot edge, judged against the centroid."""
     if a[1] == b[1]:
@@ -1526,12 +1607,19 @@ def _plot_size_note(boundary: Sequence[Pt2]) -> str | None:
 def site_plan_primitives(
     doc: Any, *, statement: Any = None, scale_denominator: int = 200
 ) -> tuple[tuple[Primitive, ...], tuple[DimChain, ...]]:
-    """Plot boundary, footprint, road, dimensioned setbacks, north, coverage/FAR note.
+    """Plot boundary, footprint, road, parking bays, dimensioned setbacks, north, notes.
 
     Every side of the plot is chained (outside the road band where there is one), the
     footprint carries its overall width and depth, each road its width across the
     band, and the four setbacks their clear distance — so a desk can read the whole
     site off the sheet without a scale rule.
+
+    **Car parking is drawn, because it is checked.** Every ``parking-bay`` the model
+    carries on the ground storey becomes a bay outline with the site block's car
+    symbol inside it and a "C.P. 2.5 x 5.0 M" label, so the space the rules engine
+    counted (``garh_api.parking_geometry``) is the space the sanctioning desk sees.
+    A sheet that passed a parking rule while showing no car was the old lie; the
+    drawing and the compliance row now come from the same rectangle.
 
     Setback *values* are not measured here — they are read off the area statement's
     ``setbacks`` rows, which the rules engine produced. §7's "same numbers, one source"
@@ -1731,6 +1819,9 @@ def site_plan_primitives(
             )
             if chain is not None:
                 chains.append(chain)
+
+    # Car parking: the bays the rules engine measured, with a car in each.
+    out.extend(_parking_bay_primitives(house, scale_denominator))
 
     assert_chains_sum(tuple(chains))
     out.extend(

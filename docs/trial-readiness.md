@@ -37,10 +37,10 @@ PASS  sheets appear                     — 10 sheets
 
 ## Generation
 
-|                                          |                                                                                                     |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Stage-A coverage, 60 configurations      | **24 → 42** after today's two fixes, zero regressions                                               |
-| Whole briefs through the live API, gated | **4 of 6** produce options; circulation 14–18% (inside the §5.6 cap), composite 75–89 (floor is 55) |
+|                                          |                                                                                                       |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Stage-A coverage, 60 configurations      | **24 → 42** after today's two fixes, zero regressions (re-measured 2026-09-20: **37/60** — see below) |
+| Whole briefs through the live API, gated | **4 of 6** produce options; circulation 14–18% (inside the §5.6 cap), composite 75–89 (floor is 55)   |
 
 Two defects fixed, both found by running the product:
 
@@ -66,6 +66,22 @@ and moving a bedroom downstairs does not help.
 **Still failing:** 18 of 60 offline configurations. Twelve are the 20×30 ft rows the
 sweep's own docstring says its fixed 1.5/1.5/1.0 m setbacks judge unfairly (production
 derives smaller setbacks for small plots). The rest are large briefs on one floor.
+
+**Re-measured 2026-09-20 — and the caveat above was backwards.** `solver_coverage.py`
+now derives each edge's setback from the city pack the way `garh_rules.areas` does
+(every applicable `setback_min` rule, strictest wins), instead of a fixed 1.5/1.5/1.0.
+The fixed numbers were not harsher on small plots, they were kinder: BBMP's front
+setback off a 9 m road is 3 m from the road-width band, and the sweep applied the 1.5 m
+plot-area band that the road band overrides. So every row had been flattered, and
+coverage fell to **37 of 60** when the real numbers went in — with the parking pass
+making no difference to it either way, since bays are placed in stage B.
+
+The 23 failures: twelve are the entire 20 × 30 column (21.1 m² of ground floor under
+the seeded setbacks against the ~28 m² a two-bedroom programme needs — the pack's
+number, for the empanelled review, and stage A proves it arithmetically rather than
+guessing); eight are G+0 briefs wanting a whole 3–4BHK programme on one plate, all of
+which solve at G+1 or on a bigger plot; three are 4BHK G+1 on the large plots, the
+sparse-upper-storey shape first seen on 2026-08-31 and still open.
 
 ## Generate no longer answers with a blank screen
 
@@ -322,7 +338,11 @@ sheets_tags` (+ the `{}` and wrong-mapping negative controls),
   hard-only gate has been corrected. The remaining gap — the solver honouring
   acknowledgements — is the solver's search and is left to task #46. CLAUDE.md still
   carries the old "blocks only `hard` rules" phrasing in bug 8 and the plan-library
-  section. Ledger: `docs/phase-2-verification.md` §7.
+  section; `services/solver/gates.py` now states the real semantics in its own
+  docstring, and `fixtures/plans/README.md` no longer claims the library gate is
+  stricter in the rules it reads (it is not — it is a second evaluation, of the
+  project a user creates rather than the fragment the solver built).
+  Ledger: `docs/phase-2-verification.md` §7.
 - **The 230 mm door pier made stage A and stage B disagree (fixed 2026-09-03).**
   Raising the wall-end margin for doors left stage A floor-planning passages and
   stair arrivals at a naive 900 mm and giving circulation rooms no frontage floor at
