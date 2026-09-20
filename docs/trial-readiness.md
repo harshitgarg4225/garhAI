@@ -35,7 +35,7 @@ PASS  sheets appear                     — 10 sheets
 
 ---
 
-## The browser journey: 12 of 12, twice (UAT runs 14 and 15, 2026-09-20)
+## The browser journey: 12 of 12, three times (UAT runs 14, 15 and 16, 2026-09-20)
 
 `e2e/uat/journey.py` walks the same product in a real Chromium against a live stack,
 which is a different question from the API journey above: it can only pass if the
@@ -55,6 +55,12 @@ PASS  Download the PDF set and the DXF through the app               290,505-byt
 PASS  Share link: create, open anonymously, comment
 PASS  Sign out returns to the login page
 ```
+
+Run 16 is the same twelve steps against the finished tree — after the circulation rules,
+the override gate, the annexure line and the Fix-it gating landed — and is the run that
+says none of those broke the journey. Its compliance step still reads `'fail' mentions: 0`
+on a ready-made plan, which is the ready-made library clearing two rules that did not
+exist when those plans were solved.
 
 Run 13 (earlier the same day) reached 8 of 12: the Sheets step timed out after 240 s
 and took the three steps after it down with it, each reporting a `Locator.click`
