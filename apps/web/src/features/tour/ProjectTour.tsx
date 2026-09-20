@@ -12,15 +12,16 @@
  *     they asked for;
  *   - **navigation**: a step that lives on another tab navigates there first, so
  *     the highlight always points at something that is on screen;
- *   - **the keyboard map**: while the tour is open the app-wide shortcuts are
- *     off (`setKeyboardEnabled(false)`, the same switch a modal flips), so `G`
- *     does not arm the wall tool under the dialog.
+ *   - **the keyboard map**: the tour owns the app-wide shortcuts only while
+ *     focus is inside its card, so ←/→ move the tour rather than nudging a
+ *     selection — and the moment the architect clicks the canvas, `W` and `0`
+ *     are theirs again.
  *
  * Skip, Escape and Finish all persist completion (`setTourDone(true)`); "Take the
  * tour" in the top bar re-runs it from step one at any time.
  */
 
-import { useEffect, useRef, type JSX } from 'react';
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useUiStore } from '../../stores/ui';
@@ -92,12 +93,35 @@ export function ProjectTour({
     }
   }, [open, step, index, currentTab, projectId, navigate]);
 
-  // Own the keyboard while open, like a modal; hand it back on close/unmount.
+  /*
+   * WHO OWNS THE KEYBOARD WHILE THE TOUR IS UP.
+   *
+   * It used to be the tour, unconditionally: `setKeyboardEnabled(false)` for as
+   * long as the card was on screen. That reads fine and is wrong, because the
+   * overlay stopped being modal when its dim layer went `pointer-events-none`
+   * — half a modal is not a design, it is a trap. Step 4 of the tour is the
+   * PLAN step: it opens over the 2D canvas, next to an empty-state card that
+   * says "Press W and click twice to draw your first wall", and W did nothing.
+   * The first architect to follow that sentence would have concluded the
+   * drawing tools were broken. CI run 95 found it the same way, three specs at
+   * once: the wall tool committed nothing, in a browser, with the tour open.
+   *
+   * So the rule is focus, which is the one thing that can tell the two apart:
+   * while the card has focus its ←/→/Enter mean the tour; the moment focus is
+   * anywhere else — the architect clicked the canvas, or tabbed out — the app's
+   * own shortcuts are live again. Closing or unmounting always hands them back.
+   */
+  const [focusInCard, setFocusInCard] = useState(false);
+  const onFocusWithinChange = useCallback((within: boolean) => setFocusInCard(within), []);
+
   useEffect(() => {
-    if (!open) return undefined;
-    setKeyboardEnabled(false);
+    if (!open) {
+      setFocusInCard(false);
+      return undefined;
+    }
+    setKeyboardEnabled(!focusInCard);
     return () => setKeyboardEnabled(true);
-  }, [open, setKeyboardEnabled]);
+  }, [open, focusInCard, setKeyboardEnabled]);
 
   const anchor = useTourAnchor(
     open && step !== undefined && currentTab === step.tab ? step.anchor : null,
@@ -112,6 +136,7 @@ export function ProjectTour({
       onStepChange={(next) => setTourStep(clampStep(next))}
       onSkip={() => setTourDone(true)}
       onFinish={() => setTourDone(true)}
+      onFocusWithinChange={onFocusWithinChange}
     />
   );
 }

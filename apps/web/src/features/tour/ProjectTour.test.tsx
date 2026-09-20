@@ -185,6 +185,53 @@ describe('ProjectTour', () => {
     expect(lastPath).toBe('/projects/p1/sheets');
   });
 
+  /*
+   * THE CI RUN 95 CASE, in a unit test.
+   *
+   * The tour opens on the Plan step, over a canvas whose empty state says
+   * "Press W and click twice to draw your first wall" — and W did nothing,
+   * because the tour held `keyboardEnabled` false for as long as it was on
+   * screen. Three browser specs failed on it at once (the wall tool committed
+   * nothing) and an architect would have read it as broken drawing tools.
+   *
+   * Focus decides. The card has it on open, so the tour's arrow keys are
+   * unambiguous; a click on the canvas takes it away, and the app's shortcuts
+   * come straight back WITHOUT the tour closing.
+   */
+  it('hands the keyboard back the moment focus leaves the card, tour still open', () => {
+    const elsewhere = document.createElement('button');
+    document.body.appendChild(elsewhere);
+
+    mount('plan');
+    expect(card()?.getAttribute('data-step')).toBe('plan');
+    expect(useUiStore.getState().keyboardEnabled).toBe(false);
+
+    act(() => elsewhere.focus());
+    expect(useUiStore.getState().tourStep).not.toBeNull();
+    expect(card()).not.toBeNull();
+    expect(
+      useUiStore.getState().keyboardEnabled,
+      'the tour is still on screen but the architect is on the canvas — W must be theirs',
+    ).toBe(true);
+
+    // And back again, so the arrow keys never mean two things at once.
+    const cardEl = card();
+    act(() => (cardEl as HTMLElement).focus());
+    expect(useUiStore.getState().keyboardEnabled).toBe(false);
+    elsewhere.remove();
+  });
+
+  it('negative control: focus inside the card is what turns the shortcuts off', () => {
+    // Without the focus rule this reads identically to the test above, so it is
+    // worth stating: while nothing has moved focus out, the shortcuts ARE off.
+    // A version that simply stopped touching `keyboardEnabled` would pass the
+    // previous test and fail this one.
+    mount('plan');
+    expect(useUiStore.getState().keyboardEnabled).toBe(false);
+    click('tour-next');
+    expect(useUiStore.getState().keyboardEnabled).toBe(false);
+  });
+
   it('Next advances the store; Skip marks the tour done, persists it and hands the keyboard back', () => {
     mount('brief');
     click('tour-next');

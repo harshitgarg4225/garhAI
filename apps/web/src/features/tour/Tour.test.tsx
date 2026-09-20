@@ -1,8 +1,8 @@
 /**
  * The tour card, rendered for real: every step's copy, the counter, the buttons
- * and — the accessibility contract — the dialog role, the focus trap, Escape,
+ * and — the accessibility contract — the dialog role, where focus goes, Escape,
  * and the arrow keys. Each behaviour has the run that would break it: a Back on
- * step one that moved, an Escape that did not skip, a Tab that left the card.
+ * step one that moved, an Escape that did not skip, a Tab the card swallowed.
  */
 
 import { act, type ReactElement } from 'react';
@@ -32,12 +32,13 @@ function card(): HTMLElement {
   return el;
 }
 
-function press(target: Element, key: string, init: KeyboardEventInit = {}): void {
+/** Dispatch a keydown and report whether anything claimed it. */
+function press(target: Element, key: string, init: KeyboardEventInit = {}): boolean {
+  const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init });
   act(() => {
-    target.dispatchEvent(
-      new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }),
-    );
+    target.dispatchEvent(event);
   });
+  return event.defaultPrevented;
 }
 
 function click(testId: string): void {
@@ -264,7 +265,7 @@ describe('Tour', () => {
     expect(onFinish).toHaveBeenCalledTimes(1);
   });
 
-  it('Skip calls onSkip, and focus lands inside the card and is trapped there', () => {
+  it('Skip calls onSkip, and opening moves focus into the card without trapping it', () => {
     const outside = document.createElement('button');
     outside.textContent = 'outside';
     document.body.appendChild(outside);
@@ -273,22 +274,58 @@ describe('Tour', () => {
 
     const onSkip = vi.fn();
     mount(<Tour open step={0} anchor={null} onStepChange={noop} onSkip={onSkip} onFinish={noop} />);
-    // The trap moves focus to the first focusable control in the card.
+    // Opening puts focus on the card, so Escape and the arrow keys work and a
+    // screen reader starts reading the step.
     expect(card().contains(document.activeElement)).toBe(true);
+
+    /*
+     * ...but Tab is NOT swallowed. This asserts `defaultPrevented`, not where
+     * focus ended up, because jsdom does not implement Tab navigation at all:
+     * "focus is still inside the card after Tab" is true in jsdom whatever the
+     * component does, which is a check that cannot go red. What CAN differ is
+     * whether a listener claimed the keystroke — the focus trap this card used
+     * to mount called `preventDefault()` on exactly this event, so this line
+     * went red while the trap was there and is green now that it is gone.
+     */
     const focusables = Array.from(card().querySelectorAll<HTMLElement>('button:not([disabled])'));
     const last = focusables[focusables.length - 1];
     expect(last).toBeDefined();
     last?.focus();
-    // Tab from the last control does not leave the dialog. WHICH control it lands
-    // on cannot be asserted here: `focusableWithin` filters on `offsetParent`,
-    // which jsdom never populates, so its list is whatever is focused. The
-    // property that matters — focus stays inside — holds either way, and the
-    // ordering is covered in a real browser (the @smoke run in the ledger).
-    press(last as HTMLElement, 'Tab');
-    expect(card().contains(document.activeElement)).toBe(true);
+    expect(press(last as HTMLElement, 'Tab'), 'the card swallowed Tab').toBe(false);
+    expect(press(last as HTMLElement, 'Tab', { shiftKey: true })).toBe(false);
 
     click('tour-skip');
     expect(onSkip).toHaveBeenCalledTimes(1);
+    outside.remove();
+  });
+
+  it('reports focus entering and leaving the card, so the shell can route keys', () => {
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    const onFocusWithinChange = vi.fn();
+
+    mount(
+      <Tour
+        open
+        step={0}
+        anchor={null}
+        onStepChange={noop}
+        onSkip={noop}
+        onFinish={noop}
+        onFocusWithinChange={onFocusWithinChange}
+      />,
+    );
+    expect(onFocusWithinChange).toHaveBeenLastCalledWith(true);
+
+    // Moving between the card's OWN controls is not leaving it.
+    onFocusWithinChange.mockClear();
+    const next = document.querySelector('[data-testid="tour-next"]');
+    act(() => (next as HTMLElement).focus());
+    expect(onFocusWithinChange).not.toHaveBeenCalledWith(false);
+
+    // Focusing the app underneath is.
+    act(() => outside.focus());
+    expect(onFocusWithinChange).toHaveBeenLastCalledWith(false);
     outside.remove();
   });
 

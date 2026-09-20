@@ -5,19 +5,25 @@
  * callbacks. `ProjectTour` owns the store, the router and the auto-start.
  *
  * Accessibility is the whole design, not a layer on it:
- *   - a `role="dialog"` with `aria-modal`, labelled by the step title and
- *     described by its body, portalled to <body> so no `overflow-hidden` clips it;
- *   - focus is trapped inside the card (`useFocusTrap`) and returned on close;
+ *   - a NON-MODAL `role="dialog"` (no `aria-modal`, no focus trap), labelled by
+ *     the step title and described by its body, portalled to <body> so no
+ *     `overflow-hidden` clips it;
+ *   - focus moves to the card when the tour opens and is returned on close, but
+ *     Tab is free to walk out of it into the app underneath — the card dims the
+ *     app, it does not own it;
  *   - Escape skips the tour; ← / → (and Enter) move between steps, so a keyboard
  *     user needs no mouse; every key has a visible button;
  *   - the highlight around the anchor is decoration (`aria-hidden`); the card
  *     says "Step 2 of 6" in text, and `aria-live` announces each step change.
+ *
+ * `onFocusWithinChange` reports whether focus is inside the card, because the
+ * shell uses it to decide who owns the keyboard. See `ProjectTour`.
  */
 
 import { useEffect, useId, useRef, type JSX } from 'react';
 import { createPortal } from 'react-dom';
 
-import { Button, cn, useFocusTrap, useOnEscape } from '@garh/ui';
+import { Button, cn, useOnEscape } from '@garh/ui';
 
 import { TOUR_STEPS, TOUR_STEP_COUNT, clampStep } from './steps';
 import type { AnchorRect } from './useTourAnchor';
@@ -33,6 +39,14 @@ export interface TourProps {
   readonly onSkip: () => void;
   /** Finish on the last step — also marked done. */
   readonly onFinish: () => void;
+  /**
+   * Focus entered (true) or left (false) the card.
+   *
+   * The card's arrow keys and the canvas's tool shortcuts are both live while
+   * the tour is up, so something has to say which of them a keystroke means.
+   * Focus is that something, and this is how the shell hears about it.
+   */
+  readonly onFocusWithinChange?: ((within: boolean) => void) | undefined;
 }
 
 const HIGHLIGHT_PAD = 6;
@@ -63,14 +77,32 @@ export function Tour({
   onStepChange,
   onSkip,
   onFinish,
+  onFocusWithinChange,
 }: TourProps): JSX.Element | null {
   const cardRef = useRef<HTMLDivElement>(null);
+  const restoreTo = useRef<HTMLElement | null>(null);
   const base = useId();
   const index = clampStep(step);
   const current = TOUR_STEPS[index];
   const last = index === TOUR_STEP_COUNT - 1;
 
-  useFocusTrap(cardRef, open);
+  // Focus in, focus back — the useful half of a focus trap, without the half
+  // that contradicts a non-modal dialog. `useFocusTrap` (which `Dialog` still
+  // uses, correctly, because a Dialog IS modal) also cycles Tab inside the
+  // container; doing that here would tell a keyboard user the app is
+  // unreachable while the screen plainly shows it is.
+  useEffect(() => {
+    if (!open) return undefined;
+    const node = cardRef.current;
+    if (node === null) return undefined;
+    restoreTo.current = document.activeElement as HTMLElement | null;
+    node.focus({ preventScroll: true });
+    return () => {
+      restoreTo.current?.focus({ preventScroll: true });
+      restoreTo.current = null;
+    };
+  }, [open]);
+
   useOnEscape(open, onSkip);
 
   // ← / → / Enter inside the card. Handled on the card, not on document: the
@@ -134,6 +166,13 @@ export function Tour({
         aria-labelledby={titleId}
         aria-describedby={bodyId}
         tabIndex={-1}
+        onFocus={() => onFocusWithinChange?.(true)}
+        onBlur={(event) => {
+          // React's onBlur is focusout, so it fires when focus moves between
+          // the card's own buttons too. Only a target OUTSIDE the card means
+          // the architect has gone back to the app.
+          if (!event.currentTarget.contains(event.relatedTarget)) onFocusWithinChange?.(false);
+        }}
         data-testid="tour-card"
         data-step={current.id}
         className={cn(
