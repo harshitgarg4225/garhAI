@@ -154,6 +154,24 @@ async def test_an_empty_allowlist_refuses_everyone(
     assert response.status_code == 403, response.text
 
 
+def _about(actual: Any, expected: int, label: str, tolerance_ms: int = 2_000) -> None:
+    """A duration in milliseconds, within a tolerance smaller than any gap that matters."""
+    assert abs(int(actual) - expected) <= tolerance_ms, "%s was %s, expected about %s" % (
+        label,
+        actual,
+        expected,
+    )
+
+
+async def _alembic_stamp(session: Any) -> list[str]:
+    """The revisions this database is stamped at — empty when create_all built it."""
+    present = await session.execute(text("SELECT to_regclass('alembic_version')"))
+    if present.scalar() is None:
+        return []
+    rows = await session.execute(text("SELECT version_num FROM alembic_version"))
+    return [str(value) for value in rows.scalars().all()]
+
+
 # ---------------------------------------------------------------------------
 # The document
 # ---------------------------------------------------------------------------
@@ -161,7 +179,7 @@ async def test_an_empty_allowlist_refuses_everyone(
 
 @pytest.mark.integration
 async def test_the_owner_reads_the_zero_keys_default_honestly(
-    client: Any, api: str, firm_a: Any, monkeypatch: Any
+    client: Any, api: str, session: Any, firm_a: Any, monkeypatch: Any
 ) -> None:
     _make_owner(monkeypatch, firm_a)
     response = await client.get("%s/admin/ops" % api, headers=firm_a.headers)
@@ -181,10 +199,22 @@ async def test_the_owner_reads_the_zero_keys_default_honestly(
     assert body["observability"]["workersReporting"] == 0
     assert body["observability"]["workersMissing"] == ["solver", "render", "drawings"]
     assert body["workers"] == []
-    # The suite's schema is create_all, never stamped — and the page must say so.
-    assert body["migrations"]["upToDate"] is False
-    assert "never run" in body["migrations"]["reason"]
+    # Whether the schema is stamped depends on WHO built it, so this asserts that the
+    # page tells the truth rather than assuming one environment. The suite normally
+    # runs on a create_all schema with no alembic_version row (upToDate false, "never
+    # run"); CI applies `alembic upgrade head` first, so the same endpoint must report
+    # true there. Hard-coding false passed locally and failed CI run 90.
+    stamped = await _alembic_stamp(session)
     assert body["migrations"]["heads"] == ps.script_heads()
+    if not stamped:
+        assert body["migrations"]["upToDate"] is False
+        assert "never run" in body["migrations"]["reason"]
+    else:
+        assert sorted(stamped) == sorted(ps.script_heads()), (
+            "the database is stamped at %s but the scripts head at %s"
+            % (sorted(stamped), sorted(ps.script_heads()))
+        )
+        assert body["migrations"]["upToDate"] is True, body["migrations"]
     assert [q["worker"] for q in body["queues"]] == ["solver", "render", "drawings"]
     assert all(
         q["pending"] == q["delayed"] == q["processing"] == q["dead"] == 0 for q in body["queues"]
@@ -257,6 +287,14 @@ async def test_job_counts_and_percentiles_cover_every_firm_and_carry_no_ids(
     queued_a = await create_solver_job(session, firm_a, project_a.id)
 
     # Terminal rows with known enqueue→terminal spans: 30 s, 90 s, and a failed 10 s.
+    #
+    # The span is created by moving created_at BACK, never by writing updated_at
+    # forward. Every table the migrations build carries a BEFORE UPDATE trigger
+    # (garh_set_updated_at, migration 0001) that rewrites updated_at to now(), so an
+    # UPDATE that sets updated_at itself is silently discarded wherever the schema came
+    # from alembic — which is CI and production. Writing it survived here only because
+    # this suite's schema comes from metadata.create_all, which carries none of those
+    # 26 triggers. CI run 90 measured 8 ms instead of 30 000.
     for job_id, status, seconds in (
         (done_a.id, "succeeded", 30),
         (done_b.id, "succeeded", 90),
@@ -265,7 +303,7 @@ async def test_job_counts_and_percentiles_cover_every_firm_and_carry_no_ids(
         await session.execute(
             text(
                 "UPDATE solver_jobs SET status = :status, "
-                "updated_at = created_at + make_interval(secs => :secs) WHERE id = :id"
+                "created_at = updated_at - make_interval(secs => :secs) WHERE id = :id"
             ),
             {"status": status, "secs": seconds, "id": job_id},
         )
@@ -283,10 +321,15 @@ async def test_job_counts_and_percentiles_cover_every_firm_and_carry_no_ids(
         "cancelled": 0,
     }
     assert solver["terminalCount"] == 3
-    # percentile_cont over [10 000, 30 000, 90 000] ms
-    assert solver["p50Ms"] == 30_000
-    assert solver["p95Ms"] == 84_000
-    assert solver["maxMs"] == 90_000
+    # percentile_cont over [10 000, 30 000, 90 000] ms, within a tolerance far smaller
+    # than the gaps between those three numbers — so a wrong percentile (p95 reading
+    # 90 000, p50 reading 10 000) or a span that was never seeded (CI run 90 measured
+    # 8 ms) still fails. The tolerance is needed because on a migrated schema the
+    # BEFORE UPDATE trigger rewrites updated_at to the statement's now(), which adds
+    # the few milliseconds between the row's creation and this update.
+    _about(solver["p50Ms"], 30_000, "p50")
+    _about(solver["p95Ms"], 84_000, "p95")
+    _about(solver["maxMs"], 90_000, "max")
     render = next(j for j in body["jobs"] if j["kind"] == "render")
     assert render["terminalCount"] == 0 and render["p50Ms"] == 0
 
