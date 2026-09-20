@@ -72,13 +72,25 @@ export function ProjectTour({
     else setTourStep(here);
   }, [autoStart, tourDone, tourStep, currentTab, startTour, setTourStep]);
 
-  // The step's tab must be on screen for its anchor to exist.
+  // The step's tab must be on screen for its anchor to exist — but ONLY when the
+  // step is what moved. Firing this on any tab change makes the tour fight the
+  // architect: open it on Brief, click Plan, and the effect drags the route back
+  // to Brief because the step still says so. CI run 93's smoke journey caught
+  // exactly that — clicking Plan never made its link aria-current — and a reader
+  // would have called the app broken, not the tour. So the navigation is keyed on
+  // the step index: pressing Next moves the route, clicking a tab does not.
+  const navigatedFor = useRef<number | null>(null);
   useEffect(() => {
-    if (!open || step === undefined) return;
+    if (!open || step === undefined) {
+      navigatedFor.current = null;
+      return;
+    }
+    if (navigatedFor.current === index) return;
+    navigatedFor.current = index;
     if (currentTab !== step.tab) {
       navigate(`/projects/${encodeURIComponent(projectId)}/${step.tab}`);
     }
-  }, [open, step, currentTab, projectId, navigate]);
+  }, [open, step, index, currentTab, projectId, navigate]);
 
   // Own the keyboard while open, like a modal; hand it back on close/unmount.
   useEffect(() => {

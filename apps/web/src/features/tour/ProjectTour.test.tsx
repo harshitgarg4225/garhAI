@@ -6,9 +6,9 @@
  * lightbulb's `startTour` re-runs it after completion.
  */
 
-import { act } from 'react';
+import { act, type ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { useUiStore } from '../../stores/ui';
@@ -46,6 +46,33 @@ function mount(tab: string, autoStart = true): void {
               </>
             }
           />
+        </Routes>
+      </MemoryRouter>,
+    );
+  });
+}
+
+/** The shell's own shape: one mount, the tab read from the route, a link that moves it. */
+function LiveHarness(): ReactElement {
+  const params = useParams();
+  const navigate = useNavigate();
+  return (
+    <>
+      <LocationSpy />
+      <button data-testid="go-plan" onClick={() => navigate('/projects/p1/plan')}>
+        Plan
+      </button>
+      <ProjectTour projectId="p1" currentTab={params.tab} />
+    </>
+  );
+}
+
+function mountLive(tab: string): void {
+  act(() => {
+    root.render(
+      <MemoryRouter initialEntries={[`/projects/p1/${tab}`]}>
+        <Routes>
+          <Route path="/projects/:projectId/:tab" element={<LiveHarness />} />
         </Routes>
       </MemoryRouter>,
     );
@@ -128,6 +155,21 @@ describe('ProjectTour', () => {
       useUiStore.getState().startTour();
     });
     expect(card()?.getAttribute('data-step')).toBe('plot');
+  });
+
+  it('does not drag the architect back when THEY change tabs', () => {
+    // CI run 93: the smoke journey clicked Plan and the tab never became current,
+    // because the navigation effect re-fired on the tab change and sent the route
+    // back to the open step's own tab. Pressing Next moves the route; clicking a
+    // tab must not. This mounts ONCE and navigates inside that mount, which is what
+    // the shell does — remounting would reset the effect and prove nothing.
+    mountLive('brief');
+    expect(useUiStore.getState().tourStep).toBe(0);
+    expect(lastPath).toBe('/projects/p1/brief');
+
+    click('go-plan');
+    expect(lastPath).toBe('/projects/p1/plan');
+    expect(useUiStore.getState().tourStep).toBe(0);
   });
 
   it('a step on another tab navigates there', () => {
