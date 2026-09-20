@@ -28,6 +28,24 @@ The run needs `DEV_ECHO_OTP=1` on the api (the sign-up step reads the code from 
 response the way the dev stack echoes it) and the mock render provider; it spends two
 generations of the trial allowance on the account it creates.
 
+**If an assertion contradicts the source in front of you, check what the dev server is
+actually serving before you suspect the product.** Vite's file watcher does not always
+see edits inside a container, and it will keep serving a stale transform of a file you
+changed minutes ago — with no warning, because the page loads and the app works. It cost
+two debugging cycles on 2026-09-20, chasing a `data-status` attribute that was in the
+file and not in the bundle:
+
+```bash
+curl -s localhost:5173/src/features/compliance/ComplianceRow.tsx | grep data-status
+```
+
+Nothing back means the server, not the code. Restart it — `--force` on its own does not
+help, the process has to go. The same applies to `vite preview`, which serves `dist/`
+and will happily answer with a build from an hour ago; and `preview` serves a PRODUCTION
+build, so `window.__garhTestHooks` is absent there and every hook-based canvas spec
+fails with "the app is not a dev build". The canvas suites need `vite` (dev), which is
+also what CI's compose stack runs.
+
 ## What the first eleven runs found
 
 Every failure was a product defect, not a test defect, and each is recorded in
