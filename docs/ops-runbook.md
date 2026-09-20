@@ -260,6 +260,29 @@ strings and every job id stay out of the body.
 token — the question that had been silently answered "no" on the deployed stack
 for a month.
 
+## Accessibility
+
+```bash
+pnpm --filter @garh/e2e exec playwright test --grep @a11y
+```
+
+`e2e/tests/accessibility.spec.ts` runs axe-core (WCAG 2.0/2.1 A + AA +
+best-practice) over login, the dashboard, all four settings sections, billing,
+the brief/compliance/sheets/renders/plan tabs and the tour, in a real browser.
+**Serious and critical fail the run**; moderate findings are printed. If
+`axe-core` is not installed the spec fails rather than skipping — a green
+accessibility check that never ran is worse than no check.
+
+**Executed 2026-09-20 (this checkout, twelve screens + the tour): 0
+serious/critical.** The first run of that pass found two, both now fixed: the
+audit trail's `<dl>` wrapped its pairs in `<span>` (invalid, and it loses the
+term/description pairing), and the assumption chip's label sat at 3.42:1
+contrast from `opacity-70` on 11px text — on every Brief page since the chip was
+written, and invisible to jsdom, which computes no styles. The moderate findings
+that remain are `landmark-one-main`/`region` on the §12 canvas panel grid and
+`heading-order` where a card title follows a page title;
+`docs/trust-operations-verification.md` records why they are not chased.
+
 ## Rate limits that will page you first
 
 Auth endpoints fail closed (per-IP hourly, per-address 60 s resend cooldown +
