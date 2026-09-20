@@ -21,11 +21,14 @@ import { SURFACE_GROUPS, type MaterialAssignment } from '@garh/model';
 
 import { materialItemSchema, type MaterialItem } from '../../../lib/schemas';
 import { fallbackColorFromId, resolveAssignment, resolvedColorHex, swatchHex } from './resolve';
+import { applyGroup, fixedId, makeTwoRoomPlanWithOpenings } from '@garh/model';
+
 import {
   materialMatchesPick,
   materialsForPick,
   SURFACE_PICKS,
   surfaceGroupOf,
+  surfaceGroupOfElement,
   surfacePickFor,
   type SurfaceElement,
 } from './surfaceGroups';
@@ -250,5 +253,71 @@ describe('procedural swatches (no texture binaries — inherited fact 4)', () =>
       fallbackColorFromId('gone-from-catalogue'),
     );
     expect(resolvedColorHex(rows, catalog, 'floor', ctx)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. Element → group, for the panel's per-element scope
+// ---------------------------------------------------------------------------
+
+describe('surfaceGroupOfElement — what the architect clicked', () => {
+  const doc = makeTwoRoomPlanWithOpenings();
+  const house = doc.house;
+
+  it('maps every element kind the panel can paint, from a REAL folded document', () => {
+    expect(surfaceGroupOfElement(house, fixedId('wall', 'WS'))).toBe('external_wall');
+    expect(surfaceGroupOfElement(house, fixedId('wall', 'WSP'))).toBe('internal_wall');
+    expect(surfaceGroupOfElement(house, fixedId('opening', 'D1'))).toBe('door');
+    expect(surfaceGroupOfElement(house, fixedId('opening', 'W1'))).toBe('window');
+    const slab = house.slabs.find((s) => s.kind === 'floor');
+    expect(slab).toBeDefined();
+    expect(surfaceGroupOfElement(house, slab?.id ?? '')).toBe('floor');
+  });
+
+  it('refuses ids it cannot paint: a room, a facade component, a deleted element', () => {
+    const room = house.rooms[0];
+    expect(room).toBeDefined();
+    // Rooms are a 2D wash, not a surface — the panel paints their FLOOR slab.
+    expect(surfaceGroupOfElement(house, room?.id ?? '')).toBeNull();
+    expect(surfaceGroupOfElement(house, fixedId('facadecomp', 'F1'))).toBeNull();
+    expect(surfaceGroupOfElement(house, fixedId('wall', 'GONE'))).toBeNull();
+    expect(surfaceGroupOfElement(house, '')).toBeNull();
+  });
+
+  it('covers elements added later: a balcony deck is a floor, a column is a wall surface', () => {
+    const balconyId = fixedId('balcony', 'B1');
+    const columnId = fixedId('column', 'C1');
+    const after = applyGroup(doc, [
+      {
+        type: 'balcony.set',
+        payload: {
+          action: 'add',
+          id: balconyId,
+          storeyId: fixedId('storey', 'GF'),
+          polygon: [
+            { x: 1000, y: -900 },
+            { x: 2500, y: -900 },
+            { x: 2500, y: 0 },
+            { x: 1000, y: 0 },
+          ],
+          railingKind: 'ms',
+          railingHeightMm: 1000,
+          projectionMm: 900,
+          slabThicknessMm: 150,
+        },
+      },
+      {
+        type: 'column.set',
+        payload: {
+          action: 'add',
+          id: columnId,
+          storeyId: fixedId('storey', 'GF'),
+          pt: { x: 4500, y: 2000 },
+          sizeMm: { xMm: 230, yMm: 230 },
+        },
+      },
+    ]).model;
+    expect(surfaceGroupOfElement(after.house, balconyId)).toBe('floor');
+    expect(surfaceGroupOfElement(after.house, columnId)).toBe('internal_wall');
   });
 });

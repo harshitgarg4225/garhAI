@@ -383,6 +383,77 @@ describe('terrace over a set-back first floor', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Box-mapped UVs — without them a textured material draws black
+// ---------------------------------------------------------------------------
+
+describe('UVs', () => {
+  it('every bucket carries two UVs per vertex, all finite', () => {
+    const { house } = baseDoc();
+    for (const build of [
+      buildGroup(house, storeyGroupKey(GF), null, new Set()),
+      buildGroup(house, ROOF_GROUP_KEY, null, new Set()),
+    ]) {
+      for (const bucket of build.buckets) {
+        expect(bucket.uvs).toHaveLength((bucket.positions.length / 3) * 2);
+        for (const v of bucket.uvs) expect(Number.isFinite(v)).toBe(true);
+      }
+    }
+  });
+
+  it('UVs are METRES of surface: one UV unit is one metre on EVERY triangle', () => {
+    // THE contract that makes a 600 mm tile 600 mm wide wherever it lands:
+    // the mapping drops the axis a flat triangle faces, so within its own
+    // plane a UV edge must be exactly as long as the world edge it maps.
+    // (Get this wrong and tiles stretch on one wall and shrink on the next —
+    // invisible to every other test in this file.)
+    const { house } = baseDoc();
+    let checked = 0;
+    for (const key of [storeyGroupKey(GF), ROOF_GROUP_KEY]) {
+      for (const bucket of buildGroup(house, key, null, new Set()).buckets) {
+        for (let t = 0; t + 8 < bucket.positions.length; t += 9) {
+          const u = (t / 9) * 6; // 9 position floats per triangle, 6 UV floats
+          for (const [i, j] of [
+            [0, 1],
+            [1, 2],
+            [2, 0],
+          ] as const) {
+            const world = Math.hypot(
+              (bucket.positions[t + j * 3] ?? 0) - (bucket.positions[t + i * 3] ?? 0),
+              (bucket.positions[t + j * 3 + 1] ?? 0) - (bucket.positions[t + i * 3 + 1] ?? 0),
+              (bucket.positions[t + j * 3 + 2] ?? 0) - (bucket.positions[t + i * 3 + 2] ?? 0),
+            );
+            const uv = Math.hypot(
+              (bucket.uvs[u + j * 2] ?? 0) - (bucket.uvs[u + i * 2] ?? 0),
+              (bucket.uvs[u + j * 2 + 1] ?? 0) - (bucket.uvs[u + i * 2 + 1] ?? 0),
+            );
+            expect(uv).toBeCloseTo(world, 6);
+            checked += 1;
+          }
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(300);
+  });
+
+  it('a vertical face maps to elevation, a horizontal face to plan (box mapping)', () => {
+    const { house } = baseDoc();
+    const build = buildGroup(house, storeyGroupKey(GF), null, new Set());
+    const slab = build.buckets.find((b) => b.surface === 'floor');
+    if (slab === undefined) throw new Error('no floor bucket');
+    // The slab is 150 mm thick and metres wide; a mapping that used
+    // elevation for its top face would give a V span of 0.15, not ~4.2.
+    let minV = Infinity;
+    let maxV = -Infinity;
+    for (let i = 1; i < slab.uvs.length; i += 2) {
+      const v = slab.uvs[i] ?? 0;
+      if (v < minV) minV = v;
+      if (v > maxV) maxV = v;
+    }
+    expect(maxV - minV).toBeGreaterThan(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The no-WASM fallback must still SHOW the openings
 // ---------------------------------------------------------------------------
 

@@ -35,6 +35,9 @@ function bucketGeometry(bucket: BuiltBucket): BufferGeometry {
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(bucket.positions, 3));
   geometry.setAttribute('normal', new BufferAttribute(bucket.normals, 3));
+  // The box-mapped UVs travel with the GLB, so a renderer artist who swaps
+  // our material for their own gets textures at the right physical scale.
+  geometry.setAttribute('uv', new BufferAttribute(bucket.uvs, 2));
   geometry.computeBoundingSphere();
   return geometry;
 }

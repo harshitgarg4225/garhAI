@@ -237,6 +237,40 @@ def test_ids_are_unique_and_kebab_case(
 # ---------------------------------------------------------------------------
 
 
+def test_material_response_carries_the_texture_family(materials: list[dict[str, Any]]) -> None:
+    """The 3D view draws a material's texture family; the response must not drop it.
+
+    ``MaterialOut`` used to omit ``texture``, and Pydantic drops what it does not
+    declare — so every material reached the canvas as a flat hex and Kota stone
+    rendered identically to vitrified tile. The families below are the ones
+    ``apps/web/src/features/canvas/three/textures3d.ts`` can draw; a new family in
+    the fixture must land there too, so this list is the coupling made visible.
+    """
+    from garh_api.routers.catalog import MaterialOut
+
+    drawable = {
+        "tile",
+        "brick",
+        "wood",
+        "stone",
+        "concrete",
+        "plaster",
+        "speckle",
+        "vein",
+        "metal",
+        "glass",
+    }
+    seen: set[str] = set()
+    for row in materials:
+        served = MaterialOut.model_validate(row).model_dump(by_alias=True)
+        assert served["texture"] == row["texture"], row["id"]
+        assert served["texture"] in drawable, (row["id"], served["texture"])
+        seen.add(served["texture"])
+    # Every family the renderer implements is actually used by the catalogue —
+    # an unused branch there is a pattern nobody has ever seen.
+    assert seen == drawable, drawable ^ seen
+
+
 def test_materials_are_an_indian_palette(materials: list[dict[str, Any]]) -> None:
     """§17 asks for an Indian palette; these are the families a local spec sheet lists."""
     blob = json.dumps(materials).lower()

@@ -95,5 +95,20 @@ export {
   elementScopedAssignmentIds,
   getSolidMaterial,
   resolveMaterialId,
+  textureForScope,
 } from './materials3d';
-export type { MaterialScope } from './materials3d';
+export type { MaterialScope, SurfaceTexture, SurfaceTextureSpec } from './materials3d';
+
+export {
+  disposeTextures,
+  getProceduralTexture,
+  getUrlTexture,
+  isLoadableTextureUrl,
+  texelShade,
+  texturePixels,
+  textureFamilyOf,
+  TEXTURE_FAMILIES,
+  TEXTURE_SIZE_PX,
+  TEXTURE_TILE_MM,
+} from './textures3d';
+export type { TextureFamily } from './textures3d';

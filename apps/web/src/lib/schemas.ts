@@ -1219,6 +1219,13 @@ export const materialItemSchema = z.object({
   name: z.string(),
   category: z.string().default(''),
   colorHex: z.string().nullable().default(null),
+  /**
+   * The texture FAMILY the 3D view draws procedurally (`tile`, `brick`,
+   * `wood`…). The fixture and `MaterialOut` have always carried it; this
+   * schema dropped it (zod strips unknown keys), so every material arrived
+   * as a flat hex — `features/canvas/three/textures3d.ts` is what wanted it.
+   */
+  texture: z.string().nullable().default(null),
   textureUrl: z.string().nullable().default(null),
   surfaceGroups: z.array(z.string()).default([]),
 });
