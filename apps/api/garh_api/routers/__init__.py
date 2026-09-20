@@ -36,7 +36,6 @@ import contextlib
 import hashlib
 import hmac
 import json
-import os
 import secrets
 import time
 import uuid
@@ -68,6 +67,7 @@ from garh_api.errors import ApiError as _ProblemError
 from garh_api.errors import AuthenticationError, ServiceUnavailableError
 from garh_api.errors import RateLimitedError as _RateLimitedError
 from garh_api.logging import get_logger
+from garh_api.paths import repo_root
 from garh_api.repositories import (
     DesignVersionRepository,
     OpRepository,
@@ -489,21 +489,6 @@ def client_ip(request: Request) -> str:
     if forwarded:
         return forwarded.split(",")[0].strip()[:64]
     return request.client.host if request.client else "unknown"
-
-
-def repo_root() -> str:
-    """Filesystem root that holds ``rulepacks/`` and ``fixtures/``.
-
-    Honours ``GARH_ROOT`` and falls back to walking up from this file, which covers both
-    the container layout (``/app``) and a bare checkout.
-    """
-    override = os.environ.get("GARH_ROOT")
-    if override:
-        return override
-    here = os.path.abspath(os.path.dirname(__file__))
-    # garh_api/routers -> garh_api -> apps/api -> apps -> <repo root>
-    candidate = os.path.abspath(os.path.join(here, "..", "..", "..", ".."))
-    return candidate
 
 
 def ensure_scope(ctx: TenantCtx, section: str) -> None:
