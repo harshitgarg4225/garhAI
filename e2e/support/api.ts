@@ -264,6 +264,15 @@ export interface FoldedModel {
         /** Clear inside-face ring, integer mm — how a spec aims a click. */
         polygon: { x: number; y: number }[];
       }[];
+      /** Doors, windows and ventilators, each hosted by a wall. */
+      openings: {
+        id: string;
+        wallId: string;
+        kind: string;
+        widthMm: number;
+        heightMm: number;
+        offsetMm: number;
+      }[];
       /** Phase 5: the isolated facade sub-model (§8). */
       facade: {
         kitId: string | null;

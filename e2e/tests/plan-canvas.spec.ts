@@ -648,3 +648,170 @@ test.describe('@canvas the first-run tour does not hold the canvas hostage', () 
     await expect(card).toBeVisible();
   });
 });
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * "Fix it", pressed.
+ *
+ * §15 promises the compliance chip applies the pack's suggested op group, and the
+ * client half of it is thoroughly unit-tested: which strategies it can compute, the
+ * op group each produces, which rules show the button. What had never happened is a
+ * press — a real click, a real op group appended to a real op log, a real re-check,
+ * and the row changing on the architect's screen. `docs/phase-2-verification.md` has
+ * carried it as row 1 of the unexecuted list since Phase 2.
+ *
+ * The rule is `nbc.door.main.width.min`: a front door narrower than 900 mm, which is
+ * a real thing an architect draws and a fix a client can honestly compute (the limit
+ * is a number in the pack, the element is one opening, the op is one resize).
+ *
+ * The undo is half the test. A fix that cannot be taken back is not a suggestion, it
+ * is an edit somebody else made to your drawing.
+ * ──────────────────────────────────────────────────────────────────────────── */
+test.describe('@canvas the compliance tab fixes a rule and lets it be undone', () => {
+  test.setTimeout(180_000);
+
+  const NARROW_DOOR_MM = 750;
+  const MAIN_DOOR_MIN_MM = 900;
+  const RULE = 'nbc.door.main.width.min';
+
+  test('press Fix it, the rule passes; press Undo, it comes back', async ({ page, request }) => {
+    await skipFirstRunTour(page);
+    const session = await signUpFirm(request, {
+      email: uniqueEmail('fixit'),
+      firmName: 'Fix It Associates',
+    });
+    const token = session.accessToken;
+    const project = await createProject(request, token, 'Narrow front door');
+
+    const doorId = 'opening_01J00000000000000000000F1X';
+    await appendOps(
+      request,
+      token,
+      project.id,
+      [
+        { type: 'plot.set_boundary', payload: { polygon: PLOT_MM, source: 'manual' } },
+        { type: 'plot.set_road', payload: { edgeIndex: 0, widthMm: 9000, name: '9m Road' } },
+        { type: 'plot.set_reg_profile', payload: { cityPack: 'blr', overrides: {} } },
+        {
+          type: 'storey.add',
+          payload: {
+            id: 'storey_01J3D00000000000000000000A',
+            index: 0,
+            name: 'Ground Floor',
+            heightMm: 3000,
+          },
+        },
+        {
+          type: 'wall.add',
+          payload: {
+            id: 'wall_01J00000000000000000000F1X',
+            storeyId: 'storey_01J3D00000000000000000000A',
+            a: { x: 1000, y: 1000 },
+            b: { x: 7000, y: 1000 },
+            thicknessMm: 230,
+            kind: 'external',
+          },
+        },
+        {
+          type: 'opening.add',
+          payload: {
+            id: doorId,
+            wallId: 'wall_01J00000000000000000000F1X',
+            kind: 'door',
+            // Narrower than the 900 mm the pack wants. This is the defect.
+            widthMm: NARROW_DOOR_MM,
+            heightMm: 2100,
+            sillMm: 0,
+            offsetMm: 3000,
+            swing: 'in-left',
+          },
+        },
+      ],
+      -1,
+    );
+
+    const doorWidth = async (): Promise<number | undefined> => {
+      const folded = await projectModel(request, token, project.id);
+      return folded.model.house.openings.find((o) => o.id === doorId)?.widthMm;
+    };
+    expect(await doorWidth(), 'the fixture door should start too narrow').toBe(NARROW_DOOR_MM);
+
+    await adoptApiSession(page, request);
+    await page.goto(`${APP_URL}/projects/${project.id}/compliance`);
+
+    const row = page.locator(`[data-rule-id="${RULE}"]`);
+    await expect(row, 'the main-door width rule should be on the tab').toBeVisible({
+      timeout: 30_000,
+    });
+
+    const fix = row.getByRole('button', { name: /fix it/i });
+    await expect(
+      fix,
+      'no "Fix it" on a failing rule whose strategy the client can compute — either ' +
+        'the rule is not failing, or the affordance is gone',
+    ).toBeVisible({ timeout: 20_000 });
+
+    await fix.click();
+
+    await expect
+      .poll(doorWidth, {
+        timeout: SYNC_TIMEOUT_MS,
+        message:
+          'pressing "Fix it" changed nothing on the server. The button computes an op ' +
+          'group that is never appended, which is §15 promising an edit it does not make.',
+      })
+      .toBe(MAIN_DOOR_MIN_MM);
+
+    // ...and the row itself changes, which is what the architect actually watches.
+    //
+    // On `data-status`, not on the row's text: the badge in its corner reads "FAILS"
+    // on every fail-SEVERITY rule, passing or not — it says what happens if the rule
+    // is broken, not what happened — so a text assertion here could never go green.
+    await expect(row, 'the rule still reads as failing after its own fix').toHaveAttribute(
+      'data-status',
+      'pass',
+      { timeout: SYNC_TIMEOUT_MS },
+    );
+    await expect(
+      row.getByRole('button', { name: /fix it/i }),
+      'a rule that now passes is still offering to fix itself',
+    ).toHaveCount(0);
+
+    await test.step('Undo puts the door back, and the rule with it', async () => {
+      // Scoped to the top bar. Applying a fix also raises a toast whose action is
+      // called "Undo", and there is a third in the canvas shell — an unscoped
+      // locator is a strict-mode violation, and picking the wrong one would test
+      // the toast rather than the app's undo.
+      // The toast's own Undo, which is the one an architect presses: it appears
+      // beside "Fix applied" the moment the fix lands, in the corner they are
+      // already looking at. Scoped to the live region because the top bar carries
+      // an Undo too (twice, counting the tooltip's copy of its trigger).
+      // The toast offers it on the spot, which is where an architect looks.
+      await expect(
+        page.getByRole('status').getByRole('button', { name: 'Undo' }),
+        'applying a fix should offer to take it back on the spot',
+      ).toBeVisible({ timeout: 20_000 });
+
+      // ...but press the TOP BAR's, because that button had never been clicked by
+      // any test — the Phase-4 DoD undoes with ⌘Z, so the control itself was
+      // unexercised. By `aria-label`, not by accessible name: the project title
+      // beside it is a button too, and a project whose NAME contains "undo" matched
+      // first. (It did. This test's own fixture was called "Fix it, then undo it",
+      // and the click went to the title.)
+      await page.locator('header button[aria-label="Undo"]').click();
+      await expect
+        .poll(doorWidth, {
+          timeout: SYNC_TIMEOUT_MS,
+          message:
+            'Undo did not take the fix back. A suggestion that cannot be refused is ' +
+            'not a suggestion — it is an edit somebody else made to the drawing.',
+        })
+        .toBe(NARROW_DOOR_MM);
+
+      await expect(row).toHaveAttribute('data-status', 'fail', { timeout: SYNC_TIMEOUT_MS });
+      await expect(
+        row.getByRole('button', { name: /fix it/i }),
+        'the fix is offered again once the failure is back',
+      ).toBeVisible({ timeout: SYNC_TIMEOUT_MS });
+    });
+  });
+});

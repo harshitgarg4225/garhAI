@@ -82,6 +82,12 @@ export function ComplianceRow({
       )}
       data-testid="compliance-row"
       data-rule-id={issue.ruleId}
+      /* The row's STATUS, beside its rule id. The badge on the right reads
+         "FAILS"/"ADVISORY" and is the rule's SEVERITY — what happens if it is
+         broken — so it says "FAILS" on a rule that passed. Only the chip's colour
+         carries the verdict, and a colour is not something a spec can assert
+         honestly. */
+      data-status={issue.status}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <ComplianceChip

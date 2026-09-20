@@ -371,7 +371,24 @@ export function toComplianceIssue(dto: ComplianceResultDTO): ComplianceIssueVM {
     cite: dto.cite ?? undefined,
     confidence: dto.confidence ?? undefined,
     elementIds: dto.elements ?? [],
-    fixAvailable: dto.fixAvailable === true && hasClientAutofix(autofix, dto.checkType),
+    /*
+     * Offered only on a rule that is actually broken.
+     *
+     * Not a tidiness point. `resize-opening-to-limit` sets the element to the
+     * LIMIT, so pressing "Fix it" on a door that already passes at 1 000 mm
+     * resizes it DOWN to the pack's 900 mm minimum — a silent, undoable-but-easily-
+     * missed downgrade of a compliant design, offered by a button whose whole
+     * promise is to make things compliant. `fixAvailable` from the server means
+     * "the pack declares a fix for this rule", which is a property of the rule and
+     * not of this plan; the status is what says whether there is anything to fix.
+     *
+     * `warn` counts as broken: a soft failure is still a failure an architect may
+     * want cleared. `pass` and `not_applicable` do not.
+     */
+    fixAvailable:
+      (dto.status === 'fail' || dto.status === 'warn') &&
+      dto.fixAvailable === true &&
+      hasClientAutofix(autofix, dto.checkType),
     fixHint: dto.fixHint ?? undefined,
     packId: dto.packId ?? undefined,
     title: dto.title ?? undefined,
