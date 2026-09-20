@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="594mm" height="420mm" viewBox="0 0 594 420" version="1.1">
-<!-- garh-sheet sheet-elev-s elevation 1:100 -->
-<title>A-03C South Elevation</title>
+<!-- garh-sheet sheet-elev-n elevation 1:100 -->
+<title>A-03A North Elevation</title>
 <rect x="0" y="0" width="594" height="420" fill="#ffffff" stroke="none"/>
 <g id="g-frame">
 <g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
-<text x="407.000" y="359.000" font-size="5.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">South Elevation</text>
-<text x="564.000" y="356.000" font-size="5.000" text-anchor="middle" dominant-baseline="alphabetic" font-weight="600">A-03C</text>
+<text x="407.000" y="359.000" font-size="5.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">North Elevation</text>
+<text x="564.000" y="356.000" font-size="5.000" text-anchor="middle" dominant-baseline="alphabetic" font-weight="600">A-03A</text>
 <text x="564.000" y="361.000" font-size="1.800" text-anchor="middle" dominant-baseline="alphabetic">SHEET</text>
 <text x="406.000" y="365.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">PROJECT</text>
-<text x="406.000" y="374.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Bengaluru 40 × 60, G+2 4BHK</text>
+<text x="406.000" y="374.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">NCR 30 × 50, G+2 3BHK</text>
 <text x="406.000" y="376.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">CLIENT</text>
 <text x="406.000" y="385.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 <text x="406.000" y="387.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">ARCHITECT</text>
@@ -41,27 +41,28 @@
 <line x1="494.000" y1="397.000" x2="584.000" y2="397.000"/>
 </g>
 </g>
-<g id="g-elev-S">
+<g id="g-elev-N">
 <g class="layer" data-layer="A-WALL" stroke="#000000" stroke-width="0.500" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="167.500,250.900 248.000,250.900 248.000,220.900 167.500,220.900" fill="none"/>
-<polygon points="173.250,220.900 248.000,220.900 248.000,190.900 173.250,190.900" fill="none"/>
-<polygon points="182.450,190.900 248.000,190.900 248.000,160.900 182.450,160.900" fill="none"/>
+<polygon points="184.750,220.900 248.000,220.900 248.000,190.900 184.750,190.900" fill="none"/>
+<polygon points="188.200,190.900 248.000,190.900 248.000,160.900 188.200,160.900" fill="none"/>
 </g>
 <g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-<line x1="173.250" y1="222.400" x2="248.000" y2="222.400"/>
-<line x1="182.450" y1="192.400" x2="248.000" y2="192.400"/>
+<line x1="184.750" y1="222.400" x2="248.000" y2="222.400"/>
+<line x1="188.200" y1="192.400" x2="248.000" y2="192.400"/>
 <polygon points="167.500,256.900 248.000,256.900 248.000,250.900 167.500,250.900" fill="none"/>
 <line x1="155.500" y1="256.900" x2="260.000" y2="256.900"/>
-<line x1="170.200" y1="241.900" x2="183.700" y2="241.900"/>
-<polygon points="182.450,160.900 248.000,160.900 248.000,150.900 182.450,150.900" fill="none"/>
-</g>
-<g class="layer" data-layer="A-DOOR" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-<polygon points="211.200,250.900 220.200,250.900 220.200,229.900 211.200,229.900" fill="none"/>
-<polygon points="211.800,250.300 219.600,250.300 219.600,230.500 211.800,230.500" fill="none"/>
+<line x1="170.200" y1="241.900" x2="194.620" y2="241.900"/>
+<line x1="219.650" y1="172.900" x2="227.820" y2="172.900"/>
+<polygon points="188.200,160.900 248.000,160.900 248.000,150.900 188.200,150.900" fill="none"/>
 </g>
 <g class="layer" data-layer="A-WIND" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-<polygon points="170.950,241.900 182.950,241.900 182.950,229.900 170.950,229.900" fill="none"/>
-<polygon points="171.550,241.300 182.350,241.300 182.350,230.500 171.550,230.500" fill="none"/>
+<polygon points="170.950,241.900 193.870,241.900 193.870,229.900 170.950,229.900" fill="none"/>
+<polygon points="171.550,241.300 193.270,241.300 193.270,230.500 171.550,230.500" fill="none"/>
+<line x1="182.410" y1="241.300" x2="182.410" y2="230.500"/>
+<polygon points="220.400,172.900 227.070,172.900 227.070,168.400 220.400,168.400" fill="none"/>
+<polygon points="221.000,172.300 226.470,172.300 226.470,169.000 221.000,169.000" fill="none"/>
+<line x1="221.000" y1="170.650" x2="226.470" y2="170.650"/>
 </g>
 <g class="layer" data-layer="A-DIM" stroke="#1a1a1a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <line x1="149.500" y1="256.900" x2="167.500" y2="256.900"/>
@@ -115,17 +116,17 @@
 <text x="148.000" y="169.900" font-size="2.500" text-anchor="end" dominant-baseline="central">+8700 LINTEL SECOND FLOOR</text>
 <text x="148.000" y="160.900" font-size="2.500" text-anchor="end" dominant-baseline="central">+9600 TERRACE LVL</text>
 <text x="148.000" y="150.900" font-size="2.500" text-anchor="end" dominant-baseline="central">+10600 PARAPET TOP</text>
-<text x="215.700" y="240.400" font-size="1.800" text-anchor="middle" dominant-baseline="central">D2</text>
-<text x="176.950" y="235.900" font-size="1.800" text-anchor="middle" dominant-baseline="central">W4</text>
+<text x="182.410" y="235.900" font-size="1.800" text-anchor="middle" dominant-baseline="central">W1</text>
+<text x="223.730" y="170.650" font-size="1.800" text-anchor="middle" dominant-baseline="central">V1</text>
 <text x="148.000" y="268.900" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">NOTES</text>
 <text x="148.000" y="272.100" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">1. No facade kit applied — no material callouts on this elevation.</text>
 </g>
 </g>
 </g>
-<g id="g-elev-S-label">
+<g id="g-elev-N-label">
 <g class="layer" data-layer="A-TEXT" stroke="#111111" stroke-width="0.180" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <g font-family="Helvetica, Arial, sans-serif" fill="#111111" stroke="none">
-<text x="210.000" y="283.100" font-size="3.500" text-anchor="middle" dominant-baseline="hanging" font-weight="600">SOUTH ELEVATION - 1:100</text>
+<text x="210.000" y="283.100" font-size="3.500" text-anchor="middle" dominant-baseline="hanging" font-weight="600">NORTH ELEVATION - 1:100</text>
 </g>
 </g>
 </g>

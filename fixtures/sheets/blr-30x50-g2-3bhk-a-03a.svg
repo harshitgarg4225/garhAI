@@ -45,17 +45,23 @@
 <g class="layer" data-layer="A-WALL" stroke="#000000" stroke-width="0.500" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="174.975,249.300 240.525,249.300 240.525,219.300 174.975,219.300" fill="none"/>
 <polygon points="174.975,219.300 240.525,219.300 240.525,189.300 174.975,189.300" fill="none"/>
-<polygon points="183.025,189.300 240.525,189.300 240.525,159.300 183.025,159.300" fill="none"/>
+<polygon points="180.725,189.300 240.525,189.300 240.525,159.300 180.725,159.300" fill="none"/>
 <polygon points="176.125,249.300 239.375,249.300 239.375,219.300 176.125,219.300" fill="none"/>
 <polygon points="176.125,219.300 239.375,219.300 239.375,189.300 176.125,189.300" fill="none"/>
-<polygon points="184.175,189.300 239.375,189.300 239.375,159.300 184.175,159.300" fill="none"/>
+<polygon points="181.875,189.300 239.375,189.300 239.375,159.300 181.875,159.300" fill="none"/>
 </g>
 <g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <line x1="174.975" y1="220.800" x2="240.525" y2="220.800"/>
-<line x1="183.025" y1="190.800" x2="240.525" y2="190.800"/>
+<line x1="180.725" y1="190.800" x2="240.525" y2="190.800"/>
 <polygon points="174.975,255.300 240.525,255.300 240.525,249.300 174.975,249.300" fill="none"/>
 <line x1="162.975" y1="255.300" x2="252.525" y2="255.300"/>
-<polygon points="183.025,159.300 240.525,159.300 240.525,149.300 183.025,149.300" fill="none"/>
+<line x1="217.925" y1="171.300" x2="226.095" y2="171.300"/>
+<polygon points="180.725,159.300 240.525,159.300 240.525,149.300 180.725,149.300" fill="none"/>
+</g>
+<g class="layer" data-layer="A-WIND" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+<polygon points="218.675,171.300 225.345,171.300 225.345,166.800 218.675,166.800" fill="none"/>
+<polygon points="219.275,170.700 224.745,170.700 224.745,167.400 219.275,167.400" fill="none"/>
+<line x1="219.275" y1="169.050" x2="224.745" y2="169.050"/>
 </g>
 <g class="layer" data-layer="A-DIM" stroke="#1a1a1a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <line x1="156.975" y1="255.300" x2="174.975" y2="255.300"/>
@@ -109,6 +115,7 @@
 <text x="155.475" y="168.300" font-size="2.500" text-anchor="end" dominant-baseline="central">+8700 LINTEL SECOND FLOOR</text>
 <text x="155.475" y="159.300" font-size="2.500" text-anchor="end" dominant-baseline="central">+9600 TERRACE LVL</text>
 <text x="155.475" y="149.300" font-size="2.500" text-anchor="end" dominant-baseline="central">+10600 PARAPET TOP</text>
+<text x="222.005" y="169.050" font-size="1.800" text-anchor="middle" dominant-baseline="central">V1</text>
 <text x="155.475" y="267.300" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">NOTES</text>
 <text x="155.475" y="270.500" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">1. Facade is stepped (3 depths): each face is outlined and openings behind a nearer face are hidden.</text>
 <text x="155.475" y="273.700" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">2. No facade kit applied — no material callouts on this elevation.</text>

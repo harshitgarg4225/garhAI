@@ -1,92 +1,92 @@
 {
   "buildingHeightMm": 10600,
-  "coverageAllowedMm2": 144928742,
-  "farAllowedMm2": 501676416,
-  "farCountableAreaMm2": 161821100,
-  "footprintAreaMm2": 60173750,
+  "coverageAllowedMm2": 104515920,
+  "farAllowedMm2": 418063680,
+  "farCountableAreaMm2": 133321225,
+  "footprintAreaMm2": 58322250,
   "perStorey": [
     {
-      "builtUpAreaMm2": 60173750,
+      "builtUpAreaMm2": 58322250,
       "index": 0,
       "label": "Ground floor",
-      "storeyId": "storey_01M2Z3MA3FBNTZQ6AWSH18FZMS"
+      "storeyId": "storey_01M2Z3ZQA4751A8W6WEHRQX50A"
     },
     {
-      "builtUpAreaMm2": 54156375,
+      "builtUpAreaMm2": 38550875,
       "index": 1,
       "label": "First floor",
-      "storeyId": "storey_01M2Z3MA3H7YYM5N1QBCGBW713"
+      "storeyId": "storey_01M2Z3ZQA64N24EXXQPTX1WFVA"
     },
     {
-      "builtUpAreaMm2": 47490975,
+      "builtUpAreaMm2": 36448100,
       "index": 2,
       "label": "Second floor",
-      "storeyId": "storey_01M2Z3MA3JBX3QFCZ760DTF0B5"
+      "storeyId": "storey_01M2Z3ZQA711M3562N56ED3WNQ"
     }
   ],
-  "plotAreaMm2": 222967296,
-  "projectId": "blr-40x60-g2-4bhk",
+  "plotAreaMm2": 139354560,
+  "projectId": "ncr-30x50-g2-3bhk",
   "rows": [
     {
       "key": "plot_area",
       "kind": "informational",
       "label": "Plot area",
       "unit": "mm2",
-      "value": 222967296
+      "value": 139354560
     },
     {
-      "allowed": 144928742,
+      "allowed": 104515920,
       "key": "coverage",
       "kind": "allowance",
       "label": "Ground coverage",
       "limitLabel": "Permissible",
-      "note": "0.27 achieved against 0.65 allowed",
+      "note": "0.42 achieved against 0.75 allowed",
       "ruleIds": [
-        "blr.coverage.plot.121-240"
+        "ncr.coverage.plot.101-750"
       ],
       "unit": "mm2",
-      "value": 60173750
+      "value": 58322250
     },
     {
-      "key": "built_up.storey_01M2Z3MA3FBNTZQ6AWSH18FZMS",
+      "key": "built_up.storey_01M2Z3ZQA4751A8W6WEHRQX50A",
       "kind": "informational",
       "label": "Ground floor built-up",
       "unit": "mm2",
-      "value": 60173750
+      "value": 58322250
     },
     {
-      "key": "built_up.storey_01M2Z3MA3H7YYM5N1QBCGBW713",
+      "key": "built_up.storey_01M2Z3ZQA64N24EXXQPTX1WFVA",
       "kind": "informational",
       "label": "First floor built-up",
       "unit": "mm2",
-      "value": 54156375
+      "value": 38550875
     },
     {
-      "key": "built_up.storey_01M2Z3MA3JBX3QFCZ760DTF0B5",
+      "key": "built_up.storey_01M2Z3ZQA711M3562N56ED3WNQ",
       "kind": "informational",
       "label": "Second floor built-up",
       "unit": "mm2",
-      "value": 47490975
+      "value": 36448100
     },
     {
       "key": "built_up_total",
       "kind": "informational",
       "label": "Total built-up",
       "unit": "mm2",
-      "value": 161821100
+      "value": 133321225
     },
     {
-      "allowed": 501676416,
+      "allowed": 418063680,
       "key": "far",
       "kind": "allowance",
       "label": "FAR-countable area",
       "limitLabel": "Permissible",
-      "note": "0.73 achieved against 2.25 allowed",
+      "note": "0.96 achieved against 3.00 allowed",
       "ruleIds": [
-        "blr.far.road.9-18m"
+        "ncr.far.plot.101-250"
       ],
       "unit": "mm2",
-      "value": 161821100
+      "value": 133321225
     },
     {
       "allowed": 3000,
@@ -95,47 +95,31 @@
       "label": "Front setback",
       "limitLabel": "Required",
       "ruleIds": [
-        "blr.setback.front.plot.121-240",
-        "blr.setback.front.road.9-18m"
+        "ncr.setback.front.plot.101-750"
       ],
       "unit": "mm",
-      "value": 3000
+      "value": 6910
     },
     {
-      "allowed": 1000,
       "key": "setback.side-a",
       "kind": "requirement",
       "label": "Side A setback",
-      "limitLabel": "Required",
-      "ruleIds": [
-        "blr.setback.side.plot.121-240"
-      ],
       "unit": "mm",
-      "value": 1302
+      "value": 1094
     },
     {
-      "allowed": 1500,
       "key": "setback.rear",
       "kind": "requirement",
       "label": "Rear setback",
-      "limitLabel": "Required",
-      "ruleIds": [
-        "blr.setback.rear.plot.121-240"
-      ],
       "unit": "mm",
-      "value": 7813
+      "value": 1085
     },
     {
-      "allowed": 1000,
       "key": "setback.side-b",
       "kind": "requirement",
       "label": "Side B setback",
-      "limitLabel": "Required",
-      "ruleIds": [
-        "blr.setback.side.plot.121-240"
-      ],
       "unit": "mm",
-      "value": 2840
+      "value": 0
     },
     {
       "allowed": 4,
@@ -144,7 +128,7 @@
       "label": "Floors above ground",
       "limitLabel": "Permissible",
       "ruleIds": [
-        "blr.floors.road.9-18m"
+        "ncr.floors.max"
       ],
       "unit": "count",
       "value": 3
@@ -157,34 +141,33 @@
       "limitLabel": "Permissible",
       "note": "Height as counted by the governing rule; excluded components are not included.",
       "ruleIds": [
-        "blr.height.road.9-18m"
+        "ncr.height.max"
       ],
       "unit": "mm",
       "value": 9600
     },
     {
-      "allowed": 1,
+      "allowed": 3,
       "key": "parking",
       "kind": "requirement",
       "label": "Car parking spaces",
       "limitLabel": "Required",
       "ruleIds": [
-        "blr.parking.plot.le240"
+        "ncr.parking.ecs"
       ],
       "unit": "count",
-      "value": 1
+      "value": 3
     }
   ],
   "setbacks": [
     {
       "edgeIndex": 0,
       "elementId": "plot.edge.front",
-      "providedMm": 3000,
+      "providedMm": 6910,
       "requiredMm": 3000,
       "role": "front",
       "ruleIds": [
-        "blr.setback.front.plot.121-240",
-        "blr.setback.front.road.9-18m"
+        "ncr.setback.front.plot.101-750"
       ],
       "shortfallMm": 0,
       "status": "ok"
@@ -192,41 +175,35 @@
     {
       "edgeIndex": 1,
       "elementId": "plot.edge.side-a",
-      "providedMm": 1302,
-      "requiredMm": 1000,
+      "providedMm": 1094,
+      "requiredMm": null,
       "role": "side-a",
-      "ruleIds": [
-        "blr.setback.side.plot.121-240"
-      ],
+      "ruleIds": [],
       "shortfallMm": 0,
-      "status": "ok"
+      "status": "not_regulated"
     },
     {
       "edgeIndex": 2,
       "elementId": "plot.edge.rear",
-      "providedMm": 7813,
-      "requiredMm": 1500,
+      "providedMm": 1085,
+      "requiredMm": null,
       "role": "rear",
-      "ruleIds": [
-        "blr.setback.rear.plot.121-240"
-      ],
+      "ruleIds": [],
       "shortfallMm": 0,
-      "status": "ok"
+      "status": "not_regulated"
     },
     {
       "edgeIndex": 3,
       "elementId": "plot.edge.side-b",
-      "providedMm": 2840,
-      "requiredMm": 1000,
+      "providedMm": 0,
+      "requiredMm": null,
       "role": "side-b",
-      "ruleIds": [
-        "blr.setback.side.plot.121-240"
-      ],
+      "ruleIds": [],
       "shortfallMm": 0,
-      "status": "ok"
+      "status": "not_regulated"
     }
   ],
   "storeyCount": 3,
-  "totalBuiltUpAreaMm2": 161821100,
+  "totalBuiltUpAreaMm2": 133321225,
   "warnings": []
 }

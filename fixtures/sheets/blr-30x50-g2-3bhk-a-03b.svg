@@ -45,21 +45,21 @@
 <g class="layer" data-layer="A-WALL" stroke="#000000" stroke-width="0.500" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="164.050,249.300 251.450,249.300 251.450,219.300 164.050,219.300" fill="none"/>
 <polygon points="164.050,219.300 236.500,219.300 236.500,189.300 164.050,189.300" fill="none"/>
-<polygon points="164.050,189.300 233.050,189.300 233.050,159.300 164.050,159.300" fill="none"/>
+<polygon points="164.050,189.300 229.600,189.300 229.600,159.300 164.050,159.300" fill="none"/>
 <polygon points="165.200,249.300 250.300,249.300 250.300,219.300 165.200,219.300" fill="none"/>
 <polygon points="165.200,219.300 235.350,219.300 235.350,189.300 165.200,189.300" fill="none"/>
-<polygon points="165.200,189.300 231.900,189.300 231.900,159.300 165.200,159.300" fill="none"/>
+<polygon points="165.200,189.300 228.450,189.300 228.450,159.300 165.200,159.300" fill="none"/>
 </g>
 <g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <line x1="164.050" y1="220.800" x2="236.500" y2="220.800"/>
-<line x1="164.050" y1="190.800" x2="233.050" y2="190.800"/>
+<line x1="164.050" y1="190.800" x2="229.600" y2="190.800"/>
 <polygon points="164.050,255.300 251.450,255.300 251.450,249.300 164.050,249.300" fill="none"/>
 <line x1="152.050" y1="255.300" x2="263.450" y2="255.300"/>
 <line x1="177.100" y1="240.300" x2="202.050" y2="240.300"/>
 <line x1="180.550" y1="210.300" x2="194.360" y2="210.300"/>
 <line x1="166.750" y1="171.300" x2="174.920" y2="171.300"/>
-<line x1="180.550" y1="180.300" x2="195.050" y2="180.300"/>
-<polygon points="164.050,159.300 233.050,159.300 233.050,149.300 164.050,149.300" fill="none"/>
+<line x1="180.550" y1="180.300" x2="195.090" y2="180.300"/>
+<polygon points="164.050,159.300 229.600,159.300 229.600,149.300 164.050,149.300" fill="none"/>
 </g>
 <g class="layer" data-layer="A-WIND" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="177.850,240.300 201.300,240.300 201.300,228.300 177.850,228.300" fill="none"/>
@@ -70,8 +70,8 @@
 <polygon points="167.500,171.300 174.170,171.300 174.170,166.800 167.500,166.800" fill="none"/>
 <polygon points="168.100,170.700 173.570,170.700 173.570,167.400 168.100,167.400" fill="none"/>
 <line x1="168.100" y1="169.050" x2="173.570" y2="169.050"/>
-<polygon points="181.300,180.300 194.300,180.300 194.300,168.300 181.300,168.300" fill="none"/>
-<polygon points="181.900,179.700 193.700,179.700 193.700,168.900 181.900,168.900" fill="none"/>
+<polygon points="181.300,180.300 194.340,180.300 194.340,168.300 181.300,168.300" fill="none"/>
+<polygon points="181.900,179.700 193.740,179.700 193.740,168.900 181.900,168.900" fill="none"/>
 </g>
 <g class="layer" data-layer="A-DIM" stroke="#1a1a1a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <line x1="146.050" y1="255.300" x2="164.050" y2="255.300"/>
@@ -128,7 +128,7 @@
 <text x="189.570" y="234.300" font-size="1.800" text-anchor="middle" dominant-baseline="central">W1</text>
 <text x="187.450" y="204.300" font-size="1.800" text-anchor="middle" dominant-baseline="central">W3</text>
 <text x="170.830" y="169.050" font-size="1.800" text-anchor="middle" dominant-baseline="central">V1</text>
-<text x="187.800" y="174.300" font-size="1.800" text-anchor="middle" dominant-baseline="central">W2</text>
+<text x="187.820" y="174.300" font-size="1.800" text-anchor="middle" dominant-baseline="central">W2</text>
 <text x="144.550" y="267.300" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">NOTES</text>
 <text x="144.550" y="270.500" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">1. Facade is stepped (2 depths): each face is outlined and openings behind a nearer face are hidden.</text>
 <text x="144.550" y="273.700" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">2. No facade kit applied — no material callouts on this elevation.</text>

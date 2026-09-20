@@ -198,7 +198,7 @@
     {
       "chains": [
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-S-L1",
+          "id": "storey_01M2Z3NM3BQF42ZA9PQ48RN344-S-L1",
           "level": 1,
           "offsetMm": 600,
           "orientation": "horizontal",
@@ -215,7 +215,7 @@
           "sumMm": 6555
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-S-L2",
+          "id": "storey_01M2Z3NM3BQF42ZA9PQ48RN344-S-L2",
           "level": 2,
           "offsetMm": 1200,
           "orientation": "horizontal",
@@ -223,25 +223,25 @@
           "overallMm": 6555,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZM5Y3X2Z1YFQH02NYY",
+              "anchorElementId": "wall_01M2Z3NM3BCVJ68DZEC84A5R53",
               "label": "575",
               "lengthMm": 575,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZM5Y3X2Z1YFQH02NYY",
+              "anchorElementId": "wall_01M2Z3NM3BCVJ68DZEC84A5R53",
               "label": "1840",
               "lengthMm": 1840,
               "startMm": 575
             },
             {
-              "anchorElementId": "wall_01M1KF7AZM17MKAYA769Y3MZJC",
+              "anchorElementId": "wall_01M2Z3NM3BYZMFX9SEEGJB10FE",
               "label": "1495",
               "lengthMm": 1495,
               "startMm": 2415
             },
             {
-              "anchorElementId": "wall_01M1KF7AZMSZE8BY30QT2PF70F",
+              "anchorElementId": "wall_01M2Z3NM3BM7A9FZSN8ZBTVD5S",
               "label": "2645",
               "lengthMm": 2645,
               "startMm": 3910
@@ -250,7 +250,7 @@
           "sumMm": 6555
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-S-L3",
+          "id": "storey_01M2Z3NM3BQF42ZA9PQ48RN344-S-L3",
           "level": 3,
           "offsetMm": 1800,
           "orientation": "horizontal",
@@ -258,13 +258,13 @@
           "overallMm": 6555,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZNWPJ36S516814CCWQ",
+              "anchorElementId": "opening_01M2Z3NM3BE4H9X1TW6SERSNXS",
               "label": "3095",
               "lengthMm": 3095,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZNWPJ36S516814CCWQ",
+              "anchorElementId": "opening_01M2Z3NM3BE4H9X1TW6SERSNXS",
               "label": "3460",
               "lengthMm": 3460,
               "startMm": 3095
@@ -273,7 +273,7 @@
           "sumMm": 6555
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-W-L1",
+          "id": "storey_01M2Z3NM3BQF42ZA9PQ48RN344-W-L1",
           "level": 1,
           "offsetMm": -1400,
           "orientation": "vertical",
@@ -290,7 +290,7 @@
           "sumMm": 8740
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-W-L2",
+          "id": "storey_01M2Z3NM3BQF42ZA9PQ48RN344-W-L2",
           "level": 2,
           "offsetMm": -800,
           "orientation": "vertical",
@@ -298,25 +298,25 @@
           "overallMm": 8740,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZM6EVQ3JRSGRD0JQXE",
+              "anchorElementId": "wall_01M2Z3NM3BG10GKZ1Q74BFTRJX",
               "label": "1150",
               "lengthMm": 1150,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZM6EVQ3JRSGRD0JQXE",
+              "anchorElementId": "wall_01M2Z3NM3BG10GKZ1Q74BFTRJX",
               "label": "1840",
               "lengthMm": 1840,
               "startMm": 1150
             },
             {
-              "anchorElementId": "wall_01M1KF7AZM7JT68DPYXBDV904Z",
+              "anchorElementId": "wall_01M2Z3NM3B12YS8KE0EQFS69DZ",
               "label": "3910",
               "lengthMm": 3910,
               "startMm": 2990
             },
             {
-              "anchorElementId": "wall_01M1KF7AZMRGBH8PGRJ8TTHX9Z",
+              "anchorElementId": "wall_01M2Z3NM3BCBBWXM5K9NE0ET4T",
               "label": "1840",
               "lengthMm": 1840,
               "startMm": 6900
@@ -325,7 +325,7 @@
           "sumMm": 8740
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-W-L3",
+          "id": "storey_01M2Z3NM3BQF42ZA9PQ48RN344-W-L3",
           "level": 3,
           "offsetMm": -200,
           "orientation": "vertical",
@@ -333,13 +333,13 @@
           "overallMm": 8740,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZNJJ7GG27XV0HZ2JD0",
+              "anchorElementId": "opening_01M2Z3NM3BA0MDG8CBPMDZSW4A",
               "label": "6070",
               "lengthMm": 6070,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZNJJ7GG27XV0HZ2JD0",
+              "anchorElementId": "opening_01M2Z3NM3BA0MDG8CBPMDZSW4A",
               "label": "2670",
               "lengthMm": 2670,
               "startMm": 6070
@@ -348,7 +348,7 @@
           "sumMm": 8740
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-E-L3",
+          "id": "storey_01M2Z3NM3BQF42ZA9PQ48RN344-E-L3",
           "level": 3,
           "offsetMm": 8755,
           "orientation": "vertical",
@@ -356,13 +356,13 @@
           "overallMm": 8740,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZNHXX03H8CMERQW4VP",
+              "anchorElementId": "opening_01M2Z3NM3B64AGT963KKGWN826",
               "label": "2552",
               "lengthMm": 2552,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZNHXX03H8CMERQW4VP",
+              "anchorElementId": "opening_01M2Z3NM3B64AGT963KKGWN826",
               "label": "6188",
               "lengthMm": 6188,
               "startMm": 2552
@@ -378,7 +378,7 @@
     {
       "chains": [
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-S-L1",
+          "id": "storey_01M2Z3NM3D5R65TVVHT9998GRH-S-L1",
           "level": 1,
           "offsetMm": 600,
           "orientation": "horizontal",
@@ -395,7 +395,7 @@
           "sumMm": 6555
         },
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-S-L2",
+          "id": "storey_01M2Z3NM3D5R65TVVHT9998GRH-S-L2",
           "level": 2,
           "offsetMm": 1200,
           "orientation": "horizontal",
@@ -403,25 +403,25 @@
           "overallMm": 6555,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZP8W86EZA3QF00ZKH5",
+              "anchorElementId": "wall_01M2Z3NM3DQVF82YYTDY56TT5S",
               "label": "2415",
               "lengthMm": 2415,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZP8W86EZA3QF00ZKH5",
+              "anchorElementId": "wall_01M2Z3NM3DQVF82YYTDY56TT5S",
               "label": "1150",
               "lengthMm": 1150,
               "startMm": 2415
             },
             {
-              "anchorElementId": "wall_01M1KF7AZPVBQJW35BDE1JHMWB",
+              "anchorElementId": "wall_01M2Z3NM3D10JYHC0PR7M4W0XE",
               "label": "2760",
               "lengthMm": 2760,
               "startMm": 3565
             },
             {
-              "anchorElementId": "wall_01M1KF7AZPYWXV5FMKDW3AQ7PS",
+              "anchorElementId": "wall_01M2Z3NM3DJX2EBYGR09Y13JP3",
               "label": "230",
               "lengthMm": 230,
               "startMm": 6325
@@ -430,7 +430,7 @@
           "sumMm": 6555
         },
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-S-L3",
+          "id": "storey_01M2Z3NM3D5R65TVVHT9998GRH-S-L3",
           "level": 3,
           "offsetMm": 1800,
           "orientation": "horizontal",
@@ -447,7 +447,7 @@
           "sumMm": 6555
         },
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-W-L1",
+          "id": "storey_01M2Z3NM3D5R65TVVHT9998GRH-W-L1",
           "level": 1,
           "offsetMm": -1400,
           "orientation": "vertical",
@@ -464,7 +464,7 @@
           "sumMm": 7245
         },
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-W-L2",
+          "id": "storey_01M2Z3NM3D5R65TVVHT9998GRH-W-L2",
           "level": 2,
           "offsetMm": -800,
           "orientation": "vertical",
@@ -472,19 +472,19 @@
           "overallMm": 7245,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZP6Z2T44S2XZATKYDC",
+              "anchorElementId": "wall_01M2Z3NM3DRZ8J19619V3TTXQS",
               "label": "1495",
               "lengthMm": 1495,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZP6Z2T44S2XZATKYDC",
+              "anchorElementId": "wall_01M2Z3NM3DRZ8J19619V3TTXQS",
               "label": "1495",
               "lengthMm": 1495,
               "startMm": 1495
             },
             {
-              "anchorElementId": "wall_01M1KF7AZPMPF72DTP502H92MA",
+              "anchorElementId": "wall_01M2Z3NM3DM5PGK70V0N6XX1NN",
               "label": "4255",
               "lengthMm": 4255,
               "startMm": 2990
@@ -493,7 +493,7 @@
           "sumMm": 7245
         },
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-W-L3",
+          "id": "storey_01M2Z3NM3D5R65TVVHT9998GRH-W-L3",
           "level": 3,
           "offsetMm": -200,
           "orientation": "vertical",
@@ -501,13 +501,13 @@
           "overallMm": 7245,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZQYM828AW3ZZG6Z33P",
+              "anchorElementId": "opening_01M2Z3NM3D69BP43TNBVV2VC48",
               "label": "6300",
               "lengthMm": 6300,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZQYM828AW3ZZG6Z33P",
+              "anchorElementId": "opening_01M2Z3NM3D69BP43TNBVV2VC48",
               "label": "945",
               "lengthMm": 945,
               "startMm": 6300
@@ -516,7 +516,7 @@
           "sumMm": 7245
         },
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-E-L3",
+          "id": "storey_01M2Z3NM3D5R65TVVHT9998GRH-E-L3",
           "level": 3,
           "offsetMm": 8755,
           "orientation": "vertical",
@@ -524,13 +524,13 @@
           "overallMm": 7245,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZQMW74J20S71TDK5D3",
+              "anchorElementId": "opening_01M2Z3NM3DGR6ARAZEZ31DVYY9",
               "label": "2340",
               "lengthMm": 2340,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZQMW74J20S71TDK5D3",
+              "anchorElementId": "opening_01M2Z3NM3DGR6ARAZEZ31DVYY9",
               "label": "4905",
               "lengthMm": 4905,
               "startMm": 2340
@@ -546,171 +546,188 @@
     {
       "chains": [
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-S-L1",
+          "id": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY-S-L1",
           "level": 1,
           "offsetMm": 600,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 5750,
+          "overallMm": 5980,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "5750",
-              "lengthMm": 5750,
+              "label": "5980",
+              "lengthMm": 5980,
               "startMm": 0
             }
           ],
-          "sumMm": 5750
+          "sumMm": 5980
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-S-L2",
+          "id": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY-S-L2",
           "level": 2,
           "offsetMm": 1200,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 5750,
+          "overallMm": 5980,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZQ8XFS7N23REW66MS0",
+              "anchorElementId": "wall_01M2Z3NM3E8SH7NY8BSEHX6GB9",
               "label": "920",
               "lengthMm": 920,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZQ8XFS7N23REW66MS0",
+              "anchorElementId": "wall_01M2Z3NM3E8SH7NY8BSEHX6GB9",
               "label": "1495",
               "lengthMm": 1495,
               "startMm": 920
             },
             {
-              "anchorElementId": "wall_01M1KF7AZQ01A4TD3X5YFV5RY6",
-              "label": "3335",
-              "lengthMm": 3335,
+              "anchorElementId": "wall_01M2Z3NM3EB0TP0Y9K4HAZR15R",
+              "label": "3565",
+              "lengthMm": 3565,
               "startMm": 2415
             }
           ],
-          "sumMm": 5750
+          "sumMm": 5980
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-S-L3",
+          "id": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY-S-L3",
           "level": 3,
           "offsetMm": 1800,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 5750,
+          "overallMm": 5980,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "5750",
-              "lengthMm": 5750,
+              "label": "5980",
+              "lengthMm": 5980,
               "startMm": 0
             }
           ],
-          "sumMm": 5750
+          "sumMm": 5980
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-W-L1",
+          "id": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY-W-L1",
           "level": 1,
           "offsetMm": -1400,
           "orientation": "vertical",
           "originMm": 3000,
-          "overallMm": 6900,
+          "overallMm": 6555,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "6900",
-              "lengthMm": 6900,
+              "label": "6555",
+              "lengthMm": 6555,
               "startMm": 0
             }
           ],
-          "sumMm": 6900
+          "sumMm": 6555
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-W-L2",
+          "id": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY-W-L2",
           "level": 2,
           "offsetMm": -800,
           "orientation": "vertical",
           "originMm": 3000,
-          "overallMm": 6900,
+          "overallMm": 6555,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZQDT4EKRX0EMZ09J3R",
+              "anchorElementId": "wall_01M2Z3NM3EWMMPSW3XPMYW1R9T",
               "label": "1495",
               "lengthMm": 1495,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZQDT4EKRX0EMZ09J3R",
+              "anchorElementId": "wall_01M2Z3NM3EWMMPSW3XPMYW1R9T",
               "label": "1495",
               "lengthMm": 1495,
               "startMm": 1495
             },
             {
-              "anchorElementId": "wall_01M1KF7AZQDEE8AFV4C50H4V44",
+              "anchorElementId": "wall_01M2Z3NM3E8JDG14PVAQPBB3RC",
               "label": "1265",
               "lengthMm": 1265,
               "startMm": 2990
             },
             {
-              "anchorElementId": "wall_01M1KF7AZQJW3WNFCYNCQVGP7M",
-              "label": "2645",
-              "lengthMm": 2645,
+              "anchorElementId": "wall_01M2Z3NM3EAY02SP2JZY5TAZNZ",
+              "label": "2300",
+              "lengthMm": 2300,
               "startMm": 4255
             }
           ],
-          "sumMm": 6900
+          "sumMm": 6555
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-W-L3",
+          "id": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY-W-L3",
           "level": 3,
           "offsetMm": -200,
           "orientation": "vertical",
           "originMm": 3000,
-          "overallMm": 6900,
+          "overallMm": 6555,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZRBVQNAE3HSH8GPGE6",
-              "label": "6222",
-              "lengthMm": 6222,
+              "anchorElementId": null,
+              "label": "6555",
+              "lengthMm": 6555,
               "startMm": 0
-            },
-            {
-              "anchorElementId": "opening_01M1KF7AZRBVQNAE3HSH8GPGE6",
-              "label": "678",
-              "lengthMm": 678,
-              "startMm": 6222
             }
           ],
-          "sumMm": 6900
+          "sumMm": 6555
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-E-L3",
+          "id": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY-N-L3",
           "level": 3,
-          "offsetMm": 7950,
-          "orientation": "vertical",
-          "originMm": 3000,
-          "overallMm": 6900,
+          "offsetMm": 10755,
+          "orientation": "horizontal",
+          "originMm": 1000,
+          "overallMm": 5980,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZRHJPJMBHZP7D98NW1",
+              "anchorElementId": "opening_01M2Z3NM3EJE4FN55TAX9H8BY8",
+              "label": "1852",
+              "lengthMm": 1852,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "opening_01M2Z3NM3EJE4FN55TAX9H8BY8",
+              "label": "4128",
+              "lengthMm": 4128,
+              "startMm": 1852
+            }
+          ],
+          "sumMm": 5980
+        },
+        {
+          "id": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY-E-L3",
+          "level": 3,
+          "offsetMm": 8180,
+          "orientation": "vertical",
+          "originMm": 3000,
+          "overallMm": 6555,
+          "segments": [
+            {
+              "anchorElementId": "opening_01M2Z3NM3E9ZRZ8NYWTZ1CDFY6",
               "label": "678",
               "lengthMm": 678,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZRHJPJMBHZP7D98NW1",
-              "label": "1697",
-              "lengthMm": 1697,
+              "anchorElementId": "opening_01M2Z3NM3E9ZRZ8NYWTZ1CDFY6",
+              "label": "1699",
+              "lengthMm": 1699,
               "startMm": 678
             },
             {
-              "anchorElementId": "opening_01M1KF7AZRT6Q895ZG8RPKFRT8",
-              "label": "4525",
-              "lengthMm": 4525,
-              "startMm": 2375
+              "anchorElementId": "opening_01M2Z3NM3EG5967SRZP7Y76TG8",
+              "label": "4178",
+              "lengthMm": 4178,
+              "startMm": 2377
             }
           ],
-          "sumMm": 6900
+          "sumMm": 6555
         }
       ],
       "scale": 100,
@@ -734,19 +751,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z3NM3BQF42ZA9PQ48RN344",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z3NM3D5R65TVVHT9998GRH",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600
@@ -782,19 +799,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z3NM3BQF42ZA9PQ48RN344",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z3NM3D5R65TVVHT9998GRH",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600
@@ -830,19 +847,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z3NM3BQF42ZA9PQ48RN344",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z3NM3D5R65TVVHT9998GRH",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600
@@ -878,19 +895,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z3NM3BQF42ZA9PQ48RN344",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z3NM3D5R65TVVHT9998GRH",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600
@@ -926,19 +943,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z3NM3BQF42ZA9PQ48RN344",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z3NM3D5R65TVVHT9998GRH",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600

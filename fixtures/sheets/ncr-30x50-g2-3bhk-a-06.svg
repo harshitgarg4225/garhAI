@@ -9,7 +9,7 @@
 <text x="564.000" y="356.000" font-size="5.000" text-anchor="middle" dominant-baseline="alphabetic" font-weight="600">A-06</text>
 <text x="564.000" y="361.000" font-size="1.800" text-anchor="middle" dominant-baseline="alphabetic">SHEET</text>
 <text x="406.000" y="365.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">PROJECT</text>
-<text x="406.000" y="374.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Bengaluru 40 × 60, G+2 4BHK</text>
+<text x="406.000" y="374.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">NCR 30 × 50, G+2 3BHK</text>
 <text x="406.000" y="376.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">CLIENT</text>
 <text x="406.000" y="385.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 <text x="406.000" y="387.000" font-size="1.800" text-anchor="start" dominant-baseline="hanging">ARCHITECT</text>
@@ -62,8 +62,8 @@
 <text x="27.000" y="47.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">1</text>
 <text x="45.000" y="47.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">PLOT AREA (as per document)</text>
 <text x="218.000" y="47.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="47.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">222.97 m² (2,400.0 sq ft)</text>
-<text x="307.000" y="47.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">267 gaj</text>
+<text x="303.000" y="47.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">139.35 m² (1,500.0 sq ft)</text>
+<text x="307.000" y="47.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">167 gaj</text>
 <text x="27.000" y="54.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">2</text>
 <text x="45.000" y="54.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">GROUND COVERAGE</text>
 <text x="218.000" y="54.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600"></text>
@@ -71,14 +71,14 @@
 <text x="307.000" y="54.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600"></text>
 <text x="27.000" y="61.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">2.1</text>
 <text x="45.000" y="61.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Covered area on ground floor</text>
-<text x="218.000" y="61.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">144.93 m² (1,560.0 sq ft)</text>
-<text x="303.000" y="61.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">60.17 m² (647.7 sq ft)</text>
-<text x="307.000" y="61.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">blr.coverage.plot.121-240</text>
+<text x="218.000" y="61.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">104.52 m² (1,125.0 sq ft)</text>
+<text x="303.000" y="61.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">58.32 m² (627.8 sq ft)</text>
+<text x="307.000" y="61.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">ncr.coverage.plot.101-750</text>
 <text x="27.000" y="68.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">2.2</text>
 <text x="45.000" y="68.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">Ground coverage (%)</text>
-<text x="218.000" y="68.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">65.0%</text>
-<text x="303.000" y="68.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">27.0%</text>
-<text x="307.000" y="68.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">blr.coverage.plot.121-240</text>
+<text x="218.000" y="68.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">75.0%</text>
+<text x="303.000" y="68.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">41.9%</text>
+<text x="307.000" y="68.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">ncr.coverage.plot.101-750</text>
 <text x="27.000" y="75.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">3</text>
 <text x="45.000" y="75.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">FLOOR AREA RATIO (FAR)</text>
 <text x="218.000" y="75.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600"></text>
@@ -86,14 +86,14 @@
 <text x="307.000" y="75.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600"></text>
 <text x="27.000" y="82.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">3.1</text>
 <text x="45.000" y="82.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">FAR-countable built-up area</text>
-<text x="218.000" y="82.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">501.68 m² (5,400.0 sq ft)</text>
-<text x="303.000" y="82.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">161.82 m² (1,741.8 sq ft)</text>
-<text x="307.000" y="82.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">blr.far.road.9-18m</text>
+<text x="218.000" y="82.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">418.06 m² (4,500.0 sq ft)</text>
+<text x="303.000" y="82.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">133.32 m² (1,435.1 sq ft)</text>
+<text x="307.000" y="82.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">ncr.far.plot.101-250</text>
 <text x="27.000" y="89.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">3.2</text>
 <text x="45.000" y="89.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">Floor area ratio (FAR)</text>
-<text x="218.000" y="89.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">2.25</text>
-<text x="303.000" y="89.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">0.73</text>
-<text x="307.000" y="89.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">blr.far.road.9-18m</text>
+<text x="218.000" y="89.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">3.00</text>
+<text x="303.000" y="89.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">0.96</text>
+<text x="307.000" y="89.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">ncr.far.plot.101-250</text>
 <text x="27.000" y="96.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">4</text>
 <text x="45.000" y="96.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">BUILT-UP AREA</text>
 <text x="218.000" y="96.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600"></text>
@@ -102,22 +102,22 @@
 <text x="27.000" y="103.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">4.1</text>
 <text x="45.000" y="103.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Ground floor built-up</text>
 <text x="218.000" y="103.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="103.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">60.17 m² (647.7 sq ft)</text>
+<text x="303.000" y="103.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">58.32 m² (627.8 sq ft)</text>
 <text x="307.000" y="103.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 <text x="27.000" y="110.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">4.2</text>
 <text x="45.000" y="110.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">First floor built-up</text>
 <text x="218.000" y="110.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="110.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">54.16 m² (582.9 sq ft)</text>
+<text x="303.000" y="110.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">38.55 m² (415.0 sq ft)</text>
 <text x="307.000" y="110.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 <text x="27.000" y="117.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">4.3</text>
 <text x="45.000" y="117.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Second floor built-up</text>
 <text x="218.000" y="117.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="117.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">47.49 m² (511.2 sq ft)</text>
+<text x="303.000" y="117.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">36.45 m² (392.3 sq ft)</text>
 <text x="307.000" y="117.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 <text x="27.000" y="124.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">4.4</text>
 <text x="45.000" y="124.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">TOTAL BUILT-UP AREA</text>
 <text x="218.000" y="124.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">—</text>
-<text x="303.000" y="124.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">161.82 m² (1,741.8 sq ft)</text>
+<text x="303.000" y="124.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">133.32 m² (1,435.1 sq ft)</text>
 <text x="307.000" y="124.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600"></text>
 <text x="27.000" y="131.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">5</text>
 <text x="45.000" y="131.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">CARPET AREA (not a regulatory figure)</text>
@@ -127,22 +127,22 @@
 <text x="27.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">5.1</text>
 <text x="45.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Ground floor</text>
 <text x="218.000" y="138.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="138.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">50.33 m² (541.8 sq ft)</text>
-<text x="307.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">83.6% of built-up</text>
+<text x="303.000" y="138.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">49.27 m² (530.4 sq ft)</text>
+<text x="307.000" y="138.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">84.5% of built-up</text>
 <text x="27.000" y="145.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">5.2</text>
 <text x="45.000" y="145.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">First floor</text>
 <text x="218.000" y="145.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="145.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">44.85 m² (482.8 sq ft)</text>
-<text x="307.000" y="145.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">82.8% of built-up</text>
+<text x="303.000" y="145.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">30.82 m² (331.8 sq ft)</text>
+<text x="307.000" y="145.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">79.9% of built-up</text>
 <text x="27.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">5.3</text>
 <text x="45.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Second floor</text>
 <text x="218.000" y="152.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
-<text x="303.000" y="152.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">39.54 m² (425.6 sq ft)</text>
-<text x="307.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">83.3% of built-up</text>
+<text x="303.000" y="152.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">28.96 m² (311.7 sq ft)</text>
+<text x="307.000" y="152.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">79.5% of built-up</text>
 <text x="27.000" y="159.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">5.4</text>
 <text x="45.000" y="159.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">TOTAL CARPET AREA</text>
 <text x="218.000" y="159.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">—</text>
-<text x="303.000" y="159.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">134.72 m² (1,450.2 sq ft)</text>
+<text x="303.000" y="159.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic" font-weight="600">109.05 m² (1,173.9 sq ft)</text>
 <text x="307.000" y="159.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600"></text>
 <text x="27.000" y="166.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">6</text>
 <text x="45.000" y="166.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">SETBACKS (mm)</text>
@@ -152,38 +152,38 @@
 <text x="27.000" y="173.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">6.1</text>
 <text x="45.000" y="173.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Front setback</text>
 <text x="218.000" y="173.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3000 mm</text>
-<text x="303.000" y="173.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3000 mm</text>
-<text x="307.000" y="173.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">OK · blr.setback.front.plot.121-240, blr.setback.front.road.9-18m</text>
+<text x="303.000" y="173.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">6910 mm</text>
+<text x="307.000" y="173.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">OK · ncr.setback.front.plot.101-750</text>
 <text x="27.000" y="180.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">6.2</text>
 <text x="45.000" y="180.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Side A setback</text>
-<text x="218.000" y="180.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1000 mm</text>
-<text x="303.000" y="180.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1302 mm</text>
-<text x="307.000" y="180.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">OK · blr.setback.side.plot.121-240</text>
+<text x="218.000" y="180.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
+<text x="303.000" y="180.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1094 mm</text>
+<text x="307.000" y="180.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
 <text x="27.000" y="187.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">6.3</text>
 <text x="45.000" y="187.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Rear setback</text>
-<text x="218.000" y="187.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1500 mm</text>
-<text x="303.000" y="187.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">7813 mm</text>
-<text x="307.000" y="187.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">OK · blr.setback.rear.plot.121-240</text>
+<text x="218.000" y="187.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
+<text x="303.000" y="187.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1085 mm</text>
+<text x="307.000" y="187.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
 <text x="27.000" y="194.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">6.4</text>
 <text x="45.000" y="194.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Side B setback</text>
-<text x="218.000" y="194.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1000 mm</text>
-<text x="303.000" y="194.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2840 mm</text>
-<text x="307.000" y="194.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">OK · blr.setback.side.plot.121-240</text>
+<text x="218.000" y="194.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">—</text>
+<text x="303.000" y="194.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0 mm</text>
+<text x="307.000" y="194.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">not regulated</text>
 <text x="27.000" y="201.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">7</text>
 <text x="45.000" y="201.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">HEIGHT OF BUILDING (mm)</text>
 <text x="218.000" y="201.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">15000 mm</text>
 <text x="303.000" y="201.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">9600 mm</text>
-<text x="307.000" y="201.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">blr.height.road.9-18m</text>
+<text x="307.000" y="201.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">ncr.height.max</text>
 <text x="27.000" y="208.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">8</text>
 <text x="45.000" y="208.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">NUMBER OF FLOORS ABOVE GROUND</text>
 <text x="218.000" y="208.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">4</text>
 <text x="303.000" y="208.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
-<text x="307.000" y="208.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">blr.floors.road.9-18m</text>
+<text x="307.000" y="208.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">ncr.floors.max</text>
 <text x="27.000" y="215.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">9</text>
 <text x="45.000" y="215.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">CAR PARKING SPACES (nos.)</text>
-<text x="218.000" y="215.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="303.000" y="215.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="307.000" y="215.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">blr.parking.plot.le240</text>
+<text x="218.000" y="215.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
+<text x="303.000" y="215.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
+<text x="307.000" y="215.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">ncr.parking.ecs</text>
 </g>
 </g>
 <g class="layer" data-layer="A-TITL" stroke="#000000" stroke-width="0.350" fill="none" stroke-linecap="butt" stroke-linejoin="miter">

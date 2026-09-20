@@ -36,7 +36,7 @@
             "A-TITL"
           ],
           "number": "A-01",
-          "primitives": 57,
+          "primitives": 61,
           "scale": 100
         },
         {
@@ -173,10 +173,10 @@
           "scale": 100
         }
       ],
-      "stateHash": "c3f7f3d41a3b621e4c6d3097a2def36929a7c31e33f38ba2fb51b2fbdc2149c7"
+      "stateHash": "cfef2fe467b61b6e7377b19f59855c61b5f67d81dd77b5f1dfef2feffba87f43"
     },
     {
-      "chainCount": 37,
+      "chainCount": 38,
       "handChecked": false,
       "input": "fixtures/plans/blr-30x50-g2-3bhk.json",
       "labelCollisions": 0,
@@ -195,7 +195,7 @@
             "A-TITL"
           ],
           "number": "A-01",
-          "primitives": 57,
+          "primitives": 61,
           "scale": 100
         },
         {
@@ -235,7 +235,7 @@
           "scale": 100
         },
         {
-          "chains": 7,
+          "chains": 8,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -248,7 +248,7 @@
             "A-TITL"
           ],
           "number": "A-02C",
-          "primitives": 144,
+          "primitives": 145,
           "scale": 100
         },
         {
@@ -257,12 +257,13 @@
           "layersUsed": [
             "A-WALL",
             "A-WALL-PART",
+            "A-WIND",
             "A-DIM",
             "A-TEXT",
             "A-TITL"
           ],
           "number": "A-03A",
-          "primitives": 82,
+          "primitives": 87,
           "scale": 100
         },
         {
@@ -307,7 +308,7 @@
             "A-TITL"
           ],
           "number": "A-03D",
-          "primitives": 91,
+          "primitives": 86,
           "scale": 100
         },
         {
@@ -349,7 +350,7 @@
           "scale": 100
         }
       ],
-      "stateHash": "f61599f69586af7f6076e1a38f45fefcfd65c98c1a8104721efa2407c3966d9e"
+      "stateHash": "118ab6d3bc17509a55bbcfbd56e488ae675b16b853ecb1aa2bdf7c9f0018f9ed"
     },
     {
       "chainCount": 38,
@@ -371,7 +372,7 @@
             "A-TITL"
           ],
           "number": "A-01",
-          "primitives": 57,
+          "primitives": 61,
           "scale": 125
         },
         {
@@ -393,7 +394,7 @@
           "scale": 100
         },
         {
-          "chains": 7,
+          "chains": 8,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -407,11 +408,11 @@
             "A-TITL"
           ],
           "number": "A-02B",
-          "primitives": 174,
+          "primitives": 175,
           "scale": 100
         },
         {
-          "chains": 8,
+          "chains": 7,
           "kind": "floor-plan",
           "layersUsed": [
             "A-WALL",
@@ -424,7 +425,7 @@
             "A-TITL"
           ],
           "number": "A-02C",
-          "primitives": 142,
+          "primitives": 141,
           "scale": 100
         },
         {
@@ -439,7 +440,7 @@
             "A-TITL"
           ],
           "number": "A-03A",
-          "primitives": 96,
+          "primitives": 91,
           "scale": 100
         },
         {
@@ -454,7 +455,7 @@
             "A-TITL"
           ],
           "number": "A-03B",
-          "primitives": 91,
+          "primitives": 86,
           "scale": 100
         },
         {
@@ -470,7 +471,7 @@
             "A-TITL"
           ],
           "number": "A-03C",
-          "primitives": 89,
+          "primitives": 85,
           "scale": 100
         },
         {
@@ -485,7 +486,7 @@
             "A-TITL"
           ],
           "number": "A-03D",
-          "primitives": 87,
+          "primitives": 91,
           "scale": 100
         },
         {
@@ -500,7 +501,7 @@
             "A-TITL"
           ],
           "number": "A-04",
-          "primitives": 124,
+          "primitives": 126,
           "scale": 100
         },
         {
@@ -511,7 +512,7 @@
             "A-TITL"
           ],
           "number": "A-05",
-          "primitives": 173,
+          "primitives": 162,
           "scale": 100
         },
         {
@@ -527,7 +528,7 @@
           "scale": 100
         }
       ],
-      "stateHash": "80e3d372ee8defd2787bf6fc73b31a056230070f64bc5143ea1e8f7fc848b468"
+      "stateHash": "2d1bd94ace027b803d1d4bbab44f19ef36bfcd4e2224570867469c7e4c2727ea"
     },
     {
       "chainCount": 31,
@@ -549,7 +550,7 @@
             "A-TITL"
           ],
           "number": "A-01",
-          "primitives": 57,
+          "primitives": 61,
           "scale": 100
         },
         {
@@ -687,7 +688,185 @@
           "scale": 100
         }
       ],
-      "stateHash": "af7c2c0986aee299387eb9658f7d7db07c686a4df6fb60511ee8e84bec5ebd1a"
+      "stateHash": "f3811050bc9cb8eff953845b182320d0a3d9e3eede72f102564d79f447b16f20"
+    },
+    {
+      "chainCount": 37,
+      "handChecked": false,
+      "input": "fixtures/plans/ncr-30x50-g2-3bhk.json",
+      "labelCollisions": 0,
+      "name": "NCR 30 \u00d7 50, G+2 3BHK",
+      "projectId": "ncr-30x50-g2-3bhk",
+      "sheets": [
+        {
+          "chains": 10,
+          "kind": "site-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-01",
+          "primitives": 68,
+          "scale": 100
+        },
+        {
+          "chains": 7,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-STAIR",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02A",
+          "primitives": 162,
+          "scale": 100
+        },
+        {
+          "chains": 7,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-STAIR",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02B",
+          "primitives": 152,
+          "scale": 100
+        },
+        {
+          "chains": 8,
+          "kind": "floor-plan",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-02C",
+          "primitives": 142,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03A",
+          "primitives": 88,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03B",
+          "primitives": 95,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-DOOR",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03C",
+          "primitives": 89,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "elevation",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-WIND",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-03D",
+          "primitives": 87,
+          "scale": 100
+        },
+        {
+          "chains": 1,
+          "kind": "section",
+          "layersUsed": [
+            "A-WALL",
+            "A-WALL-PART",
+            "A-STAIR",
+            "A-DIM",
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-04",
+          "primitives": 136,
+          "scale": 100
+        },
+        {
+          "chains": 0,
+          "kind": "door-window-schedule",
+          "layersUsed": [
+            "A-TEXT",
+            "A-TITL"
+          ],
+          "number": "A-05",
+          "primitives": 151,
+          "scale": 100
+        },
+        {
+          "chains": 0,
+          "kind": "area-statement",
+          "layersUsed": [
+            "A-TEXT",
+            "A-AREA",
+            "A-TITL"
+          ],
+          "number": "A-06",
+          "primitives": 197,
+          "scale": 100
+        }
+      ],
+      "stateHash": "fef3e9c2d3df1ec4134f73a1d4526acd57b37459baeaa0d2f3f122b1a8ab515f"
     }
   ],
   "source": "fixtures/plans"

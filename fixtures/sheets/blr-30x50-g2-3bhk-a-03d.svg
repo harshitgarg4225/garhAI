@@ -45,26 +45,22 @@
 <g class="layer" data-layer="A-WALL" stroke="#000000" stroke-width="0.500" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="164.050,250.900 251.450,250.900 251.450,220.900 164.050,220.900" fill="none"/>
 <polygon points="179.000,220.900 251.450,220.900 251.450,190.900 179.000,190.900" fill="none"/>
-<polygon points="182.450,190.900 251.450,190.900 251.450,160.900 182.450,160.900" fill="none"/>
+<polygon points="185.900,190.900 251.450,190.900 251.450,160.900 185.900,160.900" fill="none"/>
 </g>
 <g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <line x1="179.000" y1="222.400" x2="251.450" y2="222.400"/>
-<line x1="182.450" y1="192.400" x2="251.450" y2="192.400"/>
+<line x1="185.900" y1="192.400" x2="251.450" y2="192.400"/>
 <polygon points="164.050,256.900 251.450,256.900 251.450,250.900 164.050,250.900" fill="none"/>
 <line x1="152.050" y1="256.900" x2="263.450" y2="256.900"/>
 <line x1="184.000" y1="241.900" x2="197.500" y2="241.900"/>
 <line x1="181.700" y1="211.900" x2="195.200" y2="211.900"/>
-<line x1="185.150" y1="172.900" x2="193.320" y2="172.900"/>
-<polygon points="182.450,160.900 251.450,160.900 251.450,150.900 182.450,150.900" fill="none"/>
+<polygon points="185.900,160.900 251.450,160.900 251.450,150.900 185.900,150.900" fill="none"/>
 </g>
 <g class="layer" data-layer="A-WIND" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="184.750,241.900 196.750,241.900 196.750,229.900 184.750,229.900" fill="none"/>
 <polygon points="185.350,241.300 196.150,241.300 196.150,230.500 185.350,230.500" fill="none"/>
 <polygon points="182.450,211.900 194.450,211.900 194.450,199.900 182.450,199.900" fill="none"/>
 <polygon points="183.050,211.300 193.850,211.300 193.850,200.500 183.050,200.500" fill="none"/>
-<polygon points="185.900,172.900 192.570,172.900 192.570,168.400 185.900,168.400" fill="none"/>
-<polygon points="186.500,172.300 191.970,172.300 191.970,169.000 186.500,169.000" fill="none"/>
-<line x1="186.500" y1="170.650" x2="191.970" y2="170.650"/>
 </g>
 <g class="layer" data-layer="A-DIM" stroke="#1a1a1a" stroke-width="0.130" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <line x1="146.050" y1="256.900" x2="164.050" y2="256.900"/>
@@ -120,7 +116,6 @@
 <text x="144.550" y="150.900" font-size="2.500" text-anchor="end" dominant-baseline="central">+10600 PARAPET TOP</text>
 <text x="190.750" y="235.900" font-size="1.800" text-anchor="middle" dominant-baseline="central">W4</text>
 <text x="188.450" y="205.900" font-size="1.800" text-anchor="middle" dominant-baseline="central">W4</text>
-<text x="189.230" y="170.650" font-size="1.800" text-anchor="middle" dominant-baseline="central">V1</text>
 <text x="144.550" y="268.900" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">NOTES</text>
 <text x="144.550" y="272.100" font-size="1.800" text-anchor="start" dominant-baseline="alphabetic">1. No facade kit applied — no material callouts on this elevation.</text>
 </g>

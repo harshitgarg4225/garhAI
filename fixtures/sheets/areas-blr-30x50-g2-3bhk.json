@@ -2,26 +2,26 @@
   "buildingHeightMm": 10600,
   "coverageAllowedMm2": 90580464,
   "farAllowedMm2": 313547760,
-  "farCountableAreaMm2": 144456675,
+  "farCountableAreaMm2": 143980575,
   "footprintAreaMm2": 57290700,
   "perStorey": [
     {
       "builtUpAreaMm2": 57290700,
       "index": 0,
       "label": "Ground floor",
-      "storeyId": "storey_01M1KF7AZKXX7XN6A6872E5002"
+      "storeyId": "storey_01M2Z3NM3BQF42ZA9PQ48RN344"
     },
     {
       "builtUpAreaMm2": 47490975,
       "index": 1,
       "label": "First floor",
-      "storeyId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW"
+      "storeyId": "storey_01M2Z3NM3D5R65TVVHT9998GRH"
     },
     {
-      "builtUpAreaMm2": 39675000,
+      "builtUpAreaMm2": 39198900,
       "index": 2,
       "label": "Second floor",
-      "storeyId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E"
+      "storeyId": "storey_01M2Z3NM3EEJWP0P6MNG0CMHKY"
     }
   ],
   "plotAreaMm2": 139354560,
@@ -48,32 +48,32 @@
       "value": 57290700
     },
     {
-      "key": "built_up.storey_01M1KF7AZKXX7XN6A6872E5002",
+      "key": "built_up.storey_01M2Z3NM3BQF42ZA9PQ48RN344",
       "kind": "informational",
       "label": "Ground floor built-up",
       "unit": "mm2",
       "value": 57290700
     },
     {
-      "key": "built_up.storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+      "key": "built_up.storey_01M2Z3NM3D5R65TVVHT9998GRH",
       "kind": "informational",
       "label": "First floor built-up",
       "unit": "mm2",
       "value": 47490975
     },
     {
-      "key": "built_up.storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+      "key": "built_up.storey_01M2Z3NM3EEJWP0P6MNG0CMHKY",
       "kind": "informational",
       "label": "Second floor built-up",
       "unit": "mm2",
-      "value": 39675000
+      "value": 39198900
     },
     {
       "key": "built_up_total",
       "kind": "informational",
       "label": "Total built-up",
       "unit": "mm2",
-      "value": 144456675
+      "value": 143980575
     },
     {
       "allowed": 313547760,
@@ -81,12 +81,12 @@
       "kind": "allowance",
       "label": "FAR-countable area",
       "limitLabel": "Permissible",
-      "note": "1.04 achieved against 2.25 allowed",
+      "note": "1.03 achieved against 2.25 allowed",
       "ruleIds": [
         "blr.far.road.9-18m"
       ],
       "unit": "mm2",
-      "value": 144456675
+      "value": 143980575
     },
     {
       "allowed": 3000,
@@ -227,6 +227,6 @@
     }
   ],
   "storeyCount": 3,
-  "totalBuiltUpAreaMm2": 144456675,
+  "totalBuiltUpAreaMm2": 143980575,
   "warnings": []
 }

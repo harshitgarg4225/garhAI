@@ -45,14 +45,14 @@
 <g class="layer" data-layer="A-WALL" stroke="#000000" stroke-width="0.500" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="174.975,250.900 240.525,250.900 240.525,220.900 174.975,220.900" fill="none"/>
 <polygon points="174.975,220.900 240.525,220.900 240.525,190.900 174.975,190.900" fill="none"/>
-<polygon points="174.975,190.900 232.475,190.900 232.475,160.900 174.975,160.900" fill="none"/>
+<polygon points="174.975,190.900 234.775,190.900 234.775,160.900 174.975,160.900" fill="none"/>
 </g>
 <g class="layer" data-layer="A-WALL-PART" stroke="#555555" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <line x1="174.975" y1="222.400" x2="240.525" y2="222.400"/>
-<line x1="174.975" y1="192.400" x2="232.475" y2="192.400"/>
+<line x1="174.975" y1="192.400" x2="234.775" y2="192.400"/>
 <polygon points="174.975,256.900 240.525,256.900 240.525,250.900 174.975,250.900" fill="none"/>
 <line x1="162.975" y1="256.900" x2="252.525" y2="256.900"/>
-<polygon points="174.975,160.900 232.475,160.900 232.475,150.900 174.975,150.900" fill="none"/>
+<polygon points="174.975,160.900 234.775,160.900 234.775,150.900 174.975,150.900" fill="none"/>
 </g>
 <g class="layer" data-layer="A-DOOR" stroke="#1a1a1a" stroke-width="0.250" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 <polygon points="201.425,250.900 210.425,250.900 210.425,229.900 201.425,229.900" fill="none"/>
