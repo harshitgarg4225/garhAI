@@ -554,8 +554,39 @@ class AreaStatementSheet:
         ids = self.statement.rule_ids.get(key, ())
         return ", ".join(ids)
 
+    def overridden_rule_ids(self) -> tuple[str, ...]:
+        """Rules the architect accepted with a written reason, or ``()``.
+
+        Read off the statement rather than recomputed, and tolerant of a statement
+        that predates the field — an old frozen report must still render.
+        """
+        ids = getattr(self.statement, "overridden_rule_ids", None)
+        if ids is None and isinstance(self.statement, Mapping):
+            ids = self.statement.get("overriddenRuleIds")
+        return tuple(str(i) for i in (ids or ()))
+
     def footnotes(self) -> tuple[str, ...]:
-        notes = [
+        notes: list[str] = []
+
+        # THE ACKNOWLEDGEMENT, FIRST. `AreaStatement.overridden_rule_ids` has always
+        # carried these and its own docstring said "the annexure marks each such rule
+        # as overridden so a reviewer at the counter sees the acknowledgement, not a
+        # silent pass". This sheet did not print them. So a submission set could show
+        # a FAR or a setback that fails, in the architect's own numbers, with nothing
+        # anywhere on the paper saying the deviation was a decision taken on purpose
+        # and recorded — which is the difference between a deviation and a mistake to
+        # the person reading it across a counter.
+        #
+        # First in the list, not last: a reviewer scanning footnotes must meet it
+        # before the unit conventions.
+        overridden = self.overridden_rule_ids()
+        if overridden:
+            notes.append(
+                "ACCEPTED DEVIATIONS — the architect has recorded a written reason for "
+                "%s. The figures above are printed as measured; these rules are not "
+                "met and the acknowledgement is on file." % ", ".join(overridden)
+            )
+        notes += [
             "Areas: m2 · sq ft (1 decimal). Lengths in mm. Plot area also in gaj "
             "(1 gaj = 1 sq yd = 9 sq ft).",
             "FAR, coverage and setback figures are the compliance engine's own results "
@@ -573,6 +604,7 @@ class AreaStatementSheet:
             "setbacks": [line.to_json() for line in self.setbacks],
             "totalCarpetAreaMm2": self.total_carpet_area_mm2,
             "areaRows": [row.to_json() for row in self.area_rows()],
+            "overriddenRuleIds": list(self.overridden_rule_ids()),
             "warnings": list(self.warnings),
         }
 
