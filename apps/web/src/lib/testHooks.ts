@@ -100,6 +100,8 @@ export interface GarhTestHooks {
     readonly wallFaceVertices: number;
     /** Walls drawn with a pattern rather than the flat poché. */
     readonly hatchedWallCount: number;
+    /** Plan geometry rebuilds since load — a pan must not move this. */
+    readonly planRebuildCount: number;
   };
 }
 
@@ -146,6 +148,7 @@ export function installTestHooks(): void {
         hatchLineVertices: plan.hatchLineVertices,
         wallFaceVertices: plan.wallFaceVertices,
         hatchedWallCount: plan.hatchedWallCount,
+        planRebuildCount: plan.rebuildCount,
       };
     },
   };

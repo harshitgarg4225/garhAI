@@ -57,7 +57,9 @@ export async function signInThroughUi(page: Page, email: string): Promise<void> 
   await page.getByLabel('Verification code').fill(code);
 
   // Landing on the dashboard is the assertion that the session took.
-  await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 /**
@@ -77,7 +79,13 @@ export async function adoptApiSession(page: Page, request: APIRequestContext): P
   const state = await request.storageState();
   await page.context().addCookies(state.cookies);
   await page.goto(`${APP_URL}/`);
-  await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 15_000 });
+  /* `exact`: the empty state's "No projects yet" also matches a substring
+     locator, so an account with no projects yet — which is every account the
+     moment it is created — hit a strict-mode violation here. Found by the
+     §14 budget specs, which adopt a session before creating anything. */
+  await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 /** Create a project through the dashboard dialog and land on its Brief tab. */
@@ -368,6 +376,8 @@ export interface HooksSnapshot {
   readonly hatchLineVertices: number;
   readonly wallFaceVertices: number;
   readonly hatchedWallCount: number;
+  /** Plan geometry rebuilds since load. Panning must not move this (§14). */
+  readonly planRebuildCount: number;
 }
 
 /** What the raycast resolved at a page pixel — see `pickProbe` below. */
@@ -385,7 +395,26 @@ interface HooksWindow {
   };
 }
 
+/**
+ * Wait for the dev handle to be installed.
+ *
+ * `installTestHooks` runs in the editor page's mount EFFECT, which lands a tick
+ * after the toolbar it renders is visible. A spec that read the snapshot the
+ * instant the toolbar appeared therefore raced it — and because
+ * `hooksSnapshot` asserts rather than returns null, that race was a hard
+ * failure inside `expect.poll`, which does not retry a thrown assertion. Found
+ * by the §14 budget specs.
+ */
+async function waitForHooks(page: Page): Promise<void> {
+  await page
+    .waitForFunction(() => (window as unknown as HooksWindow).__garhTestHooks !== undefined, {
+      timeout: 15_000,
+    })
+    .catch(() => undefined);
+}
+
 export async function hooksSnapshot(page: Page): Promise<HooksSnapshot> {
+  await waitForHooks(page);
   const snapshot = await page.evaluate(() => {
     const hooks = (window as unknown as HooksWindow).__garhTestHooks;
     return hooks === undefined ? null : hooks.snapshot();
@@ -395,6 +424,40 @@ export async function hooksSnapshot(page: Page): Promise<HooksSnapshot> {
     'window.__garhTestHooks is missing — the app is not a dev build, or the editor page never mounted',
   ).not.toBeNull();
   return snapshot!;
+}
+
+/**
+ * The first pixel on the canvas where the product's own picker resolves to
+ * `id` — found by ASKING it, on a coarse grid, in one round trip.
+ *
+ * The alternative is what the other canvas specs do: draw a wall of a known
+ * pixel length, read its millimetres back from the server, and derive the
+ * camera. That is right when the subject IS the drawing, but on a plan that
+ * already covers the canvas the calibration wall snaps to the geometry under
+ * it and the derived scale is quietly wrong. This asks the picker instead, so
+ * it cannot disagree with where the element actually is, and it needs no
+ * assumption about the camera at all.
+ */
+export async function findPickPixel(
+  page: Page,
+  id: string,
+  stepPx = 12,
+): Promise<{ x: number; y: number } | null> {
+  const box = await canvasBox(page);
+  return page.evaluate(
+    ([rect, target, step]) => {
+      const hooks = (window as unknown as HooksWindow).__garhTestHooks;
+      if (hooks === undefined) return null;
+      const r = rect as { x: number; y: number; width: number; height: number };
+      for (let y = r.y + step; y < r.y + r.height - step; y += step) {
+        for (let x = r.x + step; x < r.x + r.width - step; x += step) {
+          if (hooks.pick(x, y).id === target) return { x, y };
+        }
+      }
+      return null;
+    },
+    [box, id, stepPx] as [typeof box, string, number],
+  );
 }
 
 /**

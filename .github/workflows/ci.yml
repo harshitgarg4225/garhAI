@@ -573,13 +573,22 @@ jobs:
           retention-days: 7
 
   # ══════════════════════════════════════════════════════════════════════════
-  # 5. e2e (smoke) — login → open demo → edit wall → undo → compliance chip
+  # 5. e2e — the smoke journey, then the canvas DoD and the §14 budgets
   # ══════════════════════════════════════════════════════════════════════════
   # Runs the real stack via `docker compose up`, because that is the supported
   # way to run this app (playbook §1) — testing a bespoke CI-only wiring would
   # be testing something users never run.
+  #
+  # The @canvas step is the second half, and it is not decoration: the 2D
+  # editor's DoD walk, the 3D DoD walk, the hatch layer's PickRegistry test and
+  # the §14 frame budgets are all claims only a browser can settle. Until this
+  # step existed they ran on whoever remembered to run them locally — and
+  # `plan-canvas.spec.ts` had in fact been UNLOADABLE (a TypeScript parameter
+  # property in `@garh/model`, which Node's strip-only transform refuses), which
+  # every tsc, eslint and vitest run happily missed. A spec nothing executes is
+  # not a test.
   e2e-smoke:
-    name: e2e (smoke)
+    name: e2e (smoke + canvas)
     runs-on: ubuntu-latest
     timeout-minutes: 35
     needs: [golden]
@@ -615,6 +624,18 @@ jobs:
           APP_URL: http://localhost:5173
           API_URL: http://localhost:8000
         run: pnpm --filter @garh/e2e test:smoke
+
+      # Reuses the stack the smoke step just proved healthy, so this costs a
+      # few minutes rather than another compose boot. It carries the §14
+      # budgets, which are written to survive a runner with no GPU: each frame
+      # budget measures the SAME gesture on a one-wall plan first and holds the
+      # G+2 to a multiple of it, and asserts the plan's geometry REBUILD COUNT,
+      # which is the same integer on every machine. See performance.spec.ts.
+      - name: Playwright canvas DoD + §14 budgets
+        env:
+          APP_URL: http://localhost:5173
+          API_URL: http://localhost:8000
+        run: pnpm --filter @garh/e2e test:canvas
 
       - name: Dump service logs on failure
         if: failure()

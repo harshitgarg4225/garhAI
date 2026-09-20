@@ -29,19 +29,35 @@ export interface PlanGeometryStats {
   readonly wallFaceVertices: number;
   /** Walls drawn with a pattern rather than the flat poché. */
   readonly hatchedWallCount: number;
+  /**
+   * How many times the plan has REBUILT its buffers since the page loaded.
+   *
+   * The §14 budget for pan and zoom is not really a millisecond count — it is
+   * this number holding still. Panning changes the camera, not the model, so a
+   * pan that rebuilds geometry is the regression, and unlike a frame time it
+   * cannot be blamed on the machine: it is the same integer on a workstation
+   * and on a software-rasterised CI runner.
+   */
+  readonly rebuildCount: number;
 }
 
 const EMPTY: PlanGeometryStats = {
   hatchLineVertices: 0,
   wallFaceVertices: 0,
   hatchedWallCount: 0,
+  rebuildCount: 0,
 };
 
 let current: PlanGeometryStats = EMPTY;
 
-/** Called by `PlanScene` on each geometry rebuild. Never per frame. */
-export function publishPlanGeometryStats(stats: PlanGeometryStats): void {
-  current = stats;
+/**
+ * Called by `PlanScene` on each geometry rebuild. Never per frame.
+ *
+ * The caller passes what it BUILT; the rebuild count is kept here, so no
+ * render path has to remember to increment it.
+ */
+export function publishPlanGeometryStats(stats: Omit<PlanGeometryStats, 'rebuildCount'>): void {
+  current = { ...stats, rebuildCount: current.rebuildCount + 1 };
 }
 
 /** The last published stats. Read by `lib/testHooks` in DEV builds. */
