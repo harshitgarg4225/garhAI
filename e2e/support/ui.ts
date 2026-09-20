@@ -361,6 +361,13 @@ export interface HooksSnapshot {
   readonly copilotLastGroupId: string | null;
   readonly copilotLastOpCount: number;
   readonly undoDepth: number;
+  /* ── The 2D plan's geometry, as counts (`pages/project/plan/planProbe`). A
+     canvas has no accessible structure, so "did the hatch actually draw?" has
+     no other honest answer, and a layer that renders nothing while every
+     op-log assertion passes is CLAUDE.md's bug 4. ─────────────────────────── */
+  readonly hatchLineVertices: number;
+  readonly wallFaceVertices: number;
+  readonly hatchedWallCount: number;
 }
 
 interface HooksWindow {

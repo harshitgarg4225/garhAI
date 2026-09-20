@@ -149,7 +149,7 @@ import { RenderCaptureBridge, RenderLauncher } from '../../features/renders';
 // Tracing underlay (features/underlay). Two mounts below, both tagged
 // "UNDERLAY" — the layer inside the canvas, the panel in the DOM overlay.
 import { AssetBrowser } from '../../features/assets';
-import { HatchBindingPanel } from '../../features/hatchpicker';
+import { HatchBindingPanel, useHatchOverrides } from '../../features/hatchpicker';
 import {
   LayerPanel,
   useLayerPickGate,
@@ -309,6 +309,14 @@ function PlanEditor(): JSX.Element {
   // Module-level promise cache inside the hook: one fetch per session, shared
   // with the MaterialsPanel in the inspector rail.
   const materialsCatalogue = useMaterialsCatalogue();
+  // The hatch panel's decisions, so the plan draws a bound wall the way the
+  // sheet will poché it (`planHatch.ts`). One object per change, memoised, so
+  // PlanScene's geometry memo is not rebuilt on every render.
+  const hatchOverrides = useHatchOverrides();
+  const hatch = useMemo(
+    () => ({ catalog: materialsCatalogue.index, overrides: hatchOverrides }),
+    [materialsCatalogue.index, hatchOverrides],
+  );
   const materialColors = useMemo<Readonly<Record<string, string>> | undefined>(() => {
     if (materialsCatalogue.loadable.state !== 'ready') return undefined;
     const out: Record<string, string> = {};
@@ -860,6 +868,7 @@ function PlanEditor(): JSX.Element {
               house={layerView.house}
               storeyId={activeStoreyId}
               elevationMm={elevationMm}
+              hatch={hatch}
             />
 
             {/* `axes` and `sceneUnitsPerMm` are the two values the furniture

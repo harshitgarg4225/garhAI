@@ -109,7 +109,7 @@ export default defineConfig({
        * is a photograph OF it); visual-regression = the §16 screenshot suite
        * (skipped with named reasons until CI holds a baseline). */
       testMatch:
-        /(plan-canvas|happy-path|performance|three-d|copilot|renders|visual-regression)\.spec\.ts/,
+        /(plan-canvas|plan-hatch|happy-path|performance|three-d|copilot|renders|visual-regression)\.spec\.ts/,
       dependencies: ['api'],
       timeout: 5 * 60_000,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1600, height: 1000 } },

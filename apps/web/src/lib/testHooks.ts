@@ -31,6 +31,7 @@
  */
 
 import { useCopilotStore } from '../features/copilot/useCopilot';
+import { planGeometryStats } from '../pages/project/plan/planProbe';
 import { useModelStore } from '../stores/model';
 import { useSelectionStore } from '../stores/selection';
 import { useThreeStore } from '../stores/three';
@@ -76,6 +77,17 @@ export interface GarhTestHooks {
     readonly copilotLastOpCount: number;
     /** Undo entries. One copilot apply must add exactly one, whatever its size. */
     readonly undoDepth: number;
+    /* ── The 2D plan's geometry, as counts (`pages/project/plan/planProbe`).
+       A WebGL canvas has no accessible structure, so "did the hatch actually
+       draw?" has no other honest answer — and a layer that renders nothing
+       while every op-log assertion passes is CLAUDE.md's bug 4. Counts only:
+       they say geometry was built and mounted, never what it looks like. ── */
+    /** Vertices in the hatch `LineSegments`. 0 when no surface is bound. */
+    readonly hatchLineVertices: number;
+    /** Triangle vertices across the flat and hatched wall meshes. */
+    readonly wallFaceVertices: number;
+    /** Walls drawn with a pattern rather than the flat poché. */
+    readonly hatchedWallCount: number;
   };
 }
 
@@ -98,6 +110,7 @@ export function installTestHooks(): void {
       const three = useThreeStore.getState();
       const turns = useCopilotStore.getState().turns;
       const lastTurn = turns[turns.length - 1];
+      const plan = planGeometryStats();
       return {
         selectedIds: useSelectionStore.getState().ids,
         viewMode: useUiStore.getState().viewMode,
@@ -117,6 +130,9 @@ export function installTestHooks(): void {
         // what "one group of N" is asserted against.
         copilotLastOpCount: lastTurn?.proposal?.ops.length ?? 0,
         undoDepth: model.undoStack.length,
+        hatchLineVertices: plan.hatchLineVertices,
+        wallFaceVertices: plan.wallFaceVertices,
+        hatchedWallCount: plan.hatchedWallCount,
       };
     },
   };
