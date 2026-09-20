@@ -360,7 +360,7 @@ export function AssumptionChip({
   if (editing) {
     return (
       <span className={skin}>
-        <span className="text-2xs uppercase tracking-wide opacity-70">{label}</span>
+        <span className="text-2xs font-medium uppercase tracking-wide">{label}</span>
         <input
           ref={inputRef}
           value={draft}
@@ -385,7 +385,7 @@ export function AssumptionChip({
 
   const content = (
     <span className={skin}>
-      <span className="text-2xs uppercase tracking-wide opacity-70">{label}</span>
+      <span className="text-2xs font-medium uppercase tracking-wide">{label}</span>
       {onCommit === undefined ? (
         <span className="font-semibold garh-nums">{valueText}</span>
       ) : (

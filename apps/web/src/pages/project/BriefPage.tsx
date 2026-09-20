@@ -52,7 +52,7 @@ export function BriefPage(): JSX.Element {
   return (
     <PageBody className="max-w-6xl">
       {/* ── The plot (F1) ─────────────────────────────────────────────── */}
-      <section aria-labelledby="plot-heading">
+      <section aria-labelledby="plot-heading" data-tour="plot">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
             <h2 id="plot-heading" className="text-base font-semibold text-ink">
@@ -87,7 +87,7 @@ export function BriefPage(): JSX.Element {
       </section>
 
       {/* ── The brief (F2) ────────────────────────────────────────────── */}
-      <section aria-labelledby="brief-heading" className="mt-8">
+      <section aria-labelledby="brief-heading" className="mt-8" data-tour="brief">
         <h2 id="brief-heading" className="text-base font-semibold text-ink">
           Brief
         </h2>

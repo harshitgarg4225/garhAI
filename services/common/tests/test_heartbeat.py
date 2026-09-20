@@ -33,6 +33,8 @@ from services.common.testing import FakeRedis
 
 
 class _NoopHandler(BaseJobHandler):
+    # Annotated, not inferred: bare ("solve",) is tuple[str], and JobHandler's
+    # protocol wants tuple[str, ...] — mypy --strict rejects the narrower one.
     kinds: tuple[str, ...] = ("solve",)
 
     async def handle(self, ctx: JobContext) -> JobResult:  # pragma: no cover - never run
@@ -40,7 +42,11 @@ class _NoopHandler(BaseJobHandler):
 
 
 def _settings(**overrides: Any) -> WorkerSettings:
-    # pydantic-settings takes _env_file at runtime; its stubs do not declare it.
+    """A WorkerSettings that cannot be contaminated by the developer's .env.
+
+    ``**overrides: Any`` rather than ``object``: every field has its own literal or
+    scalar type, so ``object`` makes each one an arg-type error under --strict.
+    """
     return WorkerSettings(_env_file=None, **overrides)  # type: ignore[call-arg]
 
 

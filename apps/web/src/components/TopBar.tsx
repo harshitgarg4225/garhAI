@@ -75,6 +75,8 @@ export interface TopBarProps {
   onShare?: (() => void) | undefined;
   onGenerate?: (() => void) | undefined;
   generateLabel?: string | undefined;
+  /** Re-run the six-step tour from step one. Omit to hide the control. */
+  onStartTour?: (() => void) | undefined;
   generateBusy?: boolean | undefined;
   /** Why generate is unavailable — shown on hover instead of a dead button. */
   generateDisabledReason?: string | undefined;
@@ -111,6 +113,7 @@ export function TopBar({
   onShare,
   onGenerate,
   generateLabel = 'Generate plans',
+  onStartTour,
   generateBusy = false,
   generateDisabledReason,
   onBack,
@@ -322,9 +325,13 @@ export function TopBar({
           </Button>
         )}
 
+        {onStartTour === undefined ? null : (
+          <IconButton label="Take the tour" icon="lightbulb" size="sm" onClick={onStartTour} />
+        )}
+
         {onGenerate === undefined ? null : generateDisabledReason !== undefined ? (
           <Tooltip content={generateDisabledReason}>
-            <Button variant="primary" size="sm" iconLeft="sparkles" disabled>
+            <Button variant="primary" size="sm" iconLeft="sparkles" disabled data-tour="generate">
               {generateLabel}
             </Button>
           </Tooltip>
@@ -336,6 +343,7 @@ export function TopBar({
             loading={generateBusy}
             loadingLabel="Generating plan options"
             onClick={onGenerate}
+            data-tour="generate"
           >
             {generateLabel}
           </Button>
