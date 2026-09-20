@@ -23,7 +23,7 @@ import {
 
 import { balconyOpenEdges, boxesForComponent, externalCentroid, wallFrame } from './componentBoxes';
 import { generateFacadeComponents } from './generator';
-import { CONTEMPORARY_KIT, MODERN_MINIMAL_KIT } from './kits';
+import { CONTEMPORARY_KIT, FACADE_KITS, MODERN_MINIMAL_KIT } from './kits';
 import { applyKitOp, editComponentOp } from './ops';
 import { sampleHouseForThumbnails } from './thumbnail';
 
@@ -188,5 +188,55 @@ describe('parapet and cladding derive building height from the model', () => {
     const top = house.storeys[house.storeys.length - 1];
     if (top === undefined) throw new Error('storey must exist');
     expect(box.heightMm).toBe(top.level.fflMm + top.heightMm + house.levels.parapetMm);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Every kit in the catalogue must actually build something
+// ---------------------------------------------------------------------------
+
+describe('every launch kit draws real geometry', () => {
+  // A kit is data: it can be added to the catalogue, validate, seed, show a
+  // card, apply — and then produce nothing, or components whose style string
+  // no builder implements. Nothing else in this suite would notice, because
+  // every spec above names `contemporary` explicitly.
+  it.each(FACADE_KITS.map((kit) => [kit.id, kit] as const))(
+    '%s instantiates components and every one of them extrudes',
+    (_id, kit) => {
+      const doc = makeTwoRoomPlanWithOpenings();
+      const applied = applyGroup(doc, [applyKitOp(doc.house, kit, 7, null)]).model;
+      const components = applied.house.facade.components;
+      expect(components.length).toBeGreaterThan(0);
+
+      let total = 0;
+      for (const component of components) {
+        const boxes = boxesForComponent(applied.house, component);
+        // Every kind a launch kit emits is one `boxesForComponent` draws.
+        expect(boxes.length, `${kit.id}: ${component.kind} drew nothing`).toBeGreaterThan(0);
+        for (const box of boxes) {
+          expect(Number.isFinite(box.cx) && Number.isFinite(box.cy)).toBe(true);
+          expect(box.lenMm).toBeGreaterThan(0);
+          expect(box.depthMm).toBeGreaterThan(0);
+          expect(box.heightMm).toBeGreaterThan(0);
+          expect(box.colorHex).toMatch(/^#[0-9A-Fa-f]{6}$/);
+        }
+        total += boxes.length;
+      }
+      expect(total).toBeGreaterThan(4);
+    },
+  );
+
+  it('the four kits are genuinely different facades, not four colourways', () => {
+    const doc = makeTwoRoomPlanWithOpenings();
+    const signatures = FACADE_KITS.map((kit) => {
+      const applied = applyGroup(doc, [applyKitOp(doc.house, kit, 7, null)]).model;
+      return JSON.stringify(
+        applied.house.facade.components
+          .map((c) => boxesForComponent(applied.house, c))
+          .flat()
+          .map((b) => [b.lenMm, b.depthMm, b.heightMm, b.baseElevMm, b.colorHex]),
+      );
+    });
+    expect(new Set(signatures).size).toBe(FACADE_KITS.length);
   });
 });

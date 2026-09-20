@@ -75,7 +75,7 @@ def test_the_catalogue_the_seeder_will_read_validates() -> None:
     )
     assert bundle.counts["furniture"] >= MIN_FURNITURE_ITEMS
     assert bundle.counts["materials"] >= MIN_MATERIALS
-    assert bundle.counts["facadeKits"] == 2
+    assert bundle.counts["facadeKits"] == len(FACADE_KIT_IDS)
     assert len(bundle.digest()) == 32
 
 
@@ -91,7 +91,7 @@ def test_validators_accept_the_shipped_data(
 ) -> None:
     assert len(validate_furniture(furniture, room_types=ROOM_TYPES)) == len(furniture)
     assert len(validate_materials(materials)) == len(materials)
-    assert len(validate_facade_kits(facade_kits)) == 2
+    assert len(validate_facade_kits(facade_kits)) == len(FACADE_KIT_IDS)
 
 
 # ---------------------------------------------------------------------------
@@ -293,8 +293,8 @@ def test_material_prices_are_whole_rupees(materials: list[dict[str, Any]]) -> No
         assert isinstance(price, int) and not isinstance(price, bool) and price > 0, material["id"]
 
 
-def test_facade_kits_are_exactly_the_mvp_two(facade_kits: list[dict[str, Any]]) -> None:
-    """MVP cut line (§8): Contemporary and Modern Minimal. Not one, not three."""
+def test_facade_kits_are_the_served_set(facade_kits: list[dict[str, Any]]) -> None:
+    """The four kits the catalogue serves, in card order — no more, no fewer."""
     assert [kit["id"] for kit in facade_kits] == list(FACADE_KIT_IDS)
     for kit in facade_kits:
         assert kit["components"], kit["id"]
@@ -302,10 +302,53 @@ def test_facade_kits_are_exactly_the_mvp_two(facade_kits: list[dict[str, Any]]) 
         assert kit["colorways"], kit["id"]
 
 
-def test_both_kits_expose_the_same_component_slots(facade_kits: list[dict[str, Any]]) -> None:
+def test_every_kit_exposes_the_same_component_slots(facade_kits: list[dict[str, Any]]) -> None:
     """Switching kits must not silently drop a component the model already placed (§8)."""
     slots = [set(kit["components"]) for kit in facade_kits]
-    assert slots[0] == slots[1], slots[0] ^ slots[1]
+    for kit, s in zip(facade_kits, slots, strict=True):
+        assert s == slots[0], (kit["id"], s ^ slots[0])
+
+
+def test_every_kit_names_materials_the_catalogue_carries(
+    facade_kits: list[dict[str, Any]],
+    materials: list[dict[str, Any]],
+) -> None:
+    """A kit naming a material nobody stocks renders grey and prices nothing.
+
+    The generator writes ``materialId`` straight into a facade component's params
+    (railing, cladding zone), and the panel and the estimate look it up in this
+    catalogue. Nothing else checks the two files agree.
+    """
+    known = {m["id"] for m in materials}
+    for kit in facade_kits:
+        for slot in ("railing", "claddingZones"):
+            material_id = kit["components"][slot].get("materialId")
+            if material_id is None:  # 'none' cladding rule — nothing to stock
+                continue
+            assert material_id in known, (kit["id"], slot, material_id)
+
+
+def test_kit_styles_are_ones_the_renderer_can_draw(facade_kits: list[dict[str, Any]]) -> None:
+    """Every style string must be an arm ``componentBoxes.ts`` implements.
+
+    A kit with ``style: "art-deco"`` validates, seeds, shows a card — and then
+    draws the default arm, silently. These sets mirror the unions in
+    ``apps/web/src/features/canvas/facade/types.ts``.
+    """
+    allowed = {
+        "windowTrim": {"flush-band", "recessed"},
+        "chajja": {"flat", "hidden"},
+        "parapetProfile": {"banded", "plain"},
+        "porch": {"cantilever", "flush"},
+        "railing": {"ms-slim", "glass", "masonry"},
+    }
+    for kit in facade_kits:
+        for slot, styles in allowed.items():
+            assert kit["components"][slot]["style"] in styles, (kit["id"], slot)
+        # A chajja's chosen projection must be one the kit offers, or the
+        # seeded variation can never reproduce the kit's own default.
+        chajja = kit["components"]["chajja"]
+        assert chajja["projectionMm"] in chajja["allowedProjectionsMm"], kit["id"]
 
 
 def test_a_float_dimension_is_rejected() -> None:
@@ -345,10 +388,19 @@ def test_an_unknown_room_type_is_rejected() -> None:
         )
 
 
-def test_a_third_facade_kit_is_rejected(facade_kits: list[dict[str, Any]]) -> None:
-    """The cut line is enforced, not merely documented."""
-    with pytest.raises(SeedDataError, match="MVP cut line"):
+def test_an_unlisted_facade_kit_is_rejected(facade_kits: list[dict[str, Any]]) -> None:
+    """The served set is enforced, not merely documented.
+
+    A kit in the fixture that `FACADE_KIT_IDS` does not list would be served by
+    the API and never mirrored in `kits.ts`, so the generator could not build it
+    — the card would apply nothing.
+    """
+    with pytest.raises(SeedDataError, match="the served set"):
         validate_facade_kits([*facade_kits, dict(facade_kits[0], id="art-deco")])
+
+    # …and dropping one is just as wrong as adding one.
+    with pytest.raises(SeedDataError, match="the served set"):
+        validate_facade_kits(facade_kits[:-1])
 
 
 # ---------------------------------------------------------------------------
