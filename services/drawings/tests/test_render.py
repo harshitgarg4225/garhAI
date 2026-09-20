@@ -1348,6 +1348,152 @@ def test_site_plan_without_a_statement_names_setbacks_by_edge_and_prints_no_engi
     assert not any("FAR" in t or "SETBACK:" in t for t in texts), texts
 
 
+def _with_parking_bay(doc: Any, *, x: int, y: int, rotation_deg: int = 0) -> Any:
+    """The document with one parking bay placed on its ground storey."""
+    from garh_model.ops import Op, example_id
+
+    return apply_group(
+        doc,
+        [
+            Op.from_json(
+                {
+                    "type": "furniture.set",
+                    "payload": {
+                        "action": "place",
+                        "id": example_id("furniture", "CP1"),
+                        "storeyId": doc.house.storeys[0].id,
+                        "catalogId": "parking-bay",
+                        "pt": {"x": x, "y": y},
+                        "rotationDeg": rotation_deg,
+                    },
+                }
+            )
+        ],
+    ).model
+
+
+def test_the_site_plan_draws_every_parking_bay_the_rules_engine_counts() -> None:
+    """A bay in the model reaches A-01 as an outline, a car and a label.
+
+    The class-4 bug in CLAUDE.md is a module that believes it is registered: the
+    site block package has drawn a car since Phase 8 and nothing ever called it, so
+    a sheet could pass a parking rule while showing no car. This asserts the call.
+    """
+    from services.drawings.render.reference_sheets import _parking_bay_size_mm
+
+    _name, fixture = _fixtures()[-1]
+    doc = _fold(fixture)
+    size = _parking_bay_size_mm()
+    assert size is not None, "the catalogue must carry the bay the rule measures"
+    width_mm, depth_mm = size
+
+    # The bay sits in the front yard, clear of the building.
+    boundary = [(p.x, p.y) for p in doc.plot.boundary]
+    min_x = min(x for x, _ in boundary)
+    min_y = min(y for _, y in boundary)
+    cx, cy = min_x + 2_000 + width_mm // 2, min_y + depth_mm // 2
+
+    before, _chains = site_plan_primitives(doc, statement=None, scale_denominator=100)
+    parked = _with_parking_bay(doc, x=cx, y=cy)
+    after, _chains = site_plan_primitives(parked, statement=None, scale_denominator=100)
+
+    labels = [p.text for p in after if isinstance(p, Text)]
+    assert "C.P. 2.5 x 5.0 M" in labels, labels
+    # NEGATIVE CONTROL: the same sheet without the bay carries neither the label …
+    assert not any(t.startswith("C.P.") for t in before if isinstance(t, str))
+    # … nor the extra geometry, so the primitives came from the bay and not from
+    # something the site plan always drew.
+    assert len(after) > len(before)
+
+    # The bay outline is the catalogue rectangle, at the catalogue size.
+    outlines = [
+        p
+        for p in after
+        if isinstance(p, Polyline) and p.closed and len(p.vertices) == 4 and p not in before
+    ]
+    bay = next(
+        p
+        for p in outlines
+        if {(v[0] - cx, v[1] - cy) for v in p.vertices}
+        == {
+            (-(width_mm // 2), -(depth_mm // 2)),
+            (width_mm - width_mm // 2, -(depth_mm // 2)),
+            (width_mm - width_mm // 2, depth_mm - depth_mm // 2),
+            (-(width_mm // 2), depth_mm - depth_mm // 2),
+        }
+    )
+    from services.drawings.layers import A_WALL_PART
+
+    assert bay.layer == A_WALL_PART
+
+    # And a car is drawn inside it, at its catalogue size, carrying the bay's id.
+    from garh_model.ops import example_id
+
+    from services.drawings.blocks import site as site_blocks
+
+    car_parts = [
+        p for p in after if getattr(p, "element_id", None) == example_id("furniture", "CP1")
+    ]
+    assert car_parts, "the site block's car was never called for the bay"
+    xs = [v[0] for part in car_parts if isinstance(part, Polyline) for v in part.vertices]
+    ys = [v[1] for part in car_parts if isinstance(part, Polyline) for v in part.vertices]
+    assert max(xs) - min(xs) == site_blocks.CAR_WIDTH_MM
+    assert max(ys) - min(ys) == site_blocks.CAR_LENGTH_MM
+    assert min(xs) >= bay.vertices[0][0] and max(xs) <= bay.vertices[1][0]
+
+
+def test_a_rotated_bay_is_drawn_the_long_way_round() -> None:
+    _name, fixture = _fixtures()[-1]
+    doc = _fold(fixture)
+    parked = _with_parking_bay(doc, x=5_000, y=1_500, rotation_deg=90)
+    primitives, _chains = site_plan_primitives(parked, statement=None, scale_denominator=100)
+    from services.drawings.render.reference_sheets import _parking_bay_size_mm
+
+    size = _parking_bay_size_mm()
+    assert size is not None
+    width_mm, depth_mm = size
+    outlines = [
+        p
+        for p in primitives
+        if isinstance(p, Polyline)
+        and p.closed
+        and len(p.vertices) == 4
+        and abs(p.vertices[1][0] - p.vertices[0][0]) == depth_mm
+    ]
+    assert outlines, "a 90-degree bay must be drawn 5.0 m along X"
+    bay = outlines[0]
+    assert abs(bay.vertices[2][1] - bay.vertices[1][1]) == width_mm
+
+
+def test_other_furniture_is_not_drawn_on_the_site_plan() -> None:
+    """A sofa is not site fabric: only the bay the parking rule measures is drawn."""
+    from garh_model.ops import Op, example_id
+
+    _name, fixture = _fixtures()[-1]
+    doc = _fold(fixture)
+    before, _chains = site_plan_primitives(doc, statement=None, scale_denominator=100)
+    furnished = apply_group(
+        doc,
+        [
+            Op.from_json(
+                {
+                    "type": "furniture.set",
+                    "payload": {
+                        "action": "place",
+                        "id": example_id("furniture", "SOFA"),
+                        "storeyId": doc.house.storeys[0].id,
+                        "catalogId": "sofa-3seat",
+                        "pt": {"x": 3_000, "y": 3_000},
+                        "rotationDeg": 0,
+                    },
+                }
+            )
+        ],
+    ).model
+    after, _chains = site_plan_primitives(furnished, statement=None, scale_denominator=100)
+    assert len(after) == len(before)
+
+
 def test_plot_size_note_is_only_written_for_a_rectangle() -> None:
     from services.drawings.render.reference_sheets import _plot_size_note
 

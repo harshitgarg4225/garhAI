@@ -680,21 +680,20 @@ def _measured_parking_spaces(
 ) -> list[dict[str, Any]]:
     """``model.parkingSpaces`` for the engine: every parking-bay, measured.
 
-    The bay's size comes from the furniture catalogue the API serves (files if
-    present, else the built-in table — the same source the catalogue route answers
-    from), so the rectangle the rule measures is the rectangle the canvas draws. A
+    The bay's size comes from the furniture catalogue on disk — the same file the
+    catalogue route serves — so the rectangle the rule measures is the rectangle the
+    canvas draws. It is read with the stdlib rather than through the router, because
+    ``make bare`` evaluates rule fixtures on an interpreter that has no FastAPI. A
     catalogue with no bay entry measures every bay as absent: an empty list, which
     the engine treats as "measured, none found" — a fail, never a silent fallback
     to the declaration.
     """
-    from garh_api.parking_geometry import bay_footprint_mm, measure_parking_spaces
-    from garh_api.routers.catalog import _load_catalog
+    from garh_api.parking_geometry import catalog_bay_size_mm, measure_parking_spaces
 
     furniture = list(house.get("furniture") or [])
     if not furniture:
         return []
-    _source, catalog = _load_catalog("furniture")
-    size = bay_footprint_mm([item for item in catalog if isinstance(item, Mapping)])
+    size = catalog_bay_size_mm()
     if size is None:
         _log.warning("compliance.parking_bay_missing_from_catalogue")
         return []

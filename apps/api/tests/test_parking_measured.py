@@ -184,6 +184,23 @@ def test_a_bay_poking_outside_the_plot_does_not_count() -> None:
     assert context["model"]["parkingSpaces"][0]["reachable"] is False
 
 
+def test_the_stdlib_reader_and_the_served_catalogue_agree_on_the_bay() -> None:
+    """One source for the number, two readers — assert they cannot drift.
+
+    ``build_evaluation_context`` reads the catalogue with the stdlib (``make bare``
+    evaluates rule fixtures on an interpreter with no FastAPI, and importing the
+    router to read a JSON file broke that gate). The route's own loader must see
+    the same rectangle.
+    """
+    from garh_api.parking_geometry import catalog_bay_size_mm, catalog_furniture_items
+    from garh_api.routers.catalog import _load_catalog
+
+    _source, served = _load_catalog("furniture")
+    served_bay = next(i for i in served if str(i.get("id")) == PARKING_BAY_CATALOG_ID)
+    assert catalog_bay_size_mm() == (int(served_bay["widthMm"]), int(served_bay["depthMm"]))
+    assert len(catalog_furniture_items()) == len(served)
+
+
 def test_the_context_measures_even_when_the_house_has_no_furniture() -> None:
     """An empty measurement is a fail, never a fallback to the declaration."""
     context = build_evaluation_context(_doc(car_parking=2), packs=("nbc-core", "blr"))

@@ -26,7 +26,9 @@ honest answer for a skewed frontage until the site plan can draw one.
 
 from __future__ import annotations
 
+import json
 import math
+import os
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -34,6 +36,8 @@ __all__ = [
     "PARKING_BAY_CATALOG_ID",
     "GARAGE_ROOM_TYPES",
     "bay_footprint_mm",
+    "catalog_bay_size_mm",
+    "catalog_furniture_items",
     "measure_parking_spaces",
 ]
 
@@ -57,6 +61,57 @@ def bay_footprint_mm(catalog: Sequence[Mapping[str, Any]]) -> tuple[int, int] | 
             except (KeyError, TypeError, ValueError):
                 return None
     return None
+
+
+#: Where the served catalogue lives, in the router's own precedence order. Kept
+#: here rather than imported from ``garh_api.routers.catalog`` for one hard
+#: reason: ``make bare`` runs the rule fixtures on an interpreter with no FastAPI,
+#: and importing the router to read a JSON file made the dependency-free gate fail
+#: (caught by ``make bare``, which is exactly what it is for). The NUMBERS still
+#: come from one file; only the path logic is duplicated, and
+#: ``test_parking_measured`` asserts the two agree.
+_CATALOG_DIR_CANDIDATES: tuple[str, ...] = ("catalog", os.path.join("fixtures", "catalog"))
+
+
+def _repo_root() -> str:
+    """Same walk as ``garh_api.routers.repo_root``, without importing FastAPI."""
+    override = os.environ.get("GARH_ROOT")
+    if override:
+        return override
+    here = os.path.dirname(os.path.abspath(__file__))
+    # garh_api -> apps/api -> apps -> <repo root>
+    return os.path.abspath(os.path.join(here, "..", "..", ".."))
+
+
+def _catalog_dir() -> str:
+    override = os.environ.get("GARH_CATALOG_DIR")
+    root = _repo_root()
+    if override:
+        return override if os.path.isabs(override) else os.path.join(root, override)
+    for candidate in _CATALOG_DIR_CANDIDATES:
+        path = os.path.join(root, candidate)
+        if os.path.isdir(path):
+            return path
+    return os.path.join(root, _CATALOG_DIR_CANDIDATES[0])
+
+
+def catalog_furniture_items() -> tuple[Mapping[str, Any], ...]:
+    """The served furniture catalogue as plain dicts. Pure stdlib, never raises."""
+    path = os.path.join(_catalog_dir(), "furniture.json")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            raw = json.load(handle)
+    except (OSError, ValueError):
+        return ()
+    items = raw.get("items") if isinstance(raw, dict) else raw
+    if not isinstance(items, list):
+        return ()
+    return tuple(item for item in items if isinstance(item, Mapping))
+
+
+def catalog_bay_size_mm() -> tuple[int, int] | None:
+    """``(widthMm, depthMm)`` of the catalogue's parking bay, read from disk."""
+    return bay_footprint_mm(catalog_furniture_items())
 
 
 # ---------------------------------------------------------------------------
