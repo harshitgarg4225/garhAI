@@ -208,6 +208,117 @@ def test_a_shallow_setback_places_nothing_and_says_why() -> None:
     assert "stilt" in plan.shortfall_action()
 
 
+def _rotated_params(front_index: int, *, front_setback: int = 3000) -> SolveParams:
+    """The same 30 x 40 plot with the ROAD on a different boundary each time.
+
+    Index 0 is the south edge (y = 0), which is the only one every other test in this
+    file uses. Indexes 1 and 2 are the east and north edges, where `inward` is -1.
+    """
+    w, d = int(30 * FT), int(40 * FT)
+    roles: list[str] = ["side", "side", "side", "side"]
+    roles[front_index] = "front"
+    roles[(front_index + 2) % 4] = "rear"
+    edges = tuple(
+        PlotEdge(
+            index=i,
+            role=roles[i],
+            setback_mm=front_setback
+            if i == front_index
+            else (1500 if roles[i] == "rear" else 1000),
+            **({"road_width_mm": 9000} if i == front_index else {}),
+        )
+        for i in range(4)
+    )
+    return SolveParams(
+        plot_polygon=((0, 0), (w, 0), (w, d), (0, d)),
+        edges=edges,
+        profile=BLR,
+        rooms=(RoomRequest("living", "living", 12_000_000, 16_000_000, 3000),),
+        storeys=1,
+        seed=7,
+    )
+
+
+def _rotated_house(params: SolveParams, front_index: int) -> dict[str, Any]:
+    """A rectangular house set back from whichever edge carries the road."""
+    w = params.plot_polygon[1][0]
+    d = params.plot_polygon[2][1]
+    front = params.edges[front_index].setback_mm
+    if front_index == 0:
+        x1, x2, y1, y2 = 1000, w - 1000, front, d - 1500
+    elif front_index == 2:
+        x1, x2, y1, y2 = 1000, w - 1000, 1500, d - front
+    elif front_index == 1:
+        x1, x2, y1, y2 = 1500, w - front, 1000, d - 1000
+    else:
+        x1, x2, y1, y2 = front, w - 1500, 1000, d - 1000
+    corners = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+    walls: list[dict[str, Any]] = []
+    for i, (ax, ay) in enumerate(corners):
+        bx, by = corners[(i + 1) % 4]
+        # Centrelines inset half the thickness, so the OUTER faces sit on the box.
+        if ay == by:
+            offset = 115 if ay == y1 else -115
+            a, b = {"x": ax, "y": ay + offset}, {"x": bx, "y": by + offset}
+        else:
+            offset = 115 if ax == x1 else -115
+            a, b = {"x": ax + offset, "y": ay}, {"x": bx + offset, "y": by}
+        walls.append(
+            {
+                "id": "wall_%d" % i,
+                "storeyId": "storey_g",
+                "kind": "external",
+                "thicknessMm": 230,
+                "a": a,
+                "b": b,
+            }
+        )
+    return {
+        "storeys": [{"id": "storey_g", "name": "Ground Floor", "heightMm": 3000}],
+        "walls": walls,
+        "openings": [],
+        "rooms": [],
+        "furniture": [],
+        "solverMeta": {"facts": ["doors:1"]},
+        "_box": (x1, y1, x2, y2),
+    }
+
+
+def test_the_front_strip_is_the_setback_whichever_boundary_the_road_is_on() -> None:
+    """The road is not always on the south edge, and the bay must not enter the house.
+
+    `_front_strip` aggregated the candidate wall faces with `min` regardless of which
+    way `inward` pointed. With the road north or east that returned the FAR wall, so a
+    3 m setback measured as 7.4 m or 10.5 m, the orientation flipped to perpendicular,
+    and the bay was drawn metres inside the living room — with `satisfied` true, so the
+    option shipped and the compliance tab then failed it as unreachable. Every other
+    test here puts the front edge at y = 0, so nothing executed the other branch.
+
+    An east-facing plot is not an edge case in India; it is the one many clients ask for.
+    """
+    for front_index in range(4):
+        params = _rotated_params(front_index)
+        house = _rotated_house(params, front_index)
+        box = house.pop("_box")
+        strip = parking._front_strip(params, house)
+        assert strip is not None, "no strip for front edge %d" % front_index
+        assert strip.depth == 3000, (
+            "front edge %d measured a %d mm strip for a 3000 mm setback — it is "
+            "measuring past the near wall" % (front_index, strip.depth)
+        )
+
+        plan = parking.plan_parking(house, params, required=1, bay_mm=(2500, 5000))
+        assert plan.satisfied, "front edge %d placed nothing" % front_index
+        hx1, hy1, hx2, hy2 = box
+        for bay in plan.bays:
+            overlap_x = min(bay.x2, hx2) - max(bay.x1, hx1)
+            overlap_y = min(bay.y2, hy2) - max(bay.y1, hy1)
+            assert overlap_x <= 0 or overlap_y <= 0, (
+                "front edge %d drew a bay %s overlapping the house %s"
+                % (front_index, (bay.x1, bay.y1, bay.x2, bay.y2), box)
+            )
+
+
 def test_bays_stay_inside_an_l_shaped_plot() -> None:
     # A 30 x 40 with its front-west corner notched out (1.5 m x 1.5 m): the bay
     # must sit on the plot that is left, with the side margin measured from the

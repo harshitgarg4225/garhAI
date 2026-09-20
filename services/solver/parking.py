@@ -327,11 +327,20 @@ def _front_strip(params: SolveParams, house: Mapping[str, Any]) -> _Strip | None
         along, line = "x", a[1]
         inward = 1 if centre[1] > line else -1
         # Nearest external wall FACE to the edge line, measured inward.
+        #
+        # `nearest` is min or max by the sign of `inward`, and it has to be BOTH the
+        # per-wall pick and the across-walls pick. It used to be `min` across walls
+        # whatever the sign, which is right only when the road is on the low side of
+        # the plot. With the road north or east (inward -1) it returned the FAR wall,
+        # so the strip measured the whole house: a 3 m front setback read as 7.4 m,
+        # the orientation flipped to perpendicular, and the bay was drawn two metres
+        # inside the living room — with `satisfied` true, so nothing upstream
+        # objected. Every test built its plot with the front edge at y = 0, so the
+        # branch had never run.
+        nearest = min if inward > 0 else max
         face = (
-            min(
-                (min(wa[1], wb[1]) if inward > 0 else max(wa[1], wb[1])) - inward * (t // 2)
-                for wa, wb, t in walls
-                if wa[1] == wb[1]
+            nearest(
+                nearest(wa[1], wb[1]) - inward * (t // 2) for wa, wb, t in walls if wa[1] == wb[1]
             )
             if any(wa[1] == wb[1] for wa, wb, _t in walls)
             else None
@@ -340,11 +349,10 @@ def _front_strip(params: SolveParams, house: Mapping[str, Any]) -> _Strip | None
     else:
         along, line = "y", a[0]
         inward = 1 if centre[0] > line else -1
+        nearest = min if inward > 0 else max  # see the note on the other axis
         face = (
-            min(
-                (min(wa[0], wb[0]) if inward > 0 else max(wa[0], wb[0])) - inward * (t // 2)
-                for wa, wb, t in walls
-                if wa[0] == wb[0]
+            nearest(
+                nearest(wa[0], wb[0]) - inward * (t // 2) for wa, wb, t in walls if wa[0] == wb[0]
             )
             if any(wa[0] == wb[0] for wa, wb, _t in walls)
             else None
