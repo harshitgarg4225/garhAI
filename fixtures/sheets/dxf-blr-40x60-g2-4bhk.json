@@ -50,11 +50,11 @@
       "sheetNumber": "A-01"
     },
     {
-      "chains": 7,
-      "dimensionSegments": 16,
+      "chains": 8,
+      "dimensionSegments": 17,
       "entities": {
         "A-AREA/LWPOLYLINE": 6,
-        "A-DIM/DIMENSION": 7,
+        "A-DIM/DIMENSION": 8,
         "A-DOOR/ARC": 6,
         "A-DOOR/LINE": 18,
         "A-STAIR/LINE": 9,
@@ -62,7 +62,7 @@
         "A-TEXT/CIRCLE": 2,
         "A-TEXT/LINE": 1,
         "A-TEXT/LWPOLYLINE": 1,
-        "A-TEXT/TEXT": 55,
+        "A-TEXT/TEXT": 54,
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
         "A-WALL-PART/HATCH": 11,
@@ -73,26 +73,6 @@
       },
       "hatches": [
         {
-          "drawnAngleDeg": 45,
-          "drawnSpacingMm": 150,
-          "layer": "A-WALL-PART",
-          "pattern": "ANSI31",
-          "patternAngle": 0.0,
-          "patternScale": 47.244094
-        },
-        {
-          "drawnAngleDeg": 45,
-          "drawnSpacingMm": 150,
-          "layer": "A-WALL-PART",
-          "pattern": "ANSI31",
-          "patternAngle": 0.0,
-          "patternScale": 47.244094
-        },
-        {
-          "layer": "A-WALL",
-          "pattern": "SOLID"
-        },
-        {
           "layer": "A-WALL",
           "pattern": "SOLID"
         },
@@ -141,8 +121,12 @@
           "patternScale": 47.244094
         },
         {
-          "layer": "A-WALL",
-          "pattern": "SOLID"
+          "drawnAngleDeg": 45,
+          "drawnSpacingMm": 150,
+          "layer": "A-WALL-PART",
+          "pattern": "ANSI31",
+          "patternAngle": 0.0,
+          "patternScale": 47.244094
         },
         {
           "layer": "A-WALL",
@@ -171,6 +155,22 @@
         {
           "layer": "A-WALL",
           "pattern": "SOLID"
+        },
+        {
+          "layer": "A-WALL",
+          "pattern": "SOLID"
+        },
+        {
+          "layer": "A-WALL",
+          "pattern": "SOLID"
+        },
+        {
+          "drawnAngleDeg": 45,
+          "drawnSpacingMm": 150,
+          "layer": "A-WALL-PART",
+          "pattern": "ANSI31",
+          "patternAngle": 0.0,
+          "patternScale": 47.244094
         },
         {
           "drawnAngleDeg": 45,
@@ -216,11 +216,11 @@
       "sheetNumber": "A-02A"
     },
     {
-      "chains": 7,
-      "dimensionSegments": 17,
+      "chains": 8,
+      "dimensionSegments": 18,
       "entities": {
-        "A-AREA/LWPOLYLINE": 7,
-        "A-DIM/DIMENSION": 7,
+        "A-AREA/LWPOLYLINE": 6,
+        "A-DIM/DIMENSION": 8,
         "A-DOOR/ARC": 5,
         "A-DOOR/LINE": 15,
         "A-STAIR/LINE": 9,
@@ -228,7 +228,7 @@
         "A-TEXT/CIRCLE": 2,
         "A-TEXT/LINE": 1,
         "A-TEXT/LWPOLYLINE": 1,
-        "A-TEXT/TEXT": 56,
+        "A-TEXT/TEXT": 55,
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
         "A-WALL-PART/HATCH": 11,
@@ -283,38 +283,6 @@
           "pattern": "SOLID"
         },
         {
-          "drawnAngleDeg": 45,
-          "drawnSpacingMm": 150,
-          "layer": "A-WALL-PART",
-          "pattern": "ANSI31",
-          "patternAngle": 0.0,
-          "patternScale": 47.244094
-        },
-        {
-          "drawnAngleDeg": 45,
-          "drawnSpacingMm": 150,
-          "layer": "A-WALL-PART",
-          "pattern": "ANSI31",
-          "patternAngle": 0.0,
-          "patternScale": 47.244094
-        },
-        {
-          "drawnAngleDeg": 45,
-          "drawnSpacingMm": 150,
-          "layer": "A-WALL-PART",
-          "pattern": "ANSI31",
-          "patternAngle": 0.0,
-          "patternScale": 47.244094
-        },
-        {
-          "drawnAngleDeg": 45,
-          "drawnSpacingMm": 150,
-          "layer": "A-WALL-PART",
-          "pattern": "ANSI31",
-          "patternAngle": 0.0,
-          "patternScale": 47.244094
-        },
-        {
           "layer": "A-WALL",
           "pattern": "SOLID"
         },
@@ -325,6 +293,38 @@
         {
           "layer": "A-WALL",
           "pattern": "SOLID"
+        },
+        {
+          "drawnAngleDeg": 45,
+          "drawnSpacingMm": 150,
+          "layer": "A-WALL-PART",
+          "pattern": "ANSI31",
+          "patternAngle": 0.0,
+          "patternScale": 47.244094
+        },
+        {
+          "drawnAngleDeg": 45,
+          "drawnSpacingMm": 150,
+          "layer": "A-WALL-PART",
+          "pattern": "ANSI31",
+          "patternAngle": 0.0,
+          "patternScale": 47.244094
+        },
+        {
+          "drawnAngleDeg": 45,
+          "drawnSpacingMm": 150,
+          "layer": "A-WALL-PART",
+          "pattern": "ANSI31",
+          "patternAngle": 0.0,
+          "patternScale": 47.244094
+        },
+        {
+          "drawnAngleDeg": 45,
+          "drawnSpacingMm": 150,
+          "layer": "A-WALL-PART",
+          "pattern": "ANSI31",
+          "patternAngle": 0.0,
+          "patternScale": 47.244094
         },
         {
           "drawnAngleDeg": 45,
@@ -389,14 +389,14 @@
       "chains": 8,
       "dimensionSegments": 16,
       "entities": {
-        "A-AREA/LWPOLYLINE": 6,
+        "A-AREA/LWPOLYLINE": 5,
         "A-DIM/DIMENSION": 8,
         "A-DOOR/ARC": 4,
         "A-DOOR/LINE": 12,
         "A-TEXT/CIRCLE": 2,
         "A-TEXT/LINE": 1,
         "A-TEXT/LWPOLYLINE": 1,
-        "A-TEXT/TEXT": 49,
+        "A-TEXT/TEXT": 48,
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
         "A-WALL-PART/HATCH": 9,
@@ -447,8 +447,20 @@
           "patternScale": 47.244094
         },
         {
-          "layer": "A-WALL",
-          "pattern": "SOLID"
+          "drawnAngleDeg": 45,
+          "drawnSpacingMm": 150,
+          "layer": "A-WALL-PART",
+          "pattern": "ANSI31",
+          "patternAngle": 0.0,
+          "patternScale": 47.244094
+        },
+        {
+          "drawnAngleDeg": 45,
+          "drawnSpacingMm": 150,
+          "layer": "A-WALL-PART",
+          "pattern": "ANSI31",
+          "patternAngle": 0.0,
+          "patternScale": 47.244094
         },
         {
           "drawnAngleDeg": 45,
@@ -475,20 +487,8 @@
           "pattern": "SOLID"
         },
         {
-          "drawnAngleDeg": 45,
-          "drawnSpacingMm": 150,
-          "layer": "A-WALL-PART",
-          "pattern": "ANSI31",
-          "patternAngle": 0.0,
-          "patternScale": 47.244094
-        },
-        {
-          "drawnAngleDeg": 45,
-          "drawnSpacingMm": 150,
-          "layer": "A-WALL-PART",
-          "pattern": "ANSI31",
-          "patternAngle": 0.0,
-          "patternScale": 47.244094
+          "layer": "A-WALL",
+          "pattern": "SOLID"
         },
         {
           "layer": "A-WALL",
@@ -545,7 +545,7 @@
         "A-WALL-PART/LINE": 6,
         "A-WALL-PART/LWPOLYLINE": 2,
         "A-WALL/LWPOLYLINE": 6,
-        "A-WIND/LINE": 2,
+        "A-WIND/LINE": 1,
         "A-WIND/LWPOLYLINE": 6
       },
       "hatches": [],
@@ -579,14 +579,14 @@
         "A-DIM/DIMENSION": 1,
         "A-DIM/LINE": 12,
         "A-DIM/LWPOLYLINE": 12,
-        "A-TEXT/TEXT": 36,
+        "A-TEXT/TEXT": 37,
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
-        "A-WALL-PART/LINE": 5,
+        "A-WALL-PART/LINE": 6,
         "A-WALL-PART/LWPOLYLINE": 2,
         "A-WALL/LWPOLYLINE": 6,
-        "A-WIND/LINE": 1,
-        "A-WIND/LWPOLYLINE": 4
+        "A-WIND/LINE": 2,
+        "A-WIND/LWPOLYLINE": 6
       },
       "hatches": [],
       "layers": [
@@ -620,13 +620,12 @@
         "A-DIM/LINE": 12,
         "A-DIM/LWPOLYLINE": 12,
         "A-DOOR/LWPOLYLINE": 2,
-        "A-TEXT/TEXT": 36,
+        "A-TEXT/TEXT": 34,
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
-        "A-WALL-PART/LINE": 5,
+        "A-WALL-PART/LINE": 3,
         "A-WALL-PART/LWPOLYLINE": 2,
-        "A-WALL/LWPOLYLINE": 3,
-        "A-WIND/LWPOLYLINE": 4
+        "A-WALL/LWPOLYLINE": 3
       },
       "hatches": [],
       "layers": [
@@ -644,7 +643,6 @@
         "A-WALL",
         "A-WALL-PART",
         "A-DOOR",
-        "A-WIND",
         "A-DIM",
         "A-TEXT",
         "A-TITL"
@@ -660,14 +658,14 @@
         "A-DIM/DIMENSION": 1,
         "A-DIM/LINE": 12,
         "A-DIM/LWPOLYLINE": 12,
-        "A-TEXT/TEXT": 35,
+        "A-TEXT/TEXT": 37,
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
-        "A-WALL-PART/LINE": 5,
+        "A-WALL-PART/LINE": 6,
         "A-WALL-PART/LWPOLYLINE": 2,
-        "A-WALL/LWPOLYLINE": 3,
+        "A-WALL/LWPOLYLINE": 6,
         "A-WIND/LINE": 1,
-        "A-WIND/LWPOLYLINE": 4
+        "A-WIND/LWPOLYLINE": 6
       },
       "hatches": [],
       "layers": [
@@ -705,8 +703,8 @@
         "A-TITL/LINE": 9,
         "A-TITL/LWPOLYLINE": 3,
         "A-WALL-PART/LINE": 7,
-        "A-WALL/HATCH": 18,
-        "A-WALL/LWPOLYLINE": 18
+        "A-WALL/HATCH": 17,
+        "A-WALL/LWPOLYLINE": 17
       },
       "hatches": [
         {
@@ -770,14 +768,6 @@
           "drawnSpacingMm": 250,
           "layer": "A-WALL",
           "pattern": "ANSI37",
-          "patternAngle": -45.0,
-          "patternScale": 78.740157
-        },
-        {
-          "drawnAngleDeg": 0,
-          "drawnSpacingMm": 250,
-          "layer": "A-WALL",
-          "pattern": "ANSI31",
           "patternAngle": -45.0,
           "patternScale": 78.740157
         },
@@ -881,8 +871,8 @@
       "chains": 0,
       "dimensionSegments": 0,
       "entities": {
-        "A-TEXT/TEXT": 140,
-        "A-TITL/LINE": 29,
+        "A-TEXT/TEXT": 120,
+        "A-TITL/LINE": 27,
         "A-TITL/LWPOLYLINE": 4
       },
       "hatches": [],

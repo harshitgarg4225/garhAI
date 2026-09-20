@@ -91,41 +91,41 @@
         {
           "id": "site-footprint-W",
           "level": 1,
-          "offsetMm": 12365,
+          "offsetMm": 12020,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 6555,
+          "overallMm": 6900,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "6555",
-              "lengthMm": 6555,
+              "label": "6900",
+              "lengthMm": 6900,
               "startMm": 0
             }
           ],
-          "sumMm": 6555
+          "sumMm": 6900
         },
         {
           "id": "site-footprint-D",
           "level": 1,
-          "offsetMm": 8180,
+          "offsetMm": 8525,
           "orientation": "vertical",
           "originMm": 3000,
-          "overallMm": 8740,
+          "overallMm": 8395,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "8740",
-              "lengthMm": 8740,
+              "label": "8395",
+              "lengthMm": 8395,
               "startMm": 0
             }
           ],
-          "sumMm": 8740
+          "sumMm": 8395
         },
         {
           "id": "site-setback-front",
           "level": 1,
-          "offsetMm": 2638,
+          "offsetMm": 2725,
           "orientation": "vertical",
           "originMm": 0,
           "overallMm": 3000,
@@ -142,41 +142,41 @@
         {
           "id": "site-setback-side-b",
           "level": 1,
-          "offsetMm": 5185,
+          "offsetMm": 5098,
           "orientation": "horizontal",
-          "originMm": 7555,
-          "overallMm": 1589,
+          "originMm": 7900,
+          "overallMm": 1244,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "1589",
-              "lengthMm": 1589,
+              "label": "1244",
+              "lengthMm": 1244,
               "startMm": 0
             }
           ],
-          "sumMm": 1589
+          "sumMm": 1244
         },
         {
           "id": "site-setback-rear",
           "level": 1,
-          "offsetMm": 2638,
+          "offsetMm": 2725,
           "orientation": "vertical",
-          "originMm": 11740,
-          "overallMm": 3500,
+          "originMm": 11395,
+          "overallMm": 3845,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "3500",
-              "lengthMm": 3500,
+              "label": "3845",
+              "lengthMm": 3845,
               "startMm": 0
             }
           ],
-          "sumMm": 3500
+          "sumMm": 3845
         },
         {
           "id": "site-setback-side-a",
           "level": 1,
-          "offsetMm": 5185,
+          "offsetMm": 5098,
           "orientation": "horizontal",
           "originMm": 0,
           "overallMm": 1000,
@@ -198,177 +198,177 @@
     {
       "chains": [
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-S-L1",
+          "id": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE-S-L1",
           "level": 1,
           "offsetMm": 600,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 6555,
+          "overallMm": 6900,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "6555",
-              "lengthMm": 6555,
+              "label": "6900",
+              "lengthMm": 6900,
               "startMm": 0
             }
           ],
-          "sumMm": 6555
+          "sumMm": 6900
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-S-L2",
+          "id": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE-S-L2",
           "level": 2,
           "offsetMm": 1200,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 6555,
+          "overallMm": 6900,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZM5Y3X2Z1YFQH02NYY",
-              "label": "575",
-              "lengthMm": 575,
+              "anchorElementId": "wall_01M2Z4FBYWZXQNXVQ9TYEXYY5V",
+              "label": "2415",
+              "lengthMm": 2415,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZM5Y3X2Z1YFQH02NYY",
-              "label": "1840",
-              "lengthMm": 1840,
-              "startMm": 575
-            },
-            {
-              "anchorElementId": "wall_01M1KF7AZM17MKAYA769Y3MZJC",
+              "anchorElementId": "wall_01M2Z4FBYWZXQNXVQ9TYEXYY5V",
               "label": "1495",
               "lengthMm": 1495,
               "startMm": 2415
             },
             {
-              "anchorElementId": "wall_01M1KF7AZMSZE8BY30QT2PF70F",
-              "label": "2645",
-              "lengthMm": 2645,
+              "anchorElementId": "wall_01M2Z4FBYW8VA8E862ZK6NXXT3",
+              "label": "2415",
+              "lengthMm": 2415,
               "startMm": 3910
+            },
+            {
+              "anchorElementId": "wall_01M2Z4FBYWWHWRZM66Z4QWM3T4",
+              "label": "575",
+              "lengthMm": 575,
+              "startMm": 6325
             }
           ],
-          "sumMm": 6555
+          "sumMm": 6900
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-S-L3",
+          "id": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE-S-L3",
           "level": 3,
           "offsetMm": 1800,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 6555,
+          "overallMm": 6900,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZNWPJ36S516814CCWQ",
+              "anchorElementId": "opening_01M2Z4FBYXYMR9FXWA2XDZSHX1",
               "label": "3095",
               "lengthMm": 3095,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZNWPJ36S516814CCWQ",
-              "label": "3460",
-              "lengthMm": 3460,
+              "anchorElementId": "opening_01M2Z4FBYXYMR9FXWA2XDZSHX1",
+              "label": "3805",
+              "lengthMm": 3805,
               "startMm": 3095
             }
           ],
-          "sumMm": 6555
+          "sumMm": 6900
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-W-L1",
+          "id": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE-W-L1",
           "level": 1,
           "offsetMm": -1400,
           "orientation": "vertical",
           "originMm": 3000,
-          "overallMm": 8740,
+          "overallMm": 8395,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "8740",
-              "lengthMm": 8740,
+              "label": "8395",
+              "lengthMm": 8395,
               "startMm": 0
             }
           ],
-          "sumMm": 8740
+          "sumMm": 8395
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-W-L2",
+          "id": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE-W-L2",
           "level": 2,
           "offsetMm": -800,
           "orientation": "vertical",
           "originMm": 3000,
-          "overallMm": 8740,
+          "overallMm": 8395,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZM6EVQ3JRSGRD0JQXE",
+              "anchorElementId": "wall_01M2Z4FBYWKR1W6FZTSB2HMZS6",
               "label": "1150",
               "lengthMm": 1150,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZM6EVQ3JRSGRD0JQXE",
-              "label": "1840",
-              "lengthMm": 1840,
+              "anchorElementId": "wall_01M2Z4FBYWKR1W6FZTSB2HMZS6",
+              "label": "1265",
+              "lengthMm": 1265,
               "startMm": 1150
             },
             {
-              "anchorElementId": "wall_01M1KF7AZM7JT68DPYXBDV904Z",
-              "label": "3910",
-              "lengthMm": 3910,
-              "startMm": 2990
+              "anchorElementId": "wall_01M2Z4FBYWV7RJ0Y0RTBQQ4060",
+              "label": "4140",
+              "lengthMm": 4140,
+              "startMm": 2415
             },
             {
-              "anchorElementId": "wall_01M1KF7AZMRGBH8PGRJ8TTHX9Z",
+              "anchorElementId": "wall_01M2Z4FBYW0KK8ZPNZNRZ8EEYF",
               "label": "1840",
               "lengthMm": 1840,
-              "startMm": 6900
+              "startMm": 6555
             }
           ],
-          "sumMm": 8740
+          "sumMm": 8395
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-W-L3",
+          "id": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE-W-L3",
           "level": 3,
           "offsetMm": -200,
           "orientation": "vertical",
           "originMm": 3000,
-          "overallMm": 8740,
+          "overallMm": 8395,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZNJJ7GG27XV0HZ2JD0",
-              "label": "6070",
-              "lengthMm": 6070,
+              "anchorElementId": "opening_01M2Z4FBYXH742G2KR53NVEB3X",
+              "label": "7000",
+              "lengthMm": 7000,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZNJJ7GG27XV0HZ2JD0",
-              "label": "2670",
-              "lengthMm": 2670,
-              "startMm": 6070
+              "anchorElementId": "opening_01M2Z4FBYXH742G2KR53NVEB3X",
+              "label": "1395",
+              "lengthMm": 1395,
+              "startMm": 7000
             }
           ],
-          "sumMm": 8740
+          "sumMm": 8395
         },
         {
-          "id": "storey_01M1KF7AZKXX7XN6A6872E5002-E-L3",
+          "id": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE-E-L3",
           "level": 3,
-          "offsetMm": 8755,
+          "offsetMm": 9100,
           "orientation": "vertical",
           "originMm": 3000,
-          "overallMm": 8740,
+          "overallMm": 8395,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZNHXX03H8CMERQW4VP",
-              "label": "2552",
-              "lengthMm": 2552,
+              "anchorElementId": "opening_01M2Z4FBYXVH420VE8Y42PP8G2",
+              "label": "3245",
+              "lengthMm": 3245,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZNHXX03H8CMERQW4VP",
-              "label": "6188",
-              "lengthMm": 6188,
-              "startMm": 2552
+              "anchorElementId": "opening_01M2Z4FBYXVH420VE8Y42PP8G2",
+              "label": "5150",
+              "lengthMm": 5150,
+              "startMm": 3245
             }
           ],
-          "sumMm": 8740
+          "sumMm": 8395
         }
       ],
       "scale": 100,
@@ -378,238 +378,76 @@
     {
       "chains": [
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-S-L1",
+          "id": "storey_01M2Z4FBYXSWW1T381N96Q2X7E-S-L1",
           "level": 1,
           "offsetMm": 600,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 6555,
+          "overallMm": 6900,
           "segments": [
             {
               "anchorElementId": null,
-              "label": "6555",
-              "lengthMm": 6555,
+              "label": "6900",
+              "lengthMm": 6900,
               "startMm": 0
             }
           ],
-          "sumMm": 6555
+          "sumMm": 6900
         },
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-S-L2",
+          "id": "storey_01M2Z4FBYXSWW1T381N96Q2X7E-S-L2",
           "level": 2,
           "offsetMm": 1200,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 6555,
+          "overallMm": 6900,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZP8W86EZA3QF00ZKH5",
-              "label": "2415",
-              "lengthMm": 2415,
+              "anchorElementId": "wall_01M2Z4FBYX4BPEG2ZMWQ9FDVJF",
+              "label": "3910",
+              "lengthMm": 3910,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZP8W86EZA3QF00ZKH5",
-              "label": "1150",
-              "lengthMm": 1150,
-              "startMm": 2415
+              "anchorElementId": "wall_01M2Z4FBYX4BPEG2ZMWQ9FDVJF",
+              "label": "1495",
+              "lengthMm": 1495,
+              "startMm": 3910
             },
             {
-              "anchorElementId": "wall_01M1KF7AZPVBQJW35BDE1JHMWB",
-              "label": "2760",
-              "lengthMm": 2760,
-              "startMm": 3565
-            },
-            {
-              "anchorElementId": "wall_01M1KF7AZPYWXV5FMKDW3AQ7PS",
-              "label": "230",
-              "lengthMm": 230,
-              "startMm": 6325
+              "anchorElementId": "wall_01M2Z4FBYXKQFMXMX930QAK0SF",
+              "label": "1495",
+              "lengthMm": 1495,
+              "startMm": 5405
             }
           ],
-          "sumMm": 6555
+          "sumMm": 6900
         },
         {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-S-L3",
+          "id": "storey_01M2Z4FBYXSWW1T381N96Q2X7E-S-L3",
           "level": 3,
           "offsetMm": 1800,
           "orientation": "horizontal",
           "originMm": 1000,
-          "overallMm": 6555,
+          "overallMm": 6900,
           "segments": [
             {
-              "anchorElementId": null,
-              "label": "6555",
-              "lengthMm": 6555,
-              "startMm": 0
-            }
-          ],
-          "sumMm": 6555
-        },
-        {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-W-L1",
-          "level": 1,
-          "offsetMm": -1400,
-          "orientation": "vertical",
-          "originMm": 3000,
-          "overallMm": 7245,
-          "segments": [
-            {
-              "anchorElementId": null,
-              "label": "7245",
-              "lengthMm": 7245,
-              "startMm": 0
-            }
-          ],
-          "sumMm": 7245
-        },
-        {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-W-L2",
-          "level": 2,
-          "offsetMm": -800,
-          "orientation": "vertical",
-          "originMm": 3000,
-          "overallMm": 7245,
-          "segments": [
-            {
-              "anchorElementId": "wall_01M1KF7AZP6Z2T44S2XZATKYDC",
-              "label": "1495",
-              "lengthMm": 1495,
-              "startMm": 0
-            },
-            {
-              "anchorElementId": "wall_01M1KF7AZP6Z2T44S2XZATKYDC",
-              "label": "1495",
-              "lengthMm": 1495,
-              "startMm": 1495
-            },
-            {
-              "anchorElementId": "wall_01M1KF7AZPMPF72DTP502H92MA",
-              "label": "4255",
-              "lengthMm": 4255,
-              "startMm": 2990
-            }
-          ],
-          "sumMm": 7245
-        },
-        {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-W-L3",
-          "level": 3,
-          "offsetMm": -200,
-          "orientation": "vertical",
-          "originMm": 3000,
-          "overallMm": 7245,
-          "segments": [
-            {
-              "anchorElementId": "opening_01M1KF7AZQYM828AW3ZZG6Z33P",
-              "label": "6300",
-              "lengthMm": 6300,
-              "startMm": 0
-            },
-            {
-              "anchorElementId": "opening_01M1KF7AZQYM828AW3ZZG6Z33P",
+              "anchorElementId": "opening_01M2Z4FBYYZ1FYMBBHMG2E5286",
               "label": "945",
               "lengthMm": 945,
-              "startMm": 6300
-            }
-          ],
-          "sumMm": 7245
-        },
-        {
-          "id": "storey_01M1KF7AZPCKKT9WSYWEBP22SW-E-L3",
-          "level": 3,
-          "offsetMm": 8755,
-          "orientation": "vertical",
-          "originMm": 3000,
-          "overallMm": 7245,
-          "segments": [
-            {
-              "anchorElementId": "opening_01M1KF7AZQMW74J20S71TDK5D3",
-              "label": "2340",
-              "lengthMm": 2340,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZQMW74J20S71TDK5D3",
-              "label": "4905",
-              "lengthMm": 4905,
-              "startMm": 2340
+              "anchorElementId": "opening_01M2Z4FBYYZ1FYMBBHMG2E5286",
+              "label": "5955",
+              "lengthMm": 5955,
+              "startMm": 945
             }
           ],
-          "sumMm": 7245
-        }
-      ],
-      "scale": 100,
-      "sheetId": "sheet-plan-first-floor",
-      "sheetNumber": "A-02B"
-    },
-    {
-      "chains": [
-        {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-S-L1",
-          "level": 1,
-          "offsetMm": 600,
-          "orientation": "horizontal",
-          "originMm": 1000,
-          "overallMm": 5750,
-          "segments": [
-            {
-              "anchorElementId": null,
-              "label": "5750",
-              "lengthMm": 5750,
-              "startMm": 0
-            }
-          ],
-          "sumMm": 5750
+          "sumMm": 6900
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-S-L2",
-          "level": 2,
-          "offsetMm": 1200,
-          "orientation": "horizontal",
-          "originMm": 1000,
-          "overallMm": 5750,
-          "segments": [
-            {
-              "anchorElementId": "wall_01M1KF7AZQ8XFS7N23REW66MS0",
-              "label": "920",
-              "lengthMm": 920,
-              "startMm": 0
-            },
-            {
-              "anchorElementId": "wall_01M1KF7AZQ8XFS7N23REW66MS0",
-              "label": "1495",
-              "lengthMm": 1495,
-              "startMm": 920
-            },
-            {
-              "anchorElementId": "wall_01M1KF7AZQ01A4TD3X5YFV5RY6",
-              "label": "3335",
-              "lengthMm": 3335,
-              "startMm": 2415
-            }
-          ],
-          "sumMm": 5750
-        },
-        {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-S-L3",
-          "level": 3,
-          "offsetMm": 1800,
-          "orientation": "horizontal",
-          "originMm": 1000,
-          "overallMm": 5750,
-          "segments": [
-            {
-              "anchorElementId": null,
-              "label": "5750",
-              "lengthMm": 5750,
-              "startMm": 0
-            }
-          ],
-          "sumMm": 5750
-        },
-        {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-W-L1",
+          "id": "storey_01M2Z4FBYXSWW1T381N96Q2X7E-W-L1",
           "level": 1,
           "offsetMm": -1400,
           "orientation": "vertical",
@@ -626,7 +464,7 @@
           "sumMm": 6900
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-W-L2",
+          "id": "storey_01M2Z4FBYXSWW1T381N96Q2X7E-W-L2",
           "level": 2,
           "offsetMm": -800,
           "orientation": "vertical",
@@ -634,34 +472,34 @@
           "overallMm": 6900,
           "segments": [
             {
-              "anchorElementId": "wall_01M1KF7AZQDT4EKRX0EMZ09J3R",
-              "label": "1495",
-              "lengthMm": 1495,
+              "anchorElementId": "wall_01M2Z4FBYXE2AYBEQ8RT48QB9X",
+              "label": "2415",
+              "lengthMm": 2415,
               "startMm": 0
             },
             {
-              "anchorElementId": "wall_01M1KF7AZQDT4EKRX0EMZ09J3R",
-              "label": "1495",
-              "lengthMm": 1495,
-              "startMm": 1495
+              "anchorElementId": "wall_01M2Z4FBYXE2AYBEQ8RT48QB9X",
+              "label": "1150",
+              "lengthMm": 1150,
+              "startMm": 2415
             },
             {
-              "anchorElementId": "wall_01M1KF7AZQDEE8AFV4C50H4V44",
-              "label": "1265",
-              "lengthMm": 1265,
-              "startMm": 2990
+              "anchorElementId": "wall_01M2Z4FBYXS6G9M5CYP70GFAZW",
+              "label": "2990",
+              "lengthMm": 2990,
+              "startMm": 3565
             },
             {
-              "anchorElementId": "wall_01M1KF7AZQJW3WNFCYNCQVGP7M",
-              "label": "2645",
-              "lengthMm": 2645,
-              "startMm": 4255
+              "anchorElementId": "wall_01M2Z4FBYXHXETDV4C9SKFA5DN",
+              "label": "345",
+              "lengthMm": 345,
+              "startMm": 6555
             }
           ],
           "sumMm": 6900
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-W-L3",
+          "id": "storey_01M2Z4FBYXSWW1T381N96Q2X7E-W-L3",
           "level": 3,
           "offsetMm": -200,
           "orientation": "vertical",
@@ -669,48 +507,227 @@
           "overallMm": 6900,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZRBVQNAE3HSH8GPGE6",
-              "label": "6222",
-              "lengthMm": 6222,
+              "anchorElementId": null,
+              "label": "6900",
+              "lengthMm": 6900,
               "startMm": 0
-            },
-            {
-              "anchorElementId": "opening_01M1KF7AZRBVQNAE3HSH8GPGE6",
-              "label": "678",
-              "lengthMm": 678,
-              "startMm": 6222
             }
           ],
           "sumMm": 6900
         },
         {
-          "id": "storey_01M1KF7AZQAQJH5XK76NKFDM9E-E-L3",
+          "id": "storey_01M2Z4FBYXSWW1T381N96Q2X7E-N-L3",
           "level": 3,
-          "offsetMm": 7950,
+          "offsetMm": 11100,
+          "orientation": "horizontal",
+          "originMm": 1000,
+          "overallMm": 6900,
+          "segments": [
+            {
+              "anchorElementId": "opening_01M2Z4FBYYJW4DTGF00BQJ4T2F",
+              "label": "4525",
+              "lengthMm": 4525,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "opening_01M2Z4FBYYJW4DTGF00BQJ4T2F",
+              "label": "2375",
+              "lengthMm": 2375,
+              "startMm": 4525
+            }
+          ],
+          "sumMm": 6900
+        },
+        {
+          "id": "storey_01M2Z4FBYXSWW1T381N96Q2X7E-E-L3",
+          "level": 3,
+          "offsetMm": 9100,
           "orientation": "vertical",
           "originMm": 3000,
           "overallMm": 6900,
           "segments": [
             {
-              "anchorElementId": "opening_01M1KF7AZRHJPJMBHZP7D98NW1",
-              "label": "678",
-              "lengthMm": 678,
+              "anchorElementId": "opening_01M2Z4FBYY1C0SB863T7D13R0S",
+              "label": "2978",
+              "lengthMm": 2978,
               "startMm": 0
             },
             {
-              "anchorElementId": "opening_01M1KF7AZRHJPJMBHZP7D98NW1",
-              "label": "1697",
-              "lengthMm": 1697,
-              "startMm": 678
-            },
-            {
-              "anchorElementId": "opening_01M1KF7AZRT6Q895ZG8RPKFRT8",
-              "label": "4525",
-              "lengthMm": 4525,
-              "startMm": 2375
+              "anchorElementId": "opening_01M2Z4FBYY1C0SB863T7D13R0S",
+              "label": "3922",
+              "lengthMm": 3922,
+              "startMm": 2978
             }
           ],
           "sumMm": 6900
+        }
+      ],
+      "scale": 100,
+      "sheetId": "sheet-plan-first-floor",
+      "sheetNumber": "A-02B"
+    },
+    {
+      "chains": [
+        {
+          "id": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP-S-L1",
+          "level": 1,
+          "offsetMm": 600,
+          "orientation": "horizontal",
+          "originMm": 2150,
+          "overallMm": 5750,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "5750",
+              "lengthMm": 5750,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 5750
+        },
+        {
+          "id": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP-S-L2",
+          "level": 2,
+          "offsetMm": 1200,
+          "orientation": "horizontal",
+          "originMm": 2150,
+          "overallMm": 5750,
+          "segments": [
+            {
+              "anchorElementId": "wall_01M2Z4FBYYP4HD0NSEXT3BMBEW",
+              "label": "690",
+              "lengthMm": 690,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "wall_01M2Z4FBYYP4HD0NSEXT3BMBEW",
+              "label": "2070",
+              "lengthMm": 2070,
+              "startMm": 690
+            },
+            {
+              "anchorElementId": "wall_01M2Z4FBYY8RB08SZZQF1QCGKH",
+              "label": "1495",
+              "lengthMm": 1495,
+              "startMm": 2760
+            },
+            {
+              "anchorElementId": "wall_01M2Z4FBYYZ2GNWCZGM4H2WZ8S",
+              "label": "1495",
+              "lengthMm": 1495,
+              "startMm": 4255
+            }
+          ],
+          "sumMm": 5750
+        },
+        {
+          "id": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP-S-L3",
+          "level": 3,
+          "offsetMm": 1800,
+          "orientation": "horizontal",
+          "originMm": 2150,
+          "overallMm": 5750,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "5750",
+              "lengthMm": 5750,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 5750
+        },
+        {
+          "id": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP-W-L1",
+          "level": 1,
+          "offsetMm": -250,
+          "orientation": "vertical",
+          "originMm": 3000,
+          "overallMm": 6900,
+          "segments": [
+            {
+              "anchorElementId": null,
+              "label": "6900",
+              "lengthMm": 6900,
+              "startMm": 0
+            }
+          ],
+          "sumMm": 6900
+        },
+        {
+          "id": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP-W-L2",
+          "level": 2,
+          "offsetMm": 350,
+          "orientation": "vertical",
+          "originMm": 3000,
+          "overallMm": 6900,
+          "segments": [
+            {
+              "anchorElementId": "wall_01M2Z4FBYY5FRKHJY5EA01G23B",
+              "label": "2415",
+              "lengthMm": 2415,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "wall_01M2Z4FBYY5FRKHJY5EA01G23B",
+              "label": "1495",
+              "lengthMm": 1495,
+              "startMm": 2415
+            },
+            {
+              "anchorElementId": "wall_01M2Z4FBYYH4ZCNRVK66YDSQ07",
+              "label": "2990",
+              "lengthMm": 2990,
+              "startMm": 3910
+            }
+          ],
+          "sumMm": 6900
+        },
+        {
+          "id": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP-W-L3",
+          "level": 3,
+          "offsetMm": 950,
+          "orientation": "vertical",
+          "originMm": 3000,
+          "overallMm": 6900,
+          "segments": [
+            {
+              "anchorElementId": "opening_01M2Z4FBYZC2MVB5FQ32A8GJFX",
+              "label": "1852",
+              "lengthMm": 1852,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "opening_01M2Z4FBYZC2MVB5FQ32A8GJFX",
+              "label": "5048",
+              "lengthMm": 5048,
+              "startMm": 1852
+            }
+          ],
+          "sumMm": 6900
+        },
+        {
+          "id": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP-N-L3",
+          "level": 3,
+          "offsetMm": 11100,
+          "orientation": "horizontal",
+          "originMm": 2150,
+          "overallMm": 5750,
+          "segments": [
+            {
+              "anchorElementId": "opening_01M2Z4FBYZ8K6B112WV2CVQ5XW",
+              "label": "4805",
+              "lengthMm": 4805,
+              "startMm": 0
+            },
+            {
+              "anchorElementId": "opening_01M2Z4FBYZ8K6B112WV2CVQ5XW",
+              "label": "945",
+              "lengthMm": 945,
+              "startMm": 4805
+            }
+          ],
+          "sumMm": 5750
         }
       ],
       "scale": 100,
@@ -722,7 +739,7 @@
         {
           "id": "elev-n-height",
           "level": 1,
-          "offsetMm": 8955,
+          "offsetMm": 9300,
           "orientation": "vertical",
           "originMm": 0,
           "overallMm": 10600,
@@ -734,19 +751,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z4FBYXSWW1T381N96Q2X7E",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600
@@ -770,7 +787,7 @@
         {
           "id": "elev-e-height",
           "level": 1,
-          "offsetMm": 11140,
+          "offsetMm": 10795,
           "orientation": "vertical",
           "originMm": 0,
           "overallMm": 10600,
@@ -782,19 +799,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z4FBYXSWW1T381N96Q2X7E",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600
@@ -818,7 +835,7 @@
         {
           "id": "elev-s-height",
           "level": 1,
-          "offsetMm": 8955,
+          "offsetMm": 9300,
           "orientation": "vertical",
           "originMm": 0,
           "overallMm": 10600,
@@ -830,19 +847,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z4FBYXSWW1T381N96Q2X7E",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600
@@ -866,7 +883,7 @@
         {
           "id": "elev-w-height",
           "level": 1,
-          "offsetMm": 11140,
+          "offsetMm": 10795,
           "orientation": "vertical",
           "originMm": 0,
           "overallMm": 10600,
@@ -878,19 +895,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z4FBYXSWW1T381N96Q2X7E",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600
@@ -914,7 +931,7 @@
         {
           "id": "section-a-height",
           "level": 1,
-          "offsetMm": 11140,
+          "offsetMm": 9300,
           "orientation": "vertical",
           "originMm": 0,
           "overallMm": 10600,
@@ -926,19 +943,19 @@
               "startMm": 0
             },
             {
-              "anchorElementId": "storey_01M1KF7AZKXX7XN6A6872E5002",
+              "anchorElementId": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+              "anchorElementId": "storey_01M2Z4FBYXSWW1T381N96Q2X7E",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 3600
             },
             {
-              "anchorElementId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+              "anchorElementId": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP",
               "label": "3000",
               "lengthMm": 3000,
               "startMm": 6600

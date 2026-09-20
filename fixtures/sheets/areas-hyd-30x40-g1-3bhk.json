@@ -9,13 +9,13 @@
       "builtUpAreaMm2": 49461500,
       "index": 0,
       "label": "Ground floor",
-      "storeyId": "storey_01M1KFK7XXA9VRZ3373V9JECDN"
+      "storeyId": "storey_01M2Z4G0ZEYTDEA8TR7J24JNTE"
     },
     {
       "builtUpAreaMm2": 49461500,
       "index": 1,
       "label": "First floor",
-      "storeyId": "storey_01M1KFK7XYQYDAHNSX9BWGTTGA"
+      "storeyId": "storey_01M2Z4G0ZF3Z287ZQJ5SSMWC8E"
     }
   ],
   "plotAreaMm2": 111483648,
@@ -42,14 +42,14 @@
       "value": 49461500
     },
     {
-      "key": "built_up.storey_01M1KFK7XXA9VRZ3373V9JECDN",
+      "key": "built_up.storey_01M2Z4G0ZEYTDEA8TR7J24JNTE",
       "kind": "informational",
       "label": "Ground floor built-up",
       "unit": "mm2",
       "value": 49461500
     },
     {
-      "key": "built_up.storey_01M1KFK7XYQYDAHNSX9BWGTTGA",
+      "key": "built_up.storey_01M2Z4G0ZF3Z287ZQJ5SSMWC8E",
       "kind": "informational",
       "label": "First floor built-up",
       "unit": "mm2",

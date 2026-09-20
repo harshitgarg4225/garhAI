@@ -57,67 +57,67 @@
 <text x="281.000" y="40.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic" font-weight="600">REMARKS</text>
 <text x="35.000" y="48.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">D1</text>
 <text x="47.000" y="48.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Door</text>
-<text x="109.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
+<text x="109.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
 <text x="139.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2100</text>
 <text x="165.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="195.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="225.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="255.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="277.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="195.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="225.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="255.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="277.000" y="48.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">6</text>
 <text x="281.000" y="48.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 <text x="35.000" y="56.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">D2</text>
 <text x="47.000" y="56.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Door</text>
-<text x="109.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
+<text x="109.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">805</text>
 <text x="139.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2100</text>
 <text x="165.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="195.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
-<text x="225.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
-<text x="255.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
-<text x="277.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">6</text>
+<text x="195.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="225.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="255.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="277.000" y="56.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
 <text x="281.000" y="56.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 <text x="35.000" y="64.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">D3</text>
 <text x="47.000" y="64.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Door</text>
-<text x="109.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">805</text>
+<text x="109.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">800</text>
 <text x="139.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2100</text>
 <text x="165.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="195.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="225.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="255.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="277.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="195.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
+<text x="225.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="255.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="277.000" y="64.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
 <text x="281.000" y="64.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 <text x="35.000" y="72.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">D4</text>
 <text x="47.000" y="72.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Door</text>
-<text x="109.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">800</text>
+<text x="109.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">750</text>
 <text x="139.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2100</text>
 <text x="165.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="195.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
-<text x="225.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="255.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="195.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="225.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="255.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
 <text x="277.000" y="72.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
 <text x="281.000" y="72.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
-<text x="35.000" y="80.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">D5</text>
-<text x="47.000" y="80.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Door</text>
-<text x="109.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">750</text>
-<text x="139.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2100</text>
-<text x="165.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="195.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="225.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
-<text x="255.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="277.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
+<text x="35.000" y="80.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W1</text>
+<text x="47.000" y="80.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Window</text>
+<text x="109.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2327</text>
+<text x="139.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
+<text x="165.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
+<text x="195.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="225.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="255.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="277.000" y="80.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
 <text x="281.000" y="80.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
-<text x="35.000" y="88.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W1</text>
+<text x="35.000" y="88.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W2</text>
 <text x="47.000" y="88.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Window</text>
-<text x="109.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2415</text>
+<text x="109.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1300</text>
 <text x="139.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
 <text x="165.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
-<text x="195.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="225.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="195.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="225.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
 <text x="255.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
 <text x="277.000" y="88.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
 <text x="281.000" y="88.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
-<text x="35.000" y="96.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W2</text>
+<text x="35.000" y="96.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W3</text>
 <text x="47.000" y="96.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Window</text>
-<text x="109.000" y="96.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1297</text>
+<text x="109.000" y="96.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1244</text>
 <text x="139.000" y="96.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
 <text x="165.000" y="96.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
 <text x="195.000" y="96.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
@@ -125,50 +125,30 @@
 <text x="255.000" y="96.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
 <text x="277.000" y="96.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
 <text x="281.000" y="96.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
-<text x="35.000" y="104.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W3</text>
+<text x="35.000" y="104.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W4</text>
 <text x="47.000" y="104.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Window</text>
-<text x="109.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1283</text>
+<text x="109.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
 <text x="139.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
 <text x="165.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
-<text x="195.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
+<text x="195.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
 <text x="225.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="255.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="277.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="255.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="277.000" y="104.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
 <text x="281.000" y="104.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
-<text x="35.000" y="112.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W4</text>
-<text x="47.000" y="112.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Window</text>
-<text x="109.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1275</text>
-<text x="139.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
-<text x="165.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
+<text x="35.000" y="112.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">V1</text>
+<text x="47.000" y="112.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Ventilator</text>
+<text x="109.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">667</text>
+<text x="139.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">450</text>
+<text x="165.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1800</text>
 <text x="195.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="225.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="255.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="277.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="225.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
+<text x="255.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
+<text x="277.000" y="112.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
 <text x="281.000" y="112.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
-<text x="35.000" y="120.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">W5</text>
-<text x="47.000" y="120.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Window</text>
-<text x="109.000" y="120.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
-<text x="139.000" y="120.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1200</text>
-<text x="165.000" y="120.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">900</text>
-<text x="195.000" y="120.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="225.000" y="120.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="255.000" y="120.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="277.000" y="120.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
-<text x="281.000" y="120.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
-<text x="35.000" y="128.000" font-size="2.000" text-anchor="middle" dominant-baseline="alphabetic">V1</text>
-<text x="47.000" y="128.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic">Ventilator</text>
-<text x="109.000" y="128.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">667</text>
-<text x="139.000" y="128.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">450</text>
-<text x="165.000" y="128.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1800</text>
-<text x="195.000" y="128.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">0</text>
-<text x="225.000" y="128.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">2</text>
-<text x="255.000" y="128.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">1</text>
-<text x="277.000" y="128.000" font-size="2.000" text-anchor="end" dominant-baseline="alphabetic">3</text>
-<text x="281.000" y="128.000" font-size="2.000" text-anchor="start" dominant-baseline="alphabetic"></text>
 </g>
 </g>
 <g class="layer" data-layer="A-TITL" stroke="#000000" stroke-width="0.350" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-<polygon points="25.000,34.000 339.000,34.000 339.000,131.000 25.000,131.000" fill="none"/>
+<polygon points="25.000,34.000 339.000,34.000 339.000,115.000 25.000,115.000" fill="none"/>
 <line x1="25.000" y1="43.000" x2="339.000" y2="43.000"/>
 <line x1="25.000" y1="51.000" x2="339.000" y2="51.000"/>
 <line x1="25.000" y1="59.000" x2="339.000" y2="59.000"/>
@@ -178,17 +158,15 @@
 <line x1="25.000" y1="91.000" x2="339.000" y2="91.000"/>
 <line x1="25.000" y1="99.000" x2="339.000" y2="99.000"/>
 <line x1="25.000" y1="107.000" x2="339.000" y2="107.000"/>
-<line x1="25.000" y1="115.000" x2="339.000" y2="115.000"/>
-<line x1="25.000" y1="123.000" x2="339.000" y2="123.000"/>
-<line x1="45.000" y1="34.000" x2="45.000" y2="131.000"/>
-<line x1="81.000" y1="34.000" x2="81.000" y2="131.000"/>
-<line x1="111.000" y1="34.000" x2="111.000" y2="131.000"/>
-<line x1="141.000" y1="34.000" x2="141.000" y2="131.000"/>
-<line x1="167.000" y1="34.000" x2="167.000" y2="131.000"/>
-<line x1="197.000" y1="34.000" x2="197.000" y2="131.000"/>
-<line x1="227.000" y1="34.000" x2="227.000" y2="131.000"/>
-<line x1="257.000" y1="34.000" x2="257.000" y2="131.000"/>
-<line x1="279.000" y1="34.000" x2="279.000" y2="131.000"/>
+<line x1="45.000" y1="34.000" x2="45.000" y2="115.000"/>
+<line x1="81.000" y1="34.000" x2="81.000" y2="115.000"/>
+<line x1="111.000" y1="34.000" x2="111.000" y2="115.000"/>
+<line x1="141.000" y1="34.000" x2="141.000" y2="115.000"/>
+<line x1="167.000" y1="34.000" x2="167.000" y2="115.000"/>
+<line x1="197.000" y1="34.000" x2="197.000" y2="115.000"/>
+<line x1="227.000" y1="34.000" x2="227.000" y2="115.000"/>
+<line x1="257.000" y1="34.000" x2="257.000" y2="115.000"/>
+<line x1="279.000" y1="34.000" x2="279.000" y2="115.000"/>
 </g>
 </g>
 </svg>

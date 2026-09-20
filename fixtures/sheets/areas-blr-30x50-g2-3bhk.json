@@ -2,26 +2,26 @@
   "buildingHeightMm": 10600,
   "coverageAllowedMm2": 90580464,
   "farAllowedMm2": 313547760,
-  "farCountableAreaMm2": 144456675,
-  "footprintAreaMm2": 57290700,
+  "farCountableAreaMm2": 145210500,
+  "footprintAreaMm2": 57925500,
   "perStorey": [
     {
-      "builtUpAreaMm2": 57290700,
+      "builtUpAreaMm2": 57925500,
       "index": 0,
       "label": "Ground floor",
-      "storeyId": "storey_01M1KF7AZKXX7XN6A6872E5002"
+      "storeyId": "storey_01M2Z4FBYWRZQAXG2BQBETBMBE"
     },
     {
-      "builtUpAreaMm2": 47490975,
+      "builtUpAreaMm2": 47610000,
       "index": 1,
       "label": "First floor",
-      "storeyId": "storey_01M1KF7AZPCKKT9WSYWEBP22SW"
+      "storeyId": "storey_01M2Z4FBYXSWW1T381N96Q2X7E"
     },
     {
       "builtUpAreaMm2": 39675000,
       "index": 2,
       "label": "Second floor",
-      "storeyId": "storey_01M1KF7AZQAQJH5XK76NKFDM9E"
+      "storeyId": "storey_01M2Z4FBYY4HWMABF7EVMP2FJP"
     }
   ],
   "plotAreaMm2": 139354560,
@@ -40,29 +40,29 @@
       "kind": "allowance",
       "label": "Ground coverage",
       "limitLabel": "Permissible",
-      "note": "0.41 achieved against 0.65 allowed",
+      "note": "0.42 achieved against 0.65 allowed",
       "ruleIds": [
         "blr.coverage.plot.121-240"
       ],
       "unit": "mm2",
-      "value": 57290700
+      "value": 57925500
     },
     {
-      "key": "built_up.storey_01M1KF7AZKXX7XN6A6872E5002",
+      "key": "built_up.storey_01M2Z4FBYWRZQAXG2BQBETBMBE",
       "kind": "informational",
       "label": "Ground floor built-up",
       "unit": "mm2",
-      "value": 57290700
+      "value": 57925500
     },
     {
-      "key": "built_up.storey_01M1KF7AZPCKKT9WSYWEBP22SW",
+      "key": "built_up.storey_01M2Z4FBYXSWW1T381N96Q2X7E",
       "kind": "informational",
       "label": "First floor built-up",
       "unit": "mm2",
-      "value": 47490975
+      "value": 47610000
     },
     {
-      "key": "built_up.storey_01M1KF7AZQAQJH5XK76NKFDM9E",
+      "key": "built_up.storey_01M2Z4FBYY4HWMABF7EVMP2FJP",
       "kind": "informational",
       "label": "Second floor built-up",
       "unit": "mm2",
@@ -73,7 +73,7 @@
       "kind": "informational",
       "label": "Total built-up",
       "unit": "mm2",
-      "value": 144456675
+      "value": 145210500
     },
     {
       "allowed": 313547760,
@@ -86,7 +86,7 @@
         "blr.far.road.9-18m"
       ],
       "unit": "mm2",
-      "value": 144456675
+      "value": 145210500
     },
     {
       "allowed": 3000,
@@ -111,7 +111,7 @@
         "blr.setback.side.plot.121-240"
       ],
       "unit": "mm",
-      "value": 1589
+      "value": 1244
     },
     {
       "allowed": 1500,
@@ -123,7 +123,7 @@
         "blr.setback.rear.plot.121-240"
       ],
       "unit": "mm",
-      "value": 3500
+      "value": 3845
     },
     {
       "allowed": 1000,
@@ -192,7 +192,7 @@
     {
       "edgeIndex": 1,
       "elementId": "plot.edge.side-b",
-      "providedMm": 1589,
+      "providedMm": 1244,
       "requiredMm": 1000,
       "role": "side-b",
       "ruleIds": [
@@ -204,7 +204,7 @@
     {
       "edgeIndex": 2,
       "elementId": "plot.edge.rear",
-      "providedMm": 3500,
+      "providedMm": 3845,
       "requiredMm": 1500,
       "role": "rear",
       "ruleIds": [
@@ -227,6 +227,6 @@
     }
   ],
   "storeyCount": 3,
-  "totalBuiltUpAreaMm2": 144456675,
+  "totalBuiltUpAreaMm2": 145210500,
   "warnings": []
 }
