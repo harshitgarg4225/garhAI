@@ -135,6 +135,13 @@ export function collectConsoleErrors(page: Page): string[] {
     // how gracefully the app handles it. Everything else still fails the run.
     const url = message.location().url ?? '';
     if (url.endsWith('/auth/refresh') && /\b401\b/.test(message.text())) return;
+    // Same shape, same reason: "has this project a tracing underlay?" can only
+    // be answered by asking, and the API answers a project without one with a
+    // 404 carrying its own `no_underlay` code precisely so the client can show
+    // the empty state (`isNoUnderlay` in lib/api.ts). The browser still logs
+    // the failed fetch. Narrow on purpose — a 404 from any other route, or a
+    // different status on this one, still fails the run.
+    if (url.endsWith('/underlay') && /\b404\b/.test(message.text())) return;
     errors.push(message.text());
   });
   page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
