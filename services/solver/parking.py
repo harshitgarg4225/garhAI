@@ -203,9 +203,32 @@ def bay_size_mm(catalog_path: str | None = None) -> tuple[int, int]:
     return _FALLBACK_BAY_MM
 
 
+#: Where the catalogue lives, in the same precedence the API uses
+#: (garh_api.catalog_data): GARH_CATALOG_DIR first, then <root>/catalog, then
+#: <root>/fixtures/catalog. Resolved here with the stdlib rather than imported,
+#: because the solver worker's image carries fixtures but not the API package.
+_CATALOG_DIR_CANDIDATES: tuple[str, ...] = ("catalog", os.path.join("fixtures", "catalog"))
+
+
 def _default_catalog_path() -> str:
+    """The furniture catalogue the API serves — NOT a hardcoded repo path.
+
+    docker-compose sets GARH_CATALOG_DIR. Reading past it would let the solver place
+    a bay from one catalogue while the rule measured the bay of another, and the two
+    disagreeing by a hundred millimetres is a plan that draws a car the compliance tab
+    then refuses. ``test_parking_catalogue_is_one_source.py`` holds the three readers
+    to the same answer under an override.
+    """
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    return os.path.join(root, "fixtures", "catalog", "furniture.json")
+    override = os.environ.get("GARH_CATALOG_DIR")
+    if override:
+        directory = override if os.path.isabs(override) else os.path.join(root, override)
+        return os.path.join(directory, "furniture.json")
+    for candidate in _CATALOG_DIR_CANDIDATES:
+        path = os.path.join(root, candidate, "furniture.json")
+        if os.path.isfile(path):
+            return path
+    return os.path.join(root, _CATALOG_DIR_CANDIDATES[1], "furniture.json")
 
 
 # ---------------------------------------------------------------------------
