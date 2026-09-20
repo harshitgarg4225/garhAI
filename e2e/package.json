@@ -8,6 +8,7 @@
     "test": "playwright test",
     "test:smoke": "playwright test --grep @smoke",
     "test:canvas": "playwright test --grep @canvas",
+    "test:team": "playwright test --grep @team",
     "test:happy-path": "playwright test --grep @happy-path",
     "test:perf": "playwright test --grep @perf",
     "test:copilot": "playwright test --grep @copilot",

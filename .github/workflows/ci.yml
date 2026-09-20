@@ -675,6 +675,17 @@ jobs:
           API_URL: http://localhost:8000
         run: pnpm --filter @garh/e2e test:canvas
 
+      # J01's other half. Two browser contexts: an admin invites a colleague from
+      # Settings → Team, the colleague opens the link in a context of their own and
+      # signs in, and they land INSIDE the inviter's practice as an editor. No unit
+      # test can assert that join — every fixture already agrees who is in which
+      # firm — and it is the first thing a practice does after signing up.
+      - name: Playwright team invites (J01)
+        env:
+          APP_URL: http://localhost:5173
+          API_URL: http://localhost:8000
+        run: pnpm --filter @garh/e2e test:team
+
       - name: Dump service logs on failure
         if: failure()
         run: docker compose logs --no-color --tail=300

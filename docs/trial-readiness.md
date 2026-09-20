@@ -35,6 +35,53 @@ PASS  sheets appear                     — 10 sheets
 
 ---
 
+## The browser journey: 12 of 12, twice (UAT runs 14 and 15, 2026-09-20)
+
+`e2e/uat/journey.py` walks the same product in a real Chromium against a live stack,
+which is a different question from the API journey above: it can only pass if the
+screens an architect actually touches work.
+
+```
+PASS  Sign up a new practice with the emailed code
+PASS  Dashboard shows the trial usage card with the platform fee     5% platform fee
+PASS  Read the platform fee over the API as the signed-in user       5% (default), cap $5.00
+PASS  Create a project from a ready-made plan                        8 template cards
+PASS  Plan tab: fit all, walls and labels visible, checks populated
+PASS  Compliance tab lists rules with citations and no fail          0 'fail' mentions
+PASS  3D tab renders the massing
+PASS  Generate plans: options arrive from the solver
+PASS  Sheets tab: generate the set and see the sheet list            A-01 … A-06, 10 sheets, 26 s
+PASS  Download the PDF set and the DXF through the app               290,505-byte PDF
+PASS  Share link: create, open anonymously, comment
+PASS  Sign out returns to the login page
+```
+
+Run 13 (earlier the same day) reached 8 of 12: the Sheets step timed out after 240 s
+and took the three steps after it down with it, each reporting a `Locator.click`
+timeout. None of those messages named the cause. **It was the first-run tour** —
+CLAUDE.md bug 9 — holding the keyboard and floating its card over the controls the
+journey was trying to click. The sheets pipeline itself was never at fault: driven
+straight through the API it produced all nine sheets in under a second, which is what
+separated "the product is broken" from "the tour is in the way".
+
+Two things the run recorded that are NOT failures, stated so nobody re-opens them:
+
+- **Seven `404 no_underlay` responses per session.** The underlay panel refetches on
+  every mount, and the Plan tab mounts each time the architect returns to it. The 404
+  is deliberate (`routers/underlay.py`: a distinct code, because "nothing uploaded
+  yet" is a normal state) and the client maps it to `null` rather than an error
+  banner. It is console noise and six redundant round trips, and it is left alone on
+  purpose: caching the answer would trade a real freshness property — a colleague's
+  upload showing up when you come back to the tab — for a tidier console.
+- **One `401` on `POST /auth/refresh`.** The refresh attempt that runs before the
+  session exists. Expected.
+
+Run 15 exists only because run 14's report said "Failed to load resource: 404" with no
+URL, which is a rumour rather than a finding. `journey.py` now records the status and
+URL of every response over 400, and the two entries above are what that showed.
+
+---
+
 ## Generation
 
 |                                          |                                                                                                       |

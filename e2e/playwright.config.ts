@@ -105,6 +105,17 @@ export default defineConfig({
     },
     {
       /*
+       * J01's other half: an admin invites a colleague, the colleague signs in
+       * from a SEPARATE browser context, and they land inside the same practice.
+       * Its own project because it needs two contexts and no canvas, and because
+       * a failure here is an account-model failure rather than a drawing one.
+       */
+      name: 'team',
+      testMatch: /(^|[\\/])team\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 900 } },
+    },
+    {
+      /*
        * Everything that needs a canvas: the Phase 4 DoD, the Phase 9 happy
        * path and the §14 budgets.
        *

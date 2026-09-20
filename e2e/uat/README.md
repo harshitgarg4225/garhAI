@@ -52,12 +52,29 @@ under the project's name (`<project>-drawing-set-<date>.pdf`) rather than a gene
 stem, and run 12 was the first on the merged build wave (drawings, billing, team,
 compliance).
 
+Runs 13, 14 and 15 (2026-09-20). Run 13 reached 8 of 12 and blamed the sheets
+pipeline: "no sheet list within 240 s", then three `Locator.click` timeouts after it.
+The pipeline was fine — driven straight through the API it produced all nine sheets in
+under a second. What was in the way was **the first-run tour**: its card floated over
+the controls and, worse, it held the app keyboard for as long as it was on screen
+(CLAUDE.md bug 9). Runs 14 and 15 passed all twelve steps.
+
+Run 15 exists because of a defect in this harness rather than in the product. Run 14's
+report recorded seven console lines reading "Failed to load resource: the server
+responded with a status of 404" and nothing else — a rumour, not a finding, because a
+404 with no URL cannot be acted on. `journey.py` now attaches a `response` listener and
+records `http <status> <url>` for everything over 400, which turned those seven lines
+into one fact: `GET /projects/:id/underlay` on a project with no underlay, refetched on
+every mount of the Plan tab. Known noise, by the paragraph below.
+
 Read the console, not only the steps. Run 12's twelve green steps carried a real
 defect in their console: the Manifold WebAssembly module behind opening holes in 3D
 never compiled ("expected magic word 00 61 73 6d, found 3c 21 64 6f" — the bytes of
 `<!do`, an HTML page). The loader resolves `manifold.wasm` relative to the bundled
-script, the dev server answers with the SPA fallback, and every session has silently
-run the no-holes fallback. The other console lines are known noise: the six 404s are
+script, the dev server answers with the SPA fallback, and every session had silently
+run the no-holes fallback. **Fixed**: runs 14 and 15 carry no wasm line at all, and
+`three-d.spec.ts` — which asserts the boolean engine's holes against the real module —
+has run green in CI since run 96. The other console lines are known noise: the six 404s are
 `GET /projects/:id/underlay` for a project with no underlay (the client treats that
 `no_underlay` answer as null by design), the React Router v7 future-flag warnings, and
 headless Chromium's software-WebGL notice.
