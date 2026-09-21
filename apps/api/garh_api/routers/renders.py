@@ -43,12 +43,15 @@ from pydantic import Field, StrictInt, StrictStr, field_validator
 from garh_api import queue
 from garh_api.billing.quotas import require_spend_budget
 from garh_api.config import Settings, get_settings
+from garh_api.design_versions import (
+    NoDesignVersionError,
+    design_version_at_head,
+)
 from garh_api.logging import get_logger
 from garh_api.ratelimit import enforce_rate_limit, render_jobs_per_firm_rule
 from garh_api.repositories import (
     AuditLogRepository,
     CreditEventRepository,
-    DesignVersionRepository,
     RenderJobRepository,
     TenantCtx,
 )
@@ -60,7 +63,6 @@ from garh_api.routers import (
     IdempotencyKeyDep,
     SessionDep,
     TenantDep,
-    active_branch,
     build_download_url,
     require_project,
     sign_download_token,
@@ -160,12 +162,6 @@ class PackNotReadyError(ApiError):
     http_status = 409
     code = "render_pack_not_ready"
     action = "Wait for every image in the pack to finish, then download again."
-
-
-class NoDesignVersionError(ApiError):
-    http_status = 409
-    code = "no_design_version"
-    action = "Save the design first, then render."
 
 
 # ---------------------------------------------------------------------------
@@ -482,15 +478,14 @@ async def start_client_pack(
         return RenderPackOut.model_validate(replayed)
 
     try:
-        design_version_id = body.design_version_id
-        if design_version_id is not None:
-            await DesignVersionRepository(session, ctx).require(design_version_id)
-        else:
-            branch = await active_branch(session, ctx, project_id)
-            latest = await DesignVersionRepository(session, ctx).latest(project_id, branch)
-            design_version_id = latest.id if latest is not None else None
+        # The whole pack is one version, minted from the head when the project has
+        # never had a checkpoint (see :mod:`garh_api.design_versions`). Eight shots of
+        # eight different states would not be a client pack.
+        design_version_id = await design_version_at_head(
+            session, ctx, project_id, body.design_version_id, what="render-pack"
+        )
         if design_version_id is None:
-            raise NoDesignVersionError("There's no saved version of this design to render yet.")
+            raise NoDesignVersionError("There's nothing to render yet — this project has no plan.")
 
         pack_id = uuid.uuid4().hex
         base_seed = body.seed if body.seed is not None else _derive_seed(pack_id)

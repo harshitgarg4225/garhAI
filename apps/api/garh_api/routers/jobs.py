@@ -73,12 +73,12 @@ from garh_api.deps import (
     rate_limit_sheet_jobs,
     rate_limit_solver_jobs,
 )
+from garh_api.design_versions import NoDesignVersionError, design_version_at_head
 from garh_api.logging import get_logger
 from garh_api.repositories import (
     AuditLogRepository,
     CreditEventRepository,
     DesignVersionRepository,
-    OpRepository,
     ProjectRepository,
     RenderJobRepository,
     SheetRepository,
@@ -227,82 +227,16 @@ async def _design_version_for_drawing(
     ctx: TenantCtx,
     project_id: uuid.UUID,
     supplied: uuid.UUID | None,
+    *,
+    what: str = "drawing",
 ) -> uuid.UUID | None:
-    """The version a drawing set or an export is *of* — minted here when the head has none.
+    """The version a drawing set, an export or a render is *of*.
 
-    Sheets need a version to be of: an area statement is a statement about one state of
-    the design, reproducible and defensible later. But the architect who presses
-    "Generate the set" means the design on their screen. Before this helper the route
-    answered "save a version first" — and the product has no save-version button, so a
-    project drawn by hand, imported from DXF or started from a ready-made plan could
-    never be drawn at all; a project that HAD an old checkpoint was silently drawn at
-    that checkpoint, hundreds of ops behind the screen. Both were found by the browser
-    UAT.
-
-    A supplied id is honoured as-is. Otherwise: the latest version on the branch when
-    the design has not moved past it, else a fresh checkpoint of the head (snapshot +
-    frozen compliance report, exactly what "save a version" would store). ``None`` means
-    there is nothing to draw — no ops and no version.
+    Kept as a name here because the sheet and export routes read better for it; the
+    behaviour — and the reason a look-only resolver is NOT an option for work that
+    gets queued — lives in :mod:`garh_api.design_versions`.
     """
-    if supplied is not None:
-        await DesignVersionRepository(session, ctx).require(supplied)
-        return supplied
-
-    branch = await active_branch(session, ctx, project_id)
-    op_repo = OpRepository(session, ctx)
-    dv_repo = DesignVersionRepository(session, ctx)
-    head_seq = await op_repo.head_seq(project_id, branch)
-    latest = await dv_repo.latest(project_id, branch)
-    if latest is None and head_seq is None:
-        return None
-    if latest is not None and (
-        head_seq is None or (latest.op_seq_end is not None and latest.op_seq_end >= head_seq)
-    ):
-        return latest.id
-
-    # Imported here, not at module top: projects.py and ops.py are loaded after this
-    # module by the routers package, and the snapshot helpers live there.
-    from garh_api.routers.ops import get_model_engine, load_project_state, wrap_snapshot
-    from garh_api.routers.projects import freeze_compliance_report
-
-    await op_repo.acquire_branch_write_lock(project_id, branch)
-    state = await load_project_state(session, ctx, project_id, branch)
-    head_seq = await op_repo.head_seq(project_id, branch)
-    if (
-        latest is not None
-        and latest.snapshot is not None
-        and state.state_hash is not None
-        and latest.snapshot.get("stateHash") == state.state_hash
-    ):
-        # A version with no recorded op range (older rows) that is nonetheless the head.
-        return latest.id
-
-    engine = get_model_engine()
-    version = await dv_repo.create_checkpoint(
-        project_id,
-        version_branch=branch,
-        snapshot=wrap_snapshot(
-            state.document,
-            version_branch=branch,
-            at_idx=state.head_idx,
-            at_seq=head_seq,
-            state_hash=state.state_hash,
-            schema_version=engine.schema_version,
-        ),
-        op_seq_start=None,
-        op_seq_end=head_seq,
-    )
-    # §7: the area statement on the sheet and the compliance annexure quote ONE set of
-    # numbers, frozen with the snapshot — the same rule POST /versions follows.
-    await freeze_compliance_report(session, ctx, project_id, state.document, version.id)
-    _log.info(
-        "drawing.version_minted",
-        project_id=str(project_id),
-        version_id=str(version.id),
-        at_idx=state.head_idx,
-        behind=None if latest is None else str(latest.id),
-    )
-    return version.id
+    return await design_version_at_head(session, ctx, project_id, supplied, what=what)
 
 
 async def _enqueue_or_rollback(envelope: queue.JobEnvelope) -> int:
@@ -587,9 +521,17 @@ async def start_render(
         return RenderJobOut.model_validate(replayed)
 
     try:
-        design_version_id = await _resolve_design_version(
-            session, ctx, project_id, body.design_version_id
+        # §9: a render is pinned to the version it was made from, and the worker
+        # refuses a job without one. Mint the head's checkpoint when the project has
+        # never had one — the same rule the sheet set follows, and the reason it is
+        # the same helper: a project started from a ready-made plan, drawn by hand or
+        # imported from DXF has ops and no version, and every render it asked for
+        # died in the worker after the API had said yes and charged for it.
+        design_version_id = await _design_version_for_drawing(
+            session, ctx, project_id, body.design_version_id, what="render"
         )
+        if design_version_id is None:
+            raise NoDesignVersionError("There's nothing to render yet — this project has no plan.")
         params: dict[str, Any] = {
             "preset": body.preset,
             "promptExtras": body.prompt_extras,
