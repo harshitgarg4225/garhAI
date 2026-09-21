@@ -24,8 +24,9 @@
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { useModelStore } from '../../stores/model';
 import { useUiStore } from '../../stores/ui';
-import { TOUR_STEPS, clampStep } from './steps';
+import { TOUR_STEPS, autoStartStep, clampStep } from './steps';
 import { Tour } from './Tour';
 import { useTourAnchor } from './useTourAnchor';
 
@@ -49,6 +50,9 @@ export function ProjectTour({
   const setTourStep = useUiStore((s) => s.setTourStep);
   const setTourDone = useUiStore((s) => s.setTourDone);
   const setKeyboardEnabled = useUiStore((s) => s.setKeyboardEnabled);
+  // 'error' counts as settled: a document that would not load has no plan to
+  // know about, and holding the tour back forever would be worse than showing it.
+  const modelSettled = useModelStore((s) => s.status === 'ready' || s.status === 'error');
 
   const open = tourStep !== null;
   const index = tourStep === null ? 0 : clampStep(tourStep);
@@ -62,16 +66,30 @@ export function ProjectTour({
   // they asked for: browser UAT run 13 opened /projects/<id>/plan, the tour opened
   // its Brief step, the navigation effect below pulled the route to /brief, and the
   // plan canvas the architect came for never rendered.
+  //
+  // It also skips the steps that tell someone to BUILD something once there is a
+  // plan (`autoStartStep`). A project started from a ready-made plan arrives with
+  // its plot, brief and house already in the document, and the tour was opening on
+  // "Start with the plot — draw the boundary…" on top of a finished house.
   const autoStarted = useRef(false);
   useEffect(() => {
     if (!autoStart || autoStarted.current) return;
+    // WAIT FOR THE DOCUMENT. The shell renders as soon as the project's metadata
+    // lands and hydrates the op log "a beat later" (stores/project.ts says so in
+    // as many words), so on mount the house is always empty — including for a
+    // project that has one. Deciding here would make every project look new, and
+    // the whole `buildStep` rule below would be dead code that never fired.
+    if (!modelSettled) return;
     autoStarted.current = true;
     if (tourDone || tourStep !== null) return;
-    const here = TOUR_STEPS.findIndex((candidate) => candidate.tab === currentTab);
+    // Read the document once, imperatively: the tour must not re-arm when the
+    // house changes, and `autoStarted` has already closed the door by here.
+    const hasPlan = useModelStore.getState().doc.house.walls.length > 0;
+    const here = autoStartStep(currentTab, { hasPlan });
     if (here < 0) return;
     if (here === 0) startTour();
     else setTourStep(here);
-  }, [autoStart, tourDone, tourStep, currentTab, startTour, setTourStep]);
+  }, [autoStart, modelSettled, tourDone, tourStep, currentTab, startTour, setTourStep]);
 
   // The step's tab must be on screen for its anchor to exist — but ONLY when the
   // step is what moved. Firing this on any tab change makes the tour fight the

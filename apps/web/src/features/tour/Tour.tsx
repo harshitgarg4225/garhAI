@@ -62,12 +62,35 @@ export function placeCard(
   if (anchor === null) return null;
   const below = anchor.top + anchor.height + CARD_GAP;
   const above = anchor.top - CARD_GAP - cardHeight;
-  const top = below + cardHeight <= viewport.height || above < 0 ? below : above;
+  const preferred = below + cardHeight <= viewport.height || above < 0 ? below : above;
+
+  /*
+   * THE CLAMP, and why it is not belt and braces.
+   *
+   * An anchor TALLER THAN THE VIEWPORT has no "below" and no "above": `below`
+   * is past the bottom edge and `above` is negative, and the expression then
+   * picks `below` precisely because `above < 0`. The old code finished with
+   * `Math.max(CARD_GAP, top)`, which raises a card that is too HIGH and does
+   * nothing at all to one that is too LOW.
+   *
+   * Measured on a first run at 1440x900: a project opens on the Brief tab, the
+   * plot step's anchor is the whole Plot panel (top 110, ~800 tall), and the
+   * card was placed at 922px down a 900px viewport. The architect saw an orange
+   * ring around a panel, no explanation of it anywhere, and no way to dismiss
+   * the tour except an Escape key nothing had told them about.
+   *
+   * When neither side fits, the card sits OVER its anchor. Covering part of the
+   * thing you are describing is a poor second best; being off-screen is not a
+   * placement at all.
+   */
+  const lowest = Math.max(CARD_GAP, viewport.height - cardHeight - CARD_GAP);
+  const top = Math.min(Math.max(CARD_GAP, preferred), lowest);
+
   const left = Math.min(
     Math.max(CARD_GAP, anchor.left),
     Math.max(CARD_GAP, viewport.width - CARD_WIDTH - CARD_GAP),
   );
-  return { top: Math.max(CARD_GAP, top), left };
+  return { top, left };
 }
 
 export function Tour({

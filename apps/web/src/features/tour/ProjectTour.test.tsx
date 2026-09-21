@@ -11,6 +11,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { emptyProjectDoc, type ProjectDoc } from '@garh/model';
+
+import { useModelStore } from '../../stores/model';
 import { useUiStore } from '../../stores/ui';
 import { ProjectTour } from './ProjectTour';
 import { TOUR_STEPS } from './steps';
@@ -79,6 +82,31 @@ function mountLive(tab: string): void {
   });
 }
 
+/** A document that arrived with a house in it — a ready-made plan, or a DXF import.
+ *
+ * Deep-cloned, then written through a mutable view: `ProjectDoc` is readonly all the
+ * way down (the model is immutable by construction) and this is the same escape the
+ * three-store specs use.
+ */
+function docWithAPlan(): ProjectDoc {
+  const doc = JSON.parse(JSON.stringify(emptyProjectDoc())) as ProjectDoc;
+  const storeyId = 'storey_01J0000000000000000000000';
+  const house = doc.house as unknown as { storeys: unknown[]; walls: unknown[] };
+  house.storeys = [{ id: storeyId, name: 'Ground Floor', heightMm: 3000 }];
+  house.walls = [
+    {
+      id: 'wall_01J000000000000000000000A',
+      storeyId,
+      a: { x: 0, y: 0 },
+      b: { x: 6000, y: 0 },
+      thicknessMm: 230,
+      heightMm: 3000,
+      kind: 'external',
+    },
+  ];
+  return doc;
+}
+
 function card(): HTMLElement | null {
   const el = document.querySelector('[data-testid="tour-card"]');
   return el instanceof HTMLElement ? el : null;
@@ -96,6 +124,9 @@ beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear();
   useUiStore.setState({ tourStep: null, tourDone: false, keyboardEnabled: true });
+  // 'ready' is the hydrated state; the shell mounts at 'loading' and the tour
+  // waits for this to settle before it decides anything (see the ordering test).
+  useModelStore.setState({ doc: emptyProjectDoc(), status: 'ready' });
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -134,6 +165,86 @@ describe('ProjectTour', () => {
     expect(useUiStore.getState().tourStep).toBe(
       TOUR_STEPS.findIndex((step) => step.tab === 'plan'),
     );
+  });
+
+  /*
+   * READY-MADE PLANS AND THE STEPS THAT TELL YOU TO BUILD ONE.
+   *
+   * Five of the eight cards in the New-project dialog are ready-made plans, and a
+   * project made from one arrives with its plot, its brief and its house already
+   * folded into the document. It opens on the Brief tab, where the first three
+   * steps live — so the very first thing the product said to a new architect was
+   * "Start with the plot. Draw the boundary, type each edge, or import the
+   * surveyor's DXF", pointed at a plot it had just drawn for them.
+   *
+   * Measured in a browser on a fresh account: project created from a ready-made
+   * plan, tour auto-started on step `plot`.
+   *
+   * The negative control is the test above this one — an EMPTY project on the same
+   * tab must still open on `plot`, or this rule would have quietly removed the
+   * first-run tour for everybody.
+   */
+  it('skips the build-it steps for a project that already has a plan', () => {
+    useModelStore.setState({ doc: docWithAPlan() });
+    mount('brief');
+    expect(
+      card(),
+      'the tour opened over a finished house to tell the architect to draw a plot',
+    ).toBeNull();
+    expect(useUiStore.getState().tourStep).toBeNull();
+    // The keyboard is the architect's, immediately — no half-modal in the way.
+    expect(useUiStore.getState().keyboardEnabled).toBe(true);
+  });
+
+  it('...and the lightbulb still walks every step, including the skipped ones', () => {
+    // Asking what the product does is not the same as being told what to do, so
+    // the explicit tour is unchanged. Without this, the fix above would be
+    // indistinguishable from deleting three steps.
+    useModelStore.setState({ doc: docWithAPlan() });
+    mount('brief');
+    act(() => {
+      useUiStore.getState().startTour();
+    });
+    expect(card()?.getAttribute('data-step')).toBe('plot');
+  });
+
+  it('waits for the document before deciding, and decides once it lands', () => {
+    /*
+     * THE ORDERING BUG, and the reason the rule above needs this test to mean
+     * anything.
+     *
+     * `openProject` renders the shell on the project's metadata and hydrates the
+     * op log "fire and forget… a beat later" (stores/project.ts). So at mount the
+     * house is ALWAYS empty — for a ready-made plan exactly as much as for a blank
+     * project — and a tour that decided at mount would read `hasPlan: false` every
+     * single time. The skip would have been unreachable code, and the browser run
+     * that was supposed to confirm the fix showed the tour opening on `plot` over a
+     * finished house for the second time.
+     *
+     * So: nothing while the model is loading, and the decision the moment it is
+     * ready — with the document that actually arrived.
+     */
+    useModelStore.setState({ doc: emptyProjectDoc(), status: 'loading' });
+    mount('brief');
+    expect(card(), 'the tour decided before the document existed').toBeNull();
+
+    act(() => {
+      useModelStore.setState({ doc: docWithAPlan(), status: 'ready' });
+    });
+    expect(card(), 'the plan arrived and the tour still opened on "draw the boundary"').toBeNull();
+    expect(useUiStore.getState().tourStep).toBeNull();
+  });
+
+  it('...and an empty project that loads slowly still gets its tour', () => {
+    // The other half of the same ordering: waiting must not mean never.
+    useModelStore.setState({ doc: emptyProjectDoc(), status: 'loading' });
+    mount('brief');
+    expect(card()).toBeNull();
+
+    act(() => {
+      useModelStore.setState({ doc: emptyProjectDoc(), status: 'ready' });
+    });
+    expect(card()?.getAttribute('data-step')).toBe('plot');
   });
 
   it('auto-start stays shut on a tab no step belongs to, rather than navigating away', () => {

@@ -101,6 +101,42 @@ describe('steps', () => {
       left: 1200 - 360 - 12,
     });
   });
+
+  /*
+   * THE OFF-SCREEN CARD, with the numbers it was measured at.
+   *
+   * An anchor taller than the viewport has no room below it and none above:
+   * `below` is past the bottom edge and `above` is negative, so the placement
+   * picks `below` *because* `above < 0`, and the old final `Math.max` only ever
+   * raised a card that was too high.
+   *
+   * A first run at 1440x900 opens the project on Brief, the plot step anchors
+   * on the whole Plot panel (top 110, ~800 tall), and the card landed at 922px
+   * down a 900px viewport: an orange ring around a panel, no explanation
+   * anywhere, and no way out but an Escape key nothing mentions.
+   */
+  it('keeps the card on screen when the anchor is taller than the viewport', () => {
+    const viewport = { width: 1440, height: 900 };
+    const placed = placeCard({ top: 110, left: 140, width: 1140, height: 800 }, viewport, 220);
+    if (placed === null) throw new Error('an anchor was given, so a placement is owed');
+
+    expect(placed.top + 220, 'the card runs off the bottom of the screen').toBeLessThanOrEqual(
+      viewport.height,
+    );
+    expect(placed.top, 'and off the top').toBeGreaterThanOrEqual(0);
+    // It ends up over its own anchor, which is the honest second best.
+    expect(placed.top).toBe(900 - 220 - 12);
+  });
+
+  it('NEGATIVE CONTROL: an anchor that fits is still placed under it, not clamped', () => {
+    // Without this, "clamp everything to the bottom" would pass the test above
+    // and quietly move every well-placed card in the product.
+    const viewport = { width: 1440, height: 900 };
+    expect(placeCard({ top: 100, left: 50, width: 200, height: 40 }, viewport, 220)).toEqual({
+      top: 152,
+      left: 50,
+    });
+  });
 });
 
 describe('Tour', () => {
