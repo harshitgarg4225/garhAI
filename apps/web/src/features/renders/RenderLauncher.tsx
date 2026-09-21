@@ -11,7 +11,7 @@
  * progress, queue position, cancel and retry all ride Phase 0's machinery.
  */
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, Icon, cn } from '@garh/ui';
@@ -82,6 +82,41 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
     [],
   );
 
+  /*
+   * A RENDER THAT FAILS MUST SAY SO WHERE IT WAS ASKED FOR.
+   *
+   * This panel toasts "Render started" and then goes quiet. The failure is
+   * reported — on the Renders TAB, in the history row, in the worker's own words
+   * — and an architect who pressed Render on the 3D view has no reason to go and
+   * look. Timed in a browser: a job that died in the worker left the 3D view
+   * exactly as it was, with a success toast two minutes in the past, forever.
+   *
+   * So the panel watches the jobs IT started (never the whole project's — a
+   * failure from another tab belongs to that tab) and reports each one once.
+   *
+   * The client pack is deliberately NOT registered here. It starts eight jobs at
+   * once and its own toast sends the architect to the Renders tab to watch them,
+   * where the pack card counts failures in one line. Eight error toasts would be
+   * the same information, stacked, over the view they were told to leave.
+   */
+  const startedHere = useRef(new Map<string, string>());
+  const reported = useRef(new Set<string>());
+  const rows = useJobsStore((s) => s.byProject[project.id]);
+  useEffect(() => {
+    for (const row of rows ?? []) {
+      const label = startedHere.current.get(row.id);
+      if (label === undefined || reported.current.has(row.id)) continue;
+      if (row.status !== 'failed') continue;
+      reported.current.add(row.id);
+      useUiStore.getState().pushToast({
+        tone: 'error',
+        title: 'Render failed',
+        description: `${label} — ${row.error?.message ?? 'The worker could not finish it.'}`,
+        action: { label: 'View renders', run: () => navigate(`/projects/${project.id}/renders`) },
+      });
+    }
+  }, [rows, navigate, project.id]);
+
   // ── one shot ─────────────────────────────────────────────────────────────
   const runSingle = useCallback(
     async (
@@ -113,6 +148,7 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
           inputs: await deliverCaptureSet(project.id, captured),
         };
         const job = await startRender(input);
+        startedHere.current.set(job.id, PRESETS_BY_ID.get(request.preset)?.label ?? request.preset);
         useJobsStore
           .getState()
           .track(project.id, toTrackableJob(job), async () =>
@@ -287,8 +323,16 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
               role="radio"
               aria-checked={item.id === presetId}
               onClick={() => setPresetId(item.id)}
+              /* The labels WRAP; they used to truncate, and sixteen of the
+                 twenty-three presets are "<direction> elevation, <time> light".
+                 In a two-column panel that rendered as four tiles reading
+                 "North elevati…", four reading "East elevatio…", and so on —
+                 the architect could pick a facade but not a time of day, which
+                 is the only thing an elevation preset actually varies. Seen in
+                 a browser at 1440x900; `title` is for the hover, not the fix. */
+              title={item.label}
               className={cn(
-                'flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs',
+                'flex items-start gap-2 rounded-md border px-2 py-1.5 text-left text-xs leading-snug',
                 item.id === presetId
                   ? 'border-brand bg-brand-soft text-brand-ink'
                   : 'border-line text-ink-muted hover:border-line-strong',
@@ -296,12 +340,12 @@ export function RenderLauncher({ className }: { className?: string }): JSX.Eleme
             >
               <span
                 aria-hidden="true"
-                className="h-4 w-4 shrink-0 rounded-full border border-line"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-line"
                 style={{
                   background: `linear-gradient(135deg, ${item.tint}, ${item.tintSecondary})`,
                 }}
               />
-              <span className="truncate">{item.label}</span>
+              <span>{item.label}</span>
             </button>
           ))}
         </div>
