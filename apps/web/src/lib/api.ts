@@ -254,6 +254,8 @@ async function postBinary<T>(
     query?: Readonly<Record<string, QueryValue>>;
     body: Blob;
     contentType: string;
+    /** Extra request headers. Values must already be header-safe ASCII. */
+    headers?: Readonly<Record<string, string>> | undefined;
     parse: (data: unknown) => T;
     signal?: AbortSignal | undefined;
   },
@@ -281,6 +283,7 @@ async function postBinary<T>(
         Accept: 'application/json',
         'Content-Type': input.contentType,
         'Idempotency-Key': newIdempotencyKey(),
+        ...(input.headers ?? {}),
         ...(token === null ? {} : { Authorization: `Bearer ${token}` }),
       },
       credentials: 'include',
@@ -898,6 +901,40 @@ function isNoUnderlay(error: unknown): boolean {
 function uploadContentType(file: Blob, override?: string): string {
   if (override !== undefined && override !== '') return override;
   return file.type === '' ? 'application/octet-stream' : file.type;
+}
+
+/**
+ * The picture's own name, made safe to put in a request header — or `null`.
+ *
+ * A `File` from a picker carries `.name`; a plain `Blob` (a paste, a canvas
+ * capture) does not, and gets `null` rather than an invented one.
+ *
+ * Header values are bytes, not text: a non-ASCII name (a client in Bengaluru
+ * sending `ಅಡುಗೆಮನೆ.jpg`, or an emoji) would make `fetch` throw and take the
+ * whole upload down with it. So the name is percent-encoded here and decoded on
+ * the server, which is what RFC 5987 does for the same reason. Anything that
+ * survives neither is dropped: a nameless picture is a small loss, a failed
+ * upload is not.
+ */
+/**
+ * Every C0 control plus DEL. Matching control characters is the whole point here —
+ * a bare CR/LF in a header value is request splitting — so the rule is off for this
+ * one expression rather than the character class being weakened to satisfy it.
+ */
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
+
+export function referenceFilenameHeader(file: Blob): string | null {
+  const raw = (file as File).name;
+  if (typeof raw !== 'string' || raw === '') return null;
+  // Basename only. A browser will not send a path, but this value is also
+  // reachable from a script, and the server must never be handed one.
+  const base = raw.split(/[\\/]/).pop() ?? '';
+  // Control characters (CR/LF above all) must never reach a header.
+  const clean = base.replace(CONTROL_CHARS, '').trim().slice(0, 200);
+  if (clean === '') return null;
+  const encoded = encodeURIComponent(clean);
+  return encoded === '' ? null : encoded;
 }
 
 /**
@@ -1985,15 +2022,23 @@ export function createApiClient(client: HttpClient = http) {
        * Pin a picture. It arrives UNANNOTATED on purpose — the architect says what
        * it is for in a second step, and until they do, `review` asks them to. A
        * scope guessed from a filename would be wrong silently.
+       *
+       * The NAME, though, is not a guess about the picture: it is what the
+       * architect (or their client) already called the file. Sending it is what
+       * makes a board of eight photos readable, so the header goes with the bytes.
+       * The server treats it as a label only — it never reaches a provider.
        */
-      add: (input: AddReferenceInput): Promise<ProjectReference> =>
-        postBinary(client, {
+      add: (input: AddReferenceInput): Promise<ProjectReference> => {
+        const name = referenceFilenameHeader(input.file);
+        return postBinary(client, {
           path: projectPath(input.projectId, '/references'),
           body: input.file,
           contentType: uploadContentType(input.file, input.contentType),
+          ...(name === null ? {} : { headers: { 'X-Garh-Filename': name } }),
           parse: parser(referenceSchema),
           ...(input.signal === undefined ? {} : { signal: input.signal }),
-        }),
+        });
+      },
 
       /** Answer one or more of the four questions. Absent members are left alone. */
       annotate: (

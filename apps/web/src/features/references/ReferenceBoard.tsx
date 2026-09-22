@@ -102,13 +102,25 @@ export function ReferenceBoard({
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [presetId, setPresetId] = useState(presets[0]?.id ?? '');
+  const [dropping, setDropping] = useState(false);
+  const [skipped, setSkipped] = useState<readonly string[]>([]);
+  /*
+   * DRAGGING OVER A CHILD FIRES `dragleave` ON THE PARENT.
+   *
+   * A board with cards on it is nothing but children, so a boolean toggled by the
+   * two events flickers the highlight off the moment the pointer crosses a card —
+   * which reads as "it stopped accepting the drop" at exactly the moment you are
+   * deciding where to let go. Counting enter/leave is what the DOM's event model
+   * requires; a ref, not state, because the count is bookkeeping nobody renders.
+   */
+  const dragDepth = useRef(0);
 
   useEffect(() => {
     void load(projectId);
   }, [load, projectId]);
 
   const onFiles = useCallback(
-    async (files: FileList | null) => {
+    async (files: FileList | readonly File[] | null) => {
       if (files === null || files.length === 0) return;
       setUploading(true);
       // Sequential, not Promise.all: the server's per-firm upload limit is a real
@@ -123,18 +135,83 @@ export function ReferenceBoard({
     [add, projectId],
   );
 
+  /*
+   * WHAT A CLIENT ACTUALLY SENDS, AND HOW IT GETS HERE.
+   *
+   * Pictures arrive on WhatsApp and in email. The architect saves them to a folder
+   * and then, before this, had to find a button, open a file picker, and navigate
+   * back to that folder. Dropping the files they are already looking at is the
+   * shorter path, and the one every board-shaped product has taught people to try.
+   * `store.ts` even reasoned about "one architect's drag-and-drop" for a drop
+   * target that did not exist.
+   *
+   * Non-images are NAMED rather than silently ignored: a client who sends a PDF of
+   * a magazine page has sent something real, and "nothing happened" is the answer
+   * that makes someone drop it three more times.
+   */
+  const acceptable = useCallback((items: readonly File[]): readonly File[] => {
+    const ok: File[] = [];
+    const rejected: string[] = [];
+    for (const item of items) {
+      if (item.type === 'image/png' || item.type === 'image/jpeg') ok.push(item);
+      else rejected.push(item.name || 'that file');
+    }
+    setSkipped(rejected);
+    return ok;
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent<HTMLElement>) => {
+      event.preventDefault();
+      dragDepth.current = 0;
+      setDropping(false);
+      void onFiles(acceptable(Array.from(event.dataTransfer.files)));
+    },
+    [acceptable, onFiles],
+  );
+
+  const onDragEnter = useCallback((event: React.DragEvent<HTMLElement>) => {
+    // Only a drag carrying FILES: dragging selected text across the board must not
+    // light it up like a target it is not.
+    if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+    dragDepth.current += 1;
+    setDropping(true);
+  }, []);
+
+  const onDragLeave = useCallback(() => {
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDropping(false);
+  }, []);
+
   const presetOptions = useMemo(
     () => presets.map((p) => ({ value: p.id, label: p.label })),
     [presets],
   );
 
   return (
-    <section className={cn('rounded-lg border border-line bg-surface', className)}>
+    <section
+      className={cn(
+        'rounded-lg border bg-surface transition-colors',
+        dropping ? 'border-brand ring-2 ring-brand/30' : 'border-line',
+        className,
+      )}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
+      // Without preventDefault on dragover the browser navigates to the dropped
+      // file and the project disappears — the drop handler never runs at all.
+      onDragOver={(event) => {
+        if (Array.from(event.dataTransfer.types).includes('Files')) event.preventDefault();
+      }}
+      onDrop={onDrop}
+      data-testid="reference-dropzone"
+      data-dropping={dropping ? 'true' : undefined}
+    >
       <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">Inspiration board</h2>
           <p className="text-2xs text-ink-muted">
-            The pictures your client sent, and what each one is for. Renders read this.
+            The pictures your client sent, and what each one is for. Renders read this. Drag them
+            straight in, or use the button.
           </p>
         </div>
         {unannotated > 0 ? <Badge tone="warn">{unannotated} not yet described</Badge> : null}
@@ -164,12 +241,22 @@ export function ReferenceBoard({
         </p>
       ) : null}
 
+      {skipped.length > 0 ? (
+        <p className="border-b border-line px-4 py-2 text-2xs text-warn" role="status">
+          Not added — these are not PNG or JPEG: {skipped.join(', ')}.{' '}
+          <button type="button" className="underline" onClick={() => setSkipped([])}>
+            Dismiss
+          </button>
+        </p>
+      ) : null}
+
       {loading && board.length === 0 ? (
         <p className="px-4 py-6 text-2xs text-ink-muted">Loading the board…</p>
       ) : board.length === 0 ? (
         <p className="px-4 py-6 text-2xs text-ink-muted">
-          Nothing pinned yet. Add the pictures your client sent — then say what each one is for, so
-          renders can use them.
+          {dropping
+            ? 'Drop them here.'
+            : 'Nothing pinned yet. Drag in the pictures your client sent, or press Add pictures — then say what each one is for, so renders can use them.'}
         </p>
       ) : (
         <ul className="divide-y divide-line">

@@ -567,6 +567,19 @@ def _install_cors(app: FastAPI, settings: Settings) -> None:
             "content-type",
             "idempotency-key",
             "last-event-id",
+            # The name of a picture being pinned to the inspiration board. A custom
+            # header on a cross-origin request needs a preflight, and a preflight
+            # needs the header listed HERE — leaving it out does not degrade to "the
+            # name is dropped", it fails the whole upload with a network error the
+            # architect reads as "We couldn't reach Garh AI". Seen in a browser, on
+            # the first run after the header was added.
+            "x-garh-filename",
+            # The name of a picture being pinned to the inspiration board. A custom
+            # header on a cross-origin request needs a preflight, and a preflight
+            # needs the header listed HERE — leaving it out does not degrade to "the
+            # name is dropped", it fails the whole upload with a network error the
+            # architect reads as "We couldn't reach Garh AI". Seen in a browser, on
+            # the first run after the header was added.
             REQUEST_ID_HEADER,
         ],
         expose_headers=[

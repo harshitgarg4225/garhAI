@@ -42,6 +42,34 @@ function message(err: unknown): string {
   return err instanceof Error ? err.message : 'Something went wrong.';
 }
 
+/*
+ * IN-FLIGHT ANSWERS, AND WHY THE REVIEW HAS TO WAIT FOR THEM.
+ *
+ * Every answer on a card commits on BLUR. Clicking "Check before rendering"
+ * blurs the box the architect was typing in, so the PATCH and the review POST
+ * leave the browser in that order — and then race on the server. Lose the race
+ * and the review reads the row as it was a moment ago and asks "What should
+ * <picture> contribute? If you do nothing: it is skipped", about the sentence
+ * the architect just finished writing.
+ *
+ * That is the worst kind of wrong answer this feature can give: it is about
+ * whether the product heard you, it appears exactly when you are being careful,
+ * and pressing the button again makes it go away — which teaches people the
+ * check is noise.
+ *
+ * Module scope rather than store state on purpose: a pending write is not
+ * something any component renders, and putting it in the store would publish a
+ * re-render on every keystroke-commit for no one's benefit.
+ */
+const inFlightWrites = new Set<Promise<void>>();
+
+/** Resolve once every answer written so far has landed (or failed). */
+async function settleWrites(): Promise<void> {
+  // Snapshot: a write that starts AFTER the review was asked for is not one the
+  // architect was waiting on, and awaiting the live set could never terminate.
+  await Promise.allSettled([...inFlightWrites]);
+}
+
 export const useReferenceStore = create<BoardState>((set) => ({
   byProject: {},
   loading: false,
@@ -83,17 +111,25 @@ export const useReferenceStore = create<BoardState>((set) => ({
 
   annotate: async (projectId, id, patch) => {
     set({ error: null });
+    const write = (async () => {
+      try {
+        const updated = await api.references.annotate(projectId, id, patch);
+        set((s) => ({
+          byProject: {
+            ...s.byProject,
+            [projectId]: (s.byProject[projectId] ?? []).map((r) => (r.id === id ? updated : r)),
+          },
+          review: null,
+        }));
+      } catch (err) {
+        set({ error: message(err) });
+      }
+    })();
+    inFlightWrites.add(write);
     try {
-      const updated = await api.references.annotate(projectId, id, patch);
-      set((s) => ({
-        byProject: {
-          ...s.byProject,
-          [projectId]: (s.byProject[projectId] ?? []).map((r) => (r.id === id ? updated : r)),
-        },
-        review: null,
-      }));
-    } catch (err) {
-      set({ error: message(err) });
+      await write;
+    } finally {
+      inFlightWrites.delete(write);
     }
   },
 
@@ -116,6 +152,7 @@ export const useReferenceStore = create<BoardState>((set) => ({
   review_: async (projectId, preset) => {
     set({ reviewing: true, error: null });
     try {
+      await settleWrites();
       set({ review: await api.references.review(projectId, preset), reviewing: false });
     } catch (err) {
       set({ reviewing: false, error: message(err) });

@@ -330,6 +330,62 @@ async def test_cors_is_an_allowlist_never_a_wildcard(client: Any, api: str, sett
     assert hostile.headers.get("access-control-allow-origin") != "https://evil.example"
 
 
+async def test_every_header_the_web_app_sends_survives_a_preflight(
+    client: Any, api: str, settings: Any
+) -> None:
+    """A custom request header is not free: it costs a preflight, and the preflight
+    has to name it.
+
+    Leaving one out does NOT degrade gracefully. The browser refuses to make the
+    request at all, `fetch` rejects, and the app shows its network-failure copy — so
+    a missing entry here reads to an architect as "We couldn't reach Garh AI", with
+    nothing on the server side to look at. That is exactly how `x-garh-filename` was
+    found: a board upload that passed every unit test failed on the first real drop
+    in a browser.
+
+    So the allowlist is asserted against the headers the client actually sends,
+    rather than against itself.
+    """
+    allowed = settings.cors_allow_origins[0]
+    # Keep in step with `postBinary` and `request` in apps/web/src/lib/api.ts.
+    sent = "authorization, content-type, idempotency-key, x-garh-filename"
+    preflight = await client.options(
+        "%s/projects/00000000-0000-0000-0000-000000000000/references" % api,
+        headers={
+            "Origin": allowed,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": sent,
+        },
+    )
+    assert preflight.status_code == 200, preflight.text
+    returned = {
+        h.strip().lower()
+        for h in (preflight.headers.get("access-control-allow-headers") or "").split(",")
+    }
+    for header in (h.strip() for h in sent.split(",")):
+        assert header in returned, (
+            "%s is sent by the web app and refused by the preflight, so every upload "
+            "carrying it fails as a network error: %s" % (header, sorted(returned))
+        )
+
+
+async def test_NEGATIVE_CONTROL_an_unlisted_header_is_not_waved_through(
+    client: Any, api: str, settings: Any
+) -> None:
+    """The allowlist has to be an allowlist, or the test above proves nothing."""
+    allowed = settings.cors_allow_origins[0]
+    preflight = await client.options(
+        "%s/projects" % api,
+        headers={
+            "Origin": allowed,
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "x-not-a-header-we-allow",
+        },
+    )
+    returned = (preflight.headers.get("access-control-allow-headers") or "").lower()
+    assert "x-not-a-header-we-allow" not in returned, returned
+
+
 async def test_healthz_is_unauthenticated_and_cheap(client: Any) -> None:
     """Compose and CI probe this; it must answer without a database round trip."""
     response = await client.get("/healthz")

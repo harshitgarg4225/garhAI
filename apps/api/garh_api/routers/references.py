@@ -19,6 +19,8 @@ thing.
 
 from __future__ import annotations
 
+import unicodedata
+import urllib.parse
 import uuid
 from typing import Any
 
@@ -131,6 +133,40 @@ async def list_references(
     return ReferenceListOut(references=[_out(item, settings=settings) for item in board])
 
 
+def _header_filename(raw: str | None) -> str:
+    """The client's `X-Garh-Filename`, decoded and made safe to store and show.
+
+    WHY A HEADER AT ALL. The board labels every card, and the repository has always
+    preferred the uploaded file's name over "Reference 3" — a client sending eight
+    photos gets eight cards, and `kitchen-tiles.jpg` tells an architect which is
+    which where a counter does not. But the only client that exists posts the raw
+    bytes, not multipart, so the name had nowhere to travel and the fallback was
+    dead code: every board in the product read "Reference 1 … Reference 8", and the
+    pre-render review asked "What should Reference 6 contribute?". Found by
+    uploading three named pictures in a browser and reading the board.
+
+    A NAME IS NOT A GUESS. This product deliberately infers nothing from a picture —
+    not its scope, not its intent, not from the image and not from the filename. The
+    label is the one thing the architect already chose, it is shown back to them for
+    editing, and it never reaches a provider: `build_prompt` is assembled from `why`
+    and `ignore` alone (services/render/references.py).
+
+    WHAT IS DONE TO IT. Header values are bytes, so the client percent-encodes;
+    undecodable input is dropped rather than guessed at. Then: basename only (a path
+    must never survive, whatever a non-browser client sends), control characters
+    stripped, NFC-normalised, and capped — the repository caps at 120 again.
+    """
+    if not raw:
+        return ""
+    try:
+        decoded = urllib.parse.unquote(raw, errors="strict")
+    except (UnicodeDecodeError, ValueError):
+        return ""
+    base = decoded.replace("\\", "/").rsplit("/", 1)[-1]
+    cleaned = "".join(ch for ch in base if ch.isprintable()).strip()
+    return unicodedata.normalize("NFC", cleaned)[:120]
+
+
 @router.post(
     "/projects/{project_id}/references",
     response_model=ReferenceOut,
@@ -184,7 +220,11 @@ async def add_reference(
             )
         data, filename = extracted
     else:
+        # A raw-bytes upload (what the web app sends) has nowhere to put a name, so
+        # the client sends one in a header. See `_header_filename` for why it is
+        # percent-encoded and what is done to it before it is trusted.
         data = body
+        filename = _header_filename(request.headers.get("x-garh-filename"))
     if not data:
         raise InvalidRequestError(
             "That upload was empty.", action="Choose the picture and try again."
